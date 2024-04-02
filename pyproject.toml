@@ -22,6 +22,7 @@ coloredlogs = "^15.0.1"
 [tool.poetry.dev-dependencies]
 pytest = "^8.1.1"
 pydantic = "^2.6.4"
+pydantic-settings = "^2.2.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
