@@ -14,15 +14,11 @@ license = "MIT"
 [tool.poetry.dependencies]
 python = "^3.11"
 pyzmq = "^25.1.2"
-pydantic = ">2.0"
-coloredlogs = "^15.0.1"
-
-# Development dependencies can be specified in this section.
-# These are dependencies needed for development and testing but not in production.
-[tool.poetry.dev-dependencies]
-pytest = "^8.1.1"
 pydantic = "^2.6.4"
+coloredlogs = "^15.0.1"
 pydantic-settings = "^2.2.1"
+numpy = "^1.26.4"
+
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
