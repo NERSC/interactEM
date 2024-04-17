@@ -14,10 +14,6 @@ from zmglue.types import Protocol, ProtocolZmq, URIAssignMessage, URIMessage
 logger = get_logger("container", "DEBUG")
 
 
-# Placeholder classes for the types
-# In practice, these would be imported from their respective module(s)
-
-
 def find_free_port():
     with libsocket.socket(libsocket.AF_INET, libsocket.SOCK_STREAM) as s:
         s.bind(("", 0))
