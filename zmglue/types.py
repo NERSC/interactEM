@@ -52,14 +52,14 @@ class URIShmem(URIBase):
         return f"{self.protocol}://{self.path}"
 
 
-class MessageType(str, Enum):
+class MessageSubject(str, Enum):
     URI_ASSIGN = "uri.assign"
     URI_CONNECT = "uri.connect"
     PIPELINE = "pipeline"
 
 
 class BaseMessage(BaseModel):
-    type: MessageType
+    subject: MessageSubject
 
 
 class URIMessage(BaseMessage, URIBase):
@@ -67,22 +67,22 @@ class URIMessage(BaseMessage, URIBase):
 
 
 class URIAssignMessage(URIMessage):
-    type: MessageType = MessageType.URI_ASSIGN
+    subject: MessageSubject = MessageSubject.URI_ASSIGN
 
 
 class URIConnectMessage(URIMessage):
-    type: MessageType = MessageType.URI_CONNECT
+    subject: MessageSubject = MessageSubject.URI_CONNECT
 
 
 class PipelineMessage(BaseMessage):
-    type: MessageType = MessageType.PIPELINE
+    subject: MessageSubject = MessageSubject.PIPELINE
     pipeline: "PipelineJSON | None" = None
 
 
-MESSAGE_TYPE_TO_MODEL: dict[MessageType, Type[BaseMessage]] = {
-    MessageType.URI_ASSIGN: URIAssignMessage,
-    MessageType.URI_CONNECT: URIConnectMessage,
-    MessageType.PIPELINE: PipelineMessage,
+MESSAGE_SUBJECT_TO_MODEL: dict[MessageSubject, Type[BaseMessage]] = {
+    MessageSubject.URI_ASSIGN: URIAssignMessage,
+    MessageSubject.URI_CONNECT: URIConnectMessage,
+    MessageSubject.PIPELINE: PipelineMessage,
 }
 
 

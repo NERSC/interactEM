@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from zmglue.config import cfg
 from zmglue.logger import get_logger
-from zmglue.types import MessageType, PipelineJSON, PipelineMessage, URIMessage
+from zmglue.types import MessageSubject, PipelineJSON, PipelineMessage, URIMessage
 
 logger = get_logger("agent", "DEBUG")
 

@@ -10,11 +10,11 @@ from pydantic import ValidationError
 from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.types import (
-    MESSAGE_TYPE_TO_MODEL,
+    MESSAGE_SUBJECT_TO_MODEL,
     BaseMessage,
     EdgeJSON,
     IdType,
-    MessageType,
+    MessageSubject,
     NodeJSON,
     NodeType,
     PipelineJSON,
@@ -104,12 +104,12 @@ def handle_pipeline_request(msg: BaseMessage) -> PipelineMessage | None:
 
 def convert_raw_msg_to_model(msg: dict[str, Any]) -> BaseMessage | None:
 
-    msg_type = MessageType(msg.get("type"))
+    msg_type = MessageSubject(msg.get("type"))
     if not msg_type:
         logger.error(f"No message type found in message: {msg}")
         return None
 
-    Model = MESSAGE_TYPE_TO_MODEL.get(msg_type)
+    Model = MESSAGE_SUBJECT_TO_MODEL.get(msg_type)
     if not Model:
         logger.error(f"No model type for message: {msg}")
         return None
