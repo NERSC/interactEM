@@ -1,8 +1,8 @@
-import json
 import signal
 import subprocess
-import sys
+import time
 from pathlib import Path
+from typing import Optional
 from uuid import uuid4
 
 import zmq
@@ -10,7 +10,9 @@ from pydantic import ValidationError
 
 from zmglue.config import cfg
 from zmglue.logger import get_logger
-from zmglue.types import MessageSubject, PipelineJSON, PipelineMessage, URIMessage
+from zmglue.pipeline import Pipeline
+from zmglue.types import PipelineMessage, ProtocolZmq, URIZmq
+from zmglue.zsocket import Socket, SocketInfo
 
 logger = get_logger("agent", "DEBUG")
 
@@ -18,44 +20,108 @@ THIS_FILE = Path(__file__).resolve()
 THIS_DIR = THIS_FILE.parent
 
 
-def terminate_processes(processes):
-    for process in processes.values():
-        logger.info(f"Terminating process {process.pid}")
-        process.terminate()
-        process.wait()
+class Agent:
+    def __init__(self):
+        self.context = zmq.Context()
+        self.req_socket = Socket(
+            SocketInfo(
+                type=zmq.REQ,
+                uris=[
+                    URIZmq(
+                        node_id=uuid4(),  # TODO: these should be optional
+                        port_id=uuid4(),  # TODO: these should be optional
+                        transport_protocol=ProtocolZmq.tcp,
+                        hostname="localhost",
+                        port=cfg.ORCHESTRATOR_PORT,
+                    )
+                ],
+                bind=False,
+            ),
+            self.context,
+            logger,
+        )
+        self.rep_socket = Socket(
+            SocketInfo(
+                type=zmq.REP,
+                uris=[
+                    URIZmq(
+                        node_id=uuid4(),  # TODO: these should be optional
+                        port_id=uuid4(),  # TODO: these should be optional
+                        transport_protocol=ProtocolZmq.tcp,
+                        hostname="*",
+                        interface="lo0",
+                        port=cfg.AGENT_PORT,
+                    )
+                ],
+                bind=True,
+            ),
+            self.context,
+            logger,
+        )
 
+        self.rep_socket.bind_or_connect()
+        self.req_socket.bind_or_connect()
+        self.pipeline: Optional[Pipeline] = None
+        self.processes: dict[str, subprocess.Popen] = {}
 
-def setup_signal_handlers(processes):
-    def signal_handler(sig, frame):
-        logger.info("Signal received, shutting down processes...")
-        terminate_processes(processes)
-        exit(0)
+    def run(self):
+        while self.pipeline is None:
+            response = self.get_pipeline()
+            if response.pipeline:
+                self.pipeline = Pipeline.from_pipeline(response.pipeline)
+            else:
+                time.sleep(1)
 
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
+        self.processes = self.start_nodes()
+        self.setup_signal_handlers()
 
+        try:
+            while True:
+                msg = self.rep_socket.recv_model()
+                logger.debug(f"Received from container: {msg}")
 
-def agent():
-    logger.info("Agent starting...")
-    context = zmq.Context()
-    req_socket = context.socket(zmq.REQ)
-    rep_socket = context.socket(zmq.REP)
+                self.req_socket.send_model(msg)
+                response = self.req_socket.recv_model()
+                logger.debug(f"Received response from orchestrator: {response}")
 
-    logger.info(f"Connecting to orchestrator at {cfg.ORCHESTRATOR_PORT}")
-    req_socket.connect(f"tcp://localhost:{cfg.ORCHESTRATOR_PORT}")
-    logger.info(f"Binding agent to {cfg.AGENT_PORT}")
-    rep_socket.bind(f"tcp://*:{cfg.AGENT_PORT}")
+                self.rep_socket.send_model(response)
+                logger.info(f"Sent URI to container")
+        finally:
+            self.terminate_processes()
 
-    processes = {}
+    def terminate_processes(self):
+        for process in self.processes.values():
+            logger.info(f"Terminating process {process.pid}")
+            process.terminate()
+            process.wait()
 
-    # Request pipeline configuration
-    req_socket.send_json(PipelineMessage().model_dump_json())
-    response = req_socket.recv_json()
-    logger.info(f"Received pipeline configuration: {response}")
+    def setup_signal_handlers(self):
+        def signal_handler(sig, frame):
+            logger.info("Signal received, shutting down processes...")
+            self.terminate_processes()
+            exit(0)
 
-    response = PipelineMessage(**json.loads(response))
-    pipeline = response.pipeline
-    if pipeline:
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+
+    def get_pipeline(self) -> PipelineMessage:
+        self.req_socket.send_model(PipelineMessage())
+        response = self.req_socket.recv_model()
+        logger.info(f"Received pipeline configuration: {response}")
+        if not isinstance(response, PipelineMessage):
+            raise ValueError(f"Invalid response: {response}")
+        return response
+
+    def start_nodes(self) -> dict[str, subprocess.Popen]:
+        processes = {}
+        if not self.pipeline:
+            logger.error("No pipeline configuration found...")
+            return processes
+        try:
+            pipeline = self.pipeline.to_json()
+        except ValidationError as e:
+            logger.error(f"No pipeline configuration found: {e}")
+
         for node in pipeline.nodes:
             script_path = THIS_DIR / "fcontainer.py"
             if script_path.exists():
@@ -67,35 +133,16 @@ def agent():
                     "--port-id",
                     str(uuid4()),
                 ]
-                logger.info(f"Starting process for node {node.image} with id {node.id}")
+                logger.info(f"Starting process for node {node}")
                 process = subprocess.Popen(args)
                 processes[node.id] = process
-                logger.info(
-                    f"Started process {process.pid} for node {node.image} with id {node.id}"
-                )
+                logger.info(f"Started process {process.pid} for node {node} ...")
             else:
-                logger.error(f"No script found for node {node.image}")
+                logger.error(f"No script found for node {node}")
 
-    else:
-        logger.error("No pipeline configuration found, shutting down...")
-        sys.exit(1)
-
-    setup_signal_handlers(processes)
-
-    try:
-        while True:
-            msg = rep_socket.recv_json()
-            logger.info(f"Received from container: {msg}")
-
-            req_socket.send_json(msg)
-            uri_response = req_socket.recv_json()
-            logger.info(f"Received URI response from orchestrator: {uri_response}")
-
-            rep_socket.send_json(uri_response)
-            logger.info(f"Sent URI to container")
-    finally:
-        terminate_processes(processes)
+        return processes
 
 
 if __name__ == "__main__":
-    agent()
+    agent = Agent()
+    agent.run()
