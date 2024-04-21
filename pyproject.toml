@@ -18,6 +18,7 @@ pydantic = "^2.6.4"
 coloredlogs = "^15.0.1"
 pydantic-settings = "^2.2.1"
 numpy = "^1.26.4"
+networkx = "^3.3"
 
 
 [tool.poetry.group.dev.dependencies]
