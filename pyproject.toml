@@ -13,7 +13,7 @@ license = "MIT"
 # Adjust the versions according to your project's requirements.
 [tool.poetry.dependencies]
 python = "^3.11"
-pyzmq = "^25.1.2"
+pyzmq = "^26.0.0"
 pydantic = "^2.6.4"
 coloredlogs = "^15.0.1"
 pydantic-settings = "^2.2.1"
