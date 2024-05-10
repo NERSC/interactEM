@@ -2,66 +2,55 @@ import signal
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import zmq
 from pydantic import ValidationError
 
 from zmglue.config import cfg
+from zmglue.forchestrator import DEFAULT_ORCHESTRATOR_URI
 from zmglue.logger import get_logger
 from zmglue.pipeline import Pipeline
-from zmglue.types import PipelineMessage, ProtocolZmq, URIZmq
+from zmglue.types import PipelineMessage, ProtocolZmq, URILocation, URIZmq
 from zmglue.zsocket import Socket, SocketInfo
 
 logger = get_logger("agent", "DEBUG")
 
 THIS_FILE = Path(__file__).resolve()
 THIS_DIR = THIS_FILE.parent
+DEFAULT_AGENT_URI = URIZmq(
+    id=UUID("583cd5b3-c94d-4644-8be7-dbd4f0570e91"),
+    location=URILocation.agent,
+    transport_protocol=ProtocolZmq.tcp,
+    hostname="localhost",
+    interface="lo0",
+    port=cfg.AGENT_PORT,
+)
 
 
 class Agent:
     def __init__(self):
         self.context = zmq.Context()
         self.req_socket = Socket(
-            SocketInfo(
+            info=SocketInfo(
                 type=zmq.REQ,
-                uris=[
-                    URIZmq(
-                        node_id=uuid4(),  # TODO: these should be optional
-                        port_id=uuid4(),  # TODO: these should be optional
-                        transport_protocol=ProtocolZmq.tcp,
-                        hostname="localhost",
-                        port=cfg.ORCHESTRATOR_PORT,
-                    )
-                ],
+                uris=[DEFAULT_ORCHESTRATOR_URI],
                 bind=False,
             ),
-            self.context,
-            logger,
+            context=self.context,
         )
         self.rep_socket = Socket(
             SocketInfo(
                 type=zmq.REP,
-                uris=[
-                    URIZmq(
-                        node_id=uuid4(),  # TODO: these should be optional
-                        port_id=uuid4(),  # TODO: these should be optional
-                        transport_protocol=ProtocolZmq.tcp,
-                        hostname="*",
-                        interface="lo0",
-                        port=cfg.AGENT_PORT,
-                    )
-                ],
+                uris=[DEFAULT_AGENT_URI],
                 bind=True,
             ),
             self.context,
-            logger,
         )
 
         self.rep_socket.bind_or_connect()
         self.req_socket.bind_or_connect()
-        self.pipeline: Optional[Pipeline] = None
+        self.pipeline: Pipeline | None = None
         self.processes: dict[str, subprocess.Popen] = {}
 
     def run(self):
@@ -85,7 +74,7 @@ class Agent:
                 logger.debug(f"Received response from orchestrator: {response}")
 
                 self.rep_socket.send_model(response)
-                logger.info(f"Sent URI to container")
+                logger.info("Sent URI to container")
         finally:
             self.terminate_processes()
 
@@ -122,7 +111,7 @@ class Agent:
         except ValidationError as e:
             logger.error(f"No pipeline configuration found: {e}")
 
-        for node in pipeline.nodes:
+        for node in pipeline.operators:
             script_path = THIS_DIR / "fcontainer.py"
             if script_path.exists():
                 args = [
@@ -130,8 +119,6 @@ class Agent:
                     str(script_path),
                     "--node-id",
                     str(node.id),
-                    "--port-id",
-                    str(uuid4()),
                 ]
                 logger.info(f"Starting process for node {node}")
                 process = subprocess.Popen(args)
