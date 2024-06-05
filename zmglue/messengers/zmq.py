@@ -7,15 +7,15 @@ from typing import Optional
 from uuid import UUID
 
 import zmq
-from zsocket import Socket, SocketInfo
 
+from zmglue.agent import Agent
 from zmglue.agentclient import AgentClient
 from zmglue.config import cfg
-from zmglue.fagent import Agent
 from zmglue.logger import get_logger
 from zmglue.pipeline import Pipeline
 from zmglue.types import BaseMessage, IdType, URIBase, URIUpdateMessage, URIZmq
 from zmglue.utils import find_free_port
+from zmglue.zsocket import Socket, SocketInfo
 
 logger = get_logger("messenger", "DEBUG")
 
@@ -31,7 +31,7 @@ QueueMap = dict[QueueType, dict[IdType, Queue[BaseMessage]]]
 CLIENT_URI = URIZmq.from_uri(cfg.AGENT_URI)
 
 
-class InterOperatorMessenger:
+class ZmqMessenger:
     OUTPUT_SOCKET_TYPE = zmq.PUSH
     INPUT_SOCKET_TYPE = zmq.PULL
 
@@ -49,6 +49,15 @@ class InterOperatorMessenger:
         self._agent_client = AgentClient(id=node_id, context=self._context)
         self._poller = zmq.Poller()
         self.queues: QueueMap = {}
+
+    def recv(self, src: IdType):
+        self._recv_from_sockets()
+
+    def send(self, message: BaseMessage, dst: IdType):
+        socket = self.output_sockets.get(dst)
+        if not socket:
+            raise ValueError(f"Socket not found for destination {dst}")
+        socket.send_model(message)
 
     def start(self):
         self._get_my_pipeline()
@@ -132,9 +141,7 @@ class InterOperatorMessenger:
                     try:
                         message = socket.recv_model(zmq.DONTWAIT)
                         self.queues[QueueType.input][port_id].put(message)
-                        logger.debug(
-                            f"Message received and queued on port {port_id}."
-                        )
+                        logger.debug(f"Message received and queued on port {port_id}.")
                     except zmq.Again:  # no more messages
                         break
                     except zmq.ZMQError as e:
@@ -145,12 +152,3 @@ class InterOperatorMessenger:
                 else:
                     # If the socket is not ready, move to the next one
                     break
-
-    def recv(self, source: IdType):
-        self._recv_from_sockets()
-
-    def send(self, message: BaseMessage, dest: IdType):
-        socket = self.output_sockets.get(dest)
-        if not socket:
-            raise ValueError(f"Socket not found for destination {dest}")
-        socket.send_model(message)

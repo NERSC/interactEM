@@ -8,7 +8,7 @@ import zmq
 from pydantic import ValidationError
 
 from zmglue.config import cfg
-from zmglue.forchestrator import DEFAULT_ORCHESTRATOR_URI
+from zmglue.orchestrator import DEFAULT_ORCHESTRATOR_URI
 from zmglue.logger import get_logger
 from zmglue.pipeline import Pipeline
 from zmglue.types import PipelineMessage, ProtocolZmq, URILocation, URIZmq
@@ -128,8 +128,3 @@ class Agent:
                 logger.error(f"No script found for node {node}")
 
         return processes
-
-
-if __name__ == "__main__":
-    agent = Agent()
-    agent.run()

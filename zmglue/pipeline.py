@@ -1,5 +1,3 @@
-from uuid import UUID
-
 import networkx as nx
 
 from zmglue.types import (
@@ -56,10 +54,10 @@ class Pipeline(nx.DiGraph):
         ports: list[PortJSON] = []
         edges: list[EdgeJSON] = []
 
-        for id, model in self.operators.items():
+        for model in self.operators.values():
             operators.append(model)
 
-        for id, model in self.ports.items():
+        for model in self.ports.values():
             ports.append(model)
 
         for u, v, _ in self.edges(data=True):
@@ -116,13 +114,13 @@ class Pipeline(nx.DiGraph):
             )
         self.add_edge(edge.input_id, edge.output_id, **edge.model_dump())
 
-    def get_predecessors(self, node_id: UUID) -> list[UUID]:
+    def get_predecessors(self, node_id: IdType) -> list[IdType]:
         return list(self.predecessors(node_id))
 
-    def get_successors(self, node_id: UUID) -> list[UUID]:
+    def get_successors(self, node_id: IdType) -> list[IdType]:
         return list(self.successors(node_id))
 
-    def get_edge_model(self, input_id: UUID, output_id: UUID) -> EdgeJSON:
+    def get_edge_model(self, input_id: IdType, output_id: IdType) -> EdgeJSON:
         edge = self.get_edge_data(input_id, output_id)
         if not edge:
             raise ValueError(f"Edge not found between {input_id} and {output_id}")
@@ -146,7 +144,6 @@ class Pipeline(nx.DiGraph):
         updated_uri = current_uri.model_copy(update=update_data)
         URIBase.model_validate(updated_uri)
 
-        # Update the node data with the modified URI
         current_node["uri"] = updated_uri
 
         return message
@@ -155,7 +152,6 @@ class Pipeline(nx.DiGraph):
         input_id = message.id
 
         output_ids = self.get_predecessors(input_id)
-        print(output_ids)
 
         output_ports = [
             OutputJSON(**p.model_dump())

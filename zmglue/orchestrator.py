@@ -120,8 +120,3 @@ class Orchestrator:
                 self.socket.send_model(response)
             else:
                 logger.debug("No messages received.")
-
-
-if __name__ == "__main__":
-    orchestrator = Orchestrator()
-    orchestrator.run()
