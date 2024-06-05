@@ -1,18 +1,11 @@
 from collections.abc import Sequence
-from contextlib import suppress
 from enum import Enum
 from typing import Any, Optional
 from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import UUID
 
-from pydantic import (
-    BaseModel,
-    PydanticUndefinedAnnotation,
-    ValidationError,
-    model_validator,
-)
+from pydantic import BaseModel, ValidationError, model_validator
 from typing_extensions import Self
-from zmq import Message
 
 IdType = UUID
 NodeID = IdType

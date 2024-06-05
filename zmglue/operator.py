@@ -5,7 +5,7 @@ from io import StringIO
 from queue import Queue
 from typing import Any, Callable, Dict, Optional, Union, cast
 
-from zmglue.messenger import InterOperatorMessenger, QueueMap, QueueType
+from zmglue.messengers.zmq import QueueMap, QueueType, ZmqMessenger
 from zmglue.types import BaseMessage, DataMessage, IdType, MessageSubject, PortKey
 
 
@@ -13,7 +13,7 @@ class Operator:
     def __init__(
         self,
         name: str,
-        messenger: InterOperatorMessenger,
+        messenger: ZmqMessenger,
     ):
         self.name = name
         self.messenger = messenger
