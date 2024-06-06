@@ -104,7 +104,9 @@ class Pipeline(nx.DiGraph):
 
     def add_node_model(self, node: PortJSON | OperatorJSON):
         if self.has_node(node.id):
-            raise ValueError(f"Port {node.id} already exists in the graph.")
+            raise ValueError(
+                f"Node {node.id} already exists in the graph, occured when adding {node.model_dump()}."
+            )
         self.add_node(node.id, **node.model_dump())
 
     def add_edge_model(self, edge: EdgeJSON):
