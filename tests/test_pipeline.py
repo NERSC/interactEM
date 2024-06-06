@@ -4,13 +4,14 @@ import pytest
 
 from zmglue.pipeline import Pipeline
 from zmglue.types import (
+    CommBackend,
     EdgeJSON,
     InputJSON,
     OperatorJSON,
     OutputJSON,
     PipelineJSON,
     PortJSON,
-    ProtocolZmq,
+    Protocol,
     URIBase,
     URIConnectMessage,
     URILocation,
@@ -35,13 +36,14 @@ def node0output(node0id) -> PortJSON:
     id = uuid4()
     return OutputJSON(
         id=id,
-        node_id=node0id,
+        operator_id=node0id,
         portkey="out0",
         uri=URIBase(
             id=id,
-            location=URILocation.node,
+            comm_backend=CommBackend.ZMQ,
+            location=URILocation.port,
             hostname="localhost",
-            transport_protocol=ProtocolZmq.tcp,
+            protocol=Protocol.tcp,
         ),
     )
 
@@ -50,14 +52,14 @@ def node0output(node0id) -> PortJSON:
 def node1input(node1id) -> PortJSON:
     return InputJSON(
         id=uuid4(),
-        node_id=node1id,
+        operator_id=node1id,
         portkey="in1",
     )
 
 
 @pytest.fixture
 def node0(node0output) -> OperatorJSON:
-    id = node0output.node_id
+    id = node0output.operator_id
     return OperatorJSON(
         id=id,
         params={"hello": "world"},
@@ -67,11 +69,11 @@ def node0(node0output) -> OperatorJSON:
 
 @pytest.fixture
 def node1(node1input) -> OperatorJSON:
-    id = node1input.node_id
+    id = node1input.operator_id
     return OperatorJSON(
         id=id,
         params={"hello": "world"},
-        outputs=[node1input.id],
+        inputs=[node1input.id],
     )
 
 
@@ -158,7 +160,8 @@ def test_update_uri(pipeline, node0output):
     p = Pipeline.from_pipeline(pipeline)
     update_message = URIUpdateMessage(
         id=node0output.id,
-        location=URILocation.node,
+        location=URILocation.port,
+        comm_backend=CommBackend.ZMQ,
         portkey=node0output.portkey,
         hostname="updated.com",
         interface="eth0",
@@ -172,7 +175,7 @@ def test_update_uri(pipeline, node0output):
     assert updated_uri.hostname == "updated.com"
     assert updated_uri.port == 9090
     assert updated_uri.interface == "eth0"
-    assert updated_uri.transport_protocol == ProtocolZmq.tcp
+    assert updated_uri.protocol == Protocol.tcp
 
 
 def test_add_node_model_duplicate_error(pipeline, node0):
@@ -195,7 +198,8 @@ def test_update_uri_partial(pipeline, node0output):
     initial_uri = node0output.uri
     update_message = URIUpdateMessage(
         id=node0output.id,
-        location=URILocation.node,
+        comm_backend=CommBackend.ZMQ,
+        location=URILocation.port,
         hostname="updated.com",
     )
     p.update_uri(update_message)

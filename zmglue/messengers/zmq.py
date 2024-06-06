@@ -98,11 +98,11 @@ class ZmqMessenger(BaseMessenger):
 
         node_id = self._id
 
-        for id, input in pipeline.get_node_inputs(node_id).items():
+        for id, input in pipeline.get_operator_inputs(node_id).items():
             self._add_socket(input.id, is_output=False)
             self.queues[QueueType.input][input.id] = Queue()
 
-        for id, output in pipeline.get_node_outputs(node_id).items():
+        for id, output in pipeline.get_operator_outputs(node_id).items():
             self._add_socket(output.id, is_output=True, uris=[output.uri])
             self.queues[QueueType.output][output.id] = Queue()
 
