@@ -15,6 +15,7 @@ PortKey = str
 
 class CommBackend(str, Enum):
     ZMQ = "zmq"
+    MPI = "mpi"
 
 
 class Protocol(str, Enum):
@@ -90,10 +91,13 @@ class URIBase(BaseModel):
             portkey=portkey,
         )
 
-        if portkey:
-            specific_class = URIZmqPort
-        elif protocol:
-            specific_class = URIZmq
+        if comm_backend == CommBackend.ZMQ:
+            if portkey:
+                specific_class = URIZmqPort
+            else:
+                specific_class = URIZmq
+        elif comm_backend == CommBackend.MPI:
+            specific_class = URIMPI
         else:
             return base
 
@@ -138,6 +142,21 @@ class URIZmq(URIBase):
 class URIZmqPort(URIZmq):
     portkey: PortKey  # type: ignore
     location: URILocation = URILocation.port
+
+
+class URIMPI(URIBase):
+    protocol: Protocol | None = None  # MPI doesn't use transport protocol
+    port: int | None = None  # MPI doesn't use port
+    hostname_bind: str | None = None
+    interface: str | None = None
+
+    def to_connect_address(self) -> str:
+        return f"mpi://{self.hostname}"
+
+    @classmethod
+    def from_uri(cls, uri: str) -> "URIMPI":
+        base = super().from_uri(uri)
+        return cls(**base.model_dump())
 
 
 class MessageSubject(str, Enum):
