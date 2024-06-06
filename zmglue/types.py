@@ -149,7 +149,6 @@ class MessageSubject(str, Enum):
     URI_CONNECT = "uri.connect"
     URI_CONNECT_RESPONSE = "uri.connect.response"
     DATA = "data"
-    SHMEM = "shmem"
     PIPELINE = "pipeline"
     ERROR = "error"
 
@@ -192,19 +191,12 @@ class DataMessage(BaseMessage):
     data: bytes
 
 
-class ShmMessage(BaseMessage):
-    subject: MessageSubject = MessageSubject.SHMEM
-    name: str
-    size: int
-
-
 MESSAGE_SUBJECT_TO_MODEL: dict[MessageSubject, type[BaseMessage]] = {
     MessageSubject.URI_UPDATE: URIUpdateMessage,
     MessageSubject.URI_CONNECT: URIConnectMessage,
     MessageSubject.PIPELINE: PipelineMessage,
     MessageSubject.ERROR: ErrorMessage,
     MessageSubject.DATA: DataMessage,
-    MessageSubject.SHMEM: ShmMessage,
     MessageSubject.URI_CONNECT_RESPONSE: URIConnectResponseMessage,
 }
 
