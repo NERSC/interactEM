@@ -105,8 +105,8 @@ class URIBase(BaseModel):
 
 
 class URIZmq(URIBase):
-    protocol: Protocol
-    port: int
+    protocol: Protocol  # type: ignore
+    port: int  # type: ignore
     hostname_bind: str | None = None
     interface: str | None = None
 
@@ -246,7 +246,7 @@ class InputJSON(PortJSON):
 
 class OutputJSON(PortJSON):
     port_type: PortType = PortType.output
-    uri: URIBase
+    uri: URIBase  # type: ignore
 
 
 class OperatorJSON(PipelineNodeJSON):
