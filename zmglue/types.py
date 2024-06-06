@@ -13,18 +13,18 @@ PortID = IdType
 PortKey = str
 
 
+class CommBackend(str, Enum):
+    ZMQ = "zmq"
+
+
 class Protocol(str, Enum):
-    Zmq = "zmq"
-
-
-class ProtocolZmq(str, Enum):
     tcp = "tcp"
     inproc = "inproc"
     ipc = "ipc"
 
 
 class URILocation(str, Enum):
-    node = "node"
+    port = "port"
     agent = "agent"
     orchestrator = "orchestrator"
 
@@ -33,8 +33,8 @@ class URIBase(BaseModel):
     id: UUID
     location: URILocation
     hostname: str
-    protocol: Protocol = Protocol.Zmq
-    transport_protocol: ProtocolZmq | None = None
+    comm_backend: CommBackend
+    protocol: Protocol | None = None
     interface: str | None = None
     port: int | None = None
     hostname_bind: str | None = None
@@ -43,9 +43,7 @@ class URIBase(BaseModel):
     def to_uri(self) -> str:
         base_path = f"/{self.location.value}/{self.id}"
         query_params = {
-            "transport_protocol": (
-                self.transport_protocol.value if self.transport_protocol else None
-            ),
+            "protocol": (self.protocol.value if self.protocol else None),
             "port": self.port,
             "interface": self.interface,
             "hostname_bind": self.hostname_bind,
@@ -54,14 +52,14 @@ class URIBase(BaseModel):
         query_string = urlencode(
             {k: v for k, v in query_params.items() if v is not None}
         )
-        return f"{self.protocol.value}://{self.hostname}{base_path}?{query_string}"
+        return f"{self.comm_backend.value}://{self.hostname}{base_path}?{query_string}"
 
     @classmethod
     def from_uri(cls, uri: str) -> "URIBase":
         parsed_uri = urlparse(uri)
         query_params = parse_qs(parsed_uri.query)
 
-        protocol = Protocol(parsed_uri.scheme)
+        comm_backend = CommBackend(parsed_uri.scheme)
 
         location, id_str = parsed_uri.path.strip("/").split("/")
         id = UUID(id_str)
@@ -70,10 +68,8 @@ class URIBase(BaseModel):
         if not hostname:
             raise ValueError("Hostname must be set in URI.")
 
-        transport_protocol = query_params.get("transport_protocol", [None])[0]
-        transport_protocol = (
-            ProtocolZmq(transport_protocol) if transport_protocol else None
-        )
+        protocol = query_params.get("protocol", [None])[0]
+        protocol = Protocol(protocol) if protocol else None
 
         port = query_params.get("port", [0])[0]
         port = int(port) if port else None
@@ -84,10 +80,10 @@ class URIBase(BaseModel):
 
         base = cls(
             id=id,
-            protocol=protocol,
+            comm_backend=comm_backend,
             location=URILocation(location),
             hostname=hostname,
-            transport_protocol=transport_protocol,
+            protocol=protocol,
             port=port,
             interface=interface,
             hostname_bind=hostname_bind,
@@ -96,7 +92,7 @@ class URIBase(BaseModel):
 
         if portkey:
             specific_class = URIZmqPort
-        elif transport_protocol:
+        elif protocol:
             specific_class = URIZmq
         else:
             return base
@@ -105,7 +101,7 @@ class URIBase(BaseModel):
 
 
 class URIZmq(URIBase):
-    transport_protocol: ProtocolZmq
+    protocol: Protocol
     port: int
     hostname_bind: str | None = None
     interface: str | None = None
@@ -113,13 +109,13 @@ class URIZmq(URIBase):
     def to_connect_address(self) -> str:
         if not self.hostname:
             raise ValueError("Hostname must be set to generate connect address.")
-        return f"{self.transport_protocol.value}://{self.hostname}:{self.port}"
+        return f"{self.protocol.value}://{self.hostname}:{self.port}"
 
     def to_bind_address(self) -> str:
         if self.hostname_bind:
-            return f"{self.transport_protocol.value}://{self.hostname_bind}:{self.port}"
+            return f"{self.protocol.value}://{self.hostname_bind}:{self.port}"
         elif self.interface:
-            return f"{self.transport_protocol.value}://{self.interface}:{self.port}"
+            return f"{self.protocol.value}://{self.interface}:{self.port}"
         else:
             raise ValueError(
                 "Either hostname_bind or interface must be set to generate bind address."
@@ -140,8 +136,8 @@ class URIZmq(URIBase):
 
 
 class URIZmqPort(URIZmq):
-    portkey: PortKey
-    location: URILocation = URILocation.node
+    portkey: PortKey  # type: ignore
+    location: URILocation = URILocation.port
 
 
 class MessageSubject(str, Enum):
@@ -220,7 +216,7 @@ class PortJSON(PipelineNodeJSON):
     id: IdType
     node_type: NodeType = NodeType.port
     port_type: PortType
-    node_id: IdType
+    operator_id: IdType
     portkey: PortKey
     uri: Optional[URIBase] = None
 

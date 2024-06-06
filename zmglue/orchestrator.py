@@ -11,9 +11,10 @@ from zmglue.logger import get_logger
 from zmglue.pipeline import Pipeline
 from zmglue.types import (
     BaseMessage,
+    CommBackend,
     ErrorMessage,
     PipelineMessage,
-    ProtocolZmq,
+    Protocol,
     URIConnectMessage,
     URIConnectResponseMessage,
     URILocation,
@@ -28,7 +29,8 @@ logger = get_logger("forchestrator", "DEBUG")
 DEFAULT_ORCHESTRATOR_URI = URIZmq(
     id=uuid4(),
     location=URILocation.orchestrator,
-    transport_protocol=ProtocolZmq.tcp,
+    comm_backend=CommBackend.ZMQ,
+    protocol=Protocol.tcp,
     hostname="localhost",
     hostname_bind="*",
     port=cfg.ORCHESTRATOR_PORT,

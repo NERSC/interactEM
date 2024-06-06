@@ -8,10 +8,10 @@ import zmq
 from pydantic import ValidationError
 
 from zmglue.config import cfg
-from zmglue.orchestrator import DEFAULT_ORCHESTRATOR_URI
 from zmglue.logger import get_logger
+from zmglue.orchestrator import DEFAULT_ORCHESTRATOR_URI
 from zmglue.pipeline import Pipeline
-from zmglue.types import PipelineMessage, ProtocolZmq, URILocation, URIZmq
+from zmglue.types import CommBackend, PipelineMessage, Protocol, URILocation, URIZmq
 from zmglue.zsocket import Socket, SocketInfo
 
 logger = get_logger("agent", "DEBUG")
@@ -20,8 +20,9 @@ THIS_FILE = Path(__file__).resolve()
 THIS_DIR = THIS_FILE.parent
 DEFAULT_AGENT_URI = URIZmq(
     id=UUID("583cd5b3-c94d-4644-8be7-dbd4f0570e91"),
+    comm_backend=CommBackend.ZMQ,
     location=URILocation.agent,
-    transport_protocol=ProtocolZmq.tcp,
+    protocol=Protocol.tcp,
     hostname="localhost",
     interface="lo0",
     port=cfg.AGENT_PORT,

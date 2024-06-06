@@ -2,38 +2,34 @@ import traceback
 from abc import ABC, abstractmethod
 from functools import wraps
 from io import StringIO
-from queue import Queue
 from typing import Any, Callable, Dict, Optional, Union, cast
 
-from zmglue.messengers.zmq import QueueMap, QueueType, ZmqMessenger
+from zmglue.agentclient import AgentClient
+from zmglue.messengers.base import BaseMessenger
+from zmglue.messengers.zmq import ZmqMessenger
+from zmglue.pipeline import Pipeline
 from zmglue.types import BaseMessage, DataMessage, IdType, MessageSubject, PortKey
 
 
 class Operator:
     def __init__(
         self,
-        name: str,
-        messenger: ZmqMessenger,
+        id: IdType,
     ):
-        self.name = name
-        self.messenger = messenger
-        self.queues: QueueMap = {QueueType.input: {}, QueueType.output: {}}
+        self.id = id
+        self.messenger: BaseMessenger | None = None
+        self.pipeline: Pipeline | None = None
+        self.client = AgentClient(id=id)
 
     def start(self):
+        self.get_my_pipeline()
 
-        self.messenger.queues = self.queues
-        self.messenger.start()
+    def get_my_pipeline(self):
+        while self.pipeline is None:
+            response = self.client.get_pipeline()
+            if response.pipeline:
+                self.pipeline = Pipeline.from_pipeline(response.pipeline)
 
-        self.input_queues = self.queues[QueueType.input]
-        self.output_queues = self.queues[QueueType.output]
-
-        while True:
-            for port_id in self.input_queues.keys():
-                msg = self.messenger.recv(port_id)
-
-            for port_id, q in self.input_queues.items():
-                message = q.get()
-                self.messenger.send(message, port_id)
             #     if message is None:
             #         continue
             #     if message.subject == MessageSubject.SHMEM:

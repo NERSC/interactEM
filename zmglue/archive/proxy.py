@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from zmglue.logger import get_logger
 from zmglue.types import (
     ErrorMessage,
-    ProtocolZmq,
+    Protocol,
     QueueMessage,
     QueueMessageAction,
     StatusMessage,
@@ -43,7 +43,7 @@ class ShmemQueueSocket(Socket):
                 URIZmq(
                     node_id=uuid4(),
                     port_id=uuid4(),
-                    transport_protocol=ProtocolZmq.tcp,
+                    transport_protocol=Protocol.tcp,
                     hostname="localhost",
                     hostname_bind="*",
                     port=5554,
@@ -58,7 +58,7 @@ class ShmemQueueSocket(Socket):
                 URIZmq(
                     node_id=uuid4(),
                     port_id=uuid4(),
-                    transport_protocol=ProtocolZmq.tcp,
+                    transport_protocol=Protocol.tcp,
                     hostname="localhost",
                     hostname_bind="*",
                     port=5556,
@@ -73,7 +73,7 @@ class ShmemQueueSocket(Socket):
                 URIZmq(
                     node_id=uuid4(),
                     port_id=uuid4(),
-                    transport_protocol=ProtocolZmq.ipc,
+                    transport_protocol=Protocol.ipc,
                     hostname="localhost",
                     port=5555,
                 )
@@ -106,7 +106,7 @@ class ProxyFrontendWorker:
                     URIZmq(
                         node_id=uuid4(),
                         port_id=uuid4(),
-                        transport_protocol=ProtocolZmq.tcp,
+                        transport_protocol=Protocol.tcp,
                         hostname="localhost",
                         hostname_bind="*",
                         port=5554,
@@ -125,7 +125,7 @@ class ProxyFrontendWorker:
                     URIZmq(
                         node_id=uuid4(),
                         port_id=uuid4(),
-                        transport_protocol=ProtocolZmq.ipc,
+                        transport_protocol=Protocol.ipc,
                         hostname="localhost",
                         port=5555,
                     )
@@ -180,7 +180,7 @@ class ProxyBackendWorker:
                     URIZmq(
                         node_id=uuid4(),
                         port_id=uuid4(),
-                        transport_protocol=ProtocolZmq.tcp,
+                        transport_protocol=Protocol.tcp,
                         hostname="localhost",
                         hostname_bind="*",
                         port=5556,
@@ -199,7 +199,7 @@ class ProxyBackendWorker:
                     URIZmq(
                         node_id=uuid4(),
                         port_id=uuid4(),
-                        transport_protocol=ProtocolZmq.ipc,
+                        transport_protocol=Protocol.ipc,
                         hostname="localhost",
                         port=5555,
                     )
@@ -266,7 +266,7 @@ class ProxyHub:
                     URIZmq(
                         node_id=uuid4(),
                         port_id=uuid4(),
-                        transport_protocol=ProtocolZmq.ipc,
+                        transport_protocol=Protocol.ipc,
                         hostname="localhost",
                         hostname_bind="localhost",
                         port=5555,
@@ -345,7 +345,7 @@ class Proxy:
                     URIZmq(
                         node_id=uuid4(),
                         port_id=uuid4(),
-                        transport_protocol=ProtocolZmq.tcp,
+                        transport_protocol=Protocol.tcp,
                         hostname="localhost",
                         port=5554,
                     )
@@ -364,7 +364,7 @@ class Proxy:
                     URIZmq(
                         node_id=uuid4(),
                         port_id=uuid4(),
-                        transport_protocol=ProtocolZmq.tcp,
+                        transport_protocol=Protocol.tcp,
                         hostname="localhost",
                         port=5556,
                     )

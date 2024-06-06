@@ -83,19 +83,19 @@ class Pipeline(nx.DiGraph):
             if data["node_type"] == NodeType.port
         }
 
-    def get_ports_for_node(self, node_id: IdType) -> dict[IdType, PortJSON]:
-        return {k: v for k, v in self.ports.items() if v.node_id == node_id}
+    def get_operator_ports(self, operator_id: IdType) -> dict[IdType, PortJSON]:
+        return {k: v for k, v in self.ports.items() if v.operator_id == operator_id}
 
-    def get_node_outputs(self, node_id: IdType) -> dict[IdType, OutputJSON]:
-        ports = self.get_ports_for_node(node_id)
+    def get_operator_outputs(self, operator_id: IdType) -> dict[IdType, OutputJSON]:
+        ports = self.get_operator_ports(operator_id)
         return {
             k: OutputJSON(**v.model_dump())
             for k, v in ports.items()
             if v.port_type == PortType.output
         }
 
-    def get_node_inputs(self, node_id: IdType) -> dict[IdType, InputJSON]:
-        ports = self.get_ports_for_node(node_id)
+    def get_operator_inputs(self, operator_id: IdType) -> dict[IdType, InputJSON]:
+        ports = self.get_operator_ports(operator_id)
         return {
             k: InputJSON(**v.model_dump())
             for k, v in ports.items()

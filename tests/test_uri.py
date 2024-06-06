@@ -2,16 +2,17 @@ from uuid import uuid4
 
 import pytest
 
-from zmglue.types import ProtocolZmq, URILocation, URIZmq, URIZmqPort
+from zmglue.types import CommBackend, Protocol, URILocation, URIZmq, URIZmqPort
 
 
 @pytest.fixture
 def urizmq_instance():
     return URIZmq(
         id=uuid4(),
-        location=URILocation.node,
+        location=URILocation.port,
         hostname="example.com",
-        transport_protocol=ProtocolZmq.tcp,
+        comm_backend=CommBackend.ZMQ,
+        protocol=Protocol.tcp,
         port=1234,
         interface="eth0",
     )
@@ -21,16 +22,17 @@ def urizmq_instance():
 def urizmq_port_instance():
     return URIZmqPort(
         id=uuid4(),
-        location=URILocation.node,
+        location=URILocation.port,
         hostname="example.com",
-        transport_protocol=ProtocolZmq.inproc,
+        protocol=Protocol.inproc,
+        comm_backend=CommBackend.ZMQ,
         port=1234,
         portkey="data_port",
     )
 
 
 def test_to_uri(urizmq_instance):
-    expected_uri = f"zmq://{urizmq_instance.hostname}/{urizmq_instance.location.value}/{urizmq_instance.id}?transport_protocol=tcp&port=1234&interface=eth0"
+    expected_uri = f"zmq://{urizmq_instance.hostname}/{urizmq_instance.location.value}/{urizmq_instance.id}?protocol=tcp&port=1234&interface=eth0"
     assert urizmq_instance.to_uri() == expected_uri
 
 
@@ -61,7 +63,7 @@ def test_from_uri(urizmq_instance):
 
 
 def test_urizmq_port_to_uri(urizmq_port_instance):
-    expected_uri = f"zmq://{urizmq_port_instance.hostname}/{urizmq_port_instance.location.value}/{urizmq_port_instance.id}?transport_protocol=inproc&port=1234&portkey=data_port"
+    expected_uri = f"zmq://{urizmq_port_instance.hostname}/{urizmq_port_instance.location.value}/{urizmq_port_instance.id}?protocol=inproc&port=1234&portkey=data_port"
     assert urizmq_port_instance.to_uri() == expected_uri
 
 

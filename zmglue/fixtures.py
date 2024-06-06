@@ -1,6 +1,6 @@
 from uuid import uuid4
 
-from zmglue.types import EdgeJSON, PipelineJSON, ProtocolZmq, URIBase, URILocation
+from zmglue.types import EdgeJSON, PipelineJSON, Protocol, URIBase, URILocation
 
 NODE_0_ID = uuid4()
 NODE_0 = NodeJSON(
@@ -12,7 +12,7 @@ NODE_0 = NodeJSON(
             location=URILocation.node,
             hostname="localhost",
             interface="lo0",
-            transport_protocol=ProtocolZmq.tcp,
+            protocol=Protocol.tcp,
             portkey="out1",
         )
     },
