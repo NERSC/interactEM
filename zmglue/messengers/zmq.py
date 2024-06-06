@@ -17,6 +17,8 @@ from zmglue.types import BaseMessage, IdType, URIBase, URIUpdateMessage, URIZmq
 from zmglue.utils import find_free_port
 from zmglue.zsocket import Socket, SocketInfo
 
+from .base import BaseMessenger
+
 logger = get_logger("messenger", "DEBUG")
 
 
@@ -31,7 +33,7 @@ QueueMap = dict[QueueType, dict[IdType, Queue[BaseMessage]]]
 CLIENT_URI = URIZmq.from_uri(cfg.AGENT_URI)
 
 
-class ZmqMessenger:
+class ZmqMessenger(BaseMessenger):
     OUTPUT_SOCKET_TYPE = zmq.PUSH
     INPUT_SOCKET_TYPE = zmq.PULL
 
