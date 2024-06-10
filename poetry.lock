@@ -591,6 +591,27 @@ pyyaml = "*"
 toml = "*"
 
 [[package]]
+name = "podman-hpc-py"
+version = "0.1.dev1+g7b118ef"
+description = ""
+optional = false
+python-versions = "*"
+files = []
+develop = true
+
+[package.dependencies]
+podman = "*"
+podman-hpc = "1.1.0"
+pyyaml = "*"
+
+[package.extras]
+test = ["pytest"]
+
+[package.source]
+type = "directory"
+url = "thirdparty/podman-hpc-py"
+
+[[package]]
 name = "pre-commit"
 version = "3.7.0"
 description = "A framework for managing and maintaining multi-language pre-commit hooks."
@@ -1124,4 +1145,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "0a94b34597810c9e3a1de427ff650299692fd1ab7aaa2d825c7563b0acac9809"
+content-hash = "a4cf15083bc0d7997bd8eef779230cbae0267e68bae24d6d1b418b75fad2004e"

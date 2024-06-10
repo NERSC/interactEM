@@ -22,6 +22,7 @@ networkx = "^3.3"
 podman-hpc = "1.1.0"
 pyyaml = "^6.0"
 podman = "^5.0.0"
+podman-hpc-py = { path = "thirdparty/podman-hpc-py", develop = true }
 
 
 [tool.poetry.group.dev.dependencies]
