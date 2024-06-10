@@ -109,6 +109,7 @@ class URIZmq(URIBase):
     port: int  # type: ignore
     hostname_bind: str | None = None
     interface: str | None = None
+    comm_backend: CommBackend = CommBackend.ZMQ
 
     def to_connect_address(self) -> str:
         if not self.hostname:
@@ -255,6 +256,7 @@ class OperatorJSON(PipelineNodeJSON):
     params: dict[str, Any] = {}
     inputs: list[IdType] = []
     outputs: list[IdType] = []
+    uri: URIBase
 
 
 class EdgeJSON(BaseModel):

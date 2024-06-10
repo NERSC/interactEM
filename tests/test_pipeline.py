@@ -64,6 +64,12 @@ def node0(node0output) -> OperatorJSON:
         id=id,
         params={"hello": "world"},
         outputs=[node0output.id],
+        uri=URIBase(
+            id=id,
+            comm_backend=CommBackend.ZMQ,
+            location=URILocation.operator,
+            hostname="localhost",
+        ),
     )
 
 
@@ -74,6 +80,12 @@ def node1(node1input) -> OperatorJSON:
         id=id,
         params={"hello": "world"},
         inputs=[node1input.id],
+        uri=URIBase(
+            id=id,
+            comm_backend=CommBackend.ZMQ,
+            location=URILocation.operator,
+            hostname="localhost",
+        ),
     )
 
 
