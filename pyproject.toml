@@ -19,7 +19,9 @@ coloredlogs = "^15.0.1"
 pydantic-settings = "^2.2.1"
 numpy = "^1.26.4"
 networkx = "^3.3"
-pyarrow = "^16.0.0"
+podman-hpc = "1.1.0"
+pyyaml = "^6.0"
+podman = "^5.0.0"
 
 
 [tool.poetry.group.dev.dependencies]
