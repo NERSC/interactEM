@@ -1,7 +1,16 @@
 from uuid import uuid4
 
 from zmglue.pipeline import Pipeline
-from zmglue.types import EdgeJSON, OperatorJSON, PipelineJSON, PortJSON, PortType
+from zmglue.types import (
+    CommBackend,
+    EdgeJSON,
+    OperatorJSON,
+    PipelineJSON,
+    PortJSON,
+    PortType,
+    URIBase,
+    URILocation,
+)
 
 OPERATOR_0_ID = uuid4()
 OPERATOR_0_OUTPUT_0_ID = uuid4()
@@ -17,6 +26,12 @@ OPERATOR_0 = OperatorJSON(
     id=OPERATOR_0_ID,
     params={"hello": "world"},
     outputs=[OPERATOR_0_OUTPUT_0_ID, OPERATOR_0_OUTPUT_1_ID],
+    uri=URIBase(
+        id=OPERATOR_0_ID,
+        comm_backend=CommBackend.ZMQ,
+        location=URILocation.operator,
+        hostname="localhost",
+    ),
 )
 
 OPERATOR_0_PORT_0 = PortJSON(
@@ -37,6 +52,12 @@ OPERATOR_1 = OperatorJSON(
     id=OPERATOR_1_ID,
     params={"hello": "world"},
     inputs=[OPERATOR_1_INPUT_0_ID],
+    uri=URIBase(
+        id=OPERATOR_1_ID,
+        comm_backend=CommBackend.ZMQ,
+        location=URILocation.operator,
+        hostname="localhost",
+    ),
 )
 
 OPERATOR_1_PORT_0 = PortJSON(
@@ -50,6 +71,12 @@ OPERATOR_2 = OperatorJSON(
     id=OPERATOR_2_ID,
     params={"hello": "world"},
     inputs=[OPERATOR_2_INPUT_0_ID],
+    uri=URIBase(
+        id=OPERATOR_2_ID,
+        comm_backend=CommBackend.ZMQ,
+        location=URILocation.operator,
+        hostname="localhost",
+    ),
 )
 
 OPERATOR_2_PORT_0 = PortJSON(
