@@ -1,19 +1,24 @@
-import time
-from abc import ABC, abstractmethod
+from collections import deque
 from enum import Enum
-from logging import Logger
 from queue import Queue
-from typing import Optional
+from typing import Deque
 from uuid import UUID
 
 import zmq
 
-from zmglue.agent import Agent
 from zmglue.agentclient import AgentClient
 from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.pipeline import Pipeline
-from zmglue.types import BaseMessage, IdType, URIBase, URIUpdateMessage, URIZmq
+from zmglue.types import (
+    BaseMessage,
+    IdType,
+    PortJSON,
+    PortType,
+    URIBase,
+    URIUpdateMessage,
+    URIZmq,
+)
 from zmglue.utils import find_free_port
 from zmglue.zsocket import Socket, SocketInfo
 
