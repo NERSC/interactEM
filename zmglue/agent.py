@@ -3,6 +3,8 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from threading import Event, Thread
+from typing import Optional
 from uuid import UUID, uuid4
 
 import zmq
@@ -54,6 +56,8 @@ class Agent:
         self.req_socket.bind_or_connect()
         self.pipeline: Pipeline | None = None
         self.processes: dict[str, subprocess.Popen] = {}
+        self._running = Event()
+        self.thread: Optional[Thread] = None
 
     def run(self):
         while self.pipeline is None:
@@ -65,9 +69,36 @@ class Agent:
 
         self.processes = self.start_operators()
         self.setup_signal_handlers()
+        self.server_loop()
 
+    def start(self):
+        if self.thread is not None and self.thread.is_alive():
+            logger.warning("Agent is already running.")
+            return
+        self.thread = Thread(target=self.run)
+        self.thread.start()
+        logger.info("Orchestrator started.")
+
+    def stop(self):
+        if not self._running.is_set():
+            logger.warning("Agent is not running.")
+            return
+        self._running.clear()
+        if self.thread:
+            self.thread.join()
+        self.shutdown()
+
+    def shutdown(self):
+        logger.info("Shutting down agent...")
+        for socket in [self.req_socket, self.rep_socket]:
+            if socket._socket:
+                socket._socket.close()
+        self.context.term()
+        logger.info("Agent shut down successfully.")
+
+    def server_loop(self):
         try:
-            while True:
+            while self._running:
                 msg = self.rep_socket.recv_model()
                 logger.debug(f"Received from container: {msg}")
 
@@ -77,8 +108,8 @@ class Agent:
 
                 self.rep_socket.send_model(response)
                 logger.info("Sent URI to container")
-        finally:
-            self.terminate_processes()
+        except KeyboardInterrupt:
+            pass
 
     def terminate_processes(self):
         print(f"Terminating {len(self.processes)} processes...")

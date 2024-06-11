@@ -1,5 +1,6 @@
 from collections.abc import Callable
-from typing import Any
+from threading import Event, Thread
+from typing import Any, Optional
 from uuid import uuid4
 
 import zmq
@@ -57,6 +58,8 @@ class Orchestrator:
             URIConnectMessage: self.handle_uri_connect_request,
         }
         self.pipeline = Pipeline.from_pipeline(PIPELINE)
+        self._running = Event()
+        self.thread: Optional[Thread] = None
 
     def handle_pipeline_request(self, msg: BaseMessage) -> PipelineMessage:
         if not isinstance(msg, PipelineMessage):
@@ -112,7 +115,8 @@ class Orchestrator:
 
     def run(self):
         logger.info("Orchestrator starting...")
-        while True:
+        self._running.set()
+        while self._running.is_set():
             socks = dict(self.poller.poll(1000))
             if self.socket._socket in socks:
                 request = self.socket.recv_model()
@@ -122,3 +126,27 @@ class Orchestrator:
                 self.socket.send_model(response)
             else:
                 logger.debug("No messages received.")
+
+    def start(self):
+        if self.thread is not None and self.thread.is_alive():
+            logger.warning("Orchestrator is already running.")
+            return
+        self.thread = Thread(target=self.run)
+        self.thread.start()
+        logger.info("Orchestrator started.")
+
+    def stop(self):
+        if not self._running.is_set():
+            logger.warning("Orchestrator is not running.")
+            return
+        self._running.clear()
+        if self.thread:
+            self.thread.join()
+        self.shutdown()
+
+    def shutdown(self):
+        logger.info("Shutting down orchestrator...")
+        if self.socket._socket:
+            self.socket._socket.close()
+        self.context.term()
+        logger.info("Orchestrator shut down successfully.")
