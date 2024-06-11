@@ -3,7 +3,7 @@ from uuid import UUID
 
 from pydantic import BaseModel
 
-from .base import IdType, NodeType, PortType
+from .base import IdType, NodeType, PortID, PortType, OperatorID
 from .uri import URIBase
 
 
@@ -31,13 +31,13 @@ class OutputJSON(PortJSON):
 class OperatorJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.operator
     params: dict[str, Any] = {}
-    inputs: List[UUID] = []
-    outputs: List[UUID] = []
+    inputs: List[PortID] = []
+    outputs: List[PortID] = []
 
 
 class EdgeJSON(BaseModel):
-    input_id: UUID
-    output_id: UUID
+    input_id: PortID | OperatorID
+    output_id: PortID | OperatorID
 
 
 class PipelineJSON(BaseModel):
