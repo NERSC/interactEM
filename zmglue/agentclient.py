@@ -5,14 +5,12 @@ import zmq
 from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.types import (
-    IdType,
     NodeID,
     PipelineMessage,
-    PortKey,
+    PortID,
     URIBase,
     URIConnectMessage,
     URIConnectResponseMessage,
-    URIMessage,
     URIUpdateMessage,
     URIZmq,
 )
