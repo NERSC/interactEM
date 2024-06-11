@@ -1,5 +1,6 @@
 import signal
 import subprocess
+import sys
 import time
 from pathlib import Path
 from uuid import UUID, uuid4
@@ -62,7 +63,7 @@ class Agent:
             else:
                 time.sleep(1)
 
-        self.processes = self.start_nodes()
+        self.processes = self.start_operators()
         self.setup_signal_handlers()
 
         try:
@@ -80,6 +81,7 @@ class Agent:
             self.terminate_processes()
 
     def terminate_processes(self):
+        print(f"Terminating {len(self.processes)} processes...")
         for process in self.processes.values():
             logger.info(f"Terminating process {process.pid}")
             process.terminate()
@@ -102,7 +104,7 @@ class Agent:
             raise ValueError(f"Invalid response: {response}")
         return response
 
-    def start_nodes(self) -> dict[str, subprocess.Popen]:
+    def start_operators(self) -> dict[str, subprocess.Popen]:
         processes = {}
         if not self.pipeline:
             logger.error("No pipeline configuration found...")
@@ -111,21 +113,25 @@ class Agent:
             pipeline = self.pipeline.to_json()
         except ValidationError as e:
             logger.error(f"No pipeline configuration found: {e}")
+            return processes
 
-        for node in pipeline.operators:
-            script_path = THIS_DIR / "fcontainer.py"
+        for id, op_info in self.pipeline.operators.items():
+            script_path = THIS_DIR / "operators" / "operator0.py"
             if script_path.exists():
                 args = [
-                    "python",
+                    sys.executable,  # Use the current Python interpreter
                     str(script_path),
-                    "--node-id",
-                    str(node.id),
+                    "--id",
+                    str(id),
                 ]
-                logger.info(f"Starting process for node {node}")
-                process = subprocess.Popen(args)
-                processes[node.id] = process
-                logger.info(f"Started process {process.pid} for node {node} ...")
+                logger.info(f"Starting process for operator {id}")
+                process = subprocess.Popen(
+                    args,
+                    env={"PYTHONBUFFERED": "1"},
+                )
+                processes[id] = process
+                logger.info(f"Started process {process.pid} for operator {id} ...")
             else:
-                logger.error(f"No script found for node {node}")
+                logger.error(f"No script found for node {id}")
 
         return processes
