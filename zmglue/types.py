@@ -25,6 +25,7 @@ class Protocol(str, Enum):
 
 
 class URILocation(str, Enum):
+    operator = "operator"
     port = "port"
     agent = "agent"
     orchestrator = "orchestrator"
