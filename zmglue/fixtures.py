@@ -1,7 +1,7 @@
 from uuid import UUID, uuid4
 
 from zmglue.pipeline import Pipeline
-from zmglue.types import (
+from zmglue.models import (
     CommBackend,
     EdgeJSON,
     OperatorJSON,

@@ -6,7 +6,7 @@ import pytest
 
 from zmglue.orchestrator import Orchestrator
 from zmglue.pipeline import Pipeline
-from zmglue.types import (
+from zmglue.models import (
     CommBackend,
     PipelineJSON,
     PipelineMessage,

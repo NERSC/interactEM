@@ -1,6 +1,6 @@
 import networkx as nx
 
-from zmglue.types import (
+from zmglue.models import (
     EdgeJSON,
     IdType,
     InputJSON,

@@ -7,7 +7,7 @@ import zmq
 from pydantic import BaseModel, ValidationError, model_validator
 
 from zmglue.logger import get_logger
-from zmglue.types import MESSAGE_SUBJECT_TO_MODEL, BaseMessage, URIBase, URIZmq
+from zmglue.models import MESSAGE_SUBJECT_TO_MODEL, BaseMessage, URIBase, URIZmq
 
 logger = get_logger(__name__, "DEBUG")
 

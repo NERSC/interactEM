@@ -6,7 +6,7 @@ from zmglue.messengers.base import BaseMessenger
 from zmglue.messengers.mpi import MPIMessenger
 from zmglue.messengers.zmq import ZmqMessenger
 from zmglue.pipeline import Pipeline
-from zmglue.types import CommBackend, IdType, OperatorJSON
+from zmglue.models import CommBackend, IdType, OperatorJSON
 
 BACKEND_TO_MESSENGER: Dict[CommBackend, Type[BaseMessenger]] = {
     CommBackend.ZMQ: ZmqMessenger,
