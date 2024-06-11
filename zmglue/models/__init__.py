@@ -1,8 +1,8 @@
 from .base import (
     CommBackend,
     IdType,
-    NodeID,
     NodeType,
+    OperatorID,
     PortID,
     PortKey,
     PortType,
