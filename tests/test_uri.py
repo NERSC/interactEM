@@ -2,7 +2,7 @@ from uuid import uuid4
 
 import pytest
 
-from zmglue.types import CommBackend, Protocol, URILocation, URIZmq, URIZmqPort
+from zmglue.models import CommBackend, Protocol, URILocation, URIZmq, URIZmqPort
 
 
 @pytest.fixture

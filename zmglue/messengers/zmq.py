@@ -10,7 +10,7 @@ from zmglue.agentclient import AgentClient
 from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.pipeline import Pipeline
-from zmglue.types import (
+from zmglue.models import (
     BaseMessage,
     IdType,
     PortJSON,

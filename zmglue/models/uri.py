@@ -1,35 +1,9 @@
-from collections.abc import Sequence
-from enum import Enum
-from typing import Any, Optional
-from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import UUID
-
+from urllib.parse import parse_qs, urlencode, urlparse
 from pydantic import BaseModel, ValidationError, model_validator
 from typing_extensions import Self
 
-IdType = UUID
-NodeID = IdType
-PortID = IdType
-PortKey = str
-
-
-class CommBackend(str, Enum):
-    ZMQ = "zmq"
-    MPI = "mpi"
-
-
-class Protocol(str, Enum):
-    tcp = "tcp"
-    inproc = "inproc"
-    ipc = "ipc"
-
-
-class URILocation(str, Enum):
-    operator = "operator"
-    port = "port"
-    agent = "agent"
-    orchestrator = "orchestrator"
-
+from .base import CommBackend, Protocol, URILocation, PortKey
 
 class URIBase(BaseModel):
     id: UUID
@@ -104,7 +78,6 @@ class URIBase(BaseModel):
 
         return specific_class(**base.model_dump())
 
-
 class URIZmq(URIBase):
     protocol: Protocol  # type: ignore
     port: int  # type: ignore
@@ -140,11 +113,9 @@ class URIZmq(URIBase):
             )
         return self
 
-
 class URIZmqPort(URIZmq):
     portkey: PortKey  # type: ignore
     location: URILocation = URILocation.port
-
 
 class URIMPI(URIBase):
     protocol: Protocol | None = None  # MPI doesn't use transport protocol
@@ -159,112 +130,3 @@ class URIMPI(URIBase):
     def from_uri(cls, uri: str) -> "URIMPI":
         base = super().from_uri(uri)
         return cls(**base.model_dump())
-
-
-class MessageSubject(str, Enum):
-    URI_UPDATE = "uri.update"
-    URI_CONNECT = "uri.connect"
-    URI_CONNECT_RESPONSE = "uri.connect.response"
-    DATA = "data"
-    PIPELINE = "pipeline"
-    ERROR = "error"
-
-
-class BaseMessage(BaseModel):
-    subject: MessageSubject
-
-
-class ErrorMessage(BaseMessage):
-    subject: MessageSubject = MessageSubject.ERROR
-    message: str | None
-
-
-class URIMessage(BaseMessage, URIBase):
-    pass
-
-
-class URIConnectResponseMessage(BaseMessage):
-    subject: MessageSubject = MessageSubject.URI_CONNECT_RESPONSE
-    connections: list[URIBase]
-
-
-class URIUpdateMessage(URIMessage):
-    subject: MessageSubject = MessageSubject.URI_UPDATE
-
-
-class URIConnectMessage(BaseMessage):
-    subject: MessageSubject = MessageSubject.URI_CONNECT
-    id: UUID
-
-
-class PipelineMessage(BaseMessage):
-    subject: MessageSubject = MessageSubject.PIPELINE
-    pipeline: Optional["PipelineJSON"] = None
-    node_id: IdType | None = None
-
-
-class DataMessage(BaseMessage):
-    subject: MessageSubject = MessageSubject.DATA
-    data: bytes
-
-
-MESSAGE_SUBJECT_TO_MODEL: dict[MessageSubject, type[BaseMessage]] = {
-    MessageSubject.URI_UPDATE: URIUpdateMessage,
-    MessageSubject.URI_CONNECT: URIConnectMessage,
-    MessageSubject.PIPELINE: PipelineMessage,
-    MessageSubject.ERROR: ErrorMessage,
-    MessageSubject.DATA: DataMessage,
-    MessageSubject.URI_CONNECT_RESPONSE: URIConnectResponseMessage,
-}
-
-
-class PortType(str, Enum):
-    input = "input"
-    output = "output"
-
-
-class NodeType(str, Enum):
-    operator = "operator"
-    port = "port"
-
-
-class PipelineNodeJSON(BaseModel):
-    id: IdType
-    node_type: NodeType
-    uri: URIBase
-
-
-class PortJSON(PipelineNodeJSON):
-    id: IdType
-    node_type: NodeType = NodeType.port
-    port_type: PortType
-    operator_id: IdType
-    portkey: PortKey
-
-
-class InputJSON(PortJSON):
-    port_type: PortType = PortType.input
-
-
-class OutputJSON(PortJSON):
-    port_type: PortType = PortType.output
-
-
-class OperatorJSON(PipelineNodeJSON):
-    id: IdType
-    node_type: NodeType = NodeType.operator
-    params: dict[str, Any] = {}
-    inputs: list[IdType] = []
-    outputs: list[IdType] = []
-
-
-class EdgeJSON(BaseModel):
-    input_id: IdType
-    output_id: IdType
-
-
-class PipelineJSON(BaseModel):
-    id: IdType
-    operators: Sequence[OperatorJSON] = []
-    ports: Sequence[PortJSON] = []
-    edges: Sequence[EdgeJSON] = []

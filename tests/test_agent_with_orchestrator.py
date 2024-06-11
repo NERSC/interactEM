@@ -2,7 +2,7 @@ import threading
 import time
 
 from zmglue.agent import Agent
-from zmglue.types import PipelineMessage
+from zmglue.models import PipelineMessage
 
 
 def test_get_pipeline(initialized_agent: Agent, orchestrator, pipeline):

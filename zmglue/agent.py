@@ -14,7 +14,7 @@ from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.orchestrator import DEFAULT_ORCHESTRATOR_URI
 from zmglue.pipeline import Pipeline
-from zmglue.types import CommBackend, PipelineMessage, Protocol, URILocation, URIZmq
+from zmglue.models import CommBackend, PipelineMessage, Protocol, URILocation, URIZmq
 from zmglue.zsocket import Socket, SocketInfo
 
 logger = get_logger("agent", "DEBUG")

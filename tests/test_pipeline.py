@@ -4,7 +4,7 @@ from uuid import UUID
 import pytest
 
 from zmglue.pipeline import Pipeline
-from zmglue.types import (
+from zmglue.models import (
     CommBackend,
     EdgeJSON,
     OperatorJSON,

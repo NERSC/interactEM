@@ -6,7 +6,7 @@ import pytest
 from zmglue.agent import Agent
 from zmglue.orchestrator import Orchestrator
 from zmglue.pipeline import Pipeline
-from zmglue.types import PipelineJSON
+from zmglue.models import PipelineJSON
 
 
 @pytest.fixture

@@ -12,7 +12,7 @@ from zmglue.fixtures import (
     OPERATOR_2_INPUT_0_ID,
     PIPELINE_ID,
 )
-from zmglue.types import (
+from zmglue.models import (
     CommBackend,
     EdgeJSON,
     OperatorJSON,
