@@ -230,6 +230,7 @@ class NodeType(str, Enum):
 class PipelineNodeJSON(BaseModel):
     id: IdType
     node_type: NodeType
+    uri: URIBase
 
 
 class PortJSON(PipelineNodeJSON):
@@ -238,7 +239,6 @@ class PortJSON(PipelineNodeJSON):
     port_type: PortType
     operator_id: IdType
     portkey: PortKey
-    uri: Optional[URIBase] = None
 
 
 class InputJSON(PortJSON):
@@ -247,7 +247,6 @@ class InputJSON(PortJSON):
 
 class OutputJSON(PortJSON):
     port_type: PortType = PortType.output
-    uri: URIBase  # type: ignore
 
 
 class OperatorJSON(PipelineNodeJSON):
@@ -256,7 +255,6 @@ class OperatorJSON(PipelineNodeJSON):
     params: dict[str, Any] = {}
     inputs: list[IdType] = []
     outputs: list[IdType] = []
-    uri: URIBase
 
 
 class EdgeJSON(BaseModel):
