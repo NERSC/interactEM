@@ -68,7 +68,6 @@ class Agent:
                 time.sleep(1)
 
         self.processes = self.start_operators()
-        self.setup_signal_handlers()
         self.server_loop()
 
     def start(self):
@@ -78,6 +77,7 @@ class Agent:
         self.thread = Thread(target=self.run)
         self.thread.start()
         logger.info("Orchestrator started.")
+        self.setup_signal_handlers()
 
     def stop(self):
         if not self._running.is_set():
