@@ -46,7 +46,7 @@ def disable_send_methods(cls):
 
 def disable_recv_methods(cls):
     def not_supported(*args, **kwargs):
-        raise NotImplementedError("This socket does not support sending.")
+        raise NotImplementedError("This socket does not support receiving.")
 
     methods = ["recv_json", "recv_string", "recv_pyobj", "recv_bytes", "recv_model"]
     for name in methods:
