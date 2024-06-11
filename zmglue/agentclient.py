@@ -5,7 +5,7 @@ import zmq
 from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.models import (
-    NodeID,
+    OperatorID,
     PipelineMessage,
     PortID,
     URIBase,
@@ -23,7 +23,7 @@ AGENT_URI = URIZmq.from_uri(cfg.AGENT_URI)
 
 
 class AgentClient:
-    def __init__(self, id: NodeID, context: zmq.SyncContext | None = None):
+    def __init__(self, id: OperatorID, context: zmq.SyncContext | None = None):
         self.context = zmq.Context() if context is None else context
         self.id = id
         self.socket = Socket(

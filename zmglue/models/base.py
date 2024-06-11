@@ -2,7 +2,7 @@ from enum import Enum
 from uuid import UUID
 
 IdType = UUID
-NodeID = IdType
+OperatorID = IdType
 PortID = IdType
 PortKey = str
 
