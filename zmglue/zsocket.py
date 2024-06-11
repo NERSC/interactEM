@@ -166,11 +166,13 @@ class Socket:
         except ValidationError as e:
             logger.info(f"Error deserializing the MessageSubject: {e}")
             raise e
-
-        model_class = MESSAGE_SUBJECT_TO_MODEL.get(subject.subject)
+        
+        subject = subject.subject
+        
+        model_class = MESSAGE_SUBJECT_TO_MODEL.get(subject)
 
         if not model_class:
-            raise ValueError(f"Unsupported MessageSubject: {subject.subject}")
+            raise ValueError(f"Unsupported MessageSubject: {subject}")
 
         try:
             return model_class.model_validate_json(payload)
