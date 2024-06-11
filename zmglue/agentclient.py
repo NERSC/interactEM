@@ -21,7 +21,7 @@ from zmglue.zsocket import Socket, SocketInfo
 logger = get_logger("container", "DEBUG")
 
 
-CLIENT_URI = URIZmq.from_uri(cfg.AGENT_URI)
+AGENT_URI = URIZmq.from_uri(cfg.AGENT_URI)
 
 
 class AgentClient:
@@ -31,7 +31,7 @@ class AgentClient:
         self.socket = Socket(
             SocketInfo(
                 type=zmq.REQ,
-                uris=[CLIENT_URI],
+                uris=[AGENT_URI],
                 bind=False,
             ),
             self.context,
