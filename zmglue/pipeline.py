@@ -8,6 +8,7 @@ from zmglue.types import (
     OperatorJSON,
     OutputJSON,
     PipelineJSON,
+    PipelineNodeJSON,
     PortJSON,
     PortType,
     URIBase,
@@ -158,7 +159,7 @@ class Pipeline(nx.DiGraph):
             raise ValueError(f"Port {node_id} not found in the graph.")
 
         current_node = self.nodes[node_id]
-        current_node_model = OutputJSON(**current_node)
+        current_node_model = PipelineNodeJSON(**current_node)
         current_uri = current_node_model.uri
 
         # Ensure current_uri is a URIBase instance
