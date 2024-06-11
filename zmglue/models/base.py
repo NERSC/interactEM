@@ -4,6 +4,8 @@ from uuid import UUID
 IdType = UUID
 OperatorID = IdType
 PortID = IdType
+AgentID = IdType
+OrchestratorID = IdType
 PortKey = str
 
 

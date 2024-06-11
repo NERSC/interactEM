@@ -1,8 +1,9 @@
 from enum import Enum
 from typing import List, Optional
-from uuid import UUID
 
 from pydantic import BaseModel
+
+from zmglue.models.base import AgentID, OperatorID, PortID
 
 from .pipeline import PipelineJSON
 from .uri import URIBase
@@ -40,14 +41,14 @@ class URIUpdateMessage(URIMessage):
 
 
 class URIConnectMessage(BaseMessage):
+    id: PortID
     subject: MessageSubject = MessageSubject.URI_CONNECT
-    id: UUID
 
 
 class PipelineMessage(BaseMessage):
     subject: MessageSubject = MessageSubject.PIPELINE
     pipeline: Optional[PipelineJSON] = None
-    node_id: UUID | None = None
+    node_id: AgentID | OperatorID | None = None
 
 
 class DataMessage(BaseMessage):

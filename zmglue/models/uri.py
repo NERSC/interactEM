@@ -1,12 +1,23 @@
-from uuid import UUID
 from urllib.parse import parse_qs, urlencode, urlparse
+from uuid import UUID
+
 from pydantic import BaseModel, ValidationError, model_validator
 from typing_extensions import Self
 
-from .base import CommBackend, Protocol, URILocation, PortKey
+from .base import (
+    AgentID,
+    CommBackend,
+    OperatorID,
+    OrchestratorID,
+    PortID,
+    PortKey,
+    Protocol,
+    URILocation,
+)
+
 
 class URIBase(BaseModel):
-    id: UUID
+    id: PortID | OperatorID | AgentID | OrchestratorID
     location: URILocation
     hostname: str
     comm_backend: CommBackend
@@ -78,6 +89,7 @@ class URIBase(BaseModel):
 
         return specific_class(**base.model_dump())
 
+
 class URIZmq(URIBase):
     protocol: Protocol  # type: ignore
     port: int  # type: ignore
@@ -113,9 +125,11 @@ class URIZmq(URIBase):
             )
         return self
 
+
 class URIZmqPort(URIZmq):
     portkey: PortKey  # type: ignore
     location: URILocation = URILocation.port
+
 
 class URIMPI(URIBase):
     protocol: Protocol | None = None  # MPI doesn't use transport protocol
