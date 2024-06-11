@@ -180,22 +180,3 @@ class Socket:
 
     def close(self):
         self._socket.close()
-
-
-@disable_send_methods
-class InputPortSocket(Socket):
-    def __init__(
-        self,
-        info: SocketInfo,
-        context: zmq.SyncContext,
-        callbacks: Optional[list[Callable[[BaseMessage], None]]] = None,
-    ):
-        super().__init__(info, context)
-        self.callbacks = callbacks or []
-
-    @Socket.on_recv
-    def recv_model(self, flags: int = 0) -> BaseMessage:
-        message = super().recv_model(flags)
-        for callback in self.callbacks:
-            callback(message)
-        return message
