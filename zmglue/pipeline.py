@@ -49,6 +49,27 @@ class Pipeline(nx.DiGraph):
 
         return subgraph
 
+    def __eq__(self, other):
+        if not isinstance(other, Pipeline):
+            return False
+
+        if self.graph != other.graph:
+            return False
+
+        if set(self.nodes) != set(other.nodes):
+            return False
+        for node_id in self.nodes:
+            if self.nodes[node_id] != other.nodes[node_id]:
+                return False
+
+        if set(self.edges) != set(other.edges):
+            return False
+        for edge in self.edges:
+            if self.edges[edge] != other.edges[edge]:
+                return False
+
+        return True
+
     def to_json(self) -> PipelineJSON:
         operators: list[OperatorJSON] = []
         ports: list[PortJSON] = []
