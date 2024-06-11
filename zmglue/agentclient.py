@@ -56,11 +56,8 @@ class AgentClient:
             raise ValueError("Invalid response")
         return response
 
-    def get_connect_uris(self, port_id: IdType) -> list[URIBase]:
-
+    def get_connect_uris(self, port_id: PortID) -> list[URIBase]:
         input_connect_uri_request = URIConnectMessage(id=port_id)
-        logger.debug(input_connect_uri_request.model_dump())
-
         attempt_counter = 0
         max_retries = 5
         while True:
