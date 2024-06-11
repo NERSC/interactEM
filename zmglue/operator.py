@@ -22,30 +22,24 @@ class Operator:
         self.id = id
         self.messenger: BaseMessenger | None = None
         self.pipeline: Pipeline | None = None
+        self.info: OperatorJSON | None = None
         self.client = AgentClient(id=id)
 
     def start(self):
-        self.get_my_pipeline()
-
-    def get_my_pipeline(self):
         while self.pipeline is None:
             response = self.client.get_pipeline()
             if response.pipeline:
                 self.pipeline = Pipeline.from_pipeline(response.pipeline)
 
-            #     if message is None:
-            #         continue
-            #     if message.subject == MessageSubject.SHMEM:
-            #         pass
-            #     elif message.subject == MessageSubject.DATA:
-            #         message = DataMessage(**message.model_dump())
-            #         messages.append(message)
-            #         output = self.operate(message)
-            #     else:
-            #         raise Exception(f"Unknown message subject: {message.subject}")
+        self.info = self.pipeline.get_operator(self.id)
+        if self.info is None:
+            raise ValueError(f"Operator {self.id} not found in pipeline")
 
-            # for q in self.output_queues.values():
-            #     pass
+        backend = self.info.uri.comm_backend
+        self.messenger = BACKEND_TO_MESSENGER[backend]()
+
+        while True:
+            time.sleep(1)
 
     # def operate(self, task_message: DataMessage) -> DataMessage:
 
