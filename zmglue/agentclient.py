@@ -76,7 +76,6 @@ class AgentClient:
                     f"Failed to get URI assignment after {max_retries} attempts."
                 )
 
-            # TODO: make it possible to have multiple connections
             if not isinstance(response, URIConnectResponseMessage):
                 logger.error(f"Received invalid response: {response}")
                 attempt_counter += 1
