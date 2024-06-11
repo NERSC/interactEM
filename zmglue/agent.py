@@ -110,6 +110,8 @@ class Agent:
                 logger.info("Sent URI to container")
         except KeyboardInterrupt:
             pass
+        except zmq.error.ContextTerminated:
+            pass
 
     def terminate_processes(self):
         print(f"Terminating {len(self.processes)} processes...")
