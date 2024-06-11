@@ -86,6 +86,9 @@ class Pipeline(nx.DiGraph):
     def get_operator_ports(self, operator_id: IdType) -> dict[IdType, PortJSON]:
         return {k: v for k, v in self.ports.items() if v.operator_id == operator_id}
 
+    def get_operator(self, operator_id: IdType) -> OperatorJSON:
+        return OperatorJSON(**self.nodes[operator_id])
+
     def get_operator_outputs(self, operator_id: IdType) -> dict[IdType, OutputJSON]:
         ports = self.get_operator_ports(operator_id)
         return {
