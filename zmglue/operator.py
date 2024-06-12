@@ -3,14 +3,12 @@ from typing import Dict, Type
 
 from zmglue.agentclient import AgentClient
 from zmglue.messengers.base import BaseMessenger
-from zmglue.messengers.mpi import MPIMessenger
 from zmglue.messengers.zmq import ZmqMessenger
 from zmglue.models import CommBackend, IdType, OperatorJSON
 from zmglue.pipeline import Pipeline
 
 BACKEND_TO_MESSENGER: Dict[CommBackend, Type[BaseMessenger]] = {
     CommBackend.ZMQ: ZmqMessenger,
-    CommBackend.MPI: MPIMessenger,
 }
 
 
