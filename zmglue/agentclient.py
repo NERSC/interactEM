@@ -80,3 +80,7 @@ class AgentClient:
             break
 
         return response.connections
+
+    def close(self):
+        self.socket.close()
+        self.context.term()
