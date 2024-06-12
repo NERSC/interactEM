@@ -24,16 +24,6 @@ def init_agent_without_orchestrator(pipeline: PipelineJSON):
 
 
 @pytest.fixture
-def running_agent_with_orchestrator(pipeline: PipelineJSON, orchestrator: Orchestrator):
-    agent = Agent()
-    agent.pipeline = Pipeline.from_pipeline(pipeline)
-    agent.start()
-    yield agent
-    agent.stop()
-    agent.shutdown()
-
-
-@pytest.fixture
 def running_agent(pipeline: PipelineJSON):
     agent = Agent()
     agent.pipeline = Pipeline.from_pipeline(pipeline)

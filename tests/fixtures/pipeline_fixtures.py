@@ -24,42 +24,42 @@ from zmglue.models import (
 )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_0_id() -> UUID:
     return OPERATOR_0_ID
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_1_id() -> UUID:
     return OPERATOR_1_ID
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_2_id() -> UUID:
     return OPERATOR_2_ID
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_0_output_0_id() -> UUID:
     return OPERATOR_0_OUTPUT_0_ID
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_0_output_1_id() -> UUID:
     return OPERATOR_0_OUTPUT_1_ID
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_1_input_0_id() -> UUID:
     return OPERATOR_1_INPUT_0_ID
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_2_input_0_id() -> UUID:
     return OPERATOR_2_INPUT_0_ID
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_0(
     operator_0_id: UUID, operator_0_output_0_id: UUID, operator_0_output_1_id: UUID
 ) -> OperatorJSON:
@@ -76,7 +76,7 @@ def operator_0(
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_0_port_0(operator_0_id: UUID, operator_0_output_0_id: UUID) -> PortJSON:
     return PortJSON(
         id=operator_0_output_0_id,
@@ -92,7 +92,7 @@ def operator_0_port_0(operator_0_id: UUID, operator_0_output_0_id: UUID) -> Port
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_0_port_1(operator_0_id: UUID, operator_0_output_1_id: UUID) -> PortJSON:
     return PortJSON(
         id=operator_0_output_1_id,
@@ -108,7 +108,7 @@ def operator_0_port_1(operator_0_id: UUID, operator_0_output_1_id: UUID) -> Port
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_1(operator_1_id: UUID, operator_1_input_0_id: UUID) -> OperatorJSON:
     return OperatorJSON(
         id=operator_1_id,
@@ -123,7 +123,7 @@ def operator_1(operator_1_id: UUID, operator_1_input_0_id: UUID) -> OperatorJSON
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_1_port_0(operator_1_id: UUID, operator_1_input_0_id: UUID) -> PortJSON:
     return PortJSON(
         id=operator_1_input_0_id,
@@ -139,7 +139,7 @@ def operator_1_port_0(operator_1_id: UUID, operator_1_input_0_id: UUID) -> PortJ
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_2(operator_2_id: UUID, operator_2_input_0_id: UUID) -> OperatorJSON:
     return OperatorJSON(
         id=operator_2_id,
@@ -154,7 +154,7 @@ def operator_2(operator_2_id: UUID, operator_2_input_0_id: UUID) -> OperatorJSON
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def operator_2_port_0(operator_2_id: UUID, operator_2_input_0_id: UUID) -> PortJSON:
     return PortJSON(
         id=operator_2_input_0_id,
@@ -170,7 +170,7 @@ def operator_2_port_0(operator_2_id: UUID, operator_2_input_0_id: UUID) -> PortJ
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def edge_0(operator_0_id: UUID, operator_0_output_0_id: UUID) -> EdgeJSON:
     return EdgeJSON(
         input_id=operator_0_id,
@@ -178,7 +178,7 @@ def edge_0(operator_0_id: UUID, operator_0_output_0_id: UUID) -> EdgeJSON:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def edge_1(operator_0_id: UUID, operator_0_output_1_id: UUID) -> EdgeJSON:
     return EdgeJSON(
         input_id=operator_0_id,
@@ -186,7 +186,7 @@ def edge_1(operator_0_id: UUID, operator_0_output_1_id: UUID) -> EdgeJSON:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def edge_2(operator_0_output_0_id: UUID, operator_1_input_0_id: UUID) -> EdgeJSON:
     return EdgeJSON(
         input_id=operator_0_output_0_id,
@@ -194,7 +194,7 @@ def edge_2(operator_0_output_0_id: UUID, operator_1_input_0_id: UUID) -> EdgeJSO
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def edge_3(operator_0_output_1_id: UUID, operator_2_input_0_id: UUID) -> EdgeJSON:
     return EdgeJSON(
         input_id=operator_0_output_1_id,
@@ -202,7 +202,7 @@ def edge_3(operator_0_output_1_id: UUID, operator_2_input_0_id: UUID) -> EdgeJSO
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def edge_4(operator_1_input_0_id: UUID, operator_1_id: UUID) -> EdgeJSON:
     return EdgeJSON(
         input_id=operator_1_input_0_id,
@@ -210,7 +210,7 @@ def edge_4(operator_1_input_0_id: UUID, operator_1_id: UUID) -> EdgeJSON:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def edge_5(operator_2_input_0_id: UUID, operator_2_id: UUID) -> EdgeJSON:
     return EdgeJSON(
         input_id=operator_2_input_0_id,
@@ -218,7 +218,7 @@ def edge_5(operator_2_input_0_id: UUID, operator_2_id: UUID) -> EdgeJSON:
     )
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def pipeline(
     operator_0: OperatorJSON,
     operator_1: OperatorJSON,
