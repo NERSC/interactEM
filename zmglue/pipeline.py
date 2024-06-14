@@ -82,8 +82,12 @@ class Pipeline(nx.DiGraph):
         for model in self.ports.values():
             ports.append(model)
 
-        for u, v, _ in self.edges(data=True):
-            edges.append(EdgeJSON(input_id=u, output_id=v))
+        for u, v, data in self.edges(data=True):
+            edges.append(
+                EdgeJSON(
+                    input_id=u, output_id=v, num_connections=data["num_connections"]
+                )
+            )
 
         return PipelineJSON(
             id=self.graph["id"], operators=operators, ports=ports, edges=edges
