@@ -2,10 +2,13 @@ from time import time
 from typing import Dict, Type
 
 from zmglue.agentclient import AgentClient
+from zmglue.logger import get_logger
 from zmglue.messengers.base import BaseMessenger
 from zmglue.messengers.zmq import ZmqMessenger
 from zmglue.models import CommBackend, IdType, OperatorJSON
 from zmglue.pipeline import Pipeline
+
+logger = get_logger("operator", "DEBUG")
 
 BACKEND_TO_MESSENGER: Dict[CommBackend, Type[BaseMessenger]] = {
     CommBackend.ZMQ: ZmqMessenger,
