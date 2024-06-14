@@ -1,4 +1,17 @@
+import pytest
+
 from zmglue.agent import Agent
+from zmglue.models.pipeline import PipelineJSON
+from zmglue.pipeline import Pipeline
+
+
+@pytest.fixture
+def init_agent_without_orchestrator(pipeline: PipelineJSON):
+    agent = Agent()
+    agent.pipeline = Pipeline.from_pipeline(pipeline)
+    yield agent
+    agent.stop()
+    agent.shutdown()
 
 
 def test_start_operators(init_agent_without_orchestrator: Agent):
