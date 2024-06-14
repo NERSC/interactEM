@@ -25,7 +25,6 @@ class URIBase(BaseModel):
     interface: str | None = None
     port: int | None = None
     hostname_bind: str | None = None
-    portkey: PortKey | None = None
 
     def to_uri(self) -> str:
         base_path = f"/{self.location.value}/{self.id}"
@@ -34,7 +33,6 @@ class URIBase(BaseModel):
             "port": self.port,
             "interface": self.interface,
             "hostname_bind": self.hostname_bind,
-            "portkey": self.portkey,
         }
         query_string = urlencode(
             {k: v for k, v in query_params.items() if v is not None}
@@ -63,7 +61,6 @@ class URIBase(BaseModel):
 
         interface = query_params.get("interface", [None])[0]
         hostname_bind = query_params.get("hostname_bind", [None])[0]
-        portkey = query_params.get("portkey", [None])[0]
 
         base = cls(
             id=id,
@@ -74,14 +71,10 @@ class URIBase(BaseModel):
             port=port,
             interface=interface,
             hostname_bind=hostname_bind,
-            portkey=portkey,
         )
 
         if comm_backend == CommBackend.ZMQ:
-            if portkey:
-                specific_class = URIZmqPort
-            else:
-                specific_class = URIZmq
+            specific_class = URIZmq
         elif comm_backend == CommBackend.MPI:
             specific_class = URIMPI
         else:
@@ -124,11 +117,6 @@ class URIZmq(URIBase):
                 "Exactly one of hostname_bind or interface must be set."
             )
         return self
-
-
-class URIZmqPort(URIZmq):
-    portkey: PortKey  # type: ignore
-    location: URILocation = URILocation.port
 
 
 class URIMPI(URIBase):
