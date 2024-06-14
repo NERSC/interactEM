@@ -36,8 +36,12 @@ class Operator:
         if self.info is None:
             raise ValueError(f"Operator {self.id} not found in pipeline")
 
-        backend = self.info.uri.comm_backend
-        self.messenger = BACKEND_TO_MESSENGER[backend]()
+        comm_backend = self.info.uri.comm_backend
+        messenger_cls = BACKEND_TO_MESSENGER.get(comm_backend)
+        if messenger_cls is None:
+            raise ValueError(f"Invalid communications backend: {comm_backend}")
+
+        self.messenger = messenger_cls(self)
 
         while True:
             time.sleep(1)
