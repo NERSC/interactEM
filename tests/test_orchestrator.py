@@ -4,8 +4,6 @@ from uuid import UUID
 
 import pytest
 
-from zmglue.orchestrator import Orchestrator
-from zmglue.pipeline import Pipeline
 from zmglue.models import (
     CommBackend,
     PipelineJSON,
@@ -15,6 +13,8 @@ from zmglue.models import (
     URILocation,
     URIUpdateMessage,
 )
+from zmglue.orchestrator import Orchestrator
+from zmglue.pipeline import Pipeline
 
 
 def test_handle_pipeline_request(orchestrator: Orchestrator, pipeline: PipelineJSON):

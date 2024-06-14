@@ -1,6 +1,5 @@
 from uuid import UUID, uuid4
 
-from zmglue.pipeline import Pipeline
 from zmglue.models import (
     CommBackend,
     EdgeJSON,
@@ -126,8 +125,7 @@ EDGE_2 = EdgeJSON(
 )
 
 EDGE_3 = EdgeJSON(
-    input_id=OPERATOR_0_OUTPUT_1_ID,
-    output_id=OPERATOR_2_INPUT_0_ID,
+    input_id=OPERATOR_0_OUTPUT_1_ID, output_id=OPERATOR_2_INPUT_0_ID, num_connections=2
 )
 
 EDGE_4 = EdgeJSON(input_id=OPERATOR_1_INPUT_0_ID, output_id=OPERATOR_1_ID)

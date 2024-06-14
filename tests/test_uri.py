@@ -18,7 +18,6 @@ def urizmq_instance():
     )
 
 
-
 def test_to_uri(urizmq_instance):
     expected_uri = f"zmq://{urizmq_instance.hostname}/{urizmq_instance.location.value}/{urizmq_instance.id}?protocol=tcp&port=1234&interface=eth0"
     assert urizmq_instance.to_uri() == expected_uri
