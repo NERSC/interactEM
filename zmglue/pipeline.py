@@ -1,5 +1,6 @@
 import networkx as nx
 
+from zmglue.logger import get_logger
 from zmglue.models import (
     EdgeJSON,
     IdType,
@@ -15,6 +16,8 @@ from zmglue.models import (
     URIConnectMessage,
     URIUpdateMessage,
 )
+
+logger = get_logger("pipeline")
 
 
 class Pipeline(nx.DiGraph):
@@ -55,18 +58,41 @@ class Pipeline(nx.DiGraph):
             return False
 
         if self.graph != other.graph:
+            logger.info("Graph metadata differs.")
+            logger.info(f"Self graph metadata: {self.graph}")
+            logger.info(f"Other graph metadata: {other.graph}")
             return False
 
-        if set(self.nodes) != set(other.nodes):
+        self_nodes = set(self.nodes)
+        other_nodes = set(other.nodes)
+
+        if self_nodes != other_nodes:
+            logger.info("Node sets differ.")
+            logger.info(f"Nodes in self but not in other: {self_nodes - other_nodes}")
+            logger.info(f"Nodes in other but not in self: {other_nodes - self_nodes}")
             return False
-        for node_id in self.nodes:
+
+        for node_id in self_nodes:
             if self.nodes[node_id] != other.nodes[node_id]:
+                logger.info(f"Node attributes differ for node {node_id}.")
+                logger.info(f"Self node attributes: {self.nodes[node_id]}")
+                logger.info(f"Other node attributes: {other.nodes[node_id]}")
                 return False
 
-        if set(self.edges) != set(other.edges):
+        self_edges = set(self.edges)
+        other_edges = set(other.edges)
+
+        if self_edges != other_edges:
+            logger.info("Edge sets differ.")
+            logger.info(f"Edges in self but not in other: {self_edges - other_edges}")
+            logger.info(f"Edges in other but not in self: {other_edges - self_edges}")
             return False
-        for edge in self.edges:
+
+        for edge in self_edges:
             if self.edges[edge] != other.edges[edge]:
+                logger.info(f"Edge attributes differ for edge {edge}.")
+                logger.info(f"Self edge attributes: {self.edges[edge]}")
+                logger.info(f"Other edge attributes: {other.edges[edge]}")
                 return False
 
         return True
