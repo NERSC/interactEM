@@ -27,15 +27,6 @@ from .base import BaseMessenger
 
 logger = get_logger("messenger", "DEBUG")
 
-
-class QueueType(str, Enum):
-    input = "input"
-    output = "output"
-
-
-QueueMap = dict[QueueType, dict[IdType, Queue[BaseMessage]]]
-
-
 CLIENT_URI = URIZmq.from_uri(cfg.AGENT_URI)
 
 
