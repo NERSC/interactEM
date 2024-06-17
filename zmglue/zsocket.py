@@ -7,7 +7,9 @@ import zmq
 from pydantic import BaseModel, ValidationError, model_validator
 
 from zmglue.logger import get_logger
-from zmglue.models import MESSAGE_SUBJECT_TO_MODEL, BaseMessage, URIBase, URIZmq
+from zmglue.models import MESSAGE_SUBJECT_TO_MODEL, BaseMessage
+from zmglue.models.base import AgentID, OperatorID, OrchestratorID, PortID
+from zmglue.models.uri import ZMQAddress
 
 logger = get_logger(__name__, "DEBUG")
 
@@ -23,14 +25,15 @@ class SocketMetrics(BaseModel):
 
 class SocketInfo(BaseModel):
     type: int  # zmq.SocketType
-    uris: Sequence[URIZmq | URIBase] = []
+    addresses: list[str | ZMQAddress] = []
+    parent_id: Optional[OperatorID | PortID | AgentID | OrchestratorID] = None
     bind: bool
     options: dict[zmq.SocketOption, Any] = {}
 
     @model_validator(mode="after")
     def check_bind_and_ports(self):
-        if self.bind and len(self.uris) > 1:
-            raise ValueError("If bind is True, len(uris) must be <= 1")
+        if self.bind and len(self.addresses) > 1:
+            raise ValueError("If bind is True, len(addresses) must be <= 1")
         return self
 
 
@@ -66,27 +69,28 @@ class Socket:
         for opt, val in self.info.options.items():
             self._socket.set(opt, val)
 
-    def update_uris(self, uris: list[URIZmq | URIBase]):
-        self.info.uris = uris
+    def update_addresses(self, addresses: list[str | ZMQAddress]) -> None:
+        self.info.addresses = addresses
 
     def bind_or_connect(self):
         self._configure()
-        if not self.info.uris:
-            logger.error("No URIs provided")
+        if not self.info.addresses:
+            logger.error("No addresses provided")
             return False
-        for uri in self.info.uris:
-            if not isinstance(uri, URIZmq):
+        for addr in self.info.addresses:
+            if not isinstance(addr, ZMQAddress):
                 try:
-                    uri = URIZmq(**uri.model_dump())
+                    addr = ZMQAddress.from_address(addr)
                 except ValidationError as e:
-                    logger.error(f"URI isn't a ZeroMQ URI: {e}")
-                    continue
+                    logger.error(f"Address isn't a proper ZeroMQ address: {e}")
+                    raise e
+
             if self.info.bind:
-                addr = uri.to_bind_address()
+                addr = addr.to_bind_address()
                 self._socket.bind(addr)
                 logger.info(f"Bound to {addr}")
             else:
-                addr = uri.to_connect_address()
+                addr = addr.to_connect_address()
                 self._socket.connect(addr)
                 logger.info(f"Connected to {addr}")
 
@@ -166,9 +170,9 @@ class Socket:
         except ValidationError as e:
             logger.info(f"Error deserializing the MessageSubject: {e}")
             raise e
-        
+
         subject = subject.subject
-        
+
         model_class = MESSAGE_SUBJECT_TO_MODEL.get(subject)
 
         if not model_class:

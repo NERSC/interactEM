@@ -2,6 +2,7 @@ import networkx as nx
 
 from zmglue.logger import get_logger
 from zmglue.models import (
+    URI,
     EdgeJSON,
     IdType,
     InputJSON,
@@ -12,10 +13,10 @@ from zmglue.models import (
     PipelineNodeJSON,
     PortJSON,
     PortType,
-    URIBase,
     URIConnectMessage,
     URIUpdateMessage,
 )
+from zmglue.models.uri import ZMQAddress
 
 logger = get_logger("pipeline")
 
@@ -193,19 +194,28 @@ class Pipeline(nx.DiGraph):
         current_uri = current_node_model.uri
 
         # Ensure current_uri is a URIBase instance
-        if not isinstance(current_uri, URIBase):
-            current_uri = URIBase(**current_uri)
+        if not isinstance(current_uri, URI):
+            current_uri = URI(**current_uri)
 
         # Apply updates from message
-        update_data = {k: v for k, v in message.model_dump().items() if v is not None}
-        updated_uri = current_uri.model_copy(update=update_data)
-        URIBase.model_validate(updated_uri)
+        update_data = message.model_dump(exclude_unset=True)
 
-        current_node["uri"] = updated_uri
+        # Remove message subject
+        update_data.pop("subject", None)
 
+        # may be a better way for partial updates, but i don't know it
+        for key, value in update_data.items():
+            if key == "address" and isinstance(value, dict):
+                value = ZMQAddress(**value)
+            setattr(current_uri, key, value)
+
+        # Validate updated URI
+        updated_uri = URI.model_validate(current_uri)
+
+        current_node["uri"] = updated_uri.model_dump()
         return message
 
-    def get_connections(self, message: URIConnectMessage) -> list[URIBase]:
+    def get_connections(self, message: URIConnectMessage) -> list[URI]:
         input_id = message.id
 
         output_ids = self.get_predecessors(input_id)

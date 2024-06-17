@@ -5,14 +5,15 @@ import pytest
 from zmglue.agent import Agent
 from zmglue.agentclient import AgentClient
 from zmglue.models import (
+    URI,
     OperatorID,
     PipelineJSON,
     PipelineMessage,
-    URIBase,
     URIConnectMessage,
     URIUpdateMessage,
 )
 from zmglue.models.base import CommBackend, Protocol, URILocation
+from zmglue.models.uri import ZMQAddress
 from zmglue.orchestrator import Orchestrator
 from zmglue.pipeline import Pipeline
 
@@ -24,8 +25,7 @@ def uri_update_msg(operator_0_output_0_id: OperatorID) -> URIUpdateMessage:
         location=URILocation.port,
         hostname="sam",
         comm_backend=CommBackend.ZMQ,
-        protocol=Protocol.tcp,
-        port=5555,
+        address=ZMQAddress(protocol=Protocol.tcp, hostname="sam", port=5555),
     )
 
 
@@ -63,8 +63,9 @@ def test_update_uri(
 ):
     response = agent_client.update_uri(uri_update_msg)
     assert isinstance(response, URIUpdateMessage)
-    assert response.hostname == uri_update_msg.hostname
-    assert response.port == uri_update_msg.port
+    assert response.address
+    assert response.hostname == uri_update_msg.address.hostname
+    assert response.address.port == uri_update_msg.address.port
 
 
 def test_get_pipeline(
@@ -85,7 +86,7 @@ def test_get_connect_uris(
 
     assert isinstance(uris, list)
     assert len(uris) > 0
-    assert isinstance(uris[0], URIBase)
+    assert isinstance(uris[0], URI)
     assert uris[0].hostname == "sam"
 
 

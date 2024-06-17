@@ -3,18 +3,19 @@ from uuid import UUID
 
 import pytest
 
-from zmglue.pipeline import Pipeline
 from zmglue.models import (
+    URI,
     CommBackend,
     EdgeJSON,
     OperatorJSON,
     PipelineJSON,
     Protocol,
-    URIBase,
     URIConnectMessage,
     URILocation,
     URIUpdateMessage,
 )
+from zmglue.models.uri import ZMQAddress
+from zmglue.pipeline import Pipeline
 
 
 # Test to ensure pipeline creation from JSON is correct
@@ -64,18 +65,20 @@ def test_update_uri(pipeline: PipelineJSON, operator_0_output_0_id: UUID):
         location=URILocation.port,
         comm_backend=CommBackend.ZMQ,
         hostname="updated.com",
-        interface="eth0",
-        protocol=Protocol.tcp,
-        port=9090,
+        address=ZMQAddress.from_address(
+            "tcp://?hostname=updated.com&interface=eth0&port=9090"
+        ),
     )
     p.update_uri(update_message)
     updated_port = p.nodes[operator_0_output_0_id]
     updated_uri = updated_port["uri"]
-
-    assert updated_uri.hostname == "updated.com"
-    assert updated_uri.port == 9090
-    assert updated_uri.interface == "eth0"
-    assert updated_uri.protocol == Protocol.tcp
+    updated_uri = URI(**updated_uri)
+    assert isinstance(updated_uri.address, ZMQAddress)
+    assert updated_uri.address
+    assert updated_uri.address.hostname == "updated.com"
+    assert updated_uri.address.port == 9090
+    assert updated_uri.address.interface == "eth0"
+    assert updated_uri.address.protocol == Protocol.tcp
 
 
 # Test to ensure adding a duplicate node raises an error
@@ -100,18 +103,42 @@ def test_add_edge_model_duplicate_error(pipeline: PipelineJSON, edge_0: EdgeJSON
 def test_update_uri_partial(pipeline: PipelineJSON, operator_0_output_0_id: UUID):
     p = Pipeline.from_pipeline(pipeline)
     initial_uri = p.nodes[operator_0_output_0_id]["uri"]
-    initial_uri = URIBase(**initial_uri)
+    initial_uri = URI(**initial_uri)
+    assert initial_uri.address
     update_message = URIUpdateMessage(
         id=operator_0_output_0_id,
         comm_backend=CommBackend.ZMQ,
         location=URILocation.port,
         hostname="updated.com",
+        address=ZMQAddress.from_address("tcp://?hostname=updated.com&port=5555"),
     )
     p.update_uri(update_message)
     updated_uri = p.nodes[operator_0_output_0_id]["uri"]
-
+    updated_uri = URI(**updated_uri)
     assert updated_uri.hostname == "updated.com"
-    assert updated_uri.port == initial_uri.port
+    assert isinstance(updated_uri.address, ZMQAddress)
+    assert updated_uri.address
+    assert updated_uri.address.port == 5555
+
+
+# Test to ensure partial URI update works
+def test_update_no_address(pipeline: PipelineJSON, operator_0_output_0_id: UUID):
+    p = Pipeline.from_pipeline(pipeline)
+    initial_uri = p.nodes[operator_0_output_0_id]["uri"]
+    initial_uri = URI(**initial_uri)
+    assert initial_uri.address
+    update_message = URIUpdateMessage(
+        id=operator_0_output_0_id,
+        comm_backend=CommBackend.ZMQ,
+        location=URILocation.port,
+        hostname="sam.com",
+        address=None,
+    )
+    p.update_uri(update_message)
+    updated_uri = p.nodes[operator_0_output_0_id]["uri"]
+    updated_uri = URI(**updated_uri)
+    assert updated_uri.hostname == "sam.com"
+    assert updated_uri.address is None
 
 
 # Test to ensure connections for a given port ID are fetched correctly
