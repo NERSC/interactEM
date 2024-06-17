@@ -4,13 +4,13 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from .base import IdType, NodeType, OperatorID, PortID, PortType
-from .uri import URIBase
+from .uri import URI
 
 
 class PipelineNodeJSON(BaseModel):
     id: IdType
     node_type: NodeType
-    uri: URIBase
+    uri: URI
 
 
 class PortJSON(PipelineNodeJSON):

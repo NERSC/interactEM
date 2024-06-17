@@ -2,24 +2,21 @@ import time
 
 import zmq
 
+from zmglue.agent import DEFAULT_AGENT_URI
 from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.models import (
+    URI,
     OperatorID,
     PipelineMessage,
     PortID,
-    URIBase,
     URIConnectMessage,
     URIConnectResponseMessage,
     URIUpdateMessage,
-    URIZmq,
 )
 from zmglue.zsocket import Socket, SocketInfo
 
 logger = get_logger("container", "DEBUG")
-
-
-AGENT_URI = URIZmq.from_uri(cfg.AGENT_URI)
 
 
 class AgentClient:
@@ -29,7 +26,7 @@ class AgentClient:
         self.socket = Socket(
             SocketInfo(
                 type=zmq.REQ,
-                uris=[AGENT_URI],
+                addresses=[DEFAULT_AGENT_URI.address],
                 bind=False,
             ),
             self.context,
@@ -56,7 +53,7 @@ class AgentClient:
             raise ValueError("Invalid response")
         return response
 
-    def get_connect_uris(self, port_id: PortID) -> list[URIBase]:
+    def get_connect_uris(self, port_id: PortID) -> list[URI]:
         input_connect_uri_request = URIConnectMessage(id=port_id)
         attempt_counter = 0
         max_retries = 5

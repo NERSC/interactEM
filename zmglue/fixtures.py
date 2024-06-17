@@ -1,15 +1,17 @@
 from uuid import UUID, uuid4
 
 from zmglue.models import (
+    URI,
     CommBackend,
     EdgeJSON,
     OperatorJSON,
     PipelineJSON,
     PortJSON,
     PortType,
-    URIBase,
+    Protocol,
     URILocation,
 )
+from zmglue.models.uri import ZMQAddress
 
 OPERATOR_0_ID = UUID("12345678-1234-1234-1234-1234567890ab")
 OPERATOR_1_ID = UUID("12345678-1234-1234-1234-1234567890cd")
@@ -25,7 +27,7 @@ OPERATOR_0 = OperatorJSON(
     id=OPERATOR_0_ID,
     params={"hello": "world"},
     outputs=[OPERATOR_0_OUTPUT_0_ID, OPERATOR_0_OUTPUT_1_ID],
-    uri=URIBase(
+    uri=URI(
         id=OPERATOR_0_ID,
         comm_backend=CommBackend.ZMQ,
         location=URILocation.operator,
@@ -38,11 +40,12 @@ OPERATOR_0_PORT_0 = PortJSON(
     operator_id=OPERATOR_0_ID,
     port_type=PortType.output,
     portkey="out1",
-    uri=URIBase(
+    uri=URI(
         id=OPERATOR_0_OUTPUT_0_ID,
         comm_backend=CommBackend.ZMQ,
         location=URILocation.port,
         hostname="localhost",
+        address=ZMQAddress(protocol=Protocol.tcp, interface="lo0", port=5555),
     ),
 )
 
@@ -51,7 +54,7 @@ OPERATOR_0_PORT_1 = PortJSON(
     operator_id=OPERATOR_0_ID,
     port_type=PortType.output,
     portkey="out1",
-    uri=URIBase(
+    uri=URI(
         id=OPERATOR_0_OUTPUT_1_ID,
         comm_backend=CommBackend.ZMQ,
         location=URILocation.port,
@@ -63,7 +66,7 @@ OPERATOR_1 = OperatorJSON(
     id=OPERATOR_1_ID,
     params={"hello": "world"},
     inputs=[OPERATOR_1_INPUT_0_ID],
-    uri=URIBase(
+    uri=URI(
         id=OPERATOR_1_ID,
         comm_backend=CommBackend.ZMQ,
         location=URILocation.operator,
@@ -76,7 +79,7 @@ OPERATOR_1_PORT_0 = PortJSON(
     operator_id=OPERATOR_1_ID,
     port_type=PortType.input,
     portkey="in1",
-    uri=URIBase(
+    uri=URI(
         id=OPERATOR_1_INPUT_0_ID,
         comm_backend=CommBackend.ZMQ,
         location=URILocation.port,
@@ -88,7 +91,7 @@ OPERATOR_2 = OperatorJSON(
     id=OPERATOR_2_ID,
     params={"hello": "world"},
     inputs=[OPERATOR_2_INPUT_0_ID],
-    uri=URIBase(
+    uri=URI(
         id=OPERATOR_2_ID,
         comm_backend=CommBackend.ZMQ,
         location=URILocation.operator,
@@ -101,7 +104,7 @@ OPERATOR_2_PORT_0 = PortJSON(
     operator_id=OPERATOR_2_ID,
     port_type=PortType.input,
     portkey="in1",
-    uri=URIBase(
+    uri=URI(
         id=OPERATOR_2_INPUT_0_ID,
         comm_backend=CommBackend.ZMQ,
         location=URILocation.port,

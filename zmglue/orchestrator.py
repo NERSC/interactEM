@@ -9,7 +9,6 @@ from pydantic import ValidationError
 from zmglue.config import cfg
 from zmglue.fixtures import PIPELINE
 from zmglue.logger import get_logger
-from zmglue.pipeline import Pipeline
 from zmglue.models import (
     BaseMessage,
     CommBackend,
@@ -20,21 +19,22 @@ from zmglue.models import (
     URIConnectResponseMessage,
     URILocation,
     URIUpdateMessage,
-    URIZmq,
 )
+from zmglue.models.uri import URI, ZMQAddress
+from zmglue.pipeline import Pipeline
 from zmglue.zsocket import Socket, SocketInfo
 
 logger = get_logger("forchestrator", "DEBUG")
 
-
-DEFAULT_ORCHESTRATOR_URI = URIZmq(
+DEFAULT_ORCHESTRATOR_SOCKET_ADDRESS: str = (
+    f"tcp://?interface=*&hostname=localhost&port={cfg.ORCHESTRATOR_PORT}"
+)
+DEFAULT_ORCHESTRATOR_URI = URI(
     id=uuid4(),
+    hostname="localhost",
     location=URILocation.orchestrator,
     comm_backend=CommBackend.ZMQ,
-    protocol=Protocol.tcp,
-    hostname="localhost",
-    hostname_bind="*",
-    port=cfg.ORCHESTRATOR_PORT,
+    address=ZMQAddress.from_address(DEFAULT_ORCHESTRATOR_SOCKET_ADDRESS),
 )
 
 
@@ -44,8 +44,9 @@ class Orchestrator:
         self.socket = Socket(
             SocketInfo(
                 type=zmq.REP,
-                uris=[DEFAULT_ORCHESTRATOR_URI],
+                addresses=[DEFAULT_ORCHESTRATOR_URI.address],
                 bind=True,
+                parent_id=DEFAULT_ORCHESTRATOR_URI.id,
             ),
             self.context,
         )

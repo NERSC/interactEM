@@ -30,4 +30,4 @@ from .pipeline import (
     PipelineNodeJSON,
     PortJSON,
 )
-from .uri import URIMPI, URIBase, URIZmq
+from .uri import URI, ZMQAddress

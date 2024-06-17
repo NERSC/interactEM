@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from zmglue.models.base import AgentID, OperatorID, PortID
 
 from .pipeline import PipelineJSON
-from .uri import URIBase
+from .uri import URI
 
 
 class MessageSubject(str, Enum):
@@ -27,13 +27,13 @@ class ErrorMessage(BaseMessage):
     message: str | None
 
 
-class URIMessage(BaseMessage, URIBase):
+class URIMessage(BaseMessage, URI):
     pass
 
 
 class URIConnectResponseMessage(BaseMessage):
     subject: MessageSubject = MessageSubject.URI_CONNECT_RESPONSE
-    connections: List[URIBase]
+    connections: List[URI]
 
 
 class URIUpdateMessage(URIMessage):

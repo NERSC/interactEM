@@ -1,7 +1,9 @@
+from sys import prefix
+from typing import Optional
 from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import UUID
 
-from pydantic import BaseModel, ValidationError, model_validator
+from pydantic import BaseModel, IPvAnyAddress, model_validator
 from typing_extensions import Self
 
 from .base import (
@@ -10,37 +12,120 @@ from .base import (
     OperatorID,
     OrchestratorID,
     PortID,
-    PortKey,
     Protocol,
     URILocation,
 )
 
 
-class URIBase(BaseModel):
+class ZMQAddress(BaseModel):
+    protocol: Protocol
+    hostname: Optional[str] = None
+    port: Optional[int] = None
+    interface: Optional[str] = None
+    endpoint: Optional[str] = None
+
+    @classmethod
+    def from_address(cls, address: str) -> "ZMQAddress":
+        parsed_url = urlparse(address)
+        protocol = parsed_url.scheme
+
+        if protocol == "tcp":
+            query_params = parse_qs(parsed_url.query)
+            hostname = query_params.get("hostname", [None])[0]
+            interface = query_params.get("interface", [None])[0]
+            port = query_params.get("port", [None])[0]
+            port = int(port) if port else None
+
+            return cls(
+                protocol=Protocol.tcp, hostname=hostname, interface=interface, port=port
+            )
+
+        elif protocol in ["inproc", "ipc"]:
+            endpoint = parsed_url.netloc + parsed_url.path
+            if not endpoint:
+                raise ValueError(f"{protocol} protocol requires an endpoint to be set.")
+            return cls(protocol=Protocol(protocol), endpoint=endpoint)
+        else:
+            raise ValueError("Invalid address protocol.")
+
+    @model_validator(mode="after")
+    def protocol_correctness(self) -> Self:
+        if self.protocol in [Protocol.inproc, Protocol.ipc]:
+            if not self.endpoint:
+                raise ValueError("inproc and ipc protocols require endpoint to be set.")
+            if self.hostname or self.port or self.interface:
+                raise ValueError(
+                    "ipc/inproc protocols do not use hostname or port. Please use endpoint instead."
+                )
+
+        elif self.protocol == Protocol.tcp:
+            if not (self.hostname or self.interface) or not self.port:
+                raise ValueError("tcp protocol requires hostname and port to be set.")
+        return self
+
+    def to_address(self) -> str:
+        query_params = {}
+        if self.protocol == Protocol.tcp:
+            if self.hostname:
+                query_params["hostname"] = self.hostname
+            if self.interface:
+                query_params["interface"] = self.interface
+            if self.port:
+                query_params["port"] = str(self.port)
+            query_string = urlencode(query_params)
+            return f"{self.protocol.value}://?{query_string}"
+
+        elif self.protocol in [Protocol.inproc, Protocol.ipc] and self.endpoint:
+            return f"{self.protocol.value}://{self.endpoint}"
+        else:
+            raise ValueError("Invalid address configuration.")
+
+    def to_connect_address(self) -> str:
+        if self.protocol == Protocol.tcp:
+            if not self.hostname:
+                raise ValueError("Hostname must be set for connecting.")
+            return f"{self.protocol.value}://{self.hostname}:{self.port}"
+        elif self.protocol in [Protocol.inproc, Protocol.ipc]:
+            return f"{self.protocol.value}://{self.endpoint}"
+        else:
+            raise ValueError("Unsupported protocol.")
+
+    def to_bind_address(self) -> str:
+        if self.protocol == Protocol.tcp:
+            if not self.interface:
+                raise ValueError("Interface must be set for binding.")
+            return f"{self.protocol.value}://{self.interface}:{self.port}"
+        elif self.protocol in [Protocol.inproc, Protocol.ipc]:
+            return f"{self.protocol.value}://{self.endpoint}"
+        else:
+            raise ValueError("Unsupported protocol.")
+
+
+class URI(BaseModel):
     id: PortID | OperatorID | AgentID | OrchestratorID
     location: URILocation
     hostname: str
     comm_backend: CommBackend
-    protocol: Protocol | None = None
-    interface: str | None = None
-    port: int | None = None
-    hostname_bind: str | None = None
+    address: ZMQAddress | None = None
 
     def to_uri(self) -> str:
         base_path = f"/{self.location.value}/{self.id}"
-        query_params = {
-            "protocol": (self.protocol.value if self.protocol else None),
-            "port": self.port,
-            "interface": self.interface,
-            "hostname_bind": self.hostname_bind,
-        }
+        query_params = {}
+        if self.comm_backend == CommBackend.ZMQ and self.address:
+            query_params["address"] = self.address.to_address()
         query_string = urlencode(
             {k: v for k, v in query_params.items() if v is not None}
         )
-        return f"{self.comm_backend.value}://{self.hostname}{base_path}?{query_string}"
+
+        if query_string:
+            return (
+                f"{self.comm_backend.value}://{self.hostname}{base_path}?{query_string}"
+            )
+        else:
+            return f"{self.comm_backend.value}://{self.hostname}{base_path}"
 
     @classmethod
-    def from_uri(cls, uri: str) -> "URIBase":
+    def from_uri(cls, uri: str) -> "URI":
         parsed_uri = urlparse(uri)
         query_params = parse_qs(parsed_uri.query)
 
@@ -53,82 +138,16 @@ class URIBase(BaseModel):
         if not hostname:
             raise ValueError("Hostname must be set in URI.")
 
-        protocol = query_params.get("protocol", [None])[0]
-        protocol = Protocol(protocol) if protocol else None
+        address: ZMQAddress | None = None
+        if comm_backend == CommBackend.ZMQ:
+            _address = query_params.get("address", [None])[0]
+            if _address and _address.strip():  # Ensure it's not empty
+                address = ZMQAddress.from_address(_address)
 
-        port = query_params.get("port", [0])[0]
-        port = int(port) if port else None
-
-        interface = query_params.get("interface", [None])[0]
-        hostname_bind = query_params.get("hostname_bind", [None])[0]
-
-        base = cls(
+        return cls(
             id=id,
             comm_backend=comm_backend,
             location=URILocation(location),
             hostname=hostname,
-            protocol=protocol,
-            port=port,
-            interface=interface,
-            hostname_bind=hostname_bind,
+            address=address,
         )
-
-        if comm_backend == CommBackend.ZMQ:
-            specific_class = URIZmq
-        elif comm_backend == CommBackend.MPI:
-            specific_class = URIMPI
-        else:
-            return base
-
-        return specific_class(**base.model_dump())
-
-
-class URIZmq(URIBase):
-    protocol: Protocol  # type: ignore
-    port: int  # type: ignore
-    hostname_bind: str | None = None
-    interface: str | None = None
-    comm_backend: CommBackend = CommBackend.ZMQ
-
-    def to_connect_address(self) -> str:
-        if not self.hostname:
-            raise ValueError("Hostname must be set to generate connect address.")
-        return f"{self.protocol.value}://{self.hostname}:{self.port}"
-
-    def to_bind_address(self) -> str:
-        if self.hostname_bind:
-            return f"{self.protocol.value}://{self.hostname_bind}:{self.port}"
-        elif self.interface:
-            return f"{self.protocol.value}://{self.interface}:{self.port}"
-        else:
-            raise ValueError(
-                "Either hostname_bind or interface must be set to generate bind address."
-            )
-
-    @classmethod
-    def from_uri(cls, uri: str) -> "URIZmq":
-        base = super().from_uri(uri)
-        return cls(**base.model_dump())
-
-    @model_validator(mode="after")
-    def check_either_hostname_bind_or_interface(self) -> Self:
-        if self.hostname_bind and self.interface:
-            raise ValidationError(
-                "Exactly one of hostname_bind or interface must be set."
-            )
-        return self
-
-
-class URIMPI(URIBase):
-    protocol: Protocol | None = None  # MPI doesn't use transport protocol
-    port: int | None = None  # MPI doesn't use port
-    hostname_bind: str | None = None
-    interface: str | None = None
-
-    def to_connect_address(self) -> str:
-        return f"mpi://{self.hostname}"
-
-    @classmethod
-    def from_uri(cls, uri: str) -> "URIMPI":
-        base = super().from_uri(uri)
-        return cls(**base.model_dump())
