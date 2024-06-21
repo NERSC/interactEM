@@ -21,6 +21,7 @@ from .base import (
 logger = get_logger("models.uri", "DEBUG")
 
 
+# TODO: could base64 encode this so that we don't clobber "/" and "?" and "=" and "&" in URI
 class ZMQAddress(BaseModel):
     protocol: Protocol
     hostname: Optional[str] = None
