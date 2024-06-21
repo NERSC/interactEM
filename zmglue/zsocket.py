@@ -91,6 +91,9 @@ class Socket:
         self._socket: zmq.SyncSocket = context.socket(info.type)
         self._metrics: SocketMetrics = SocketMetrics()
 
+    def __del__(self):
+        self.close()
+
     def _configure(self):
         if self.info.options:
             logger.info("Setting socket options")
@@ -236,4 +239,6 @@ class Socket:
             raise
 
     def close(self):
+        if self.info.connected:
+            self.info.connected = False
         self._socket.close()
