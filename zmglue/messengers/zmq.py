@@ -194,7 +194,9 @@ class ZmqMessenger(BaseMessenger):
                     logger.info(f"Failed to send message on port {port_id}: {e}.")
 
     def _readiness_check(self):
-        print([socket.info.connected for socket in self.input_sockets.values()])
+        # TODO: we should probably have this information in one place rather than in two
+        # we could also have inproc sockets that could send to a central place to inform
+        # agentclient (and rest of network) that we are ready
         return all(
             [socket.info.connected for socket in self.input_sockets.values()]
             + [socket.info.connected for socket in self.output_sockets.values()]
