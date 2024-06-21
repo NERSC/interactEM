@@ -42,6 +42,9 @@ class AgentClient:
         )
         self.socket.bind_or_connect()
 
+    def __del__(self):
+        self.close()
+
     def update_uri(self, uri_update: URIUpdateMessage) -> URIUpdateMessage:
 
         logger.info(f"Updating URI on Orchestrator: {uri_update}")

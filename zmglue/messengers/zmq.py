@@ -39,6 +39,10 @@ class ZmqMessenger(BaseMessenger):
         self.output_deque: Deque[BaseMessage] = deque()
         logger.name = f"messenger-{self._id}"
 
+    def __del__(self):
+        # TODO: implement cleanup
+        pass
+
     @property
     def type(self):
         return "zmq"
