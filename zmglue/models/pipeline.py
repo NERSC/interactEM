@@ -11,6 +11,7 @@ class PipelineNodeJSON(BaseModel):
     id: IdType
     node_type: NodeType
     uri: URI
+    connected: bool = False
 
 
 class PortJSON(PipelineNodeJSON):

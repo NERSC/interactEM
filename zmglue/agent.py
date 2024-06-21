@@ -26,9 +26,7 @@ DEFAULT_AGENT_URI = URI(
     id=UUID("583cd5b3-c94d-4644-8be7-dbd4f0570e91"),
     comm_backend=CommBackend.ZMQ,
     location=URILocation.agent,
-    address=ZMQAddress.from_address(
-        f"tcp://?hostname=localhost&interface=lo0&port={cfg.AGENT_PORT}"
-    ),
+    query={"address": [f"tcp://?hostname=localhost&interface=lo0&port={cfg.AGENT_PORT}"]},  # type: ignore
     hostname="localhost",
 )
 
@@ -39,16 +37,18 @@ class Agent:
         self.req_socket = Socket(
             info=SocketInfo(
                 type=zmq.REQ,
-                addresses=[DEFAULT_ORCHESTRATOR_URI.address],
+                addresses=DEFAULT_ORCHESTRATOR_URI.query["address"],  # type: ignore
                 bind=False,
+                parent_id=DEFAULT_AGENT_URI.id,
             ),
             context=self.context,
         )
         self.rep_socket = Socket(
             SocketInfo(
                 type=zmq.REP,
-                addresses=[DEFAULT_AGENT_URI.address],
+                addresses=DEFAULT_AGENT_URI.query["address"],  # type: ignore
                 bind=True,
+                parent_id=DEFAULT_AGENT_URI.id,
             ),
             self.context,
         )
@@ -101,14 +101,9 @@ class Agent:
         try:
             while self._running:
                 msg = self.rep_socket.recv_model()
-                logger.debug(f"Received from container: {msg}")
-
                 self.req_socket.send_model(msg)
                 response = self.req_socket.recv_model()
-                logger.debug(f"Received response from orchestrator: {response}")
-
                 self.rep_socket.send_model(response)
-                logger.info("Sent URI to container")
         except KeyboardInterrupt:
             pass
         except zmq.error.ContextTerminated:
@@ -133,7 +128,6 @@ class Agent:
     def get_pipeline(self) -> PipelineMessage:
         self.req_socket.send_model(PipelineMessage())
         response = self.req_socket.recv_model()
-        logger.info(f"Received pipeline configuration: {response}")
         if not isinstance(response, PipelineMessage):
             raise ValueError(f"Invalid response: {response}")
         return response

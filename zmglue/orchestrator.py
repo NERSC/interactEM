@@ -20,6 +20,12 @@ from zmglue.models import (
     URILocation,
     URIUpdateMessage,
 )
+from zmglue.models.messages import (
+    GetConnectionsMessage,
+    GetConnectionsResponseMessage,
+    OKMessage,
+    PutPipelineNodeMessage,
+)
 from zmglue.models.uri import URI, ZMQAddress
 from zmglue.pipeline import Pipeline
 from zmglue.zsocket import Socket, SocketInfo
@@ -34,7 +40,7 @@ DEFAULT_ORCHESTRATOR_URI = URI(
     hostname="localhost",
     location=URILocation.orchestrator,
     comm_backend=CommBackend.ZMQ,
-    address=ZMQAddress.from_address(DEFAULT_ORCHESTRATOR_SOCKET_ADDRESS),
+    query={"address": [DEFAULT_ORCHESTRATOR_SOCKET_ADDRESS]},
 )
 
 
@@ -44,7 +50,7 @@ class Orchestrator:
         self.socket = Socket(
             SocketInfo(
                 type=zmq.REP,
-                addresses=[DEFAULT_ORCHESTRATOR_URI.address],
+                addresses=DEFAULT_ORCHESTRATOR_URI.query["address"],  # type: ignore
                 bind=True,
                 parent_id=DEFAULT_ORCHESTRATOR_URI.id,
             ),
@@ -57,6 +63,7 @@ class Orchestrator:
             PipelineMessage: self.handle_pipeline_request,
             URIUpdateMessage: self.handle_uri_update_request,
             URIConnectMessage: self.handle_uri_connect_request,
+            PutPipelineNodeMessage: self.handle_put_pipeline_node,
         }
         self.pipeline = Pipeline.from_pipeline(PIPELINE)
         self._running = Event()
@@ -90,6 +97,13 @@ class Orchestrator:
 
         logger.debug(f"Found URIs: {uris}")
         return URIConnectResponseMessage(connections=uris)
+
+    def handle_put_pipeline_node(self, msg: BaseMessage) -> BaseMessage:
+        if not isinstance(msg, PutPipelineNodeMessage):
+            raise ValueError(f"Invalid message subject: {msg}")
+
+        uris = self.pipeline.put_node(msg)
+        return OKMessage(message="All good :)")
 
     def process_message(self, msg: BaseMessage) -> BaseMessage:
         handler = self.message_handlers.get(type(msg))

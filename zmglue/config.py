@@ -11,7 +11,5 @@ class Settings(BaseSettings):
     ORCHESTRATOR_PORT: int
     CONTAINER_INTERFACE: str | None
 
-    AGENT_URI: str
-
 
 cfg = Settings()  # type: ignore

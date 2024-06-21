@@ -14,20 +14,29 @@ from zmglue.models import (
     URIConnectResponseMessage,
     URIUpdateMessage,
 )
+from zmglue.models.messages import (
+    GetConnectionsMessage,
+    GetConnectionsResponseMessage,
+    OKMessage,
+    PutPipelineNodeMessage,
+)
+from zmglue.models.pipeline import PipelineNodeJSON
 from zmglue.zsocket import Socket, SocketInfo
 
-logger = get_logger("container", "DEBUG")
+logger = get_logger("agent-client", "DEBUG")
 
 
 class AgentClient:
     def __init__(self, id: OperatorID, context: zmq.SyncContext | None = None):
         self.context = zmq.Context() if context is None else context
         self.id = id
+        logger.name = f"agent-client-{self.id}"
         self.socket = Socket(
             SocketInfo(
                 type=zmq.REQ,
-                addresses=[DEFAULT_AGENT_URI.address],
+                addresses=DEFAULT_AGENT_URI.query["address"],  # type: ignore
                 bind=False,
+                parent_id=id,
             ),
             self.context,
         )
@@ -43,6 +52,15 @@ class AgentClient:
             raise ValueError("Invalid response")
 
         logger.info(f"Received URI assignment: {response}")
+        return response
+
+    def put_pipeline_node(self, msg: PutPipelineNodeMessage) -> OKMessage:
+
+        self.socket.send_model(msg)
+        response = self.socket.recv_model()
+        if not isinstance(response, OKMessage):
+            logger.error(f"Received invalid response: {response}")
+            raise ValueError("Invalid response")
         return response
 
     def get_pipeline(self) -> PipelineMessage:

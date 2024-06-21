@@ -1,4 +1,4 @@
-from time import time
+import time
 from typing import Dict, Type
 
 from zmglue.agentclient import AgentClient
@@ -42,6 +42,12 @@ class Operator:
             raise ValueError(f"Invalid communications backend: {comm_backend}")
 
         self.messenger = messenger_cls(self)
+        logger.info(f"Starting messenger {self.messenger}...")
+        self.messenger.start(self.client, self.pipeline)
+
+        while not self.messenger.ready:
+            logger.info(f"Waiting for messenger to be wired up properly...")
+            time.sleep(1)
 
         while True:
             time.sleep(1)
