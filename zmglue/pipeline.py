@@ -16,6 +16,7 @@ from zmglue.models import (
     URIConnectMessage,
     URIUpdateMessage,
 )
+from zmglue.models.messages import GetConnectionsMessage, PutPipelineNodeMessage
 from zmglue.models.uri import ZMQAddress
 
 logger = get_logger("pipeline")
@@ -137,10 +138,15 @@ class Pipeline(nx.DiGraph):
         }
 
     def get_operator_ports(self, operator_id: IdType) -> dict[IdType, PortJSON]:
+        if isinstance(operator_id, str):
+            operator_id = IdType(operator_id)
         return {k: v for k, v in self.ports.items() if v.operator_id == operator_id}
 
     def get_operator(self, operator_id: IdType) -> OperatorJSON:
-        return OperatorJSON(**self.nodes[operator_id])
+        if isinstance(operator_id, str):
+            operator_id = IdType(operator_id)
+
+        return self.operators[operator_id]
 
     def get_operator_outputs(self, operator_id: IdType) -> dict[IdType, OutputJSON]:
         ports = self.get_operator_ports(operator_id)
@@ -227,3 +233,14 @@ class Pipeline(nx.DiGraph):
         ]
 
         return [p.uri for p in output_ports]
+
+    def put_node(self, message: PutPipelineNodeMessage) -> PutPipelineNodeMessage:
+        node_id = message.node.id
+        if node_id not in self.nodes:
+            raise ValueError(f"Node {node_id} not found in the graph.")
+
+        logger.warning(f"Updating node {node_id} with message: {message}")
+        current_node = self.nodes[node_id]
+        current_node.update(message.node.model_dump())
+        logger.info(f"Updated node {node_id} with message: {message}")
+        return message

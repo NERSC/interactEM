@@ -45,7 +45,9 @@ OPERATOR_0_PORT_0 = PortJSON(
         comm_backend=CommBackend.ZMQ,
         location=URILocation.port,
         hostname="localhost",
-        address=ZMQAddress(protocol=Protocol.tcp, interface="lo0", port=5555),
+        query={
+            "address": [ZMQAddress(protocol=Protocol.tcp, interface="lo0").to_address()]
+        },
     ),
 )
 
@@ -59,6 +61,9 @@ OPERATOR_0_PORT_1 = PortJSON(
         comm_backend=CommBackend.ZMQ,
         location=URILocation.port,
         hostname="localhost",
+        query={
+            "address": [ZMQAddress(protocol=Protocol.tcp, interface="lo0").to_address()]
+        },
     ),
 )
 

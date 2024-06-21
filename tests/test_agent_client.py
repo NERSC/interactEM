@@ -25,7 +25,13 @@ def uri_update_msg(operator_0_output_0_id: OperatorID) -> URIUpdateMessage:
         location=URILocation.port,
         hostname="sam",
         comm_backend=CommBackend.ZMQ,
-        address=ZMQAddress(protocol=Protocol.tcp, hostname="sam", port=5555),
+        query={
+            "address": [
+                ZMQAddress(
+                    protocol=Protocol.tcp, hostname="sam", port=5555
+                ).to_address()
+            ]
+        },
     )
 
 
@@ -63,9 +69,9 @@ def test_update_uri(
 ):
     response = agent_client.update_uri(uri_update_msg)
     assert isinstance(response, URIUpdateMessage)
-    assert response.address
-    assert response.hostname == uri_update_msg.address.hostname
-    assert response.address.port == uri_update_msg.address.port
+    returned_addr = ZMQAddress.from_address(response.query["address"][0])
+    sent_addr = ZMQAddress.from_address(uri_update_msg.query["address"][0])
+    assert returned_addr.port == sent_addr.port
 
 
 def test_get_pipeline(

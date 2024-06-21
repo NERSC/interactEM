@@ -3,8 +3,10 @@ from typing import Optional
 from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import UUID
 
-from pydantic import BaseModel, IPvAnyAddress, model_validator
+from pydantic import AnyUrl, BaseModel, IPvAnyAddress, model_validator
 from typing_extensions import Self
+
+from zmglue.logger import get_logger
 
 from .base import (
     AgentID,
@@ -16,6 +18,8 @@ from .base import (
     URILocation,
 )
 
+logger = get_logger("models.uri", "DEBUG")
+
 
 class ZMQAddress(BaseModel):
     protocol: Protocol
@@ -25,7 +29,43 @@ class ZMQAddress(BaseModel):
     endpoint: Optional[str] = None
 
     @classmethod
-    def from_address(cls, address: str) -> "ZMQAddress":
+    def _from_uri_cls(cls, uri: "URI") -> list[Self] | Self:
+
+        if uri.comm_backend != CommBackend.ZMQ:
+            raise ValueError(
+                f"Can't parse URI, incorrect comm backend: {uri.comm_backend}, should be 'zmq'."
+            )
+
+        addresses = uri.query.get("address", [])
+        if not addresses:
+            logger.info("No addresses found in URI.")
+            return []
+
+        parsed_addresses = []
+        for address in addresses:
+            try:
+                zmq_address = cls.from_address(address)
+                if not zmq_address.hostname:
+                    zmq_address.hostname = uri.hostname
+                parsed_addresses.append(zmq_address)
+            except ValueError as e:
+                raise ValueError(f"Failed to parse address '{address}': {e}")
+
+        if len(parsed_addresses) == 1:
+            return parsed_addresses[0]
+        elif parsed_addresses:
+            return parsed_addresses
+        else:
+            return []
+
+    @classmethod
+    def from_uri(cls, uri: "URI |str") -> list[Self] | Self:
+        if isinstance(uri, str):
+            uri = URI.from_uri(uri)
+        return cls._from_uri_cls(uri)
+
+    @classmethod
+    def from_address(cls, address: str) -> Self:
         parsed_url = urlparse(address)
         protocol = parsed_url.scheme
 
@@ -59,8 +99,10 @@ class ZMQAddress(BaseModel):
                 )
 
         elif self.protocol == Protocol.tcp:
-            if not (self.hostname or self.interface) or not self.port:
-                raise ValueError("tcp protocol requires hostname and port to be set.")
+            if not (self.hostname or self.interface):
+                raise ValueError(
+                    "tcp protocol requires either hostname or interface to be set."
+                )
         return self
 
     def to_address(self) -> str:
@@ -72,7 +114,7 @@ class ZMQAddress(BaseModel):
                 query_params["interface"] = self.interface
             if self.port:
                 query_params["port"] = str(self.port)
-            query_string = urlencode(query_params)
+            query_string = urlencode(query_params, doseq=True)
             return f"{self.protocol.value}://?{query_string}"
 
         elif self.protocol in [Protocol.inproc, Protocol.ipc] and self.endpoint:
@@ -94,40 +136,48 @@ class ZMQAddress(BaseModel):
         if self.protocol == Protocol.tcp:
             if not self.interface:
                 raise ValueError("Interface must be set for binding.")
+            if not self.port:
+                return f"{self.protocol.value}://{self.interface}"
             return f"{self.protocol.value}://{self.interface}:{self.port}"
         elif self.protocol in [Protocol.inproc, Protocol.ipc]:
             return f"{self.protocol.value}://{self.endpoint}"
         else:
             raise ValueError("Unsupported protocol.")
 
+    def update_uri(self, uri: "URI") -> bool:
+        address_str = self.to_address()
+        current_addresses = uri.query.get("address", [])
 
+        if address_str in current_addresses:
+            logger.info("Address already present in URI.")
+            return False
+
+        current_addresses.append(address_str)
+        uri.query["address"] = current_addresses
+        return True
+
+
+# TODO: Probably could subclass AnyUrl instead of BaseModel, get rid of some boilerplate
 class URI(BaseModel):
     id: PortID | OperatorID | AgentID | OrchestratorID
     location: URILocation
     hostname: str
     comm_backend: CommBackend
-    address: ZMQAddress | None = None
+    query: dict[str, list[str]] = {}
 
     def to_uri(self) -> str:
         base_path = f"/{self.location.value}/{self.id}"
-        query_params = {}
-        if self.comm_backend == CommBackend.ZMQ and self.address:
-            query_params["address"] = self.address.to_address()
-        query_string = urlencode(
-            {k: v for k, v in query_params.items() if v is not None}
-        )
+        query: str = urlencode(self.query, doseq=True)
 
-        if query_string:
-            return (
-                f"{self.comm_backend.value}://{self.hostname}{base_path}?{query_string}"
-            )
+        if query:
+            return f"{self.comm_backend.value}://{self.hostname}{base_path}?{query}"
         else:
             return f"{self.comm_backend.value}://{self.hostname}{base_path}"
 
     @classmethod
     def from_uri(cls, uri: str) -> "URI":
         parsed_uri = urlparse(uri)
-        query_params = parse_qs(parsed_uri.query)
+        query = parse_qs(parsed_uri.query)
 
         comm_backend = CommBackend(parsed_uri.scheme)
 
@@ -138,16 +188,10 @@ class URI(BaseModel):
         if not hostname:
             raise ValueError("Hostname must be set in URI.")
 
-        address: ZMQAddress | None = None
-        if comm_backend == CommBackend.ZMQ:
-            _address = query_params.get("address", [None])[0]
-            if _address and _address.strip():  # Ensure it's not empty
-                address = ZMQAddress.from_address(_address)
-
         return cls(
             id=id,
             comm_backend=comm_backend,
             location=URILocation(location),
             hostname=hostname,
-            address=address,
+            query=query,
         )
