@@ -144,8 +144,7 @@ class Socket:
 
     def _connect(self):
         for addr in self.info.addresses:
-            addr = addr.to_connect_address()
-            self._socket.connect(addr)
+            self._socket.connect(addr.to_connect_address())
         self.info.connected = True
 
     @staticmethod
