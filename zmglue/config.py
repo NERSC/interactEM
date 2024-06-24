@@ -1,4 +1,4 @@
-from typing import Optional
+from uuid import UUID
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,7 +9,7 @@ class Settings(BaseSettings):
 
     AGENT_PORT: int
     ORCHESTRATOR_PORT: int
-    CONTAINER_INTERFACE: Optional[str]
+    CONTAINER_INTERFACE: str | None
 
 
 cfg = Settings()  # type: ignore
