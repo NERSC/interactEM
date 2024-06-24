@@ -11,7 +11,7 @@ from zmglue.agentclient import AgentClient
 from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.models import URI, BaseMessage, IdType, PortJSON, PortType
-from zmglue.models.base import OperatorID, PortID
+from zmglue.models.base import OperatorID, PortID, Protocol
 from zmglue.models.messages import PutPipelineNodeMessage
 from zmglue.models.pipeline import InputJSON, OutputJSON
 from zmglue.models.uri import ZMQAddress
@@ -35,8 +35,49 @@ class ZmqMessenger(BaseMessenger):
         self.output_sockets: dict[PortID, Socket] = {}
         self._context: zmq.SyncContext = operator.client.context
         self._id: OperatorID = UUID(operator.id)
-        self.input_deque: Deque[BaseMessage] = deque()
-        self.output_deque: Deque[BaseMessage] = deque()
+
+        # Sockets for receiving/sending messages inside operator
+        self.input_recv_socket: Socket = Socket(
+            info=SocketInfo(
+                type=zmq.PULL,
+                bind=True,
+                addresses=[ZMQAddress(protocol=Protocol.inproc, endpoint="recv")],
+            ),
+            context=self._context,
+        )
+        self.output_send_socket: Socket = Socket(
+            info=SocketInfo(
+                type=zmq.PUSH,
+                bind=True,
+                addresses=[ZMQAddress(protocol=Protocol.inproc, endpoint="send")],
+            ),
+            context=self._context,
+        )
+
+        # Sockets for receiving/sending message to operator
+        self.input_send_socket: Socket = Socket(
+            info=SocketInfo(
+                type=zmq.PUSH,
+                bind=False,
+                addresses=[ZMQAddress(protocol=Protocol.inproc, endpoint="recv")],
+            ),
+            context=self._context,
+        )
+
+        self.output_recv_socket: Socket = Socket(
+            info=SocketInfo(
+                type=zmq.PULL,
+                bind=False,
+                addresses=[ZMQAddress(protocol=Protocol.inproc, endpoint="send")],
+            ),
+            context=self._context,
+        )
+
+        self.input_recv_socket.bind_or_connect()
+        self.output_send_socket.bind_or_connect()
+        self.input_send_socket.bind_or_connect()
+        self.output_recv_socket.bind_or_connect()
+
         logger.name = f"messenger-{self._id}"
 
     def __del__(self):
@@ -48,17 +89,21 @@ class ZmqMessenger(BaseMessenger):
         return "zmq"
 
     def recv(self, src: IdType) -> BaseMessage | None:
-        try:
-            message = self.input_deque.popleft()
-            return message
-        except IndexError:
+        message = self.input_recv_socket.recv_model(flags=zmq.DONTWAIT)
+        if message == zmq.Again:
             return None
+        else:
+            return message
 
     def send(self, message: BaseMessage, dst: IdType):
-        self.output_deque.append(message)
+        # blocking send
+        self.output_send_socket.send_model(message)
 
     def start(self, client: AgentClient, pipeline: Pipeline):
         self._setup(client, pipeline)
+        while True:
+            self._recv_external()
+            self._send_external()
 
     def _add_socket(self, port_info: PortJSON):
 
@@ -166,32 +211,51 @@ class ZmqMessenger(BaseMessenger):
         self._setup_outputs(agent_client, pipeline)
         self._setup_inputs(agent_client, pipeline)
 
-    def _recv_from_sockets(self):
-        while True:
-            for port_id, socket in self.input_sockets.items():
+    def _recv_external(self):
+        for port_id, socket in self.input_sockets.items():
+            try:
+                message = socket.recv_model(flags=zmq.DONTWAIT)
+                if message != zmq.Again:
+                    self.input_send_socket.send_model(message)
+            except zmq.Again:
+                pass
+            except zmq.ZMQError as e:
+                logger.error(f"Failed to receive message on port {port_id}: {e}")
+            finally:
+                continue
+
+    def _send_external(self):
+        # TODO: Same message on all output sockets--probably not the way
+        # TODO: should we only have one output socket per operator?
+        try:
+            message = self.output_recv_socket.recv_model(zmq.DONTWAIT)
+        except zmq.Again:
+            return
+        except zmq.ZMQError as e:
+            logger.error(f"Failed to receive message: {e}")
+            return
+
+        resend: list[UUID] = []
+        for port_id, socket in self.output_sockets.items():
+            try:
+                rc = socket.send_model(message)
+                if rc == zmq.Again:
+                    resend.append(port_id)
+            except zmq.ZMQError as e:
+                logger.error(f"Failed to send message on port {port_id}: {e}")
+            finally:
+                continue
+
+        while resend:
+            for port_id in resend:
                 try:
-                    message = socket.recv_model(zmq.DONTWAIT)
-                    self.input_deque.append(message)
-                except zmq.Again:  # no more messages
-                    pass
+                    rc = self.output_sockets[port_id].send_model(message)
+                    if rc != zmq.Again:
+                        resend.remove(port_id)
                 except zmq.ZMQError as e:
-                    logger.error(f"Failed to receive message on port {port_id}: {e}")
+                    logger.error(f"Failed to send message on port {port_id}: {e}")
                 finally:
                     continue
-
-    def _send_to_sockets(self):
-        while True:
-            for port_id, socket in self.output_sockets.items():
-                try:
-                    message = self.output_deque.popleft()
-                    socket.send_model(message, zmq.DONTWAIT)
-                except IndexError:
-                    pass
-                except zmq.Again:
-                    logger.info("Timeout sending message.")
-                    self.output_deque.appendleft(message)
-                except zmq.ZMQError as e:
-                    logger.info(f"Failed to send message on port {port_id}: {e}.")
 
     def _readiness_check(self):
         # TODO: we should probably have this information in one place rather than in two

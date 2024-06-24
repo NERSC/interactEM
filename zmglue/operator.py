@@ -1,11 +1,14 @@
 import time
+from threading import Thread
 from typing import Dict, Type
+from uuid import UUID
 
 from zmglue.agentclient import AgentClient
 from zmglue.logger import get_logger
 from zmglue.messengers.base import BaseMessenger
 from zmglue.messengers.zmq import ZmqMessenger
 from zmglue.models import CommBackend, IdType, OperatorJSON
+from zmglue.models.messages import BaseMessage, DataMessage
 from zmglue.pipeline import Pipeline
 
 logger = get_logger("operator", "DEBUG")
@@ -25,6 +28,7 @@ class Operator:
         self.pipeline: Pipeline | None = None
         self.info: OperatorJSON | None = None
         self.client = AgentClient(id=id)
+        self.messenger_thread: Thread | None = None
 
     def start(self):
         while self.pipeline is None:
@@ -43,64 +47,40 @@ class Operator:
 
         self.messenger = messenger_cls(self)
         logger.info(f"Starting messenger {self.messenger}...")
-        self.messenger.start(self.client, self.pipeline)
+
+        # TODO: client should not go in here, because it is not threadsafe
+        # currently works but won't if we use client a lot in the messenger
+        self.messenger_thread = Thread(
+            target=self.messenger.start,
+            name="messenger_thread",
+            args=(self.client, self.pipeline),
+        )
+        self.messenger_thread.start()
 
         while not self.messenger.ready:
             logger.info(f"Waiting for messenger to be wired up properly...")
             time.sleep(1)
 
-        while True:
-            time.sleep(1)
+        _id = str(self.id)
+        if _id == "12345678-1234-1234-1234-1234567890ab":
+            logger.warning("Running dummy operator")
+            while True:
+                self.messenger.send(DataMessage(data=b"Hello, World!"), _id)
+        else:
+            while True:
+                message = self.messenger.recv(_id)
+                if message:
+                    logger.info(f"Received message: {message} on {self.id}")
+                    processed_message = self.operate(message)
+                    self.messenger.send(processed_message, _id)
+                else:
+                    time.sleep(1)
 
-    # def operate(self, task_message: DataMessage) -> DataMessage:
+    def operate(self, message: BaseMessage) -> BaseMessage:
+        if self.processing_function:
+            return self.processing_function(message)
+        else:
+            raise NotImplementedError("No processing function defined")
 
-    #     inputs = task_message.data
-    #     output = self.kernel(inputs)
-
-    #     return self.output_queues[]DataMessage(data=output)
-
-    # @abstractmethod
-    # def kernel(self, inputs: bytes) -> bytes:
-    #     pass
-
-
-# KernelFn = Callable[[bytes], bytes]
-
-
-# def operator(
-#     func: Optional[KernelFn] = None,
-#     name: Optional[str] = None,
-#     start: bool = True,
-#     messenger: Optional[InterOperatorMessenger] = None,
-# ) -> Any:
-#     # A decorator to automatically make an Operator where the function
-#     # that is decorated will be the kernel function.
-
-#     def decorator(func: KernelFn) -> Operator:
-#         nonlocal name
-#         nonlocal messenger
-
-#         if name is None:
-#             name = func.__name__
-
-#         if messenger is None:
-#             messenger = InterOperatorMessenger()
-#         @wraps(func)
-#         def kernel(_, *args, **kwargs):
-#             # Remove self so the caller does not need to add it
-#             return func(*args, **kwargs)
-
-#         class_name = f"{name.capitalize()}Operator"
-#         OpClass = type(class_name, (Operator,), {"kernel": kernel})
-
-#         obj = OpClass(name, messenger)
-
-#         if start:
-#             obj.start()
-
-#         return obj
-
-#     if func is not None:
-#         return decorator(func)
-
-#     return decorator
+    def set_processing_function(self, func):
+        self.processing_function = func
