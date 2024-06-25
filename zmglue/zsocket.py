@@ -148,17 +148,15 @@ class Socket:
         self.info.connected = True
 
     @staticmethod
-    def on_send(method: Callable[..., None]) -> Callable[..., Any]:
+    def on_send(method: Callable[..., None]) -> Callable[..., None]:
         @wraps(method)
-        def wrapper(self: "Socket", obj: Any, flags: int = 0) -> Any:
+        def wrapper(self: "Socket", obj: Any, flags: int = 0) -> None:
             try:
-                result = method(self, obj, flags)
-            except zmq.Again:
-                logger.error("Timeout sending message")
+                method(self, obj, flags)
+            except zmq.Again as e:
                 self._metrics.send_timeouts += 1
-                return zmq.Again
+                raise e
             self._metrics.send_count += 1
-            return result
 
         return wrapper
 
@@ -168,10 +166,9 @@ class Socket:
         def wrapper(self: "Socket", flags: int = 0) -> Any:
             try:
                 result = method(self, flags)
-            except zmq.Again:
-                logger.error("Timeout receiving message")
+            except zmq.Again as e:
                 self._metrics.recv_timeouts += 1
-                return zmq.Again
+                raise e
             self._metrics.recv_count += 1
             return result
 
@@ -210,7 +207,7 @@ class Socket:
         return self._socket.recv(flags)
 
     @on_send
-    def send_model(self, obj: BaseMessage, flags: int = 0) -> Any:
+    def send_model(self, obj: BaseMessage, flags: int = 0) -> None:
         payload = obj.model_dump_json()
         self._socket.send_string(payload, flags)
 

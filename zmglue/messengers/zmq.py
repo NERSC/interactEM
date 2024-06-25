@@ -89,15 +89,21 @@ class ZmqMessenger(BaseMessenger):
         return "zmq"
 
     def recv(self, src: IdType) -> BaseMessage | None:
-        message = self.input_recv_socket.recv_model(flags=zmq.DONTWAIT)
-        if message == zmq.Again:
-            return None
-        else:
+        try:
+            message = self.input_recv_socket.recv_model(flags=zmq.DONTWAIT)
             return message
+        except zmq.Again:
+            return None
 
     def send(self, message: BaseMessage, dst: IdType):
-        # blocking send
-        self.output_send_socket.send_model(message)
+        while True:
+            try:
+                # blocking send
+                self.output_send_socket.send_model(message)
+                break
+            except zmq.Again:
+                logger.error(f"{self._id} timeout, retrying...")
+                continue
 
     def start(self, client: AgentClient, pipeline: Pipeline):
         self._setup(client, pipeline)
@@ -235,23 +241,14 @@ class ZmqMessenger(BaseMessenger):
             logger.error(f"Failed to receive message: {e}")
             return
 
-        resend: list[UUID] = []
-        for port_id, socket in self.output_sockets.items():
-            try:
-                rc = socket.send_model(message)
-                if rc == zmq.Again:
-                    resend.append(port_id)
-            except zmq.ZMQError as e:
-                logger.error(f"Failed to send message on port {port_id}: {e}")
-            finally:
-                continue
-
+        resend: list[UUID] = [k for k in self.output_sockets.keys()]
         while resend:
             for port_id in resend:
                 try:
-                    rc = self.output_sockets[port_id].send_model(message)
-                    if rc != zmq.Again:
-                        resend.remove(port_id)
+                    self.output_sockets[port_id].send_model(message)
+                    resend.remove(port_id)
+                except zmq.Again:
+                    continue
                 except zmq.ZMQError as e:
                     logger.error(f"Failed to send message on port {port_id}: {e}")
                 finally:
