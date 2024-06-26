@@ -1,7 +1,9 @@
 import logging
 from collections.abc import Callable, Sequence
 from functools import wraps
-from typing import Any, Optional, Self
+from typing import Any, Optional
+from typing_extensions import Self
+
 
 import zmq
 from pydantic import BaseModel, ValidationError, model_validator

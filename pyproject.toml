@@ -23,7 +23,7 @@ podman-hpc = "1.1.0"
 pyyaml = "^6.0"
 podman = "^5.0.0"
 podman-hpc-py = { path = "thirdparty/podman-hpc-py", develop = true }
-
+typing-extensions = "^4.12.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
