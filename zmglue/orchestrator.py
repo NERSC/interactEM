@@ -33,7 +33,7 @@ from zmglue.zsocket import Socket, SocketInfo
 logger = get_logger("forchestrator", "DEBUG")
 
 DEFAULT_ORCHESTRATOR_SOCKET_ADDRESS: str = (
-    f"tcp://?interface=*&hostname=localhost&port={cfg.ORCHESTRATOR_PORT}"
+    f"tcp://?interface={cfg.ORCHESTRATOR_INTERFACE}&hostname=localhost&port={cfg.ORCHESTRATOR_PORT}"
 )
 DEFAULT_ORCHESTRATOR_URI = URI(
     id=uuid4(),
