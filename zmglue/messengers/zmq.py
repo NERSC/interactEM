@@ -34,7 +34,7 @@ class ZmqMessenger(BaseMessenger):
         self.output_infos: dict[PortID, OutputJSON] = {}
         self.output_sockets: dict[PortID, Socket] = {}
         self._context: zmq.SyncContext = operator.client.context
-        self._id: OperatorID = UUID(operator.id)
+        self._id: OperatorID = operator.id
 
         # Sockets for receiving/sending messages inside operator
         self.input_recv_socket: Socket = Socket(
@@ -83,6 +83,14 @@ class ZmqMessenger(BaseMessenger):
     def __del__(self):
         # TODO: implement cleanup
         pass
+
+    @property
+    def input_ports(self) -> list[InputJSON]:
+        return list(self.input_infos.values())
+
+    @property
+    def output_ports(self) -> list[OutputJSON]:
+        return list(self.output_infos.values())
 
     @property
     def type(self):
