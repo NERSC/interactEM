@@ -70,6 +70,7 @@ class Operator(ABC):
         self.run_operator()
 
     def run_operator(self):
+        assert self.messenger
         if self.messenger.input_ports:
             while True:
                 message = self.messenger.recv(self.input_queue)
@@ -81,6 +82,7 @@ class Operator(ABC):
                 self.operate(None)
 
     def operate(self, message: BaseMessage | None):
+        assert self.messenger
         processed_message = self.kernel(message)
         self.messenger.send(processed_message, str(self.id))
 
