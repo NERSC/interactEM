@@ -26,6 +26,7 @@ class Operator(ABC):
         id: IdType,
     ):
         self.id = id
+        self.messenger: BaseMessenger | None = None
         self.pipeline: Pipeline | None = None
         self.info: OperatorJSON | None = None
         self.client = AgentClient(id=id)
