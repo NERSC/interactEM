@@ -1,4 +1,5 @@
-from typing import Any, List, Sequence
+from collections.abc import Sequence
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -32,8 +33,8 @@ class OutputJSON(PortJSON):
 class OperatorJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.operator
     params: dict[str, Any] = {}
-    inputs: List[PortID] = []
-    outputs: List[PortID] = []
+    inputs: list[PortID] = []
+    outputs: list[PortID] = []
 
 
 class EdgeJSON(BaseModel):

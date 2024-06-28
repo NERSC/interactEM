@@ -4,8 +4,7 @@ import sys
 import time
 from pathlib import Path
 from threading import Event, Thread
-from typing import Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import zmq
 from pydantic import ValidationError
@@ -13,7 +12,7 @@ from pydantic import ValidationError
 from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.models import CommBackend, PipelineMessage, URILocation
-from zmglue.models.uri import URI, ZMQAddress
+from zmglue.models.uri import URI
 from zmglue.orchestrator import DEFAULT_ORCHESTRATOR_URI
 from zmglue.pipeline import Pipeline
 from zmglue.zsocket import Socket, SocketInfo
@@ -58,7 +57,7 @@ class Agent:
         self.pipeline: Pipeline | None = None
         self.processes: dict[str, subprocess.Popen] = {}
         self._running = Event()
-        self.thread: Optional[Thread] = None
+        self.thread: Thread | None = None
 
     def run(self):
         while self.pipeline is None:
@@ -138,12 +137,12 @@ class Agent:
             logger.error("No pipeline configuration found...")
             return processes
         try:
-            pipeline = self.pipeline.to_json()
+            self.pipeline.to_json()
         except ValidationError as e:
             logger.error(f"No pipeline configuration found: {e}")
             return processes
 
-        for id, op_info in self.pipeline.operators.items():
+        for id in self.pipeline.operators.keys():
             script_path = THIS_DIR / "operators" / "operator0.py"
             if script_path.exists():
                 args = [

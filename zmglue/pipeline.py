@@ -16,7 +16,7 @@ from zmglue.models import (
     URIConnectMessage,
     URIUpdateMessage,
 )
-from zmglue.models.messages import GetConnectionsMessage, PutPipelineNodeMessage
+from zmglue.models.messages import PutPipelineNodeMessage
 from zmglue.models.uri import ZMQAddress
 
 logger = get_logger("pipeline")

@@ -1,9 +1,6 @@
-import logging
 from collections.abc import Callable, Sequence
 from functools import wraps
-from typing import Any, Optional
-from typing_extensions import Self
-
+from typing import Any
 
 import zmq
 from pydantic import BaseModel, ValidationError, model_validator
@@ -28,7 +25,7 @@ class SocketMetrics(BaseModel):
 class SocketInfo(BaseModel):
     type: int  # zmq.SocketType
     addresses: Sequence[ZMQAddress] = []
-    parent_id: Optional[OperatorID | PortID | AgentID | OrchestratorID] = None
+    parent_id: OperatorID | PortID | AgentID | OrchestratorID | None = None
     bind: bool
     options: dict[zmq.SocketOption, Any] = {}
     connected: bool = False
@@ -39,7 +36,7 @@ class SocketInfo(BaseModel):
         addresses = values.get("addresses", [])
 
         # If addresses is a single string or ZMQAddress, convert it to a list
-        if isinstance(addresses, (str, ZMQAddress)):
+        if isinstance(addresses, str | ZMQAddress):
             addresses = [addresses]
         elif not isinstance(addresses, list):
             raise ValueError("addresses must be a list, string, or ZMQAddress")
