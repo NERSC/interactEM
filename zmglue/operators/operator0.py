@@ -1,6 +1,7 @@
 # zmglue/main.py
 
 import argparse
+import time
 from uuid import UUID
 
 from zmglue.logger import get_logger
@@ -27,6 +28,10 @@ def main():
         operator = create_hello_world(UUID(operator_id))
     else:
         operator = receive_hello_world(UUID(operator_id))
+
+    print(operator.id)
+    while True:
+        time.sleep(1)
 
 
 if __name__ == "__main__":

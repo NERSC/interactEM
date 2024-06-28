@@ -2,8 +2,6 @@ import difflib
 from pprint import pformat
 from uuid import UUID
 
-import pytest
-
 from zmglue.models import (
     CommBackend,
     PipelineJSON,

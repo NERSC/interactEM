@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from threading import Event, Thread
-from typing import Any, Optional
+from typing import Any
 from uuid import uuid4
 
 import zmq
@@ -14,19 +14,13 @@ from zmglue.models import (
     CommBackend,
     ErrorMessage,
     PipelineMessage,
-    Protocol,
     URIConnectMessage,
     URIConnectResponseMessage,
     URILocation,
     URIUpdateMessage,
 )
-from zmglue.models.messages import (
-    GetConnectionsMessage,
-    GetConnectionsResponseMessage,
-    OKMessage,
-    PutPipelineNodeMessage,
-)
-from zmglue.models.uri import URI, ZMQAddress
+from zmglue.models.messages import OKMessage, PutPipelineNodeMessage
+from zmglue.models.uri import URI
 from zmglue.pipeline import Pipeline
 from zmglue.zsocket import Socket, SocketInfo
 
@@ -67,7 +61,7 @@ class Orchestrator:
         }
         self.pipeline = Pipeline.from_pipeline(PIPELINE)
         self._running = Event()
-        self.thread: Optional[Thread] = None
+        self.thread: Thread | None = None
 
     def handle_pipeline_request(self, msg: BaseMessage) -> PipelineMessage:
         if not isinstance(msg, PipelineMessage):
@@ -102,7 +96,7 @@ class Orchestrator:
         if not isinstance(msg, PutPipelineNodeMessage):
             raise ValueError(f"Invalid message subject: {msg}")
 
-        uris = self.pipeline.put_node(msg)
+        self.pipeline.put_node(msg)
         return OKMessage(message="All good :)")
 
     def process_message(self, msg: BaseMessage) -> BaseMessage:
@@ -117,9 +111,7 @@ class Orchestrator:
         try:
             return handler(msg)
         except ValidationError as e:
-            err_msg = (
-                f"Validation error processing message: {[err for err in e.errors()]}"
-            )
+            err_msg = f"Validation error processing message: {list(e.errors())}"
         except ValueError as e:
             err_msg = f"Error processing message: {e}"
         except Exception as e:
