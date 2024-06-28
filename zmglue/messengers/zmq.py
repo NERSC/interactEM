@@ -224,12 +224,18 @@ class ZmqMessenger(BaseMessenger):
         for port_id, socket in self.input_sockets.items():
             try:
                 message = socket.recv_model(flags=zmq.DONTWAIT)
-                if message != zmq.Again:
-                    self.input_send_socket.send_model(message)
             except zmq.Again:
                 continue
             except zmq.ZMQError as e:
                 logger.error(f"Failed to receive message on port {port_id}: {e}")
+
+            try:
+                self.input_send_socket.send_model(message)
+            except zmq.Again:
+                logger.error("Timeout on message send.")
+                continue
+            except zmq.ZMQError as e:
+                logger.error(f"Failed to send message to operator: {e}")
 
     def _send_external(self):
         # TODO: Same message on all output sockets--probably not the way
