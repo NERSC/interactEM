@@ -1,0 +1,18 @@
+FROM python:3.12.4-slim-bookworm
+
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY .git /op/.git
+COPY zmglue /op/zmglue
+COPY pyproject.toml poetry.lock /op/
+COPY thirdparty /op/thirdparty
+
+RUN python -m venv /op/operator0 && \
+  /op/operator0/bin/pip install numpy && \
+  /op/operator0/bin/pip install /op
+
+ENV PYTHONBUFFERED=1
+
+ENTRYPOINT [ "/op/operator0/bin/python",  "/op/zmglue/operators/operator0.py"]
