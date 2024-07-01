@@ -1,5 +1,5 @@
-from zmglue.orchestrator import Orchestrator
+from zmglue.orchestrator_nats import Orchestrator
 
 if __name__ == "__main__":
     orchestrator = Orchestrator()
-    orchestrator.run()
+    orchestrator.start()

@@ -12,6 +12,7 @@ PortKey = str
 class CommBackend(str, Enum):
     ZMQ = "zmq"
     MPI = "mpi"
+    NATS = "nats"
 
 
 class Protocol(str, Enum):
