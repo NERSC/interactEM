@@ -77,7 +77,7 @@ class Agent:
             return
         self.thread = Thread(target=self.run)
         self.thread.start()
-        logger.info("Orchestrator started.")
+        logger.info("Agent started.")
         self.setup_signal_handlers()
 
     def stop(self):
