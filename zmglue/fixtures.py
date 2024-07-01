@@ -25,6 +25,7 @@ PIPELINE_ID = UUID("87654321-4321-4321-4321-1234567890ae")
 
 OPERATOR_0 = OperatorJSON(
     id=OPERATOR_0_ID,
+    image="zmglue/operator",
     params={"hello": "world"},
     outputs=[OPERATOR_0_OUTPUT_0_ID, OPERATOR_0_OUTPUT_1_ID],
     uri=URI(
@@ -69,6 +70,7 @@ OPERATOR_0_PORT_1 = PortJSON(
 
 OPERATOR_1 = OperatorJSON(
     id=OPERATOR_1_ID,
+    image="zmglue/operator",
     params={"hello": "world"},
     inputs=[OPERATOR_1_INPUT_0_ID],
     uri=URI(
@@ -94,6 +96,7 @@ OPERATOR_1_PORT_0 = PortJSON(
 
 OPERATOR_2 = OperatorJSON(
     id=OPERATOR_2_ID,
+    image="zmglue/operator",
     params={"hello": "world"},
     inputs=[OPERATOR_2_INPUT_0_ID],
     uri=URI(
