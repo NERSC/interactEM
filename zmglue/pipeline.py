@@ -23,7 +23,6 @@ logger = get_logger("pipeline")
 
 
 class Pipeline(nx.DiGraph):
-
     @classmethod
     def from_pipeline(cls, pipeline: PipelineJSON) -> "Pipeline":
         graph = cls(id=pipeline.id)

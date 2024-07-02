@@ -13,10 +13,7 @@ from zmglue.models import (
     URIConnectResponseMessage,
     URIUpdateMessage,
 )
-from zmglue.models.messages import (
-    OKMessage,
-    PutPipelineNodeMessage,
-)
+from zmglue.models.messages import OKMessage, PutPipelineNodeMessage
 from zmglue.zsocket import Socket, SocketInfo
 
 logger = get_logger("agent-client", "DEBUG")
@@ -42,7 +39,6 @@ class AgentClient:
         self.close()
 
     def update_uri(self, uri_update: URIUpdateMessage) -> URIUpdateMessage:
-
         logger.info(f"Updating URI on Orchestrator: {uri_update}")
         self.socket.send_model(uri_update)
         response = self.socket.recv_model()
@@ -54,7 +50,6 @@ class AgentClient:
         return response
 
     def put_pipeline_node(self, msg: PutPipelineNodeMessage) -> OKMessage:
-
         self.socket.send_model(msg)
         response = self.socket.recv_model()
         if not isinstance(response, OKMessage):
