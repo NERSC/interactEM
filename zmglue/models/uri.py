@@ -29,7 +29,6 @@ class ZMQAddress(BaseModel):
 
     @classmethod
     def _from_uri_cls(cls, uri: "URI") -> list[Self] | Self:
-
         if uri.comm_backend != CommBackend.ZMQ:
             raise ValueError(
                 f"Can't parse URI, incorrect comm backend: {uri.comm_backend}, should be 'zmq'."

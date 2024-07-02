@@ -33,7 +33,11 @@ DEFAULT_AGENT_URI = URI(
     id=UUID("583cd5b3-c94d-4644-8be7-dbd4f0570e91"),
     comm_backend=CommBackend.ZMQ,
     location=URILocation.agent,
-    query={"address": [f"tcp://?hostname=localhost&interface={cfg.AGENT_INTERFACE}&port={cfg.AGENT_PORT}"]},  # type: ignore
+    query={
+        "address": [
+            f"tcp://?hostname=localhost&interface={cfg.AGENT_INTERFACE}&port={cfg.AGENT_PORT}"
+        ]
+    },  # type: ignore
     hostname="localhost",
 )
 

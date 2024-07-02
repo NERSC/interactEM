@@ -1,4 +1,3 @@
-
 import pytest
 
 from zmglue.fixtures import (
