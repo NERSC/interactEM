@@ -32,6 +32,7 @@ class OutputJSON(PortJSON):
 
 class OperatorJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.operator
+    image: str
     params: dict[str, Any] = {}
     inputs: list[PortID] = []
     outputs: list[PortID] = []
