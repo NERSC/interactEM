@@ -1,12 +1,10 @@
 import signal
 import subprocess
-import sys
+import tempfile
 import time
 from pathlib import Path
 from threading import Event, Thread
-from typing import Optional
-from uuid import UUID, uuid4
-import tempfile
+from uuid import UUID
 
 import zmq
 from pydantic import ValidationError
@@ -14,10 +12,11 @@ from pydantic import ValidationError
 from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.models import CommBackend, PipelineMessage, URILocation
-from zmglue.models.uri import URI, ZMQAddress
+from zmglue.models.uri import URI
 from zmglue.orchestrator import DEFAULT_ORCHESTRATOR_URI
 from zmglue.pipeline import Pipeline
 from zmglue.zsocket import Socket, SocketInfo
+
 try:
     from podman_hpc_client import PodmanHpcClient as PodmanClient
 except ImportError:
@@ -66,24 +65,17 @@ class Agent:
         self.pipeline: Pipeline | None = None
         self.processes: dict[str, subprocess.Popen] = {}
         self._running = Event()
-        self.thread: Optional[Thread] = None
-        self._podman_service_dir = tempfile.TemporaryDirectory(prefix="zmglue-", ignore_cleanup_errors=True)
+        self.thread: Thread | None = None
+        self._podman_service_dir = tempfile.TemporaryDirectory(
+            prefix="zmglue-", ignore_cleanup_errors=True
+        )
         self._podman_service_uri = f"unix://{self._podman_service_dir.name}/podman.sock"
 
-
     def _start_podman_service(self):
-        args = [
-            "podman",
-            "system",
-            "service",
-            "--time=0",
-            self._podman_service_uri
-        ]
+        args = ["podman", "system", "service", "--time=0", self._podman_service_uri]
         logger.info(f"Starting podman service: {self._podman_service_uri}")
 
-        self._podman_process = subprocess.Popen(
-            args
-        )
+        self._podman_process = subprocess.Popen(args)
 
         # Wait for the service to be ready before continuing
         with PodmanClient(base_url=self._podman_service_uri) as client:
@@ -92,8 +84,8 @@ class Agent:
                 try:
                     client.version()
                     break
-                except podman.errors.exceptions.APIError as e:
-                    logger.debug(f"Waiting for podman service to start")
+                except podman.errors.exceptions.APIError:
+                    logger.debug("Waiting for podman service to start")
                     time.sleep(0.1)
                     tries -= 1
 
@@ -169,7 +161,6 @@ class Agent:
                 logger.info(f"Stopping container {container.id}")
                 client.containers.get(container.id).stop()
 
-
     def setup_signal_handlers(self):
         def signal_handler(sig, frame):
             logger.info("Signal received, shutting down processes...")
@@ -192,7 +183,7 @@ class Agent:
             logger.error("No pipeline configuration found...")
             return containers
         try:
-            pipeline = self.pipeline.to_json()
+            self.pipeline.to_json()
         except ValidationError as e:
             logger.error(f"No pipeline configuration found: {e}")
             return containers
@@ -203,7 +194,7 @@ class Agent:
             for id, op_info in self.pipeline.operators.items():
                 container = client.containers.create(
                     image=op_info.image,
-                    environment=env, # For now we have to pass everything through
+                    environment=env,  # For now we have to pass everything through
                     name=f"operator-{id}",
                     command=["--id", str(id)],
                     detach=True,

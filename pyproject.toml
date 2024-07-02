@@ -17,6 +17,7 @@ pyzmq = "^26.0.0"
 pydantic = "^2.6.4"
 coloredlogs = "^15.0.1"
 pydantic-settings = "^2.2.1"
+nats-py = { git = "https://github.com/nats-io/nats.py.git", branch = "services" }
 numpy = "^1.26.4"
 networkx = "^3.3"
 podman-hpc = "1.1.0"
@@ -56,6 +57,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 target-version = "py310"
 
 [tool.ruff.lint]
+exclude = ["**/__init__.py", "thirdparty/**", "conftest.py"]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings

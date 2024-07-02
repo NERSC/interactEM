@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -37,12 +36,12 @@ class URIMessage(BaseMessage, URI):
 
 class URIConnectResponseMessage(BaseMessage):
     subject: MessageSubject = MessageSubject.URI_CONNECT_RESPONSE
-    connections: List[URI]
+    connections: list[URI]
 
 
 class GetConnectionsResponseMessage(BaseMessage):
     subject: MessageSubject = MessageSubject.GET_CONNECTION_ADDRESSES_RESPONSE
-    connections: List[str]
+    connections: list[str]
 
 
 class GetConnectionsMessage(BaseMessage):
@@ -61,7 +60,7 @@ class URIConnectMessage(BaseMessage):
 
 class PipelineMessage(BaseMessage):
     subject: MessageSubject = MessageSubject.PIPELINE
-    pipeline: Optional[PipelineJSON] = None
+    pipeline: PipelineJSON | None = None
     node_id: AgentID | OperatorID | None = None
 
 
@@ -72,7 +71,7 @@ class PutPipelineNodeMessage(BaseMessage):
 
 class OKMessage(BaseMessage):
     subject: MessageSubject = MessageSubject.OK
-    message: Optional[str]
+    message: str | None
 
 
 class DataMessage(BaseMessage):

@@ -455,6 +455,26 @@ files = [
 ]
 
 [[package]]
+name = "nats-py"
+version = "2.6.0"
+description = "NATS client for Python"
+optional = false
+python-versions = ">=3.7"
+files = []
+develop = false
+
+[package.extras]
+aiohttp = ["aiohttp"]
+fast-parse = ["fast-mail-parser"]
+nkeys = ["nkeys"]
+
+[package.source]
+type = "git"
+url = "https://github.com/nats-io/nats.py.git"
+reference = "services"
+resolved_reference = "46fee1dfc68809278c9ca1e38530a7e5052cdfc6"
+
+[[package]]
 name = "networkx"
 version = "3.3"
 description = "Python package for creating and manipulating graphs and networks"
@@ -1177,4 +1197,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "861cbd5efaa8fa4c957e5c1ebbbb9344abddab8c455f6c3da292e13d5393bb5c"
+content-hash = "c47bfec1ccc87ef93ddc1ae58a55d7430974cd7b87ddba7f4640f8dd88b449ea"

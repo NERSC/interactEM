@@ -1,4 +1,3 @@
-from mimetypes import init
 from uuid import UUID
 
 import pytest

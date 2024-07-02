@@ -1,8 +1,9 @@
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from functools import wraps
 from threading import Thread
-from typing import Any, Callable, Dict, Optional, Type
+from typing import Any
 
 from zmglue.agentclient import AgentClient
 from zmglue.logger import get_logger
@@ -10,12 +11,12 @@ from zmglue.messengers.base import BaseMessenger
 from zmglue.messengers.zmq import ZmqMessenger
 from zmglue.models import CommBackend, IdType, OperatorJSON
 from zmglue.models.base import OperatorID
-from zmglue.models.messages import BaseMessage, DataMessage
+from zmglue.models.messages import BaseMessage
 from zmglue.pipeline import Pipeline
 
 logger = get_logger("operator", "DEBUG")
 
-BACKEND_TO_MESSENGER: Dict[CommBackend, Type[BaseMessenger]] = {
+BACKEND_TO_MESSENGER: dict[CommBackend, type[BaseMessenger]] = {
     CommBackend.ZMQ: ZmqMessenger,
 }
 
@@ -64,7 +65,7 @@ class Operator(ABC):
         self.messenger_thread.start()
 
         while not self.messenger.ready:
-            logger.info(f"Waiting for messenger to be wired up properly...")
+            logger.info("Waiting for messenger to be wired up properly...")
             time.sleep(1)
 
         self.run_operator()
@@ -89,7 +90,7 @@ class Operator(ABC):
     @abstractmethod
     def kernel(
         self,
-        inputs: Optional[BaseMessage],
+        inputs: BaseMessage | None,
     ) -> BaseMessage:
         pass
 
@@ -101,7 +102,7 @@ KernelFn = Callable[
 
 
 def operator(
-    func: Optional[KernelFn] = None,
+    func: KernelFn | None = None,
     start: bool = True,
 ) -> Any:
     def decorator(func: KernelFn) -> Callable[[OperatorID], Operator]:
