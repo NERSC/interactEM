@@ -6,6 +6,7 @@ from pathlib import Path
 from threading import Event, Thread
 from typing import Optional
 from uuid import UUID, uuid4
+import tempfile
 
 import zmq
 from pydantic import ValidationError
@@ -17,6 +18,13 @@ from zmglue.models.uri import URI, ZMQAddress
 from zmglue.orchestrator import DEFAULT_ORCHESTRATOR_URI
 from zmglue.pipeline import Pipeline
 from zmglue.zsocket import Socket, SocketInfo
+try:
+    from podman_hpc_client import PodmanHpcClient as PodmanClient
+except ImportError:
+    # Fallback to podman client if podman-hpc-client is not installed for dev/test
+    from podman import PodmanClient
+
+import podman
 
 logger = get_logger("agent", "DEBUG")
 
@@ -59,17 +67,62 @@ class Agent:
         self.processes: dict[str, subprocess.Popen] = {}
         self._running = Event()
         self.thread: Optional[Thread] = None
+        self._podman_service_dir = tempfile.TemporaryDirectory(prefix="zmglue-", ignore_cleanup_errors=True)
+        self._podman_service_uri = f"unix://{self._podman_service_dir.name}/podman.sock"
+
+
+    def _start_podman_service(self):
+        args = [
+            "podman",
+            "system",
+            "service",
+            "--time=0",
+            self._podman_service_uri
+        ]
+        logger.info(f"Starting podman service: {self._podman_service_uri}")
+
+        self._podman_process = subprocess.Popen(
+            args
+        )
+
+        # Wait for the service to be ready before continuing
+        with PodmanClient(base_url=self._podman_service_uri) as client:
+            tries = 10
+            while tries > 0:
+                try:
+                    client.version()
+                    break
+                except podman.errors.exceptions.APIError as e:
+                    logger.debug(f"Waiting for podman service to start")
+                    time.sleep(0.1)
+                    tries -= 1
+
+            if tries == 0:
+                raise RuntimeError("Podman service didn't successfully start")
+
+            logger.info("Podman service started")
+
+    def _stop_podman_service(self):
+        if self._podman_process is not None:
+            logger.info("Stopping podman service")
+            self._podman_process.terminate()
+            self._podman_process.wait()
 
     def run(self):
-        while self.pipeline is None:
-            response = self.get_pipeline()
-            if response.pipeline:
-                self.pipeline = Pipeline.from_pipeline(response.pipeline)
-            else:
-                time.sleep(1)
+        try:
+            self._start_podman_service()
 
-        self.processes = self.start_operators()
-        self.server_loop()
+            while self.pipeline is None:
+                response = self.get_pipeline()
+                if response.pipeline:
+                    self.pipeline = Pipeline.from_pipeline(response.pipeline)
+                else:
+                    time.sleep(1)
+
+            self.processes = self.start_operators()
+            self.server_loop()
+        finally:
+            self._stop_podman_service()
 
     def start(self):
         if self.thread is not None and self.thread.is_alive():
@@ -77,7 +130,7 @@ class Agent:
             return
         self.thread = Thread(target=self.run)
         self.thread.start()
-        logger.info("Orchestrator started.")
+        logger.info("Agent started.")
         self.setup_signal_handlers()
 
     def stop(self):
@@ -109,17 +162,18 @@ class Agent:
         except zmq.error.ContextTerminated:
             pass
 
-    def terminate_processes(self):
-        print(f"Terminating {len(self.processes)} processes...")
-        for process in self.processes.values():
-            logger.info(f"Terminating process {process.pid}")
-            process.terminate()
-            process.wait()
+    def stop_containers(self):
+        print(f"Stopping {len(self.containers)} containers...")
+        for container in self.containers.values():
+            with PodmanClient(base_url=self._podman_service_uri) as client:
+                logger.info(f"Stopping container {container.id}")
+                client.containers.get(container.id).stop()
+
 
     def setup_signal_handlers(self):
         def signal_handler(sig, frame):
             logger.info("Signal received, shutting down processes...")
-            self.terminate_processes()
+            self.stop_containers()
             exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
@@ -133,33 +187,30 @@ class Agent:
         return response
 
     def start_operators(self) -> dict[str, subprocess.Popen]:
-        processes = {}
+        containers = {}
         if not self.pipeline:
             logger.error("No pipeline configuration found...")
-            return processes
+            return containers
         try:
             pipeline = self.pipeline.to_json()
         except ValidationError as e:
             logger.error(f"No pipeline configuration found: {e}")
-            return processes
+            return containers
 
-        for id, op_info in self.pipeline.operators.items():
-            script_path = THIS_DIR / "operators" / "operator0.py"
-            if script_path.exists():
-                args = [
-                    sys.executable,  # Use the current Python interpreter
-                    str(script_path),
-                    "--id",
-                    str(id),
-                ]
-                logger.info(f"Starting process for operator {id}")
-                process = subprocess.Popen(
-                    args,
-                    env={"PYTHONBUFFERED": "1"},
+        env = {k: str(v) for k, v in cfg.model_dump().items()}
+
+        with PodmanClient(base_url=self._podman_service_uri) as client:
+            for id, op_info in self.pipeline.operators.items():
+                container = client.containers.create(
+                    image=op_info.image,
+                    environment=env, # For now we have to pass everything through
+                    name=f"operator-{id}",
+                    command=["--id", str(id)],
+                    detach=True,
+                    network_mode="host",
+                    remove=True,
                 )
-                processes[id] = process
-                logger.info(f"Started process {process.pid} for operator {id} ...")
-            else:
-                logger.error(f"No script found for node {id}")
+                container.start()
+                containers[id] = container
 
-        return processes
+        return containers
