@@ -1,9 +1,7 @@
-from sys import prefix
-from typing import Optional
 from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import UUID
 
-from pydantic import AnyUrl, BaseModel, IPvAnyAddress, model_validator
+from pydantic import BaseModel, model_validator
 from typing_extensions import Self
 
 from zmglue.logger import get_logger
@@ -24,10 +22,10 @@ logger = get_logger("models.uri", "DEBUG")
 # TODO: could base64 encode this so that we don't clobber "/" and "?" and "=" and "&" in URI
 class ZMQAddress(BaseModel):
     protocol: Protocol
-    hostname: Optional[str] = None
-    port: Optional[int] = None
-    interface: Optional[str] = None
-    endpoint: Optional[str] = None
+    hostname: str | None = None
+    port: int | None = None
+    interface: str | None = None
+    endpoint: str | None = None
 
     @classmethod
     def _from_uri_cls(cls, uri: "URI") -> list[Self] | Self:

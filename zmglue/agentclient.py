@@ -3,7 +3,6 @@ import time
 import zmq
 
 from zmglue.agent import DEFAULT_AGENT_URI
-from zmglue.config import cfg
 from zmglue.logger import get_logger
 from zmglue.models import (
     URI,
@@ -15,12 +14,9 @@ from zmglue.models import (
     URIUpdateMessage,
 )
 from zmglue.models.messages import (
-    GetConnectionsMessage,
-    GetConnectionsResponseMessage,
     OKMessage,
     PutPipelineNodeMessage,
 )
-from zmglue.models.pipeline import PipelineNodeJSON
 from zmglue.zsocket import Socket, SocketInfo
 
 logger = get_logger("agent-client", "DEBUG")

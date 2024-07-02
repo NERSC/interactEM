@@ -1,16 +1,11 @@
 import time
-from collections import deque
-from enum import Enum
-from queue import Queue
-from typing import Any, Deque
 from uuid import UUID
 
 import zmq
 
 from zmglue.agentclient import AgentClient
-from zmglue.config import cfg
 from zmglue.logger import get_logger
-from zmglue.models import URI, BaseMessage, IdType, PortJSON, PortType
+from zmglue.models import BaseMessage, IdType, PortJSON, PortType
 from zmglue.models.base import OperatorID, PortID, Protocol
 from zmglue.models.messages import PutPipelineNodeMessage
 from zmglue.models.pipeline import InputJSON, OutputJSON
@@ -229,14 +224,18 @@ class ZmqMessenger(BaseMessenger):
         for port_id, socket in self.input_sockets.items():
             try:
                 message = socket.recv_model(flags=zmq.DONTWAIT)
-                if message != zmq.Again:
-                    self.input_send_socket.send_model(message)
             except zmq.Again:
-                pass
+                continue
             except zmq.ZMQError as e:
                 logger.error(f"Failed to receive message on port {port_id}: {e}")
-            finally:
+
+            try:
+                self.input_send_socket.send_model(message)
+            except zmq.Again:
+                logger.error("Timeout on message send.")
                 continue
+            except zmq.ZMQError as e:
+                logger.error(f"Failed to send message to operator: {e}")
 
     def _send_external(self):
         # TODO: Same message on all output sockets--probably not the way
@@ -249,7 +248,7 @@ class ZmqMessenger(BaseMessenger):
             logger.error(f"Failed to receive message: {e}")
             return
 
-        resend: list[UUID] = [k for k in self.output_sockets.keys()]
+        resend: list[UUID] = list(self.output_sockets.keys())
         while resend:
             for port_id in resend:
                 try:
@@ -259,8 +258,6 @@ class ZmqMessenger(BaseMessenger):
                     continue
                 except zmq.ZMQError as e:
                     logger.error(f"Failed to send message on port {port_id}: {e}")
-                finally:
-                    continue
 
     def _readiness_check(self):
         # TODO: we should probably have this information in one place rather than in two

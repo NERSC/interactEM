@@ -49,7 +49,7 @@ def pipeline_msg(operator_0_id: OperatorID) -> PipelineMessage:
 def agent_server_loop(pipeline: PipelineJSON, orchestrator: Orchestrator):
     agent = Agent()
     agent.pipeline = Pipeline.from_pipeline(pipeline)
-    thread = Thread(target=agent.server_loop, daemon=True).start()
+    Thread(target=agent.server_loop, daemon=True).start()
     yield agent
     agent._running.clear()
     agent.stop()

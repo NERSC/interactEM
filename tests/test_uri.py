@@ -1,4 +1,3 @@
-from urllib.parse import urlencode
 from uuid import UUID, uuid4
 
 import pytest
