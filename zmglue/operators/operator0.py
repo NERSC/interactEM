@@ -1,12 +1,12 @@
-import argparse
+# zmglue/main.py
 
-import numpy as np
+import argparse
+from uuid import UUID
 
 from zmglue.logger import get_logger
-from zmglue.models.messages import BaseMessage, DataMessage
-from zmglue.operator import Operator
+from zmglue.operators.examples import create_hello_world, receive_hello_world
 
-logger = get_logger("operator0", "DEBUG")
+logger = get_logger("operator_main", "DEBUG")
 
 
 def main():
@@ -20,15 +20,13 @@ def main():
     args = parser.parse_args()
 
     operator_id = args.id
-    operator = Operator(id=operator_id)
+    assert isinstance(operator_id, str)
 
-    def dummy(message: BaseMessage) -> BaseMessage:
-        return message
-
-    operator.set_processing_function(dummy)
-
-    logger.info(f"Initializing Operator with ID {operator_id}...")
-    operator.start()
+    # Initialize the operator with the provided ID
+    if operator_id == "12345678-1234-1234-1234-1234567890ab":
+        operator = create_hello_world(UUID(operator_id))
+    else:
+        operator = receive_hello_world(UUID(operator_id))
 
 
 if __name__ == "__main__":
