@@ -22,7 +22,6 @@ networkx = "^3.3"
 podman-hpc = "1.1.0"
 pyyaml = "^6.0"
 podman = "^5.0.0"
-nats-py = { git = "https://github.com/nats-io/nats.py.git", branch = "services" }
 podman-hpc-py = { path = "thirdparty/podman-hpc-py", develop = true }
 typing-extensions = "^4.12.2"
 
