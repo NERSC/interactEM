@@ -1,12 +1,10 @@
 import signal
 import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
 from threading import Event, Thread
-from typing import Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 
 import zmq
 from pydantic import ValidationError
@@ -67,7 +65,7 @@ class Agent:
         self.pipeline: Pipeline | None = None
         self.processes: dict[str, subprocess.Popen] = {}
         self._running = Event()
-        self.thread: Optional[Thread] = None
+        self.thread: Thread | None = None
         self._podman_service_dir = tempfile.TemporaryDirectory(
             prefix="zmglue-", ignore_cleanup_errors=True
         )
@@ -86,8 +84,8 @@ class Agent:
                 try:
                     client.version()
                     break
-                except podman.errors.exceptions.APIError as e:
-                    logger.debug(f"Waiting for podman service to start")
+                except podman.errors.exceptions.APIError:
+                    logger.debug("Waiting for podman service to start")
                     time.sleep(0.1)
                     tries -= 1
 
