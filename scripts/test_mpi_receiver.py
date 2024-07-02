@@ -6,7 +6,6 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 
 if rank == 0:
-
     context = zmq.Context()
     socket = context.socket(zmq.PULL)
     socket.bind("tcp://localhost:5555")

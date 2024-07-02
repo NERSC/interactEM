@@ -89,7 +89,6 @@ class Orchestrator:
         for sig in (signal.Signals.SIGINT, signal.Signals.SIGTERM):
             self.loop.add_signal_handler(sig, lambda *_: self.quit_event.set())
         async with contextlib.AsyncExitStack() as stack:
-
             logger.info("Connecting to NATS...")
             await self.nc.connect("nats://localhost:4222")
             logger.info("Connected to NATS.")

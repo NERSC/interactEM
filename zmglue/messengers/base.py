@@ -5,7 +5,6 @@ from zmglue.models.pipeline import InputJSON, OutputJSON
 
 
 class BaseMessenger(ABC):
-
     @abstractmethod
     def __init__(self, operator):
         pass
