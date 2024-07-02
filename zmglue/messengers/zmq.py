@@ -19,7 +19,6 @@ logger = get_logger("messenger", "DEBUG")
 
 
 class ZmqMessenger(BaseMessenger):
-
     def __init__(
         self,
         operator,
@@ -115,7 +114,6 @@ class ZmqMessenger(BaseMessenger):
             self._send_external()
 
     def _add_socket(self, port_info: PortJSON):
-
         if port_info.port_type == PortType.output:
             bind = True
             socket_type = zmq.PUSH
