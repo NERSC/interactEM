@@ -1,9 +1,10 @@
+import os
 import signal
 import subprocess
 import tempfile
 import time
 from pathlib import Path
-from threading import Event, Thread
+from threading import Thread
 from uuid import UUID
 
 import zmq
@@ -44,6 +45,7 @@ DEFAULT_AGENT_URI = URI(
 
 class Agent:
     def __init__(self):
+        self.id = DEFAULT_AGENT_URI.id  # TODO: Update to "real" uuid
         self.context = zmq.Context()
         self.req_socket = Socket(
             info=SocketInfo(
@@ -68,7 +70,7 @@ class Agent:
         self.req_socket.bind_or_connect()
         self.pipeline: Pipeline | None = None
         self.processes: dict[str, subprocess.Popen] = {}
-        self._running = Event()
+        self._running = True
         self.thread: Thread | None = None
         self._podman_service_dir = tempfile.TemporaryDirectory(
             prefix="zmglue-", ignore_cleanup_errors=True
@@ -79,7 +81,10 @@ class Agent:
         args = ["podman", "system", "service", "--time=0", self._podman_service_uri]
         logger.info(f"Starting podman service: {self._podman_service_uri}")
 
-        self._podman_process = subprocess.Popen(args)
+        # We use preexec_fn to create a new process group so that the podman service
+        # doesn't get killed when the agent is killed as we needed it to perform
+        # cleanup
+        self._podman_process = subprocess.Popen(args, preexec_fn=os.setpgrp)
 
         # Wait for the service to be ready before continuing
         with PodmanClient(base_url=self._podman_service_uri) as client:
@@ -104,46 +109,38 @@ class Agent:
             self._podman_process.terminate()
             self._podman_process.wait()
 
+    def _cleanup_containers(self):
+        logger.info("Cleaning up containers...")
+        with PodmanClient(base_url=self._podman_service_uri) as client:
+            for container in client.containers.list(label=f"zmglue.agent.id={self.id}"):
+                logger.info(f"Stopping container {container.id}")
+                container.stop()
+                logger.info(f"Removing container {container.id}")
+                container.remove()
+
     def run(self):
-        try:
-            self._start_podman_service()
-
-            while self.pipeline is None:
-                response = self.get_pipeline()
-                if response.pipeline:
-                    self.pipeline = Pipeline.from_pipeline(response.pipeline)
-                else:
-                    time.sleep(1)
-
-            self.processes = self.start_operators()
-            self.server_loop()
-        finally:
-            self._stop_podman_service()
-
-    def start(self):
-        if self.thread is not None and self.thread.is_alive():
-            logger.warning("Agent is already running.")
-            return
-        self.thread = Thread(target=self.run)
-        self.thread.start()
-        logger.info("Agent started.")
         self.setup_signal_handlers()
+        self._start_podman_service()
 
-    def stop(self):
-        if not self._running.is_set():
-            logger.warning("Agent is not running.")
-            return
-        self._running.clear()
-        if self.thread:
-            self.thread.join()
-        self.shutdown()
+        while self.pipeline is None:
+            response = self.get_pipeline()
+            if response.pipeline:
+                self.pipeline = Pipeline.from_pipeline(response.pipeline)
+            else:
+                time.sleep(1)
+
+        self.processes = self.start_operators()
+        self.server_loop()
 
     def shutdown(self):
+        self._running = False
         logger.info("Shutting down agent...")
         for socket in [self.req_socket, self.rep_socket]:
             if socket._socket:
                 socket._socket.close()
         self.context.term()
+        self._cleanup_containers()
+        self._stop_podman_service()
         logger.info("Agent shut down successfully.")
 
     def server_loop(self):
@@ -166,9 +163,13 @@ class Agent:
                 client.containers.get(container.id).stop()
 
     def setup_signal_handlers(self):
+        logger.info("Setting up signal handlers...")
+
         def signal_handler(sig, frame):
             logger.info("Signal received, shutting down processes...")
-            self.stop_containers()
+            if not self._running:
+                return
+            self.shutdown()
             exit(0)
 
         signal.signal(signal.SIGINT, signal_handler)
@@ -204,6 +205,7 @@ class Agent:
                     detach=True,
                     network_mode="host",
                     remove=True,
+                    labels={"zmglue.agent.id": str(self.id)},
                 )
                 container.start()
                 containers[id] = container
