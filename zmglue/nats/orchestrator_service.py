@@ -4,8 +4,8 @@ import signal
 from uuid import uuid4
 
 import nats
-from nats import micro
-from nats.aio.client import Client as NATS
+import nats.micro
+from nats.aio.client import Client as NATSClient
 from nats.micro.request import Request
 from nats.micro.service import GroupConfig, Service, ServiceConfig
 from pydantic import ValidationError
@@ -37,7 +37,7 @@ DEFAULT_ORCHESTRATOR_URI = URI(
 
 class Orchestrator:
     def __init__(self):
-        self.nc = NATS()
+        self.nc: NATSClient | None = None
         self.pipeline = Pipeline.from_pipeline(PIPELINE)
         self.quit_event = asyncio.Event()
         self.loop: asyncio.AbstractEventLoop | None = None
@@ -101,7 +101,7 @@ class Orchestrator:
             logger.info(f"Connected to NATS at {connect_address}")
             stack.push_async_callback(self.nc.close)
             service: Service = await stack.enter_async_context(
-                await micro.add_service(
+                await nats.micro.add_service(
                     self.nc,
                     config=ServiceConfig(
                         name="orchestrator-service",
