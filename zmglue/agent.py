@@ -155,13 +155,6 @@ class Agent:
         except zmq.error.ContextTerminated:
             pass
 
-    def stop_containers(self):
-        print(f"Stopping {len(self.containers)} containers...")
-        for container in self.containers.values():
-            with PodmanClient(base_url=self._podman_service_uri) as client:
-                logger.info(f"Stopping container {container.id}")
-                client.containers.get(container.id).stop()
-
     def setup_signal_handlers(self):
         logger.info("Setting up signal handlers...")
 
