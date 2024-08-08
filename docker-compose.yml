@@ -1,4 +1,38 @@
 services:
+  nats1:
+    image: nats:latest
+    ports:
+      - "4222:4222"
+      - "8222:8222" # Monitoring port.
+    command: >
+      -c /etc/nats/nats.conf
+    volumes:
+      - "./nats-conf/nats1.conf:/etc/nats/nats.conf"
+    networks:
+      - traefik-public
+
+  nats2:
+    image: nats:latest
+    command: >
+      -c /etc/nats/nats.conf
+    volumes:
+      - "./nats-conf/nats2.conf:/etc/nats/nats.conf"
+    networks:
+      - traefik-public
+    depends_on:
+      - nats1
+
+  nats3:
+    image: nats:latest
+    command: >
+      -c /etc/nats/nats.conf
+    volumes:
+      - "./nats-conf/nats3.conf:/etc/nats/nats.conf"
+    networks:
+      - traefik-public
+    depends_on:
+      - nats2
+
   db:
     image: postgres:12
     restart: always
@@ -43,6 +77,9 @@ services:
       - default
     depends_on:
       - db
+      - nats1
+      - nats2
+      - nats3
     env_file:
       - .env
     environment:
