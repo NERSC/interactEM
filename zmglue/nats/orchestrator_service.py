@@ -113,26 +113,33 @@ class Orchestrator:
             logger.info("Orchestrator service created.")
 
             orchestrator = service.add_group(GroupConfig(name="orchestrator"))
+            logger.info("Orchestrator group created.")
 
             pipeline = orchestrator.add_group(GroupConfig(name="pipeline"))
+            logger.info("orchestrator.pipeline group created.")
             await pipeline.add_endpoint(
                 name="get",
                 handler=self.handle_pipeline_request,
             )
+            logger.info("orchestrator.pipeline.get endpoint created.")
             await pipeline.add_endpoint(
                 name="put",
                 handler=self.handle_put_pipeline_node,
             )
+            logger.info("orchestrator.pipeline.put endpoint created.")
 
             uri_grp = orchestrator.add_group(GroupConfig(name="uri"))
+            logger.info("orchestrator.uri group created.")
             await uri_grp.add_endpoint(
                 name="get",
                 handler=self.handle_uri_connect_request,
             )
+            logger.info("orchestrator.uri.get endpoint created.")
             await uri_grp.add_endpoint(
                 name="put",
                 handler=self.handle_uri_update_request,
             )
+            logger.info("orchestrator.uri.put endpoint created.")
 
             logger.info("Orchestrator running...")
             await self.quit_event.wait()
