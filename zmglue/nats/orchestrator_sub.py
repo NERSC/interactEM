@@ -75,7 +75,6 @@ async def main():
     js: JetStreamContext = nc.jetstream()
     await js.add_stream(PIPELINES_STREAM_CONFIG)
     await js.add_stream(AGENTS_STREAM_CONFIG)
-    quit_event = asyncio.Event()
 
     logger.info("Orchestrator is running...")
 
