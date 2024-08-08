@@ -35,6 +35,7 @@ DEFAULT_ORCHESTRATOR_URI = URI(
     query={"address": [DEFAULT_NATS_ADDRESS]},
 )
 
+
 class Orchestrator:
     def __init__(self):
         self.nc: NATSClient | None = None

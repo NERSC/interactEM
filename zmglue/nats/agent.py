@@ -45,7 +45,7 @@ async def main():
     psub = await js.pull_subscribe("foo", "psub")
 
     # Fetch and ack messagess from consumer.
-    for i in range(0, 10):
+    for _ in range(0, 10):
         msgs = await psub.fetch(1)
         for msg in msgs:
             print(msg)
