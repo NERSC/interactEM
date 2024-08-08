@@ -25,6 +25,7 @@ pyyaml = "^6.0"
 podman = "^5.0.0"
 podman-hpc-py = { path = "thirdparty/podman-hpc-py", develop = true }
 typing-extensions = "^4.12.2"
+app = { path = "zmglue/backend", develop = false }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
