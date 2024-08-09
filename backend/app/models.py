@@ -1,7 +1,8 @@
 import uuid
+from typing import Any
 
 from pydantic import EmailStr
-from sqlmodel import Field, Relationship, SQLModel
+from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
 
 # Shared properties
@@ -44,6 +45,9 @@ class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
     items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
+    pipelines: list["Pipeline"] = Relationship(
+        back_populates="owner", cascade_delete=True
+    )
 
 
 # Properties to return via API, id is always required
@@ -112,3 +116,63 @@ class TokenPayload(SQLModel):
 class NewPassword(SQLModel):
     token: str
     new_password: str = Field(min_length=8, max_length=40)
+
+
+class PipelineBase(SQLModel):
+    data: dict[str, Any] = Field(sa_column=Column(JSON))
+    running: bool = False
+
+
+class Pipeline(PipelineBase, table=True):
+    id: uuid.UUID | None = Field(default_factory=uuid.uuid4, primary_key=True)
+    owner_id: uuid.UUID = Field(
+        foreign_key="user.id", nullable=False, ondelete="CASCADE"
+    )
+    owner: User | None = Relationship(back_populates="pipelines")
+
+
+class PipelineCreate(PipelineBase):
+    pass
+
+
+class PipelinePublic(PipelineBase):
+    id: uuid.UUID
+    owner_id: uuid.UUID
+
+
+class PipelinesPublic(SQLModel):
+    data: list[PipelinePublic]
+    count: int
+
+
+# PortKeyType = str
+
+
+# class PortType(str, Enum):
+#     input = "input"
+#     output = "output"
+
+
+# class DataType(str, Enum):
+#     array = "array"
+
+
+# class Port(SQLModel):
+#     id: uuid.UUID | None = Field(default=uuid.uuid4(), default_factory=uuid.uuid4)
+#     portkey: str
+#     port_type: PortType
+#     data_type: DataType
+
+
+# class OperatorBase(SQLModel):
+#     image: str
+#     params: list[str] | None = None
+#     default_params: JSON = Field(default=JSON(), default_factory=JSON)
+#     inputs: list[Port] | None = None
+#     outputs: list[Port] | None = None
+
+
+# class Operator(OperatorBase, table=True):
+#     id: uuid.UUID | None = Field(
+#         default=None, default_factory=uuid.uuid4, primary_key=True
+#     )
