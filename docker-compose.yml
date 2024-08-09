@@ -101,7 +101,7 @@ services:
       - SENTRY_DSN=${SENTRY_DSN}
 
     build:
-      context: ./backend
+      context: ./backend/app
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
     platform: linux/amd64 # Patch for M1 Mac
