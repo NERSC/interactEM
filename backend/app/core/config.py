@@ -5,7 +5,9 @@ from typing import Annotated, Any, Literal
 from pydantic import (
     AnyUrl,
     BeforeValidator,
+    Field,
     HttpUrl,
+    NatsDsn,
     PostgresDsn,
     computed_field,
     model_validator,
@@ -42,9 +44,9 @@ class Settings(BaseSettings):
             return f"http://{self.DOMAIN}"
         return f"https://{self.DOMAIN}"
 
-    BACKEND_CORS_ORIGINS: Annotated[list[AnyUrl] | str, BeforeValidator(parse_cors)] = (
-        []
-    )
+    BACKEND_CORS_ORIGINS: Annotated[
+        list[AnyUrl] | str, BeforeValidator(parse_cors)
+    ] = []
 
     PROJECT_NAME: str
     SENTRY_DSN: HttpUrl | None = None
@@ -115,6 +117,9 @@ class Settings(BaseSettings):
         )
 
         return self
+
+    # NATS
+    NATS_SERVER_ADDRESS: NatsDsn = Field(default="nats://nats1:4222")
 
 
 settings = Settings()  # type: ignore
