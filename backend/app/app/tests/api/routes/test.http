@@ -31,3 +31,7 @@ Authorization: bearer put_the_access_token_here
 GET http://localhost:80/api/v1/pipelines
 Authorization: bearer put_the_access_token_here
 
+###
+
+POST http://localhost:80/api/v1/pipelines/A-PIPELINE-ID-FROM-GET-REQUEST-ABOVE/run
+Authorization: bearer put_the_access_token_here
