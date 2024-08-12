@@ -1,0 +1,33 @@
+### Get an access token
+POST http://localhost:80/api/v1/login/access-token
+Content-Type: application/x-www-form-urlencoded
+
+username=admin@example.com&password=changethis
+
+###
+POST http://localhost:80/api/v1/items
+Content-Type: application/json
+Authorization: bearer put_the_access_token_here
+
+{
+  "title": "test"
+}
+
+###
+
+POST http://localhost:80/api/v1/pipelines
+Content-Type: application/json
+Authorization: bearer put_the_access_token_here
+
+
+{
+  "data": {
+    "this_is_a_pipeline": "test"
+  }
+}
+
+
+###
+GET http://localhost:80/api/v1/pipelines
+Authorization: bearer put_the_access_token_here
+

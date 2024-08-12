@@ -13,11 +13,12 @@
     "customizations": {
 		"vscode": {
 			"extensions": [
-				"charliermarsh.ruff",
-				"ms-azuretools.vscode-docker",
-				"ms-python.debugpy",
-				"ms-python.python"
-			]
+                "charliermarsh.ruff",
+                "ms-azuretools.vscode-docker",
+                "ms-python.debugpy",
+                "ms-python.python",
+                "humao.rest-client"
+            ]
 		}
 	}
 }
