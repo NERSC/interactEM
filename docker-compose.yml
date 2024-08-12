@@ -129,6 +129,27 @@ services:
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.middlewares=https-redirect,${STACK_NAME?Variable not set}-www-redirect
       - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.middlewares=${STACK_NAME?Variable not set}-www-redirect
 
+  orchestrator:
+    image: '${DOCKER_IMAGE_ORCHESTRATOR?Variable not set}:${TAG-latest}'
+    restart: always
+    networks:
+      - traefik-public
+      - default
+    depends_on:
+      - db
+      - nats1
+      - nats2
+      - nats3
+      - backend
+    env_file:
+      - .env
+
+    build:
+      context: ./backend/
+      dockerfile: ./backend/orchestrator/Dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+
   # frontend:
   #   image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
   #   restart: always
