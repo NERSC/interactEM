@@ -131,8 +131,8 @@ class Pipeline(PipelineBase, table=True):
     owner: User | None = Relationship(back_populates="pipelines")
 
 
-class PipelineCreate(PipelineBase):
-    pass
+class PipelineCreate(SQLModel):
+    data: dict[str, Any]
 
 
 class PipelinePublic(PipelineBase):
