@@ -4,8 +4,7 @@ from uuid import UUID
 from pydantic import BaseModel, model_validator
 from typing_extensions import Self
 
-from zmglue.logger import get_logger
-
+from ..logger import get_logger
 from .base import (
     AgentID,
     CommBackend,

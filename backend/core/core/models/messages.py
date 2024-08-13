@@ -1,12 +1,12 @@
+import uuid
 from enum import Enum
 
 from pydantic import BaseModel
 
-from zmglue.models.base import AgentID, OperatorID, PortID
-
 from .pipeline import PipelineJSON, PipelineNodeJSON
 from .uri import URI
 
+AgentID, OperatorID, PortID = uuid.UUID, uuid.UUID, uuid.UUID
 
 class MessageSubject(str, Enum):
     URI_UPDATE = "uri.update"
