@@ -1,6 +1,7 @@
 import uuid
 from typing import Any
 
+from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
@@ -113,12 +114,9 @@ async def run_pipeline(
     pipeline = PipelinePublic.model_validate(pipeline)
 
     try:
-        await publish_pipeline_run_event(pipeline)
+        await publish_pipeline_run_event(PipelineRunEvent(**pipeline.model_dump()))
         logger.info(f"Sent publish pipeline run event for pipeline {pipeline.id}")
     except Exception as e:
-        logger.error(
-            f"Failed to publish pipeline run event for pipeline {pipeline.id}: {e}"
-        )
-        raise HTTPException(status_code=500, detail="Failed to run pipeline")
+        raise HTTPException(status_code=500, detail=f"Failed to run pipeline: {e}")
 
     return pipeline

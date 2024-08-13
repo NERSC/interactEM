@@ -6,6 +6,7 @@ from core.constants import (
     STREAM_PIPELINES,
     SUBJECT_PIPELINES_RUN,
 )
+from core.events.pipelines import PipelineRunEvent
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
 from nats.js.api import StreamConfig
@@ -14,7 +15,6 @@ from pydantic import BaseModel
 from sqlmodel import SQLModel
 
 from ..core.config import settings
-from ..models import PipelinePublic
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -70,5 +70,5 @@ async def publish_jetstream_event(
         logger.exception(f"Exception send on subject: {subject}")
 
 
-async def publish_pipeline_run_event(event: PipelinePublic) -> None:
+async def publish_pipeline_run_event(event: PipelineRunEvent) -> None:
     await publish_jetstream_event(STREAM_PIPELINES, SUBJECT_PIPELINES_RUN, event)
