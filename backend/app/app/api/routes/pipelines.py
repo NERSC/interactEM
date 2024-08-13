@@ -47,6 +47,7 @@ def read_pipelines(
         )
         pipelines = session.exec(statement).all()
 
+    pipelines = [PipelinePublic.model_validate(pipeline) for pipeline in pipelines]
     return PipelinesPublic(data=pipelines, count=count)
 
 
