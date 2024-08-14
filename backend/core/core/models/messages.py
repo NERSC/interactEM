@@ -8,6 +8,7 @@ from .uri import URI
 
 AgentID, OperatorID, PortID = uuid.UUID, uuid.UUID, uuid.UUID
 
+
 class MessageSubject(str, Enum):
     URI_UPDATE = "uri.update"
     URI_CONNECT = "uri.connect"
