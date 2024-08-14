@@ -38,8 +38,10 @@ async def start():
     try:
         pipeline_stream_info = await nats_jetstream.add_stream(config=pipeline_cfg)
     except BadRequestError as e:
-        if e.err_code == 10058: # Stream already exists
-            pipeline_stream_info = await nats_jetstream.update_stream(config=pipeline_cfg)
+        if e.err_code == 10058:  # Stream already exists
+            pipeline_stream_info = await nats_jetstream.update_stream(
+                config=pipeline_cfg
+            )
         else:
             raise
     logger.info(f"Stream information: {pipeline_stream_info}")

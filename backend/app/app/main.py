@@ -14,8 +14,10 @@ from app.events.producer import stop as stop_producer
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+
 def custom_generate_unique_id(route: APIRoute) -> str:
     return f"{route.tags[0]}-{route.name}"
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -30,6 +32,7 @@ async def lifespan(app: FastAPI):
     logger.info("--------------------")
     logger.info("Stopping event producer...")
     await stop_producer()
+
 
 if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":
     sentry_sdk.init(dsn=str(settings.SENTRY_DSN), enable_tracing=True)
