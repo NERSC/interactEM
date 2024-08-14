@@ -3,7 +3,7 @@ from collections.abc import Awaitable, Callable
 from uuid import uuid4
 
 import nats
-from core.constants import BUCKET_AGENTS, SUBJECT_PIPELINES_RUN
+from core.constants import BUCKET_AGENTS, DEFAULT_NATS_ADDRESS, SUBJECT_PIPELINES_RUN
 from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 from core.models import CommBackend, URILocation
@@ -18,7 +18,6 @@ from pydantic import ValidationError
 
 logger = get_logger("orchestrator", "DEBUG")
 
-DEFAULT_NATS_ADDRESS: str = "nats://nats1:4222"
 DEFAULT_ORCHESTRATOR_URI = URI(
     id=uuid4(),
     hostname="localhost",

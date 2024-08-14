@@ -3,15 +3,13 @@ import uuid
 from uuid import uuid4
 
 import nats
-from core.constants import BUCKET_AGENTS
+from core.constants import BUCKET_AGENTS, DEFAULT_NATS_ADDRESS
 from core.logger import get_logger
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
 from nats.js.errors import BucketNotFoundError
 
 logger = get_logger("orchestrator", "DEBUG")
-
-DEFAULT_NATS_ADDRESS: str = "nats://nats1:4222"
 
 
 async def agent_updater(js: JetStreamContext, id: uuid.UUID):
