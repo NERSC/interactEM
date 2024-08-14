@@ -150,6 +150,25 @@ services:
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
+  agent:
+    image: '${DOCKER_IMAGE_AGENT?Variable not set}:${TAG-latest}'
+    restart: always
+    networks:
+      - traefik-public
+      - default
+    depends_on:
+      - nats1
+      - nats2
+      - nats3
+    env_file:
+      - .env
+
+    build: 
+      context: ./backend/
+      dockerfile: ./backend/agent/Dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+
   # frontend:
   #   image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
   #   restart: always
