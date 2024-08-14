@@ -12,8 +12,8 @@ from core.pipeline import Pipeline, PipelineJSON
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
-from nats.js.api import ConsumerConfig, DeliverPolicy, KeyValueConfig
-from nats.js.errors import BucketNotFoundError, NoKeysError
+from nats.js.api import ConsumerConfig, DeliverPolicy
+from nats.js.errors import NoKeysError
 from pydantic import ValidationError
 
 logger = get_logger("orchestrator", "DEBUG")
@@ -41,8 +41,9 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     _ = Pipeline.from_pipeline(valid_pipeline)
 
     number_of_agents = await get_current_num_agents(js)
-
-    logger.info(f"There are currently {number_of_agents} agents available...")
+    agents = await get_agents(js)
+    logger.info(f"There are currently {number_of_agents} agent(s) available...")
+    logger.info(f"Agents: {agents}")
     if number_of_agents < 1:
         logger.info("No agents available to run pipeline.")
         await msg.nak()
@@ -62,21 +63,6 @@ async def consume_messages(
             await handler(msg, js)
 
 
-async def watch_for_agents(
-    js: JetStreamContext,
-):
-    bucket = await js.create_key_value(KeyValueConfig(bucket=BUCKET_AGENTS, ttl=30))
-
-    while True:
-        try:
-            _ = await bucket.keys()
-        except NoKeysError:
-            logger.info("No keys right now...")
-            await asyncio.sleep(0.1)
-            continue
-
-        await asyncio.sleep(1)
-
 async def get_current_num_agents(js: JetStreamContext):
     bucket = await js.key_value(BUCKET_AGENTS)
     try:
@@ -86,22 +72,13 @@ async def get_current_num_agents(js: JetStreamContext):
     return num_agents
 
 
-async def create_agent(js: JetStreamContext):
-    while True:
-        try:
-            bucket = await js.key_value(BUCKET_AGENTS)
-        except BucketNotFoundError:
-            continue
-        break
-
-    agent_uuids = [uuid4() for _ in range(2)]
-    while True:
-        futures = [
-            bucket.put(f"agent-{uuid}", bytes(f"agent-{uuid}", "utf-8"))
-            for uuid in agent_uuids
-        ]
-        await asyncio.gather(*futures)
-        await asyncio.sleep(10)
+async def get_agents(js: JetStreamContext):
+    bucket = await js.key_value(BUCKET_AGENTS)
+    try:
+        agents = await bucket.keys()
+    except NoKeysError:
+        return []
+    return agents
 
 
 async def main():
@@ -120,8 +97,6 @@ async def main():
     )
     await asyncio.gather(
         consume_messages(pipeline_run_psub, handle_run_pipeline, js),
-        watch_for_agents(js),
-        create_agent(js),
     )
 
     while True:

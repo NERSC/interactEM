@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "agent"
+version = "0.1.0"
+description = ""
+authors = ["Sam Welborn <swelborn@lbl.gov>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+nats-py = "^2.8.0"
+pydantic = "^2.8.2"
+core = {path = "../core", develop = true}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
