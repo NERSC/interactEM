@@ -5,14 +5,14 @@ from functools import wraps
 from threading import Thread
 from typing import Any
 
-from zmglue.agentclient import AgentClient
-from zmglue.logger import get_logger
-from zmglue.messengers.base import BaseMessenger
-from zmglue.messengers.zmq import ZmqMessenger
-from zmglue.models import CommBackend, IdType, OperatorJSON
-from zmglue.models.base import OperatorID
-from zmglue.models.messages import BaseMessage
-from zmglue.pipeline import Pipeline
+from core.logger import get_logger
+from core.models import CommBackend, IdType, OperatorJSON
+from core.models.base import OperatorID
+from core.models.messages import BaseMessage, PipelineMessage
+from core.pipeline import Pipeline
+
+from .messengers.base import BaseMessenger
+from .messengers.zmq import ZmqMessenger
 
 logger = get_logger("operator", "DEBUG")
 
@@ -30,7 +30,7 @@ class Operator(ABC):
         self.messenger: BaseMessenger | None = None
         self.pipeline: Pipeline | None = None
         self.info: OperatorJSON | None = None
-        self.client = AgentClient(id=id)
+        self.client = None
         self.messenger_thread: Thread | None = None
 
     @property
@@ -39,7 +39,7 @@ class Operator(ABC):
 
     def start(self):
         while self.pipeline is None:
-            response = self.client.get_pipeline()
+            response = PipelineMessage()
             if response.pipeline:
                 self.pipeline = Pipeline.from_pipeline(response.pipeline)
 

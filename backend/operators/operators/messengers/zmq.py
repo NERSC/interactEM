@@ -2,17 +2,15 @@ import time
 from uuid import UUID
 
 import zmq
-from zmglue.agentclient import AgentClient
-from zmglue.logger import get_logger
-from zmglue.models import BaseMessage, IdType, PortJSON, PortType
-from zmglue.models.base import OperatorID, PortID, Protocol
-from zmglue.models.messages import PutPipelineNodeMessage
-from zmglue.models.pipeline import InputJSON, OutputJSON
-from zmglue.models.uri import ZMQAddress
-from zmglue.pipeline import Pipeline
+from core.logger import get_logger
+from core.models import BaseMessage, IdType, PortJSON, PortType
+from core.models.base import OperatorID, PortID, Protocol
+from core.models.messages import PutPipelineNodeMessage
+from core.models.pipeline import InputJSON, OutputJSON
+from core.models.uri import ZMQAddress
+from core.pipeline import Pipeline
 
-from backend.operator.operator.zsocket import Socket, SocketInfo
-
+from ..zsocket import Socket, SocketInfo
 from .base import BaseMessenger
 
 logger = get_logger("messenger", "DEBUG")
@@ -107,7 +105,7 @@ class ZmqMessenger(BaseMessenger):
                 logger.error(f"{self._id} timeout, retrying...")
                 continue
 
-    def start(self, client: AgentClient, pipeline: Pipeline):
+    def start(self, client, pipeline: Pipeline):
         self._setup(client, pipeline)
         while True:
             self._recv_external()
@@ -138,7 +136,7 @@ class ZmqMessenger(BaseMessenger):
         else:
             self.input_sockets[port_info.id] = socket
 
-    def _setup_inputs(self, agent_client: AgentClient, pipeline: Pipeline):
+    def _setup_inputs(self, agent_client, pipeline: Pipeline):
         for input in pipeline.get_operator_inputs(self._id).values():
             self.input_infos[input.id] = input
 
@@ -162,7 +160,7 @@ class ZmqMessenger(BaseMessenger):
                 break
 
     def _get_addresses(
-        self, agent_client: AgentClient, pipeline: Pipeline, port_id: PortID
+        self, agent_client, pipeline: Pipeline, port_id: PortID
     ) -> list[ZMQAddress]:
         """Retrieve a list of ZMQAddress objects for the given port_id."""
         addresses: list[ZMQAddress] = []
@@ -186,7 +184,7 @@ class ZmqMessenger(BaseMessenger):
 
         return addresses
 
-    def _setup_outputs(self, agent_client: AgentClient, pipeline: Pipeline):
+    def _setup_outputs(self, agent_client, pipeline: Pipeline):
         for output in pipeline.get_operator_outputs(self._id).values():
             self.output_infos[output.id] = output
 
@@ -213,7 +211,7 @@ class ZmqMessenger(BaseMessenger):
                         continue
                     break
 
-    def _setup(self, agent_client: AgentClient, pipeline: Pipeline):
+    def _setup(self, agent_client, pipeline: Pipeline):
         logger.info(f"Setting up operator {self._id}...")
         self._setup_outputs(agent_client, pipeline)
         self._setup_inputs(agent_client, pipeline)

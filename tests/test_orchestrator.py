@@ -2,7 +2,7 @@ import difflib
 from pprint import pformat
 from uuid import UUID
 
-from zmglue.models import (
+from core.models import (
     CommBackend,
     PipelineJSON,
     PipelineMessage,
@@ -11,8 +11,8 @@ from zmglue.models import (
     URILocation,
     URIUpdateMessage,
 )
+from core.pipeline import Pipeline
 from zmglue.orchestrator import Orchestrator
-from zmglue.pipeline import Pipeline
 
 
 def test_handle_pipeline_request(orchestrator: Orchestrator, pipeline: PipelineJSON):
