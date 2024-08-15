@@ -1,22 +1,23 @@
+import asyncio.subprocess
 import os
 import signal
-import subprocess
 import tempfile
 import time
-from pathlib import Path
-from threading import Thread
-from uuid import UUID
+import uuid
 
-import zmq
+import nats
+import nats.errors
+import podman.errors
+from core.constants import BUCKET_AGENTS, DEFAULT_NATS_ADDRESS
+from core.logger import get_logger
+from core.pipeline import Pipeline
+from nats.aio.client import Client as NATSClient
+from nats.js import JetStreamContext
+from nats.js.errors import BucketNotFoundError
+from podman.domain.containers import Container
 from pydantic import ValidationError
 
-from zmglue.config import cfg
-from zmglue.logger import get_logger
-from zmglue.models import CommBackend, PipelineMessage, URILocation
-from zmglue.models.uri import URI
-from zmglue.orchestrator import DEFAULT_ORCHESTRATOR_URI
-from zmglue.pipeline import Pipeline
-from zmglue.zsocket import Socket, SocketInfo
+from .config import cfg
 
 try:
     from podman_hpc_client import PodmanHpcClient as PodmanClient
@@ -28,63 +29,29 @@ import podman
 
 logger = get_logger("agent", "DEBUG")
 
-THIS_FILE = Path(__file__).resolve()
-THIS_DIR = THIS_FILE.parent
-DEFAULT_AGENT_URI = URI(
-    id=UUID("583cd5b3-c94d-4644-8be7-dbd4f0570e91"),
-    comm_backend=CommBackend.ZMQ,
-    location=URILocation.agent,
-    query={
-        "address": [
-            f"tcp://?hostname=localhost&interface={cfg.AGENT_INTERFACE}&port={cfg.AGENT_PORT}"
-        ]
-    },  # type: ignore
-    hostname="localhost",
-)
-
-
 class Agent:
     def __init__(self):
-        self.id = DEFAULT_AGENT_URI.id  # TODO: Update to "real" uuid
-        self.context = zmq.Context()
-        self.req_socket = Socket(
-            info=SocketInfo(
-                type=zmq.REQ,
-                addresses=DEFAULT_ORCHESTRATOR_URI.query["address"],  # type: ignore
-                bind=False,
-                parent_id=DEFAULT_AGENT_URI.id,
-            ),
-            context=self.context,
-        )
-        self.rep_socket = Socket(
-            SocketInfo(
-                type=zmq.REP,
-                addresses=DEFAULT_AGENT_URI.query["address"],  # type: ignore
-                bind=True,
-                parent_id=DEFAULT_AGENT_URI.id,
-            ),
-            self.context,
-        )
-
-        self.rep_socket.bind_or_connect()
-        self.req_socket.bind_or_connect()
+        self.id = uuid.uuid4()
         self.pipeline: Pipeline | None = None
-        self.processes: dict[str, subprocess.Popen] = {}
-        self._running = True
-        self.thread: Thread | None = None
+        self.containers: dict[str, Container] = {}
         self._podman_service_dir = tempfile.TemporaryDirectory(
-            prefix="zmglue-", ignore_cleanup_errors=True
+            prefix="core-", ignore_cleanup_errors=True
         )
         self._podman_service_uri = f"unix://{self._podman_service_dir.name}/podman.sock"
+        self._shutdown_event = asyncio.Event()
+        self.nc: NATSClient | None = None
+        self.js: JetStreamContext | None = None
 
-    def _start_podman_service(self):
+    async def _start_podman_service(self):
         args = ["podman", "system", "service", "--time=0", self._podman_service_uri]
         logger.info(f"Starting podman service: {self._podman_service_uri}")
 
         # We use preexec_fn to create a new process group so that the podman service
         # doesn't get killed when the agent is killed as we needed it to perform
         # cleanup
-        self._podman_process = subprocess.Popen(args, preexec_fn=os.setpgrp)
+        self._podman_process = await asyncio.create_subprocess_exec(
+            *args, preexec_fn=os.setpgrp
+        )
 
         # Wait for the service to be ready before continuing
         with PodmanClient(base_url=self._podman_service_uri) as client:
@@ -103,79 +70,96 @@ class Agent:
 
             logger.info("Podman service started")
 
-    def _stop_podman_service(self):
+    async def _stop_podman_service(self):
         if self._podman_process is not None:
             logger.info("Stopping podman service")
             self._podman_process.terminate()
-            self._podman_process.wait()
+            await self._podman_process.wait()
 
     def _cleanup_containers(self):
         logger.info("Cleaning up containers...")
         with PodmanClient(base_url=self._podman_service_uri) as client:
-            for container in client.containers.list(label=f"zmglue.agent.id={self.id}"):
+            for container in client.containers.list(label=f"core.agent.id={self.id}"):
                 logger.info(f"Stopping container {container.id}")
                 container.stop()
                 logger.info(f"Removing container {container.id}")
                 container.remove()
 
-    def run(self):
-        self.setup_signal_handlers()
-        self._start_podman_service()
+    async def run(self):
+        await asyncio.gather(*[self.setup_signal_handlers(), self._start_podman_service()])
 
-        while self.pipeline is None:
-            response = self.get_pipeline()
-            if response.pipeline:
-                self.pipeline = Pipeline.from_pipeline(response.pipeline)
-            else:
-                time.sleep(1)
+        self.nc = await nats.connect(
+            servers=[DEFAULT_NATS_ADDRESS], name=f"agent-{id}"
+        )
+        self.js = self.nc.jetstream()
 
-        self.processes = self.start_operators()
-        self.server_loop()
+        await asyncio.gather(self.server_loop(), self.heartbeat(self.js, self.id))
 
-    def shutdown(self):
-        self._running = False
+    async def heartbeat(self, js: JetStreamContext, id: uuid.UUID):
+        while True:
+            try:
+                bucket = await js.key_value(BUCKET_AGENTS)
+            except BucketNotFoundError:
+                continue
+            break
+
+        if not self.nc:
+            logger.error("NATS connection not established. Exiting heartbeat loop.")
+            return
+
+        while not self._shutdown_event.is_set():
+            try:
+                if self.nc.is_closed:
+                    logger.info("NATS connection closed, exiting heartbeat loop.")
+                    break
+                # TODO: should put more useful information on the key-value
+                # TODO: could make this an object store for things like status...
+                await bucket.put(f"{id}", bytes(f"agent-{id}", "utf-8"))
+            except nats.errors.ConnectionClosedError:
+                logger.warning("Connection closed while trying to update key-value. Exiting loop.")
+                break
+
+            try:
+                # this avoids waiting in this loop after the shutdown event is set
+                await asyncio.wait_for(self._shutdown_event.wait(), timeout=10)
+            except asyncio.TimeoutError:
+                pass
+
+        logger.info("Exiting heartbeat loop.")
+
+    async def shutdown(self):
         logger.info("Shutting down agent...")
-        for socket in [self.req_socket, self.rep_socket]:
-            if socket._socket:
-                socket._socket.close()
-        self.context.term()
+
+        if self.nc:
+            await self.nc.drain() # TODO: may want to not do drain here
+            await self.nc.close()
+
+        self._shutdown_event.set()
         self._cleanup_containers()
-        self._stop_podman_service()
+        await self._stop_podman_service()
+
         logger.info("Agent shut down successfully.")
+        exit(0)
 
-    def server_loop(self):
-        try:
-            while self._running:
-                msg = self.rep_socket.recv_model()
-                self.req_socket.send_model(msg)
-                response = self.req_socket.recv_model()
-                self.rep_socket.send_model(response)
-        except KeyboardInterrupt:
-            pass
-        except zmq.error.ContextTerminated:
-            pass
+    async def server_loop(self):
+        logger.info("Server loop running...")
+        # TODO: placeholder
+        await self._shutdown_event.wait()  # Wait until the event is set
+        logger.info("Server loop exiting")
 
-    def setup_signal_handlers(self):
+    async def setup_signal_handlers(self):
         logger.info("Setting up signal handlers...")
 
-        def signal_handler(sig, frame):
+        loop = asyncio.get_running_loop()
+
+        def handle_signal():
             logger.info("Signal received, shutting down processes...")
-            if not self._running:
-                return
-            self.shutdown()
-            exit(0)
+            asyncio.create_task(self.shutdown())
 
-        signal.signal(signal.SIGINT, signal_handler)
-        signal.signal(signal.SIGTERM, signal_handler)
+        loop.add_signal_handler(signal.SIGINT, handle_signal)
+        loop.add_signal_handler(signal.SIGTERM, handle_signal)
 
-    def get_pipeline(self) -> PipelineMessage:
-        self.req_socket.send_model(PipelineMessage())
-        response = self.req_socket.recv_model()
-        if not isinstance(response, PipelineMessage):
-            raise ValueError(f"Invalid response: {response}")
-        return response
-
-    def start_operators(self) -> dict[str, subprocess.Popen]:
+    def start_operators(self) -> dict[uuid.UUID, Container]:
         containers = {}
         if not self.pipeline:
             logger.error("No pipeline configuration found...")
@@ -198,7 +182,7 @@ class Agent:
                     detach=True,
                     network_mode="host",
                     remove=True,
-                    labels={"zmglue.agent.id": str(self.id)},
+                    labels={"agent.id": str(self.id)},
                 )
                 container.start()
                 containers[id] = container
