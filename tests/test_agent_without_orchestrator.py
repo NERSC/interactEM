@@ -1,8 +1,7 @@
 import pytest
-
-from zmglue.agent import Agent
-from zmglue.models.pipeline import PipelineJSON
-from zmglue.pipeline import Pipeline
+from core.agent import Agent
+from core.models.pipeline import PipelineJSON
+from core.pipeline import Pipeline
 
 
 @pytest.fixture

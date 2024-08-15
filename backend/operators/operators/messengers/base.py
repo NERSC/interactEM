@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
-from zmglue.models.messages import BaseMessage
-from zmglue.models.pipeline import InputJSON, OutputJSON
+from core.models.messages import BaseMessage
+from core.models.pipeline import InputJSON, OutputJSON
 
 
 class BaseMessenger(ABC):
