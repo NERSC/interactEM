@@ -2,9 +2,9 @@ import time
 
 import numpy as np
 
+from backend.operator.operator.operator import operator
 from zmglue.logger import get_logger
 from zmglue.models.messages import BaseMessage, DataMessage
-from zmglue.operator import operator
 
 logger = get_logger("operators.examples", "DEBUG")
 
