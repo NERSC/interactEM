@@ -1,7 +1,7 @@
 import networkx as nx
 
-from zmglue.logger import get_logger
-from zmglue.models import (
+from .logger import get_logger
+from .models import (
     URI,
     EdgeJSON,
     IdType,
@@ -16,8 +16,8 @@ from zmglue.models import (
     URIConnectMessage,
     URIUpdateMessage,
 )
-from zmglue.models.messages import PutPipelineNodeMessage
-from zmglue.models.uri import ZMQAddress
+from .models.messages import PutPipelineNodeMessage
+from .models.uri import ZMQAddress
 
 logger = get_logger("pipeline")
 
