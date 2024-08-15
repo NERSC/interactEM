@@ -17,7 +17,8 @@
                 "ms-azuretools.vscode-docker",
                 "ms-python.debugpy",
                 "ms-python.python",
-                "humao.rest-client"
+                "humao.rest-client",
+                "johnpapa.vscode-peacock"
             ]
 		}
 	}
