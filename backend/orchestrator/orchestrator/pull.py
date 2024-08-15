@@ -3,7 +3,14 @@ from collections.abc import Awaitable, Callable
 from uuid import uuid4
 
 import nats
-from core.constants import BUCKET_AGENTS, DEFAULT_NATS_ADDRESS, SUBJECT_PIPELINES_RUN
+import nats.js
+import nats.js.errors
+from core.constants import (
+    BUCKET_AGENTS,
+    BUCKET_AGENTS_TTL,
+    DEFAULT_NATS_ADDRESS,
+    SUBJECT_PIPELINES_RUN,
+)
 from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 from core.models import CommBackend, URILocation
@@ -63,7 +70,11 @@ async def consume_messages(
 
 
 async def get_current_num_agents(js: JetStreamContext):
-    bucket = await js.key_value(BUCKET_AGENTS)
+    try:
+        bucket = await js.key_value(BUCKET_AGENTS)
+    except nats.js.errors.BucketNotFoundError:
+        bucket_cfg = nats.js.api.KeyValueConfig(bucket=BUCKET_AGENTS, ttl=BUCKET_AGENTS_TTL)
+        bucket = await js.create_key_value(config=bucket_cfg)
     try:
         num_agents = len(await bucket.keys())
     except NoKeysError:
@@ -78,6 +89,13 @@ async def get_agents(js: JetStreamContext):
     except NoKeysError:
         return []
     return agents
+
+async def create_bucket_if_doesnt_exist(js: JetStreamContext, bucket_name: str, ttl: int):
+    try:
+        await js.key_value(bucket_name)
+    except nats.js.errors.BucketNotFoundError:
+        bucket_cfg = nats.js.api.KeyValueConfig(bucket=bucket_name, ttl=ttl)
+        await js.create_key_value(config=bucket_cfg)
 
 
 async def main():
@@ -94,6 +112,9 @@ async def main():
     pipeline_run_psub = await js.pull_subscribe(
         subject=SUBJECT_PIPELINES_RUN, config=consumer_cfg
     )
+
+    await create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL)
+
     await asyncio.gather(
         consume_messages(pipeline_run_psub, handle_run_pipeline, js),
     )
