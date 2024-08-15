@@ -2,8 +2,6 @@ import time
 from uuid import UUID
 
 import zmq
-
-from backend.operator.operator.zsocket import Socket, SocketInfo
 from zmglue.agentclient import AgentClient
 from zmglue.logger import get_logger
 from zmglue.models import BaseMessage, IdType, PortJSON, PortType
@@ -12,6 +10,8 @@ from zmglue.models.messages import PutPipelineNodeMessage
 from zmglue.models.pipeline import InputJSON, OutputJSON
 from zmglue.models.uri import ZMQAddress
 from zmglue.pipeline import Pipeline
+
+from backend.operator.operator.zsocket import Socket, SocketInfo
 
 from .base import BaseMessenger
 

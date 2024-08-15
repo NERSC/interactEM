@@ -16,7 +16,7 @@ package-mode = false
 python = "^3.10"
 app = { path = "backend/app", develop = true }
 core = { path = "backend/core", develop = true }
-operator = { path = "backend/operator", develop = true }
+operators = { path = "backend/operators", develop = true }
 agent = { path = "backend/agent", develop = true }
 
 [tool.poetry.group.dev.dependencies]

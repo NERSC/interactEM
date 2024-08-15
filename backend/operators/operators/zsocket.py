@@ -4,7 +4,6 @@ from typing import Any
 
 import zmq
 from pydantic import BaseModel, ValidationError, model_validator
-
 from zmglue.logger import get_logger
 from zmglue.models import MESSAGE_SUBJECT_TO_MODEL, BaseMessage
 from zmglue.models.base import AgentID, OperatorID, OrchestratorID, PortID, Protocol

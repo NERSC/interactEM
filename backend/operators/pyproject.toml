@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "operator"
+name = "operators"
 version = "0.1.0"
 description = ""
 authors = ["Sam Welborn <swelborn@lbl.gov>"]

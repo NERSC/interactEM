@@ -1333,7 +1333,7 @@ files = [
 ]
 
 [[package]]
-name = "operator"
+name = "operators"
 version = "0.1.0"
 description = ""
 optional = false
@@ -1350,7 +1350,7 @@ pyzmq = "^26.1.0"
 
 [package.source]
 type = "directory"
-url = "backend/operator"
+url = "backend/operators"
 
 [[package]]
 name = "packaging"
@@ -2666,4 +2666,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "46c70ed1ce1333366879a3d224c2df342368f2f1089117d7ff573713aa39682a"
+content-hash = "e7adfacac9e9d22bbf78761c025995b4ca68b29b2145602bd0f2a86a860e5436"
