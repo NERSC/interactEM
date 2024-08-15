@@ -15,11 +15,11 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python
     poetry config virtualenvs.create false
 
 # Copy poetry.lock* in case it doesn't exist in the repo
-COPY ./operator/pyproject.toml ./operator/poetry.lock* /app/
+COPY ./operators/pyproject.toml ./operators/poetry.lock* /app/
 
 COPY ./core/ /core/
 
-COPY ./operator/operator /app/
+COPY ./operators/operators /app/
 
 # Allow installing dev dependencies to run tests
 ARG INSTALL_DEV=false
