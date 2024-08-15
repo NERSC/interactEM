@@ -1,0 +1,201 @@
+### Get an access token
+POST http://localhost:80/api/v1/login/access-token
+Content-Type: application/x-www-form-urlencoded
+
+username=admin@example.com&password=changethis
+
+###
+POST http://localhost:80/api/v1/items
+Content-Type: application/json
+Authorization: bearer put_the_access_token_here
+
+{
+  "title": "test"
+}
+
+###
+
+POST http://localhost:80/api/v1/pipelines
+Content-Type: application/json
+Authorization: bearer put_the_access_token_here
+
+
+{
+  "data": {
+    "edges": [
+      {
+        "input_id": "12345678-1234-1234-1234-1234567890ab",
+        "num_connections": 1,
+        "output_id": "87654321-4321-4321-4321-1234567890ab"
+      },
+      {
+        "input_id": "12345678-1234-1234-1234-1234567890ab",
+        "num_connections": 1,
+        "output_id": "87654321-4321-4321-4321-1234567890cd"
+      },
+      {
+        "input_id": "87654321-4321-4321-4321-1234567890ab",
+        "num_connections": 1,
+        "output_id": "87654321-4321-4321-4321-1234567890ef"
+      },
+      {
+        "input_id": "87654321-4321-4321-4321-1234567890cd",
+        "num_connections": 2,
+        "output_id": "87654321-4321-4321-4321-1234567890ff"
+      },
+      {
+        "input_id": "87654321-4321-4321-4321-1234567890ef",
+        "num_connections": 1,
+        "output_id": "12345678-1234-1234-1234-1234567890cd"
+      },
+      {
+        "input_id": "87654321-4321-4321-4321-1234567890ff",
+        "num_connections": 1,
+        "output_id": "12345678-1234-1234-1234-1234567890ef"
+      }
+    ],
+    "operators": [
+      {
+        "connected": false,
+        "id": "12345678-1234-1234-1234-1234567890ab",
+        "image": "zmglue/operator",
+        "inputs": [],
+        "node_type": "operator",
+        "outputs": [
+          "87654321-4321-4321-4321-1234567890ab",
+          "87654321-4321-4321-4321-1234567890cd"
+        ],
+        "params": {
+          "hello": "world"
+        },
+        "uri": {
+          "comm_backend": "zmq",
+          "hostname": "localhost",
+          "id": "12345678-1234-1234-1234-1234567890ab",
+          "location": "operator",
+          "query": {}
+        }
+      },
+      {
+        "connected": false,
+        "id": "12345678-1234-1234-1234-1234567890cd",
+        "image": "zmglue/operator",
+        "inputs": [
+          "87654321-4321-4321-4321-1234567890ef"
+        ],
+        "node_type": "operator",
+        "outputs": [],
+        "params": {
+          "hello": "world"
+        },
+        "uri": {
+          "comm_backend": "zmq",
+          "hostname": "localhost",
+          "id": "12345678-1234-1234-1234-1234567890cd",
+          "location": "operator",
+          "query": {}
+        }
+      },
+      {
+        "connected": false,
+        "id": "12345678-1234-1234-1234-1234567890ef",
+        "image": "zmglue/operator",
+        "inputs": [
+          "87654321-4321-4321-4321-1234567890ff"
+        ],
+        "node_type": "operator",
+        "outputs": [],
+        "params": {
+          "hello": "world"
+        },
+        "uri": {
+          "comm_backend": "zmq",
+          "hostname": "localhost",
+          "id": "12345678-1234-1234-1234-1234567890ef",
+          "location": "operator",
+          "query": {}
+        }
+      }
+    ],
+    "ports": [
+      {
+        "connected": false,
+        "id": "87654321-4321-4321-4321-1234567890ab",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1234-1234567890ab",
+        "port_type": "output",
+        "portkey": "out1",
+        "uri": {
+          "comm_backend": "zmq",
+          "hostname": "localhost",
+          "id": "87654321-4321-4321-4321-1234567890ab",
+          "location": "port",
+          "query": {
+            "address": [
+              "tcp://?interface=lo0"
+            ]
+          }
+        }
+      },
+      {
+        "connected": false,
+        "id": "87654321-4321-4321-4321-1234567890cd",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1234-1234567890ab",
+        "port_type": "output",
+        "portkey": "out1",
+        "uri": {
+          "comm_backend": "zmq",
+          "hostname": "localhost",
+          "id": "87654321-4321-4321-4321-1234567890cd",
+          "location": "port",
+          "query": {
+            "address": [
+              "tcp://?interface=lo0"
+            ]
+          }
+        }
+      },
+      {
+        "connected": false,
+        "id": "87654321-4321-4321-4321-1234567890ef",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1234-1234567890cd",
+        "port_type": "input",
+        "portkey": "in1",
+        "uri": {
+          "comm_backend": "zmq",
+          "hostname": "localhost",
+          "id": "87654321-4321-4321-4321-1234567890ef",
+          "location": "port",
+          "query": {}
+        }
+      },
+      {
+        "connected": false,
+        "id": "87654321-4321-4321-4321-1234567890ff",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1234-1234567890ef",
+        "port_type": "input",
+        "portkey": "in1",
+        "uri": {
+          "comm_backend": "zmq",
+          "hostname": "localhost",
+          "id": "87654321-4321-4321-4321-1234567890ff",
+          "location": "port",
+          "query": {}
+        }
+      }
+    ]
+  }
+}
+
+
+###
+GET http://localhost:80/api/v1/pipelines
+Authorization: bearer put_the_access_token_here
+
+###
+
+POST http://localhost:80/api/v1/pipelines/A-PIPELINE-ID-FROM-GET-REQUEST-ABOVE/run
+Authorization: bearer put_the_access_token_here
