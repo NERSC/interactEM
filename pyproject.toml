@@ -8,24 +8,16 @@ version = "0.1.0"
 description = ""
 authors = ["Sam Welborn <swelborn@lbl.gov>"]
 license = "MIT"
+package-mode = false
 
 # Define the Python versions compatible with your project.
 # Adjust the versions according to your project's requirements.
 [tool.poetry.dependencies]
 python = "^3.10"
-pyzmq = "^26.0.0"
-pydantic = "^2.6.4"
-coloredlogs = "^15.0.1"
-pydantic-settings = "^2.2.1"
-nats-py = { git = "https://github.com/nats-io/nats.py.git", branch = "services" }
-numpy = "^1.26.4"
-networkx = "^3.3"
-podman-hpc = "1.1.0"
-pyyaml = "^6.0"
-podman = "^5.0.0"
-podman-hpc-py = { path = "thirdparty/podman-hpc-py", develop = true }
-typing-extensions = "^4.12.2"
-app = { path = "zmglue/backend", develop = false }
+app = { path = "backend/app", develop = true }
+core = { path = "backend/core", develop = true }
+operator = { path = "backend/operator", develop = true }
+agent = { path = "backend/agent", develop = true }
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.1.1"
