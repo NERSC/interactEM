@@ -1,6 +1,5 @@
 import pytest
-
-from zmglue.orchestrator import Orchestrator
+from orchestrator.orchestrator import Orchestrator
 
 
 @pytest.fixture(scope="module")

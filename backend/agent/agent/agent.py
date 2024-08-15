@@ -29,6 +29,7 @@ import podman
 
 logger = get_logger("agent", "DEBUG")
 
+
 class Agent:
     def __init__(self):
         self.id = uuid.uuid4()
@@ -86,11 +87,11 @@ class Agent:
                 container.remove()
 
     async def run(self):
-        await asyncio.gather(*[self.setup_signal_handlers(), self._start_podman_service()])
-
-        self.nc = await nats.connect(
-            servers=[DEFAULT_NATS_ADDRESS], name=f"agent-{id}"
+        await asyncio.gather(
+            *[self.setup_signal_handlers(), self._start_podman_service()]
         )
+
+        self.nc = await nats.connect(servers=[DEFAULT_NATS_ADDRESS], name=f"agent-{id}")
         self.js = self.nc.jetstream()
 
         await asyncio.gather(self.server_loop(), self.heartbeat(self.js, self.id))
@@ -116,7 +117,9 @@ class Agent:
                 # TODO: could make this an object store for things like status...
                 await bucket.put(f"{id}", bytes(f"agent-{id}", "utf-8"))
             except nats.errors.ConnectionClosedError:
-                logger.warning("Connection closed while trying to update key-value. Exiting loop.")
+                logger.warning(
+                    "Connection closed while trying to update key-value. Exiting loop."
+                )
                 break
 
             try:
@@ -131,7 +134,7 @@ class Agent:
         logger.info("Shutting down agent...")
 
         if self.nc:
-            await self.nc.drain() # TODO: may want to not do drain here
+            await self.nc.drain()  # TODO: may want to not do drain here
             await self.nc.close()
 
         self._shutdown_event.set()

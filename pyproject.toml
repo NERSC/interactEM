@@ -52,7 +52,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 target-version = "py310"
 
 [tool.ruff.lint]
-exclude = ["**/__init__.py", "thirdparty/**", "conftest.py"]
+exclude = ["**/__init__.py", "backend/agent/thirdparty/**", "conftest.py"]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
