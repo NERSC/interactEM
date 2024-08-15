@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "agent"
+version = "0.1.0"
+description = ""
+authors = ["Sam Welborn <swelborn@lbl.gov>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+nats-py = "^2.8.0"
+pydantic = "^2.8.2"
+core = {path = "../core", develop = true}
+podman = "^5.0.0"
+podman-hpc = "^1.1.0"
+podman-hpc-client = {path = "thirdparty/podman-hpc-py"}
+pydantic-settings = "^2.4.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -1,8 +1,7 @@
 from uuid import UUID
 
 import pytest
-
-from zmglue.models import (
+from core.models import (
     URI,
     CommBackend,
     EdgeJSON,
@@ -13,8 +12,8 @@ from zmglue.models import (
     URILocation,
     URIUpdateMessage,
 )
-from zmglue.models.uri import ZMQAddress
-from zmglue.pipeline import Pipeline
+from core.models.uri import ZMQAddress
+from core.pipeline import Pipeline
 
 
 # Test to ensure pipeline creation from JSON is correct

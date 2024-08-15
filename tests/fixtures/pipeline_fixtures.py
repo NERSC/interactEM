@@ -1,6 +1,5 @@
 import pytest
-
-from zmglue.fixtures import (
+from core.fixtures import (
     EDGE_0,
     EDGE_1,
     EDGE_2,
@@ -23,8 +22,8 @@ from zmglue.fixtures import (
     OPERATOR_2_PORT_0,
     PIPELINE,
 )
-from zmglue.models import EdgeJSON, OperatorJSON, PipelineJSON, PortJSON
-from zmglue.models.base import OperatorID, PortID
+from core.models import EdgeJSON, OperatorJSON, PipelineJSON, PortJSON
+from core.models.base import OperatorID, PortID
 
 
 @pytest.fixture(scope="module")

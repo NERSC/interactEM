@@ -1,10 +1,9 @@
 import time
 
 import pytest
-
-from zmglue.agent import Agent
-from zmglue.models import PipelineMessage
-from zmglue.pipeline import Pipeline
+from agent.agent import Agent
+from core.models import PipelineMessage
+from core.pipeline import Pipeline
 
 
 @pytest.fixture(scope="module")

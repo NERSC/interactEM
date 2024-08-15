@@ -55,9 +55,11 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      - ./backend/:/app
+      - ./backend/app/:/app
+      - ./backend/core/:/core
     build:
-      context: ./backend
+      context: ./backend/
+      dockerfile: ./app/Dockerfile
       args:
         INSTALL_DEV: ${INSTALL_DEV-true}
     # command: sleep infinity  # Infinite loop to keep container alive doing nothing
@@ -67,6 +69,30 @@ services:
       SMTP_PORT: "1025"
       SMTP_TLS: "false"
       EMAILS_FROM_EMAIL: "noreply@example.com"
+
+  orchestrator:
+    restart: "no"
+    volumes:
+      - ./backend/orchestrator/:/app
+      - ./backend/core/:/core
+    build:
+      context: ./backend/
+      dockerfile: ./orchestrator/Dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-true}
+    command: sleep infinity  # Infinite loop to keep container alive doing nothing
+
+  agent:
+    restart: "no"
+    volumes:
+      - ./backend/agent/:/app
+      - ./backend/core/:/core
+    build:
+      context: ./backend/
+      dockerfile: ./agent/Dockerfile
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-true}
+    command: sleep infinity  # Infinite loop to keep container alive doing nothing
 
   mailcatcher:
     image: schickling/mailcatcher
