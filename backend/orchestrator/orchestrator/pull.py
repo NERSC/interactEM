@@ -13,8 +13,6 @@ from core.constants import (
 )
 from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
-from core.models import CommBackend, URILocation
-from core.models.uri import URI
 from core.pipeline import Pipeline, PipelineJSON
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
@@ -24,14 +22,6 @@ from nats.js.errors import NoKeysError
 from pydantic import ValidationError
 
 logger = get_logger("orchestrator", "DEBUG")
-
-DEFAULT_ORCHESTRATOR_URI = URI(
-    id=uuid4(),
-    hostname="localhost",
-    location=URILocation.orchestrator,
-    comm_backend=CommBackend.NATS,
-    query={"address": [DEFAULT_NATS_ADDRESS]},
-)
 
 
 async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
