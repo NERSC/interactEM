@@ -10,6 +10,8 @@ import nats.errors
 import podman.errors
 from core.constants import BUCKET_AGENTS, DEFAULT_NATS_ADDRESS
 from core.logger import get_logger
+from core.models.agent import AgentStatus, AgentVal
+from core.models.uri import URI, CommBackend, URILocation
 from core.pipeline import Pipeline
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
@@ -42,6 +44,17 @@ class Agent:
         self._shutdown_event = asyncio.Event()
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
+        self.agent_key: AgentVal = AgentVal(
+            uri=URI(
+                id=self.id,
+                location=URILocation.agent,
+                hostname="localhost",
+                comm_backend=CommBackend.NATS,
+            ),
+            status=AgentStatus.INITIALIZING,
+        )
+        self.heartbeat_task: asyncio.Task | None = None
+        self.server_task: asyncio.Task | None = None
 
     async def _start_podman_service(self):
         args = ["podman", "system", "service", "--time=0", self._podman_service_uri]
@@ -94,7 +107,10 @@ class Agent:
         self.nc = await nats.connect(servers=[DEFAULT_NATS_ADDRESS], name=f"agent-{id}")
         self.js = self.nc.jetstream()
 
-        await asyncio.gather(self.server_loop(), self.heartbeat(self.js, self.id))
+        self.heartbeat_task = asyncio.create_task(self.heartbeat(self.js, self.id))
+        self.server_task = asyncio.create_task(self.server_loop())
+
+        await asyncio.gather(self.server_task, self.heartbeat_task)
 
     async def heartbeat(self, js: JetStreamContext, id: uuid.UUID):
         while True:
@@ -113,9 +129,7 @@ class Agent:
                 if self.nc.is_closed:
                     logger.info("NATS connection closed, exiting heartbeat loop.")
                     break
-                # TODO: should put more useful information on the key-value
-                # TODO: could make this an object store for things like status...
-                await bucket.put(f"{id}", bytes(f"agent-{id}", "utf-8"))
+                await bucket.put(f"{id}", self.agent_key.model_dump_json().encode())
             except nats.errors.ConnectionClosedError:
                 logger.warning(
                     "Connection closed while trying to update key-value. Exiting loop."
@@ -128,26 +142,55 @@ class Agent:
             except asyncio.TimeoutError:
                 pass
 
-        logger.info("Exiting heartbeat loop.")
+        await self.remove_agent_key()
+
+    async def remove_agent_key(self):
+        if not self.nc or not self.js:
+            logger.error("NATS connection not established. Exiting remove_agent_key.")
+            return
+
+        try:
+            bucket = await self.js.key_value(BUCKET_AGENTS)
+        except BucketNotFoundError:
+            logger.warning(
+                f"Bucket {BUCKET_AGENTS} not found. Exiting remove_agent_key."
+            )
+            return
+
+        logger.info(f"Removing agent key {self.id}")
+        try:
+            await bucket.delete(f"{self.id}")
+            logger.info(f"Agent key {self.id} removed successfully.")
+        except Exception as e:
+            logger.exception(f"Exception occurred while removing agent key: {e}")
 
     async def shutdown(self):
         logger.info("Shutting down agent...")
+        self._shutdown_event.set()
+
+        if self.heartbeat_task:
+            await self.heartbeat_task
 
         if self.nc:
-            await self.nc.drain()  # TODO: may want to not do drain here
+            # TODO: not sure why, but this results in drain timeout.
+            # try:
+            #     await self.nc.drain()  # Drain and close NATS connection
+            # except nats.errors.FlushTimeoutError as err:
+            #     logger.warning(f'{err}')
             await self.nc.close()
 
-        self._shutdown_event.set()
         self._cleanup_containers()
         await self._stop_podman_service()
 
         logger.info("Agent shut down successfully.")
-        exit(0)
 
     async def server_loop(self):
         logger.info("Server loop running...")
         # TODO: placeholder
-        await self._shutdown_event.wait()  # Wait until the event is set
+        if not self.nc or not self.js:
+            logger.error("NATS connection not established. Exiting server loop.")
+            return
+        await self._shutdown_event.wait()
         logger.info("Server loop exiting")
 
     async def setup_signal_handlers(self):
