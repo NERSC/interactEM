@@ -13,12 +13,14 @@ from core.constants import (
 )
 from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
+from core.models.agent import AgentVal
 from core.pipeline import Pipeline, PipelineJSON
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
 from nats.js.api import ConsumerConfig, DeliverPolicy
-from nats.js.errors import NoKeysError
+from nats.js.errors import KeyNotFoundError, NoKeysError
+from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
 logger = get_logger("orchestrator", "DEBUG")
@@ -26,26 +28,33 @@ logger = get_logger("orchestrator", "DEBUG")
 
 async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info("Received pipeline run event...")
+    await msg.ack()
+
     try:
         event = PipelineRunEvent.model_validate_json(msg.data)
     except ValidationError:
         logger.error("Invalid message")
-        await msg.nak()
         return
     valid_pipeline = PipelineJSON(id=event.id, **event.data)
     logger.info(f"Validated pipeline: {valid_pipeline.id}")
     _ = Pipeline.from_pipeline(valid_pipeline)
 
-    number_of_agents = await get_current_num_agents(js)
     agents = await get_agents(js)
-    logger.info(f"There are currently {number_of_agents} agent(s) available...")
+    logger.info(f"There are currently {len(agents)} agent(s) available...")
     logger.info(f"Agents: {agents}")
-    if number_of_agents < 1:
+    if len(agents) < 1:
         logger.info("No agents available to run pipeline.")
-        await msg.nak()
+        # TODO: publish event to send message back to API that says this won't work
         return
 
-    await msg.ack()
+    first_agent_info = await get_agent_info(js, agents[0])
+    if not first_agent_info:
+        logger.error("Agent info not found.")
+        return
+
+    logger.info(f"Assigning pipeline to agent: {first_agent_info.uri.id}")
+    logger.info(f"Agent info: {first_agent_info}")
+    logger.info("Pipeline run event processed.")
 
 
 async def consume_messages(
@@ -63,7 +72,9 @@ async def get_current_num_agents(js: JetStreamContext):
     try:
         bucket = await js.key_value(BUCKET_AGENTS)
     except nats.js.errors.BucketNotFoundError:
-        bucket_cfg = nats.js.api.KeyValueConfig(bucket=BUCKET_AGENTS, ttl=BUCKET_AGENTS_TTL)
+        bucket_cfg = nats.js.api.KeyValueConfig(
+            bucket=BUCKET_AGENTS, ttl=BUCKET_AGENTS_TTL
+        )
         bucket = await js.create_key_value(config=bucket_cfg)
     try:
         num_agents = len(await bucket.keys())
@@ -72,7 +83,7 @@ async def get_current_num_agents(js: JetStreamContext):
     return num_agents
 
 
-async def get_agents(js: JetStreamContext):
+async def get_agents(js: JetStreamContext) -> list[str]:
     bucket = await js.key_value(BUCKET_AGENTS)
     try:
         agents = await bucket.keys()
@@ -80,12 +91,27 @@ async def get_agents(js: JetStreamContext):
         return []
     return agents
 
-async def create_bucket_if_doesnt_exist(js: JetStreamContext, bucket_name: str, ttl: int):
+
+async def get_agent_info(js: JetStreamContext, agent_id: str) -> AgentVal | None:
+    bucket = await js.key_value(BUCKET_AGENTS)
     try:
-        await js.key_value(bucket_name)
+        entry = await bucket.get(agent_id)
+        if not entry.value:
+            return
+        return AgentVal.model_validate_json(entry.value)
+    except KeyNotFoundError:
+        return
+
+
+async def create_bucket_if_doesnt_exist(
+    js: JetStreamContext, bucket_name: str, ttl: int
+) -> KeyValue:
+    try:
+        kv = await js.key_value(bucket_name)
     except nats.js.errors.BucketNotFoundError:
         bucket_cfg = nats.js.api.KeyValueConfig(bucket=bucket_name, ttl=ttl)
-        await js.create_key_value(config=bucket_cfg)
+        kv = await js.create_key_value(config=bucket_cfg)
+    return kv
 
 
 async def main():
