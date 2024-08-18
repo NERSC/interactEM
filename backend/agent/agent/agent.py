@@ -7,6 +7,7 @@ import uuid
 
 import nats
 import nats.errors
+import podman
 import podman.errors
 from core.constants import BUCKET_AGENTS, DEFAULT_NATS_ADDRESS
 from core.logger import get_logger
@@ -21,13 +22,19 @@ from pydantic import ValidationError
 
 from .config import cfg
 
-try:
-    from podman_hpc_client import PodmanHpcClient as PodmanClient
-except ImportError:
-    # Fallback to podman client if podman-hpc-client is not installed for dev/test
-    from podman import PodmanClient
+# Can use this for mac:
+# https://podman-desktop.io/blog/5-things-to-know-for-a-docker-user#docker-compatibility-mode
+if cfg.DOCKER_COMPATIBILITY_MODE:
+    PODMAN_SERVICE_URI = "unix:///var/run/docker.sock"
+else:
+    PODMAN_SERVICE_URI = None
 
-import podman
+# Use configuration, as we always expect to install podman-hpc-client
+if cfg.LOCAL:
+    from podman import PodmanClient
+else:
+    from podman_hpc_client import PodmanHpcClient as PodmanClient
+
 
 logger = get_logger("agent", "DEBUG")
 
@@ -37,10 +44,17 @@ class Agent:
         self.id = uuid.uuid4()
         self.pipeline: Pipeline | None = None
         self.containers: dict[str, Container] = {}
-        self._podman_service_dir = tempfile.TemporaryDirectory(
-            prefix="core-", ignore_cleanup_errors=True
-        )
-        self._podman_service_uri = f"unix://{self._podman_service_dir.name}/podman.sock"
+
+        if PODMAN_SERVICE_URI:
+            self._podman_service_uri = PODMAN_SERVICE_URI
+        else:
+            self._podman_service_dir = tempfile.TemporaryDirectory(
+                prefix="core-", ignore_cleanup_errors=True
+            )
+            self._podman_service_uri = (
+                f"unix://{self._podman_service_dir.name}/podman.sock"
+            )
+
         self._shutdown_event = asyncio.Event()
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
@@ -57,15 +71,17 @@ class Agent:
         self.server_task: asyncio.Task | None = None
 
     async def _start_podman_service(self):
-        args = ["podman", "system", "service", "--time=0", self._podman_service_uri]
-        logger.info(f"Starting podman service: {self._podman_service_uri}")
+        self._podman_process = None
+        if not cfg.DOCKER_COMPATIBILITY_MODE:
+            args = ["podman", "system", "service", "--time=0", self._podman_service_uri]
+            logger.info(f"Starting podman service: {self._podman_service_uri}")
 
-        # We use preexec_fn to create a new process group so that the podman service
-        # doesn't get killed when the agent is killed as we needed it to perform
-        # cleanup
-        self._podman_process = await asyncio.create_subprocess_exec(
-            *args, preexec_fn=os.setpgrp
-        )
+            # We use preexec_fn to create a new process group so that the podman service
+            # doesn't get killed when the agent is killed as we needed it to perform
+            # cleanup
+            self._podman_process = await asyncio.create_subprocess_exec(
+                *args, preexec_fn=os.setpgrp
+            )
 
         # Wait for the service to be ready before continuing
         with PodmanClient(base_url=self._podman_service_uri) as client:
