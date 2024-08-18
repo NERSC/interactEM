@@ -8,7 +8,7 @@ import nats.js.errors
 from core.constants import (
     BUCKET_AGENTS,
     BUCKET_AGENTS_TTL,
-    DEFAULT_NATS_ADDRESS,
+    DEFAULT_COMPOSE_NATS_ADDRESS,
     SUBJECT_PIPELINES_RUN,
 )
 from core.events.pipelines import PipelineRunEvent
@@ -117,7 +117,7 @@ async def create_bucket_if_doesnt_exist(
 async def main():
     id: str = str(uuid4())
     nc: NATSClient = await nats.connect(
-        servers=[DEFAULT_NATS_ADDRESS], name=f"orchestrator-{id}"
+        servers=[DEFAULT_COMPOSE_NATS_ADDRESS], name=f"orchestrator-{id}"
     )
     js: JetStreamContext = nc.jetstream()
 
