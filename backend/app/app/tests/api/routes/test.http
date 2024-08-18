@@ -56,7 +56,6 @@ Authorization: bearer put_the_access_token_here
     ],
     "operators": [
       {
-        "connected": false,
         "id": "12345678-1234-1234-1234-1234567890ab",
         "image": "zmglue/operator",
         "inputs": [],
@@ -67,17 +66,9 @@ Authorization: bearer put_the_access_token_here
         ],
         "params": {
           "hello": "world"
-        },
-        "uri": {
-          "comm_backend": "zmq",
-          "hostname": "localhost",
-          "id": "12345678-1234-1234-1234-1234567890ab",
-          "location": "operator",
-          "query": {}
         }
       },
       {
-        "connected": false,
         "id": "12345678-1234-1234-1234-1234567890cd",
         "image": "zmglue/operator",
         "inputs": [
@@ -87,17 +78,9 @@ Authorization: bearer put_the_access_token_here
         "outputs": [],
         "params": {
           "hello": "world"
-        },
-        "uri": {
-          "comm_backend": "zmq",
-          "hostname": "localhost",
-          "id": "12345678-1234-1234-1234-1234567890cd",
-          "location": "operator",
-          "query": {}
         }
       },
       {
-        "connected": false,
         "id": "12345678-1234-1234-1234-1234567890ef",
         "image": "zmglue/operator",
         "inputs": [
@@ -107,84 +90,37 @@ Authorization: bearer put_the_access_token_here
         "outputs": [],
         "params": {
           "hello": "world"
-        },
-        "uri": {
-          "comm_backend": "zmq",
-          "hostname": "localhost",
-          "id": "12345678-1234-1234-1234-1234567890ef",
-          "location": "operator",
-          "query": {}
         }
       }
     ],
     "ports": [
       {
-        "connected": false,
         "id": "87654321-4321-4321-4321-1234567890ab",
         "node_type": "port",
         "operator_id": "12345678-1234-1234-1234-1234567890ab",
         "port_type": "output",
-        "portkey": "out1",
-        "uri": {
-          "comm_backend": "zmq",
-          "hostname": "localhost",
-          "id": "87654321-4321-4321-4321-1234567890ab",
-          "location": "port",
-          "query": {
-            "address": [
-              "tcp://?interface=lo0"
-            ]
-          }
-        }
+        "portkey": "out1"
       },
       {
-        "connected": false,
         "id": "87654321-4321-4321-4321-1234567890cd",
         "node_type": "port",
         "operator_id": "12345678-1234-1234-1234-1234567890ab",
         "port_type": "output",
-        "portkey": "out1",
-        "uri": {
-          "comm_backend": "zmq",
-          "hostname": "localhost",
-          "id": "87654321-4321-4321-4321-1234567890cd",
-          "location": "port",
-          "query": {
-            "address": [
-              "tcp://?interface=lo0"
-            ]
-          }
-        }
+        "portkey": "out1"
       },
       {
-        "connected": false,
         "id": "87654321-4321-4321-4321-1234567890ef",
         "node_type": "port",
         "operator_id": "12345678-1234-1234-1234-1234567890cd",
         "port_type": "input",
-        "portkey": "in1",
-        "uri": {
-          "comm_backend": "zmq",
-          "hostname": "localhost",
-          "id": "87654321-4321-4321-4321-1234567890ef",
-          "location": "port",
-          "query": {}
-        }
+        "portkey": "in1"
       },
       {
-        "connected": false,
         "id": "87654321-4321-4321-4321-1234567890ff",
         "node_type": "port",
         "operator_id": "12345678-1234-1234-1234-1234567890ef",
         "port_type": "input",
-        "portkey": "in1",
-        "uri": {
-          "comm_backend": "zmq",
-          "hostname": "localhost",
-          "id": "87654321-4321-4321-4321-1234567890ff",
-          "location": "port",
-          "query": {}
-        }
+        "portkey": "in1"
       }
     ]
   }
