@@ -253,7 +253,6 @@ files = [
 [package.dependencies]
 pyxdg = ">=0.26"
 requests = ">=2.24"
-tomli = {version = ">=1.2.3", markers = "python_version < \"3.11\""}
 urllib3 = "*"
 
 [package.extras]
@@ -567,17 +566,6 @@ files = [
 ]
 
 [[package]]
-name = "tomli"
-version = "2.0.1"
-description = "A lil' TOML parser"
-optional = false
-python-versions = ">=3.7"
-files = [
-    {file = "tomli-2.0.1-py3-none-any.whl", hash = "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc"},
-    {file = "tomli-2.0.1.tar.gz", hash = "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"},
-]
-
-[[package]]
 name = "typing-extensions"
 version = "4.12.2"
 description = "Backported and Experimental Type Hints for Python 3.8+"
@@ -607,5 +595,5 @@ zstd = ["zstandard (>=0.18.0)"]
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.10"
-content-hash = "92cc239806948cb270471a4c1aab12542f853947b80894512e729af1d2a82e17"
+python-versions = "^3.11"
+content-hash = "ee58b09ddd414639b6a794ef2722444487e162b900e8c8bd617b67f458326be9"
