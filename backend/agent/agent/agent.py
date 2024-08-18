@@ -43,7 +43,7 @@ class Agent:
     def __init__(self):
         self.id = uuid.uuid4()
         self.pipeline: Pipeline | None = None
-        self.containers: dict[str, Container] = {}
+        self.containers: dict[uuid.UUID, Container] = {}
 
         if PODMAN_SERVICE_URI:
             self._podman_service_uri = PODMAN_SERVICE_URI
@@ -58,7 +58,7 @@ class Agent:
         self._shutdown_event = asyncio.Event()
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
-        self.agent_key: AgentVal = AgentVal(
+        self.agent_val: AgentVal = AgentVal(
             uri=URI(
                 id=self.id,
                 location=URILocation.agent,
@@ -145,7 +145,7 @@ class Agent:
                 if self.nc.is_closed:
                     logger.info("NATS connection closed, exiting heartbeat loop.")
                     break
-                await bucket.put(f"{id}", self.agent_key.model_dump_json().encode())
+                await bucket.put(f"{id}", self.agent_val.model_dump_json().encode())
             except nats.errors.ConnectionClosedError:
                 logger.warning(
                     "Connection closed while trying to update key-value. Exiting loop."
