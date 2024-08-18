@@ -9,13 +9,16 @@ import nats
 import nats.errors
 import podman
 import podman.errors
-from core.constants import BUCKET_AGENTS, DEFAULT_NATS_ADDRESS
+from core.constants import BUCKET_AGENTS, DEFAULT_NATS_ADDRESS, STREAM_AGENTS
+from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
+from core.models.pipeline import PipelineJSON
 from core.models.uri import URI, CommBackend, URILocation
 from core.pipeline import Pipeline
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
+from nats.js.api import ConsumerConfig, DeliverPolicy
 from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
 from pydantic import ValidationError
@@ -106,16 +109,36 @@ class Agent:
             self._podman_process.terminate()
             await self._podman_process.wait()
 
-    def _cleanup_containers(self):
+    async def _stop_and_remove_container(self, container: Container):
+        logger.info(f"Stopping container {container.name}")
+        await asyncio.to_thread(container.stop)
+        logger.info(f"Removing container {container.name}")
+        await asyncio.to_thread(container.remove)
+
+    async def _cleanup_containers(self):
         logger.info("Cleaning up containers...")
+
         with PodmanClient(base_url=self._podman_service_uri) as client:
-            for container in client.containers.list(label=f"core.agent.id={self.id}"):
-                logger.info(f"Stopping container {container.id}")
-                container.stop()
-                logger.info(f"Removing container {container.id}")
-                container.remove()
+            # containers = client.containers.list()
+            containers = client.containers.list(label=f"agent.id={self.id}")
+
+            tasks = [
+                self._stop_and_remove_container(container) for container in containers
+            ]
+
+            # Run the tasks concurrently
+            await asyncio.gather(*tasks)
+            for container in containers:
+                # TODO: this should be a little bit more robust
+                # do we even need to store containers in the agent?
+                if not isinstance(container.name, str):
+                    continue
+                self.containers.pop(
+                    uuid.UUID(container.name.removeprefix("operator-")), None
+                )
 
     async def run(self):
+        logger.info(f"Starting agent with configuration: {cfg.model_dump()}")
         await asyncio.gather(
             *[self.setup_signal_handlers(), self._start_podman_service()]
         )
@@ -126,6 +149,8 @@ class Agent:
         self.heartbeat_task = asyncio.create_task(self.heartbeat(self.js, self.id))
         self.server_task = asyncio.create_task(self.server_loop())
 
+        await self._shutdown_event.wait()
+        await self.shutdown()
         await asyncio.gather(self.server_task, self.heartbeat_task)
 
     async def heartbeat(self, js: JetStreamContext, id: uuid.UUID):
@@ -182,10 +207,12 @@ class Agent:
 
     async def shutdown(self):
         logger.info("Shutting down agent...")
-        self._shutdown_event.set()
 
         if self.heartbeat_task:
             await self.heartbeat_task
+
+        if self.server_task:
+            await self.server_task
 
         if self.nc:
             # TODO: not sure why, but this results in drain timeout.
@@ -195,18 +222,47 @@ class Agent:
             #     logger.warning(f'{err}')
             await self.nc.close()
 
-        self._cleanup_containers()
+        await self._cleanup_containers()
         await self._stop_podman_service()
 
         logger.info("Agent shut down successfully.")
 
     async def server_loop(self):
         logger.info("Server loop running...")
-        # TODO: placeholder
         if not self.nc or not self.js:
             logger.error("NATS connection not established. Exiting server loop.")
             return
-        await self._shutdown_event.wait()
+
+        # TODO: make this a util
+        consumer_cfg = ConsumerConfig(
+            description=f"agent-{self.id}",
+            deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
+        )
+        psub = await self.js.pull_subscribe(
+            stream=STREAM_AGENTS,
+            subject=f"{STREAM_AGENTS}.{self.id}",
+            config=consumer_cfg,
+        )
+        print(await psub.consumer_info())
+
+        while not self._shutdown_event.is_set():
+            try:
+                msgs = await psub.fetch(1)
+                asyncio.gather(*[msg.ack() for msg in msgs])
+                for msg in msgs:
+                    try:
+                        event = PipelineRunEvent.model_validate_json(msg.data)
+                    except ValidationError:
+                        logger.error("Invalid message")
+                        return
+                    valid_pipeline = PipelineJSON(id=event.id, **event.data)
+                    logger.info(f"Validated pipeline: {valid_pipeline.id}")
+                    self.pipeline = Pipeline.from_pipeline(valid_pipeline)
+                    break
+
+                self.containers = await self.start_operators()
+            except nats.errors.TimeoutError:
+                continue
         logger.info("Server loop exiting")
 
     async def setup_signal_handlers(self):
@@ -216,12 +272,14 @@ class Agent:
 
         def handle_signal():
             logger.info("Signal received, shutting down processes...")
-            asyncio.create_task(self.shutdown())
+            self._shutdown_event.set()
 
         loop.add_signal_handler(signal.SIGINT, handle_signal)
         loop.add_signal_handler(signal.SIGTERM, handle_signal)
 
-    def start_operators(self) -> dict[uuid.UUID, Container]:
+    async def start_operators(self) -> dict[uuid.UUID, Container]:
+        # Destroy any existing containers
+        await self._cleanup_containers()
         containers = {}
         if not self.pipeline:
             logger.error("No pipeline configuration found...")
@@ -232,21 +290,29 @@ class Agent:
             logger.error(f"No pipeline configuration found: {e}")
             return containers
 
+        logger.info("Starting operators...")
+
         env = {k: str(v) for k, v in cfg.model_dump().items()}
 
         with PodmanClient(base_url=self._podman_service_uri) as client:
             for id, op_info in self.pipeline.operators.items():
-                container = client.containers.create(
-                    image=op_info.image,
-                    environment=env,  # For now we have to pass everything through
-                    name=f"operator-{id}",
-                    command=["--id", str(id)],
-                    detach=True,
-                    network_mode="host",
-                    remove=True,
-                    labels={"agent.id": str(self.id)},
-                )
+                logger.info(f"Starting operator {id} with image {op_info.image}")
+                try:
+                    container = client.containers.create(
+                        image=op_info.image,
+                        environment=env,  # For now we have to pass everything through
+                        name=f"operator-{id}",
+                        command=["--id", str(id)],
+                        detach=True,
+                        network_mode="host",
+                        remove=True,
+                        labels={"agent.id": str(self.id)},
+                    )
+                except podman.errors.exceptions.APIError as e:
+                    logger.error(f"Error creating container: {e}")
+                    continue
                 container.start()
+                logger.info(f"Container {container.name} started...")
                 containers[id] = container
 
         return containers
