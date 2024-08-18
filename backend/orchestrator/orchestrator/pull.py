@@ -9,6 +9,7 @@ from core.constants import (
     BUCKET_AGENTS,
     BUCKET_AGENTS_TTL,
     DEFAULT_COMPOSE_NATS_ADDRESS,
+    STREAM_AGENTS,
     SUBJECT_PIPELINES_RUN,
 )
 from core.events.pipelines import PipelineRunEvent
@@ -18,8 +19,8 @@ from core.pipeline import Pipeline, PipelineJSON
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
-from nats.js.api import ConsumerConfig, DeliverPolicy
-from nats.js.errors import KeyNotFoundError, NoKeysError
+from nats.js.api import ConsumerConfig, DeliverPolicy, StreamConfig
+from nats.js.errors import BadRequestError, KeyNotFoundError, NoKeysError
 from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
@@ -54,6 +55,12 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
 
     logger.info(f"Assigning pipeline to agent: {first_agent_info.uri.id}")
     logger.info(f"Agent info: {first_agent_info}")
+    await js.publish(
+        f"{STREAM_AGENTS}.{first_agent_info.uri.id}",
+        stream=f"{STREAM_AGENTS}",
+        payload=msg.data,
+    )
+
     logger.info("Pipeline run event processed.")
 
 
@@ -130,6 +137,23 @@ async def main():
     )
 
     await create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL)
+
+    agent_stream_cfg = StreamConfig(
+        name=STREAM_AGENTS,
+        description="A stream for messages to the agents.",
+        subjects=[f"{STREAM_AGENTS}.>"],
+    )
+
+    # TODO: make this a util
+    try:
+        agent_stream_info = await js.add_stream(config=agent_stream_cfg)
+    except BadRequestError as e:
+        if e.err_code == 10058:  # Stream already exists
+            agent_stream_info = await js.update_stream(config=agent_stream_cfg)
+        else:
+            raise
+
+    logger.info(f"Created agent stream: {agent_stream_info}")
 
     await asyncio.gather(
         consume_messages(pipeline_run_psub, handle_run_pipeline, js),
