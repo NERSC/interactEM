@@ -10,6 +10,7 @@ from core.constants import (
     BUCKET_AGENTS_TTL,
     DEFAULT_COMPOSE_NATS_ADDRESS,
     STREAM_AGENTS,
+    STREAM_OPERATORS,
     SUBJECT_PIPELINES_RUN,
 )
 from core.events.pipelines import PipelineRunEvent
@@ -153,7 +154,25 @@ async def main():
         else:
             raise
 
-    logger.info(f"Created agent stream: {agent_stream_info}")
+    logger.info(f"Created or updated agents stream: {agent_stream_info}")
+
+
+    operators_stream_cfg = StreamConfig(
+        name=STREAM_OPERATORS,
+        description="A stream for messages for operators.",
+        subjects=[f"{STREAM_OPERATORS}.>"],
+    )
+
+    # TODO: make this a util
+    try:
+        operators_stream_info = await js.add_stream(config=operators_stream_cfg)
+    except BadRequestError as e:
+        if e.err_code == 10058:  # Stream already exists
+            operators_stream_info = await js.update_stream(config=operators_stream_cfg)
+        else:
+            raise
+
+    logger.info(f"Created or updated operators stream: {operators_stream_info}")
 
     await asyncio.gather(
         consume_messages(pipeline_run_psub, handle_run_pipeline, js),

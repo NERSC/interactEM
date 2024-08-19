@@ -8,5 +8,7 @@ STREAM_AGENTS = "agents"
 BUCKET_AGENTS = "agents"
 BUCKET_AGENTS_TTL = 30
 
+STREAM_OPERATORS = "operators"
+
 DEFAULT_COMPOSE_NATS_ADDRESS: str = "nats://nats1:4222"
 DEFAULT_NATS_ADDRESS: str = "nats://localhost:4222"
