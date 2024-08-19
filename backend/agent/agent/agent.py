@@ -243,7 +243,7 @@ class Agent:
             subject=f"{STREAM_AGENTS}.{self.id}",
             config=consumer_cfg,
         )
-        print(await psub.consumer_info())
+        logger.info(f"Subscribed to {STREAM_AGENTS}.{self.id}")
 
         while not self._shutdown_event.is_set():
             try:
