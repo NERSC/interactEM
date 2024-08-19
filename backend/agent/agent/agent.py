@@ -4,6 +4,7 @@ import signal
 import tempfile
 import time
 import uuid
+from typing import Any
 
 import nats
 import nats.errors
@@ -13,7 +14,8 @@ from core.constants import BUCKET_AGENTS, DEFAULT_NATS_ADDRESS, STREAM_AGENTS
 from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
-from core.models.pipeline import PipelineJSON
+from core.models.base import IdType
+from core.models.pipeline import OperatorJSON, PipelineJSON
 from core.models.uri import URI, CommBackend, URILocation
 from core.pipeline import Pipeline
 from nats.aio.client import Client as NATSClient
@@ -109,22 +111,13 @@ class Agent:
             self._podman_process.terminate()
             await self._podman_process.wait()
 
-    async def _stop_and_remove_container(self, container: Container):
-        logger.info(f"Stopping container {container.name}")
-        await asyncio.to_thread(container.stop)
-        logger.info(f"Removing container {container.name}")
-        await asyncio.to_thread(container.remove)
-
     async def _cleanup_containers(self):
         logger.info("Cleaning up containers...")
 
         with PodmanClient(base_url=self._podman_service_uri) as client:
             # containers = client.containers.list()
             containers = client.containers.list(label=f"agent.id={self.id}")
-
-            tasks = [
-                self._stop_and_remove_container(container) for container in containers
-            ]
+            tasks = [stop_and_remove_container(container) for container in containers]
 
             # Run the tasks concurrently
             await asyncio.gather(*tasks)
@@ -297,22 +290,86 @@ class Agent:
         with PodmanClient(base_url=self._podman_service_uri) as client:
             for id, op_info in self.pipeline.operators.items():
                 logger.info(f"Starting operator {id} with image {op_info.image}")
-                try:
-                    container = client.containers.create(
-                        image=op_info.image,
-                        environment=env,  # For now we have to pass everything through
-                        name=f"operator-{id}",
-                        command=["--id", str(id)],
-                        detach=True,
-                        network_mode="host",
-                        remove=True,
-                        labels={"agent.id": str(self.id)},
-                    )
-                except podman.errors.exceptions.APIError as e:
-                    logger.error(f"Error creating container: {e}")
-                    continue
-                container.start()
-                logger.info(f"Container {container.name} started...")
-                containers[id] = container
+
+                # TODO: could use async to create multiple at once
+                container = await create_container(
+                    self.id, client, id, op_info, env, cfg.MOUNTS
+                )
+                if container:
+                    container.start()
+                    logger.info(f"Container {container.name} started...")
+                    containers[id] = container
+
+                else:
+                    logger.error(f"Failed to start operator ID: {id} after retrying.")
 
         return containers
+
+
+async def create_container(
+    agent_id: uuid.UUID,
+    client: PodmanClient,
+    op_id: IdType,
+    op_info: OperatorJSON,
+    env: dict[str, Any],
+    volumes: list[dict[str, Any]],
+    max_retries=1,
+) -> Container | None:
+    name = f"operator-{op_id}"
+    for attempt in range(max_retries + 1):
+        try:
+            return client.containers.create(
+                image=op_info.image,
+                environment=env,
+                name=name,
+                command=["--id", str(op_id)],
+                detach=True,
+                network_mode="host",
+                remove=True,
+                labels={"agent.id": str(agent_id)},
+                mounts=volumes,
+            )
+        except podman.errors.exceptions.APIError as e:
+            # _cleanup_containers() doesn't work for dead containers
+            # These are left behind and need to be removed
+            # TODO: should _cleanup_containers() work for dead containers?
+            if is_name_conflict_error(e):
+                if attempt < max_retries:
+                    await handle_name_conflict(client, name)
+                else:
+                    logger.error(
+                        f"Maximum retries reached for {name}. "
+                        "Unable to create container."
+                    )
+                    return None
+            else:
+                logger.error(f"Error creating container: {e}")
+                return None
+    return None
+
+
+async def stop_and_remove_container(container: Container) -> None:
+    status = container.status
+    if status == "running":
+        logger.info(f"Stopping container {container.name}")
+        await asyncio.to_thread(container.stop)
+    logger.info(f"Removing container {container.name}")
+    await asyncio.to_thread(container.remove)
+
+
+def is_name_conflict_error(error: podman.errors.exceptions.APIError) -> bool:
+    error_message = str(error)
+    return "container name" in error_message and "is already in use" in error_message
+
+
+async def handle_name_conflict(client: PodmanClient, container_name: str) -> None:
+    logger.warning(
+        f"Container name conflict detected for {container_name}. "
+        f"Attempting to remove the conflicting container."
+    )
+    conflicting_container = client.containers.get(container_name)
+    await stop_and_remove_container(conflicting_container)
+    logger.info(
+        f"Conflicting container {conflicting_container.id} removed. "
+        f"Retrying creation..."
+    )
