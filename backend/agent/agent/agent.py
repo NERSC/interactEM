@@ -10,7 +10,12 @@ import nats
 import nats.errors
 import podman
 import podman.errors
-from core.constants import BUCKET_AGENTS, DEFAULT_NATS_ADDRESS, STREAM_AGENTS
+from core.constants import (
+    BUCKET_AGENTS,
+    DEFAULT_NATS_ADDRESS,
+    STREAM_AGENTS,
+    STREAM_OPERATORS,
+)
 from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
@@ -287,6 +292,7 @@ class Agent:
 
         env = {k: str(v) for k, v in cfg.model_dump().items()}
 
+        futures = []
         with PodmanClient(base_url=self._podman_service_uri) as client:
             for id, op_info in self.pipeline.operators.items():
                 logger.info(f"Starting operator {id} with image {op_info.image}")
@@ -299,10 +305,21 @@ class Agent:
                     container.start()
                     logger.info(f"Container {container.name} started...")
                     containers[id] = container
-
+                    if not self.js:
+                        logger.error(
+                            "No JetStream context. "
+                            "Did not publish pipeline information to {STREAM_OPERATORS}."
+                        )
+                        continue
+                    futures.append(
+                        self.js.publish(
+                            subject=f"{STREAM_OPERATORS}.{id}",
+                            payload=self.pipeline.to_json().model_dump_json().encode(),
+                        )
+                    )
                 else:
                     logger.error(f"Failed to start operator ID: {id} after retrying.")
-
+        asyncio.gather(*futures)
         return containers
 
 
