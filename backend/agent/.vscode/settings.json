@@ -1,4 +1,10 @@
 {
+    "editor.formatOnSave": true,
+    "editor.formatOnSaveMode": "modifications",
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+    },
     "workbench.colorCustomizations": {
         "activityBar.activeBackground": "#28693c",
         "activityBar.background": "#28693c",

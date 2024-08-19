@@ -4,4 +4,9 @@ from agent.agent import Agent
 
 if __name__ == "__main__":
     agent = Agent()
-    asyncio.run(agent.run())
+    try:
+        asyncio.run(agent.run())
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print("Application terminated.")
