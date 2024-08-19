@@ -5,15 +5,11 @@ from uuid import UUID
 from pydantic import BaseModel
 
 from .base import IdType, NodeType, OperatorID, PortID, PortType
-from .uri import URI
 
 
 class PipelineNodeJSON(BaseModel):
     id: IdType
     node_type: NodeType
-    uri: URI
-    connected: bool = False
-
 
 class PortJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.port
