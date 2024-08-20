@@ -10,12 +10,7 @@ import nats
 import nats.errors
 import podman
 import podman.errors
-from core.constants import (
-    BUCKET_AGENTS,
-    DEFAULT_NATS_ADDRESS,
-    STREAM_AGENTS,
-    STREAM_OPERATORS,
-)
+from core.constants import BUCKET_AGENTS, STREAM_AGENTS, STREAM_OPERATORS
 from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
@@ -141,7 +136,9 @@ class Agent:
             *[self.setup_signal_handlers(), self._start_podman_service()]
         )
 
-        self.nc = await nats.connect(servers=[DEFAULT_NATS_ADDRESS], name=f"agent-{id}")
+        self.nc = await nats.connect(
+            servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{id}"
+        )
         self.js = self.nc.jetstream()
 
         self.heartbeat_task = asyncio.create_task(self.heartbeat(self.js, self.id))
@@ -291,6 +288,7 @@ class Agent:
         logger.info("Starting operators...")
 
         env = {k: str(v) for k, v in cfg.model_dump().items()}
+        env["NATS_SERVER_URL"] = env["NATS_SERVER_URL_IN_CONTAINER"]
 
         futures = []
         with PodmanClient(base_url=self._podman_service_uri) as client:
