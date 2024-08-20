@@ -364,6 +364,7 @@ async def create_container(
 
 
 async def stop_and_remove_container(container: Container) -> None:
+    container.reload()
     status = container.status
     if status == "running":
         logger.info(f"Stopping container {container.name}")
