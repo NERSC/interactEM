@@ -1,3 +1,5 @@
+from collections.abc import AsyncGenerator
+
 import networkx as nx
 
 from .logger import get_logger
@@ -179,6 +181,10 @@ class Pipeline(nx.DiGraph):
 
     def get_predecessors(self, node_id: IdType) -> list[IdType]:
         return list(self.predecessors(node_id))
+
+    async def get_predecessors_async(self, node_id: IdType) -> AsyncGenerator[IdType, None]:
+        for predecessor in self.predecessors(node_id):
+            yield predecessor
 
     def get_successors(self, node_id: IdType) -> list[IdType]:
         return list(self.successors(node_id))

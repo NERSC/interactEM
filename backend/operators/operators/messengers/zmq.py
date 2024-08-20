@@ -1,14 +1,19 @@
-import time
-from uuid import UUID
+import asyncio
 
+import nats
+import nats.js
+import nats.js.errors
 import zmq
+from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
 from core.logger import get_logger
 from core.models import BaseMessage, IdType, PortJSON, PortType
 from core.models.base import OperatorID, PortID, Protocol
-from core.models.messages import PutPipelineNodeMessage
 from core.models.pipeline import InputJSON, OutputJSON
-from core.models.uri import ZMQAddress
+from core.models.ports import PortStatus, PortVal
+from core.models.uri import URI, CommBackend, URILocation, ZMQAddress
 from core.pipeline import Pipeline
+from nats.js import JetStreamContext
+from zmq.asyncio import Context
 
 from ..zsocket import Socket, SocketInfo
 from .base import BaseMessenger
@@ -19,58 +24,18 @@ logger = get_logger("messenger", "DEBUG")
 class ZmqMessenger(BaseMessenger):
     def __init__(
         self,
-        operator,
+        operator_id: OperatorID,
+        js: JetStreamContext,
     ):
         self.input_infos: dict[PortID, InputJSON] = {}
         self.input_sockets: dict[PortID, Socket] = {}
         self.output_infos: dict[PortID, OutputJSON] = {}
         self.output_sockets: dict[PortID, Socket] = {}
-        self._context: zmq.SyncContext = operator.client.context
-        self._id: OperatorID = operator.id
-
-        # Sockets for receiving/sending messages inside operator
-        self.input_recv_socket: Socket = Socket(
-            info=SocketInfo(
-                type=zmq.PULL,
-                bind=True,
-                addresses=[ZMQAddress(protocol=Protocol.inproc, endpoint="recv")],
-            ),
-            context=self._context,
-        )
-        self.output_send_socket: Socket = Socket(
-            info=SocketInfo(
-                type=zmq.PUSH,
-                bind=True,
-                addresses=[ZMQAddress(protocol=Protocol.inproc, endpoint="send")],
-            ),
-            context=self._context,
-        )
-
-        # Sockets for receiving/sending message to operator
-        self.input_send_socket: Socket = Socket(
-            info=SocketInfo(
-                type=zmq.PUSH,
-                bind=False,
-                addresses=[ZMQAddress(protocol=Protocol.inproc, endpoint="recv")],
-            ),
-            context=self._context,
-        )
-
-        self.output_recv_socket: Socket = Socket(
-            info=SocketInfo(
-                type=zmq.PULL,
-                bind=False,
-                addresses=[ZMQAddress(protocol=Protocol.inproc, endpoint="send")],
-            ),
-            context=self._context,
-        )
-
-        self.input_recv_socket.bind_or_connect()
-        self.output_send_socket.bind_or_connect()
-        self.input_send_socket.bind_or_connect()
-        self.output_recv_socket.bind_or_connect()
-
-        logger.name = f"messenger-{self._id}"
+        self.port_vals: dict[PortID, PortVal] = {}
+        self._context: Context = Context.instance()
+        self._id: OperatorID = operator_id
+        self.js: JetStreamContext = js
+        self.update_kv_task: asyncio.Task | None = None
 
     def __del__(self):
         # TODO: implement cleanup
@@ -88,172 +53,154 @@ class ZmqMessenger(BaseMessenger):
     def type(self):
         return "zmq"
 
-    def recv(self, src: IdType) -> BaseMessage | None:
+    async def recv(self, src: IdType) -> BaseMessage | None:
+        for socket in self.input_sockets.values():
+            msg = await socket.recv(copy=False)
+            if isinstance(msg, zmq.Frame):
+                return BaseMessage.model_validate_json(msg.bytes)
+            elif isinstance(msg, bytes):
+                return BaseMessage.model_validate_json(msg)
+            else:
+                logger.error("Received an unknown message format: %s", msg)
+                return None
+
+
+    async def send(self, message: BaseMessage, dst: IdType):
+        logger.info("Sending...")
+        for socket in self.output_sockets.values():
+            logger.info(f"Sending to {socket.info.addresses}")
+            await socket.send(message.model_dump_json().encode())
+
+    async def start(self, pipeline: Pipeline):
+        logger.info(f"Setting up operator {self._id}...")
+
+        # TODO: make this a util (also present in orchestrator)
         try:
-            message = self.input_recv_socket.recv_model(flags=zmq.DONTWAIT)
-            return message
-        except zmq.Again:
-            return None
+            self.kv = await self.js.key_value(BUCKET_OPERATORS)
+        except nats.js.errors.BucketNotFoundError:
+            bucket_cfg = nats.js.api.KeyValueConfig(
+                bucket=BUCKET_OPERATORS, ttl=BUCKET_OPERATORS_TTL
+            )
+            self.kv = await self.js.create_key_value(config=bucket_cfg)
 
-    def send(self, message: BaseMessage, dst: IdType):
+        try:
+            async with asyncio.TaskGroup() as tg:
+                tg.create_task(self.setup_outputs(pipeline))
+                tg.create_task(self.setup_inputs(pipeline))
+        except* Exception as e:
+            for ex in e.exceptions:
+                logger.error(f"Failed to setup operator {self._id}: {ex}")
+
+        self.update_kv_task = asyncio.create_task(self.update_kv())
+
+
+    async def update_kv(self):
         while True:
-            try:
-                # blocking send
-                self.output_send_socket.send_model(message)
-                break
-            except zmq.Again:
-                logger.error(f"{self._id} timeout, retrying...")
-                continue
+            fut = []
+            for port_id, val in self.port_vals.items():
+                fut.append(self.kv.put(str(port_id), val.model_dump_json().encode()))
+            await asyncio.gather(*fut)
+            await asyncio.sleep(1)
 
-    def start(self, client, pipeline: Pipeline):
-        self._setup(client, pipeline)
-        while True:
-            self._recv_external()
-            self._send_external()
-
-    def _add_socket(self, port_info: PortJSON):
+    def add_socket(self, port_info: PortJSON):
         if port_info.port_type == PortType.output:
-            bind = True
-            socket_type = zmq.PUSH
-        else:
-            bind = False
-            socket_type = zmq.PULL
-
-        addr = ZMQAddress.from_uri(port_info.uri.to_uri())
-
-        socket = Socket(
-            SocketInfo(
-                type=socket_type,
-                bind=bind,
-                addresses=addr,  # type: ignore (coerced into list)
+            socket_info = SocketInfo(
+                type=zmq.PUSH,
+                bind=True,
                 parent_id=port_info.id,
-            ),
-            self._context,
-        )
-
-        if port_info.port_type == PortType.output:
-            self.output_sockets[port_info.id] = socket
+            )
+            sockets = self.output_sockets
         else:
-            self.input_sockets[port_info.id] = socket
+            socket_info = SocketInfo(
+                type=zmq.PULL,
+                bind=False,
+                parent_id=port_info.id,
+            )
+            sockets = self.input_sockets
 
-    def _setup_inputs(self, agent_client, pipeline: Pipeline):
+        socket = Socket(info=socket_info, context=self._context)
+        sockets[port_info.id] = socket
+
+    async def setup_inputs(self, pipeline: Pipeline):
         for input in pipeline.get_operator_inputs(self._id).values():
             self.input_infos[input.id] = input
 
         for info in self.input_infos.values():
-            self._add_socket(info)
+            self.add_socket(info)
 
-        for port_id, socket in self.input_sockets.items():
-            socket.info.addresses = self._get_addresses(agent_client, pipeline, port_id)
+        async def get_addresses(
+            pipeline: Pipeline, port_id: PortID
+        ) -> list[ZMQAddress]:
+            addresses = []
+
+            async for pred in pipeline.get_predecessors_async(port_id):
+                while True:
+                    try:
+                        val = await self.kv.get(str(pred))
+                        if not val.value:
+                            raise nats.js.errors.KeyNotFoundError
+                        port_val = PortVal.model_validate_json(val.value)
+                        uri = port_val.uri
+                        addrs = uri.query.get("address", [])
+                        if addrs:
+                            addresses.extend(
+                                [
+                                    ZMQAddress.from_address(addr)
+                                    for addr in addrs
+                                    if addr
+                                ]
+                            )
+                        break
+                    except nats.js.errors.KeyNotFoundError:
+                        logger.info(
+                            f"Waiting for address for port {port_id} from {pred}..."
+                        )
+                        await asyncio.sleep(1)
+
+            return addresses
+
+        async def get_addr_and_connect(
+            socket: Socket, pipeline: Pipeline, port_id: PortID
+        ):
+            socket.info.addresses = await get_addresses(pipeline, port_id)
             logger.info(f"Connecting to {socket.info.addresses} on port {port_id}")
             socket.bind_or_connect()
-            info = self.input_infos[port_id]
-            info.connected = True
 
-            while True:
-                try:
-                    agent_client.put_pipeline_node(PutPipelineNodeMessage(node=info))
-                except ValueError as e:
-                    logger.error(f"Failed to update info: {e}")
-                    time.sleep(1)
-                    continue
-                break
+        try:
+            async with asyncio.TaskGroup() as tg:
+                for port_id, socket in self.input_sockets.items():
+                    tg.create_task(get_addr_and_connect(socket, pipeline, port_id))
+        except* Exception as e:
+            for ex in e.exceptions:
+                logger.error(f"Failed to setup operator {self._id}: {ex}")
 
-    def _get_addresses(
-        self, agent_client, pipeline: Pipeline, port_id: PortID
-    ) -> list[ZMQAddress]:
-        """Retrieve a list of ZMQAddress objects for the given port_id."""
-        addresses: list[ZMQAddress] = []
-        expected_num_addr = len(pipeline.get_predecessors(port_id))
-
-        while len(addresses) < expected_num_addr:
-            uris = agent_client.get_connect_uris(port_id)
-            for uri in uris:
-                addrs = uri.query.get("address", [])
-                if addrs:
-                    addresses.extend(
-                        [ZMQAddress.from_address(addr) for addr in addrs if addr]
-                    )
-
-            # Filter out any incomplete addresses
-            addresses = [addr for addr in addresses if addr.hostname]
-
-            if len(addresses) < expected_num_addr:
-                logger.info("Waiting for all addresses to become available...")
-                time.sleep(1)
-
-        return addresses
-
-    def _setup_outputs(self, agent_client, pipeline: Pipeline):
+    async def setup_outputs(self, pipeline: Pipeline):
         for output in pipeline.get_operator_outputs(self._id).values():
             self.output_infos[output.id] = output
 
         for info in self.output_infos.values():
-            self._add_socket(info)
+            self.add_socket(info)
 
         for port_id, socket in self.output_sockets.items():
-            info = self.output_infos[port_id]
+            address = ZMQAddress(
+                protocol=Protocol.tcp, hostname="localhost", interface="lo"
+            )
+            socket.update_addresses([address])
             updated, port = socket.bind_or_connect()
-            info.connected = True
+            info = self.output_infos[port_id]
+            addresses = [a.to_address() for a in socket.info.addresses]
 
-            if updated:
-                addresses = [a.to_address() for a in socket.info.addresses]
-                info.uri.query["address"] = addresses
-
-                while True:
-                    try:
-                        agent_client.put_pipeline_node(
-                            PutPipelineNodeMessage(node=info)
-                        )
-                    except ValueError as e:
-                        logger.error(f"Failed to update info: {e}")
-                        time.sleep(1)
-                        continue
-                    break
-
-    def _setup(self, agent_client, pipeline: Pipeline):
-        logger.info(f"Setting up operator {self._id}...")
-        self._setup_outputs(agent_client, pipeline)
-        self._setup_inputs(agent_client, pipeline)
-
-    def _recv_external(self):
-        for port_id, socket in self.input_sockets.items():
-            try:
-                message = socket.recv_model(flags=zmq.DONTWAIT)
-            except zmq.Again:
-                continue
-            except zmq.ZMQError as e:
-                logger.error(f"Failed to receive message on port {port_id}: {e}")
-
-            try:
-                self.input_send_socket.send_model(message)
-            except zmq.Again:
-                logger.error("Timeout on message send.")
-                continue
-            except zmq.ZMQError as e:
-                logger.error(f"Failed to send message to operator: {e}")
-
-    def _send_external(self):
-        # TODO: Same message on all output sockets--probably not the way
-        # TODO: should we only have one output socket per operator?
-        try:
-            message = self.output_recv_socket.recv_model(zmq.DONTWAIT)
-        except zmq.Again:
-            return
-        except zmq.ZMQError as e:
-            logger.error(f"Failed to receive message: {e}")
-            return
-
-        resend: list[UUID] = list(self.output_sockets.keys())
-        while resend:
-            for port_id in resend:
-                try:
-                    self.output_sockets[port_id].send_model(message)
-                    resend.remove(port_id)
-                except zmq.Again:
-                    continue
-                except zmq.ZMQError as e:
-                    logger.error(f"Failed to send message on port {port_id}: {e}")
+            # TODO: change hostname to environment variable
+            uri = URI(
+                id=port_id,
+                location=URILocation.port,
+                hostname="localhost",
+                query={"address": addresses},
+                comm_backend=CommBackend.ZMQ,
+            )
+            val = PortVal(uri=uri, status=PortStatus.IDLE)
+            await self.kv.put(str(port_id), val.model_dump_json().encode())
+            self.port_vals[port_id] = val
 
     def _readiness_check(self):
         # TODO: we should probably have this information in one place rather than in two
