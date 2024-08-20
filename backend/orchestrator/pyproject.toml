@@ -11,6 +11,7 @@ nats-py = { git = "https://github.com/nats-io/nats.py.git", branch = "services" 
 pydantic = "^2.8.2"
 requests = "^2.32.3"
 core = {path = "../core", develop = true}
+pydantic-settings = "^2.4.0"
 
 
 [build-system]

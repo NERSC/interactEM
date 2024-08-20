@@ -7,11 +7,7 @@ from typing import Any
 import nats
 import nats.js
 import nats.js.errors
-from core.constants import (
-    BUCKET_OPERATORS,
-    BUCKET_OPERATORS_TTL,
-    STREAM_OPERATORS,
-)
+from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL, STREAM_OPERATORS
 from core.logger import get_logger
 from core.models import CommBackend, IdType, OperatorJSON, PipelineJSON
 from core.models.base import OperatorID
@@ -24,6 +20,7 @@ from nats.js.api import ConsumerConfig, DeliverPolicy
 from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
+from .config import cfg
 from .messengers.base import BaseMessenger
 from .messengers.zmq import ZmqMessenger
 
@@ -43,9 +40,6 @@ async def receive_pipeline(msg: NATSMsg, js: JetStreamContext) -> Pipeline | Non
         logger.error("Invalid message")
         return None
     return Pipeline.from_pipeline(event)
-
-
-DEFAULT_NATS_ADDRESS = "nats://host.containers.internal:4222"
 
 
 class Operator(ABC):
@@ -68,8 +62,9 @@ class Operator(ABC):
 
     async def start(self):
         logger.info(f"Starting operator {self.id}...")
+        logger.info(f"Connecting to NATS at {cfg.NATS_SERVER_URL}...")
         self.nc = await nats.connect(
-            servers=[DEFAULT_NATS_ADDRESS], name=f"operator-{self.id}"
+            servers=[str(cfg.NATS_SERVER_URL)], name=f"operator-{self.id}"
         )
         logger.info("Connected to NATS...")
         self.js = self.nc.jetstream()
