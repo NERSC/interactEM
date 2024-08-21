@@ -8,7 +8,6 @@ import nats.js.errors
 from core.constants import (
     BUCKET_AGENTS,
     BUCKET_AGENTS_TTL,
-    DEFAULT_COMPOSE_NATS_ADDRESS,
     STREAM_AGENTS,
     STREAM_OPERATORS,
     SUBJECT_PIPELINES_RUN,
@@ -24,6 +23,8 @@ from nats.js.api import ConsumerConfig, DeliverPolicy, StreamConfig
 from nats.js.errors import BadRequestError, KeyNotFoundError, NoKeysError
 from nats.js.kv import KeyValue
 from pydantic import ValidationError
+
+from .config import cfg
 
 logger = get_logger("orchestrator", "DEBUG")
 
@@ -125,7 +126,7 @@ async def create_bucket_if_doesnt_exist(
 async def main():
     id: str = str(uuid4())
     nc: NATSClient = await nats.connect(
-        servers=[DEFAULT_COMPOSE_NATS_ADDRESS], name=f"orchestrator-{id}"
+        servers=[str(cfg.NATS_SERVER_URL)], name=f"orchestrator-{id}"
     )
     js: JetStreamContext = nc.jetstream()
 
@@ -180,7 +181,3 @@ async def main():
 
     while True:
         await asyncio.sleep(1)
-
-
-if __name__ == "__main__":
-    asyncio.run(main())

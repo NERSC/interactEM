@@ -12,6 +12,8 @@ pydantic = "^2.8.2"
 core = {path = "../core", develop = true}
 pyzmq = "^26.1.0"
 networkx = "^3.3"
+numpy = "^1.26"
+pydantic-settings = "^2.4.0"
 
 
 [build-system]

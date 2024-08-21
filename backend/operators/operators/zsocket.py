@@ -1,10 +1,9 @@
-from collections.abc import Callable, Sequence
-from functools import wraps
-from typing import Any
+from collections.abc import Sequence
+from typing import Any, Literal
 
 import zmq
+import zmq.asyncio
 from core.logger import get_logger
-from core.models import MESSAGE_SUBJECT_TO_MODEL, BaseMessage
 from core.models.base import AgentID, OperatorID, OrchestratorID, PortID, Protocol
 from core.models.uri import ZMQAddress
 from pydantic import BaseModel, ValidationError, model_validator
@@ -63,30 +62,10 @@ class SocketInfo(BaseModel):
         return self
 
 
-def disable_send_methods(cls):
-    def not_supported(*args, **kwargs):
-        raise NotImplementedError("This socket does not support sending.")
-
-    methods = ["send_json", "send_string", "send_pyobj", "send_bytes", "send_model"]
-    for name in methods:
-        setattr(cls, name, not_supported)
-    return cls
-
-
-def disable_recv_methods(cls):
-    def not_supported(*args, **kwargs):
-        raise NotImplementedError("This socket does not support receiving.")
-
-    methods = ["recv_json", "recv_string", "recv_pyobj", "recv_bytes", "recv_model"]
-    for name in methods:
-        setattr(cls, name, not_supported)
-    return cls
-
-
 class Socket:
-    def __init__(self, info: SocketInfo, context: zmq.SyncContext):
+    def __init__(self, info: SocketInfo, context: zmq.asyncio.Context):
         self.info: SocketInfo = info
-        self._socket: zmq.SyncSocket = context.socket(info.type)
+        self._socket: zmq.asyncio.Socket = context.socket(info.type)
         self._metrics: SocketMetrics = SocketMetrics()
 
     def __del__(self):
@@ -97,6 +76,44 @@ class Socket:
             logger.info("Setting socket options")
         for opt, val in self.info.options.items():
             self._socket.set(opt, val)
+
+    async def send(
+        self,
+        data: Any,
+        flags: int = 0,
+        copy: bool = True,
+        track: bool = False,
+        **kwargs: Any,
+    ) -> zmq.MessageTracker | None:
+        return await self._socket.send(
+            data, flags=flags, copy=copy, track=track, **kwargs
+        )
+
+    async def send_multipart(
+        self,
+        msg_parts: list[Any],
+        flags: int = 0,
+        copy: bool = True,
+        track=False,
+        **kwargs,
+    ) -> zmq.MessageTracker | None:
+        return await self._socket.send_multipart(
+            msg_parts, flags=flags, copy=copy, track=track, **kwargs
+        )
+
+    async def recv(
+        # TODO: unsure about this Literal here...
+        self,
+        flags: int = 0,
+        copy: Literal[False] = False,
+        track: bool = False,
+    ) -> bytes | zmq.Frame:
+        return await self._socket.recv(flags, copy=copy, track=track)
+
+    async def recv_multipart(
+        self, flags: int = 0, copy: bool = True, track: bool = False
+    ) -> list[bytes] | list[zmq.Frame]:
+        return await self._socket.recv_multipart(flags=flags, copy=copy, track=track)
 
     def update_addresses(self, addresses: Sequence[ZMQAddress]) -> None:
         self.info.addresses = addresses
@@ -144,93 +161,6 @@ class Socket:
         for addr in self.info.addresses:
             self._socket.connect(addr.to_connect_address())
         self.info.connected = True
-
-    @staticmethod
-    def on_send(method: Callable[..., None]) -> Callable[..., None]:
-        @wraps(method)
-        def wrapper(self: "Socket", obj: Any, flags: int = 0) -> None:
-            try:
-                method(self, obj, flags)
-            except zmq.Again as e:
-                self._metrics.send_timeouts += 1
-                raise e
-            self._metrics.send_count += 1
-
-        return wrapper
-
-    @staticmethod
-    def on_recv(method: Callable[..., Any]) -> Callable[..., Any]:
-        @wraps(method)
-        def wrapper(self: "Socket", flags: int = 0) -> Any:
-            try:
-                result = method(self, flags)
-            except zmq.Again as e:
-                self._metrics.recv_timeouts += 1
-                raise e
-            self._metrics.recv_count += 1
-            return result
-
-        return wrapper
-
-    @on_send
-    def send_json(self, obj: dict, flags: int = 0) -> None:
-        self._socket.send_json(obj, flags)
-
-    @on_send
-    def send_string(self, obj: str, flags: int = 0) -> None:
-        self._socket.send_string(obj, flags)
-
-    @on_send
-    def send_pyobj(self, obj: Any, flags: int = 0) -> None:
-        self._socket.send_pyobj(obj, flags)
-
-    @on_send
-    def send_bytes(self, obj: bytes, flags: int = 0) -> None:
-        self._socket.send(obj, flags)
-
-    @on_recv
-    def recv_json(self, flags: int = 0) -> Any:
-        return self._socket.recv_json(flags)
-
-    @on_recv
-    def recv_string(self, flags: int = 0) -> str:
-        return self._socket.recv_string(flags)
-
-    @on_recv
-    def recv_pyobj(self, flags: int = 0) -> Any:
-        return self._socket.recv_pyobj(flags)
-
-    @on_recv
-    def recv_bytes(self, flags: int = 0) -> bytes:
-        return self._socket.recv(flags)
-
-    @on_send
-    def send_model(self, obj: BaseMessage, flags: int = 0) -> None:
-        payload = obj.model_dump_json()
-        self._socket.send_string(payload, flags)
-
-    @on_recv
-    def recv_model(self, flags: int = 0) -> BaseMessage:
-        payload = self._socket.recv(flags)
-        logger.debug(f"Received message: {payload}")
-        try:
-            subject = BaseMessage.model_validate_json(payload)
-        except ValidationError as e:
-            logger.info(f"Error deserializing the MessageSubject: {e}")
-            raise e
-
-        subject = subject.subject
-
-        model_class = MESSAGE_SUBJECT_TO_MODEL.get(subject)
-
-        if not model_class:
-            raise ValueError(f"Unsupported MessageSubject: {subject}")
-
-        try:
-            return model_class.model_validate_json(payload)
-        except ValidationError as e:
-            logger.info(f"Error deserializing the {model_class.__name__}: {e}")
-            raise
 
     def close(self):
         if self.info.connected:
