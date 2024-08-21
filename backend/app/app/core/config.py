@@ -119,7 +119,7 @@ class Settings(BaseSettings):
         return self
 
     # NATS
-    NATS_SERVER_ADDRESS: NatsDsn = Field(default="nats://nats1:4222")
+    NATS_SERVER_URL: NatsDsn = Field(default="nats://nats1:4222")
 
 
 settings = Settings()  # type: ignore

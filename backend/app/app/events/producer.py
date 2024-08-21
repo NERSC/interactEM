@@ -2,10 +2,7 @@ import logging
 
 import nats
 import nats.errors
-from core.constants import (
-    STREAM_PIPELINES,
-    SUBJECT_PIPELINES_RUN,
-)
+from core.constants import STREAM_PIPELINES, SUBJECT_PIPELINES_RUN
 from core.events.pipelines import PipelineRunEvent
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
@@ -27,8 +24,8 @@ nats_jetstream: JetStreamContext | None = None
 async def start():
     global nats_client
     global nats_jetstream
-    logger.info(f"Connecting to NATS server: {settings.NATS_SERVER_ADDRESS}")
-    nats_client = await nats.connect(settings.NATS_SERVER_ADDRESS.unicode_string())
+    logger.info(f"Connecting to NATS server: {settings.NATS_SERVER_URL}")
+    nats_client = await nats.connect(settings.NATS_SERVER_URL.unicode_string())
     nats_jetstream = nats_client.jetstream()
     pipeline_cfg = StreamConfig(
         name=STREAM_PIPELINES,

@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 
+from core.models.base import OperatorID
 from core.models.messages import BaseMessage
 from core.models.pipeline import InputJSON, OutputJSON
+from nats.js import JetStreamContext
 
 
 class BaseMessenger(ABC):
     @abstractmethod
-    def __init__(self, operator):
+    def __init__(self, operator_id: OperatorID, js: JetStreamContext):
         pass
 
     @property
@@ -30,13 +32,13 @@ class BaseMessenger(ABC):
         pass
 
     @abstractmethod
-    def send(self, msg, dst: str):
+    async def send(self, msg, dst: str):
         pass
 
     @abstractmethod
-    def recv(self, src: str) -> BaseMessage | None:
+    async def recv(self, src: str) -> BaseMessage | None:
         pass
 
     @abstractmethod
-    def start(self, client, pipeline):
+    async def start(self, pipeline):
         pass
