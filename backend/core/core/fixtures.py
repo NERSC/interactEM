@@ -1,17 +1,6 @@
 from uuid import UUID
 
-from .models import (
-    URI,
-    CommBackend,
-    EdgeJSON,
-    OperatorJSON,
-    PipelineJSON,
-    PortJSON,
-    PortType,
-    Protocol,
-    URILocation,
-)
-from .models.uri import ZMQAddress
+from .models import EdgeJSON, OperatorJSON, PipelineJSON, PortJSON, PortType
 
 OPERATOR_0_ID = UUID("12345678-1234-1234-1234-1234567890ab")
 OPERATOR_1_ID = UUID("12345678-1234-1234-1234-1234567890cd")
@@ -28,12 +17,6 @@ OPERATOR_0 = OperatorJSON(
     image="interactEM/operator",
     params={"hello": "world"},
     outputs=[OPERATOR_0_OUTPUT_0_ID, OPERATOR_0_OUTPUT_1_ID],
-    uri=URI(
-        id=OPERATOR_0_ID,
-        comm_backend=CommBackend.ZMQ,
-        location=URILocation.operator,
-        hostname="localhost",
-    ),
 )
 
 OPERATOR_0_PORT_0 = PortJSON(
@@ -41,15 +24,6 @@ OPERATOR_0_PORT_0 = PortJSON(
     operator_id=OPERATOR_0_ID,
     port_type=PortType.output,
     portkey="out1",
-    uri=URI(
-        id=OPERATOR_0_OUTPUT_0_ID,
-        comm_backend=CommBackend.ZMQ,
-        location=URILocation.port,
-        hostname="localhost",
-        query={
-            "address": [ZMQAddress(protocol=Protocol.tcp, interface="lo0").to_address()]
-        },
-    ),
 )
 
 OPERATOR_0_PORT_1 = PortJSON(
@@ -57,15 +31,6 @@ OPERATOR_0_PORT_1 = PortJSON(
     operator_id=OPERATOR_0_ID,
     port_type=PortType.output,
     portkey="out1",
-    uri=URI(
-        id=OPERATOR_0_OUTPUT_1_ID,
-        comm_backend=CommBackend.ZMQ,
-        location=URILocation.port,
-        hostname="localhost",
-        query={
-            "address": [ZMQAddress(protocol=Protocol.tcp, interface="lo0").to_address()]
-        },
-    ),
 )
 
 OPERATOR_1 = OperatorJSON(
@@ -73,12 +38,6 @@ OPERATOR_1 = OperatorJSON(
     image="interactEM/operator",
     params={"hello": "world"},
     inputs=[OPERATOR_1_INPUT_0_ID],
-    uri=URI(
-        id=OPERATOR_1_ID,
-        comm_backend=CommBackend.ZMQ,
-        location=URILocation.operator,
-        hostname="localhost",
-    ),
 )
 
 OPERATOR_1_PORT_0 = PortJSON(
@@ -86,12 +45,6 @@ OPERATOR_1_PORT_0 = PortJSON(
     operator_id=OPERATOR_1_ID,
     port_type=PortType.input,
     portkey="in1",
-    uri=URI(
-        id=OPERATOR_1_INPUT_0_ID,
-        comm_backend=CommBackend.ZMQ,
-        location=URILocation.port,
-        hostname="localhost",
-    ),
 )
 
 OPERATOR_2 = OperatorJSON(
@@ -99,12 +52,6 @@ OPERATOR_2 = OperatorJSON(
     image="interactEM/operator",
     params={"hello": "world"},
     inputs=[OPERATOR_2_INPUT_0_ID],
-    uri=URI(
-        id=OPERATOR_2_ID,
-        comm_backend=CommBackend.ZMQ,
-        location=URILocation.operator,
-        hostname="localhost",
-    ),
 )
 
 OPERATOR_2_PORT_0 = PortJSON(
@@ -112,12 +59,6 @@ OPERATOR_2_PORT_0 = PortJSON(
     operator_id=OPERATOR_2_ID,
     port_type=PortType.input,
     portkey="in1",
-    uri=URI(
-        id=OPERATOR_2_INPUT_0_ID,
-        comm_backend=CommBackend.ZMQ,
-        location=URILocation.port,
-        hostname="localhost",
-    ),
 )
 
 EDGE_0 = EdgeJSON(
