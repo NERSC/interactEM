@@ -13,7 +13,7 @@ package-mode = false
 # Define the Python versions compatible with your project.
 # Adjust the versions according to your project's requirements.
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.11" 
 app = { path = "backend/app", develop = true }
 core = { path = "backend/core", develop = true }
 operators = { path = "backend/operators", develop = true }
