@@ -4,7 +4,6 @@ import networkx as nx
 
 from .logger import get_logger
 from .models import (
-    URI,
     EdgeJSON,
     IdType,
     InputJSON,
@@ -12,14 +11,10 @@ from .models import (
     OperatorJSON,
     OutputJSON,
     PipelineJSON,
-    PipelineNodeJSON,
     PortJSON,
     PortType,
-    URIConnectMessage,
-    URIUpdateMessage,
 )
 from .models.messages import PutPipelineNodeMessage
-from .models.uri import ZMQAddress
 
 logger = get_logger("pipeline")
 
@@ -194,50 +189,6 @@ class Pipeline(nx.DiGraph):
         if not edge:
             raise ValueError(f"Edge not found between {input_id} and {output_id}")
         return EdgeJSON(**edge)
-
-    def update_uri(self, message: URIUpdateMessage) -> URIUpdateMessage:
-        node_id = message.id
-        if node_id not in self.nodes:
-            raise ValueError(f"Port {node_id} not found in the graph.")
-
-        current_node = self.nodes[node_id]
-        current_node_model = PipelineNodeJSON(**current_node)
-        current_uri = current_node_model.uri
-
-        # Ensure current_uri is a URIBase instance
-        if not isinstance(current_uri, URI):
-            current_uri = URI(**current_uri)
-
-        # Apply updates from message
-        update_data = message.model_dump(exclude_unset=True)
-
-        # Remove message subject
-        update_data.pop("subject", None)
-
-        # may be a better way for partial updates, but i don't know it
-        for key, value in update_data.items():
-            if key == "address" and isinstance(value, dict):
-                value = ZMQAddress(**value)
-            setattr(current_uri, key, value)
-
-        # Validate updated URI
-        updated_uri = URI.model_validate(current_uri)
-
-        current_node["uri"] = updated_uri.model_dump()
-        return message
-
-    def get_connections(self, message: URIConnectMessage) -> list[URI]:
-        input_id = message.id
-
-        output_ids = self.get_predecessors(input_id)
-
-        output_ports = [
-            OutputJSON(**p.model_dump())
-            for p in self.ports.values()
-            if p.id in output_ids
-        ]
-
-        return [p.uri for p in output_ports]
 
     def put_node(self, message: PutPipelineNodeMessage) -> PutPipelineNodeMessage:
         node_id = message.node.id
