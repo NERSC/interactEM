@@ -202,17 +202,7 @@ class ZmqMessenger(BaseMessenger):
             await self.kv.put(str(port_id), val.model_dump_json().encode())
             self.port_vals[port_id] = val
 
-    def _readiness_check(self):
-        # TODO: we should probably have this information in one place rather than in two
-        # we could also have inproc sockets that could send to a central place to inform
-        # agentclient (and rest of network) that we are ready
-        return all(
-            [socket.info.connected for socket in self.input_sockets.values()]
-            + [socket.info.connected for socket in self.output_sockets.values()]
-            + [info.connected for info in self.output_infos.values()]
-            + [info.connected for info in self.input_infos.values()]
-        )
-
+    # TODO: implement
     @property
     def ready(self):
-        return self._readiness_check()
+        return True
