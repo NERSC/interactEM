@@ -57,7 +57,7 @@ Authorization: bearer put_the_access_token_here
     "operators": [
       {
         "id": "12345678-1234-1234-1234-1234567890ab",
-        "image": "interactEM/operator",
+        "image": "interactem/operator",
         "inputs": [],
         "node_type": "operator",
         "outputs": [
@@ -70,7 +70,7 @@ Authorization: bearer put_the_access_token_here
       },
       {
         "id": "12345678-1234-1234-1234-1234567890cd",
-        "image": "interactEM/operator",
+        "image": "interactem/operator",
         "inputs": [
           "87654321-4321-4321-4321-1234567890ef"
         ],
@@ -82,7 +82,7 @@ Authorization: bearer put_the_access_token_here
       },
       {
         "id": "12345678-1234-1234-1234-1234567890ef",
-        "image": "interactEM/operator",
+        "image": "interactem/operator",
         "inputs": [
           "87654321-4321-4321-4321-1234567890ff"
         ],
