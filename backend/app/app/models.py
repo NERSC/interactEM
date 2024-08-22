@@ -44,7 +44,6 @@ class UpdatePassword(SQLModel):
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
-    items: list["Item"] = Relationship(back_populates="owner", cascade_delete=True)
     pipelines: list["Pipeline"] = Relationship(
         back_populates="owner", cascade_delete=True
     )
@@ -57,43 +56,6 @@ class UserPublic(UserBase):
 
 class UsersPublic(SQLModel):
     data: list[UserPublic]
-    count: int
-
-
-# Shared properties
-class ItemBase(SQLModel):
-    title: str = Field(min_length=1, max_length=255)
-    description: str | None = Field(default=None, max_length=255)
-
-
-# Properties to receive on item creation
-class ItemCreate(ItemBase):
-    title: str = Field(min_length=1, max_length=255)
-
-
-# Properties to receive on item update
-class ItemUpdate(ItemBase):
-    title: str | None = Field(default=None, min_length=1, max_length=255)  # type: ignore
-
-
-# Database model, database table inferred from class name
-class Item(ItemBase, table=True):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
-    title: str = Field(max_length=255)
-    owner_id: uuid.UUID = Field(
-        foreign_key="user.id", nullable=False, ondelete="CASCADE"
-    )
-    owner: User | None = Relationship(back_populates="items")
-
-
-# Properties to return via API, id is always required
-class ItemPublic(ItemBase):
-    id: uuid.UUID
-    owner_id: uuid.UUID
-
-
-class ItemsPublic(SQLModel):
-    data: list[ItemPublic]
     count: int
 
 
@@ -143,36 +105,3 @@ class PipelinePublic(PipelineBase):
 class PipelinesPublic(SQLModel):
     data: list[PipelinePublic]
     count: int
-
-
-# PortKeyType = str
-
-
-# class PortType(str, Enum):
-#     input = "input"
-#     output = "output"
-
-
-# class DataType(str, Enum):
-#     array = "array"
-
-
-# class Port(SQLModel):
-#     id: uuid.UUID | None = Field(default=uuid.uuid4(), default_factory=uuid.uuid4)
-#     portkey: str
-#     port_type: PortType
-#     data_type: DataType
-
-
-# class OperatorBase(SQLModel):
-#     image: str
-#     params: list[str] | None = None
-#     default_params: JSON = Field(default=JSON(), default_factory=JSON)
-#     inputs: list[Port] | None = None
-#     outputs: list[Port] | None = None
-
-
-# class Operator(OperatorBase, table=True):
-#     id: uuid.UUID | None = Field(
-#         default=None, default_factory=uuid.uuid4, primary_key=True
-#     )
