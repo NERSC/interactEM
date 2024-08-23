@@ -1,3 +1,6 @@
 [submodule "backend/agent/thirdparty/podman-hpc-py"]
 	path = backend/agent/thirdparty/podman-hpc-py
 	url = https://github.com/cjh1/podman-hpc-py.git
+[submodule "helm/spin-helm"]
+	path = helm/spin-helm
+	url = https://github.com/NERSC/spin-helm.git
