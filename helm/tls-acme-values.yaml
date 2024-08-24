@@ -1,0 +1,21 @@
+replicaCount: 1
+
+podSecurityContext:
+  fsGroup: 99894 # NERSC GID for the project
+
+securityContext:
+  runAsUser: 99894 # NERSC UID
+
+service:
+  port: 8080
+
+ingress:
+  name: ingress
+  enabled: false
+
+# concatenate the list .ingress.hosts.host into ":" separated string
+domain: ingress.interactem.production.svc.spin.nersc.org
+
+email: swelborn@lbl.gov # email address to be used for the ACME account
+
+cluster: production.svc.spin.nersc.org
