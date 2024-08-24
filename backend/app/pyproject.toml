@@ -28,6 +28,7 @@ sentry-sdk = {extras = ["fastapi"], version = "^1.40.6"}
 pyjwt = "^2.8.0"
 nats-py = "^2.8.0"
 core = {path = "../core", develop = true}
+aiohttp = "^3.10.5"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"

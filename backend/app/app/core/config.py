@@ -9,6 +9,7 @@ from pydantic import (
     HttpUrl,
     NatsDsn,
     PostgresDsn,
+    WebsocketUrl,
     computed_field,
     model_validator,
 )
@@ -119,7 +120,7 @@ class Settings(BaseSettings):
         return self
 
     # NATS
-    NATS_SERVER_URL: NatsDsn = Field(default="nats://nats1:4222")
+    NATS_SERVER_URL: NatsDsn | WebsocketUrl = Field(default="nats://nats1:4222")
 
 
 settings = Settings()  # type: ignore
