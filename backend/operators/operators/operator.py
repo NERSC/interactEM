@@ -65,16 +65,34 @@ class Operator(ABC):
 
     async def start(self):
         logger.info(f"Starting operator {self.id}...")
+        await self.setup_signal_handlers()
+        await self.connect_to_nats()
+        await self.initialize_pipeline()
+        await self.setup_key_value_store()
+        await self.initialize_messenger()
+        if not self.messenger:
+            raise ValueError("Messenger not initialized")
+        await self.messenger.start(self.pipeline)
+        self.run_task = asyncio.create_task(self.run())
+        await self._shutdown_event.wait()
+        await self.shutdown()
+
+    async def connect_to_nats(self):
         logger.info(f"Connecting to NATS at {cfg.NATS_SERVER_URL}...")
         self.nc = await nats.connect(
             servers=[str(cfg.NATS_SERVER_URL)], name=f"operator-{self.id}"
         )
         logger.info("Connected to NATS...")
         self.js = self.nc.jetstream()
+
+    async def initialize_pipeline(self):
+        logger.info(f"Subscribing to stream {STREAM_OPERATORS} for operator {self.id}...")
         consumer_cfg = ConsumerConfig(
             description=f"operator-{self.id}",
             deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
         )
+        if not self.js:
+            raise ValueError("JetStream context not initialized")
         psub = await self.js.pull_subscribe(
             stream=STREAM_OPERATORS,
             subject=f"{STREAM_OPERATORS}.{self.id}",
@@ -84,8 +102,15 @@ class Operator(ABC):
         self.pipeline = await receive_pipeline(msg[0], self.js)
         if self.pipeline is None:
             raise ValueError("Pipeline not found")
+        self.info = self.pipeline.get_operator(self.id)
+        if self.info is None:
+            raise ValueError(f"Operator {self.id} not found in pipeline")
 
-        # TODO: make this a util (also present in orchestrator)
+
+    async def setup_key_value_store(self):
+        logger.info(f"Setting up Key-Value store for operator {self.id}...")
+        if not self.js:
+            raise ValueError("JetStream context not initialized")
         try:
             self.kv = await self.js.key_value(BUCKET_OPERATORS)
         except nats.js.errors.BucketNotFoundError:
@@ -94,23 +119,15 @@ class Operator(ABC):
             )
             self.kv = await self.js.create_key_value(config=bucket_cfg)
 
-        self.info = self.pipeline.get_operator(self.id)
-        if self.info is None:
-            raise ValueError(f"Operator {self.id} not found in pipeline")
-
+    async def initialize_messenger(self):
         comm_backend = CommBackend.ZMQ
         messenger_cls = BACKEND_TO_MESSENGER.get(comm_backend)
         if messenger_cls is None:
             raise ValueError(f"Invalid communications backend: {comm_backend}")
-
+        if not self.js:
+            raise ValueError("JetStream context not initialized")
         self.messenger = messenger_cls(self.id, self.js)
-        logger.info(f"Starting messenger {self.messenger}...")
-
-        await self.setup_signal_handlers()
-        await self.messenger.start(self.pipeline)
-        self.run_task = asyncio.create_task(self.run())
-        await self._shutdown_event.wait()
-        await self.shutdown()
+        logger.info(f"Initialized messenger {self.messenger}...")
 
     async def shutdown(self):
         logger.info(f"Shutting down operator {self.id}...")
