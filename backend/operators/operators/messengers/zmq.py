@@ -54,8 +54,12 @@ class ZmqMessenger(BaseMessenger):
         return "zmq"
 
     async def recv(self, src: IdType) -> BaseMessage | None:
+        msg_futures = []
         for socket in self.input_sockets.values():
-            msg = await socket.recv(copy=False)
+            msg_futures.append(socket.recv(copy=False))
+        msgs = await asyncio.gather(*msg_futures)
+
+        for msg in msgs:
             if isinstance(msg, zmq.Frame):
                 return BaseMessage.model_validate_json(msg.bytes)
             elif isinstance(msg, bytes):
@@ -66,10 +70,11 @@ class ZmqMessenger(BaseMessenger):
 
 
     async def send(self, message: BaseMessage, dst: IdType):
-        logger.info("Sending...")
+        msg_futures = []
         for socket in self.output_sockets.values():
             logger.info(f"Sending to {socket.info.addresses}")
-            await socket.send(message.model_dump_json().encode())
+            msg_futures.append(socket.send(message.model_dump_json().encode()))
+        await asyncio.gather(*msg_futures)
 
     async def start(self, pipeline: Pipeline):
         logger.info(f"Setting up operator {self._id}...")
