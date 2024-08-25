@@ -13,6 +13,7 @@ from core.models.ports import PortStatus, PortVal
 from core.models.uri import URI, CommBackend, URILocation, ZMQAddress
 from core.pipeline import Pipeline
 from nats.js import JetStreamContext
+from nats.js.errors import BucketNotFoundError
 from zmq.asyncio import Context
 
 from ..zsocket import Socket, SocketInfo
@@ -36,6 +37,7 @@ class ZmqMessenger(BaseMessenger):
         self._id: OperatorID = operator_id
         self.js: JetStreamContext = js
         self.update_kv_task: asyncio.Task | None = None
+        self._shutdown_event: asyncio.Event = asyncio.Event()
 
     def __del__(self):
         # TODO: implement cleanup
@@ -82,7 +84,7 @@ class ZmqMessenger(BaseMessenger):
         # TODO: make this a util (also present in orchestrator)
         try:
             self.kv = await self.js.key_value(BUCKET_OPERATORS)
-        except nats.js.errors.BucketNotFoundError:
+        except BucketNotFoundError:
             bucket_cfg = nats.js.api.KeyValueConfig(
                 bucket=BUCKET_OPERATORS, ttl=BUCKET_OPERATORS_TTL
             )
@@ -98,14 +100,33 @@ class ZmqMessenger(BaseMessenger):
 
         self.update_kv_task = asyncio.create_task(self.update_kv())
 
+    async def stop(self):
+        self._shutdown_event.set()
+        logger.info("Stopping zmq messenger...")
+        if self.update_kv_task:
+            await self.update_kv_task
+
+        for socket in self.input_sockets.values():
+            socket.close()
+        for socket in self.output_sockets.values():
+            socket.close()
+
 
     async def update_kv(self):
-        while True:
+        while not self._shutdown_event.is_set():
             fut = []
             for port_id, val in self.port_vals.items():
                 fut.append(self.kv.put(str(port_id), val.model_dump_json().encode()))
             await asyncio.gather(*fut)
             await asyncio.sleep(1)
+        logger.info(f"Operator {self._id} shutting down, deleting KV...")
+        logger.info("Removing ports from KV store...")
+        fut = []
+        for port_id in self.port_vals.keys():
+            fut.append(self.kv.delete(str(port_id)))
+        await asyncio.gather(*fut)
+        logger.info("KV store cleanup complete")
+
 
     def add_socket(self, port_info: PortJSON):
         if port_info.port_type == PortType.output:

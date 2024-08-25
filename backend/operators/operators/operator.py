@@ -1,4 +1,5 @@
 import asyncio
+import signal
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from functools import wraps
@@ -55,6 +56,8 @@ class Operator(ABC):
         self.js: JetStreamContext | None = None
         self.kv: KeyValue | None = None
         self.messenger_task: asyncio.Task | None = None
+        self.run_task: asyncio.Task | None = None
+        self._shutdown_event: asyncio.Event = asyncio.Event()
 
     @property
     def input_queue(self) -> str:
@@ -103,21 +106,54 @@ class Operator(ABC):
         self.messenger = messenger_cls(self.id, self.js)
         logger.info(f"Starting messenger {self.messenger}...")
 
+        await self.setup_signal_handlers()
         await self.messenger.start(self.pipeline)
-        await self.run()
+        self.run_task = asyncio.create_task(self.run())
+        await self._shutdown_event.wait()
+        await self.shutdown()
+
+    async def shutdown(self):
+        logger.info(f"Shutting down operator {self.id}...")
+        if self.run_task:
+            self.run_task.cancel()
+            try:
+                await self.run_task
+            except asyncio.CancelledError:
+                logger.info("Run task cancelled")
+        if self.messenger:
+            logger.info(f"Stopping messenger {self.messenger}...")
+            await self.messenger.stop()
+        if self.nc:
+            logger.info("Closing NATS connection...")
+            await self.nc.close()
+
+        logger.info(f"Operator {self.id} shutdown complete")
+
+    # TODO: refactor into core
+    async def setup_signal_handlers(self):
+        logger.info("Setting up signal handlers...")
+
+        loop = asyncio.get_running_loop()
+
+        def handle_signal():
+            logger.info("Signal received, shutting down processes...")
+            self._shutdown_event.set()
+
+        loop.add_signal_handler(signal.SIGINT, handle_signal)
+        loop.add_signal_handler(signal.SIGTERM, handle_signal)
 
     async def run(self):
         if not self.messenger:
             raise ValueError("Messenger not initialized")
         if self.messenger.input_ports:
-            while True:
+            while not self._shutdown_event.is_set():
                 await asyncio.sleep(1)
                 message = await self.messenger.recv(self.input_queue)
                 if message:
                     logger.info(f"Received message: {message} on {self.id}")
                     await self.operate(message)
         elif not self.messenger.input_ports:
-            while True:
+            while not self._shutdown_event.is_set():
                 await asyncio.sleep(1)
                 await self.operate(None)
 
@@ -126,7 +162,8 @@ class Operator(ABC):
             raise ValueError("Messenger not initialized")
         processed_message = self.kernel(message)
         print(processed_message)
-        await self.messenger.send(processed_message, str(self.id))
+        if self.messenger.output_ports:
+            await self.messenger.send(processed_message, str(self.id))
 
     @abstractmethod
     def kernel(
@@ -144,7 +181,7 @@ KernelFn = Callable[
 
 def operator(
     func: KernelFn | None = None,
-    start: bool = True,
+    start: bool = False,
 ) -> Any:
     def decorator(func: KernelFn) -> Callable[[OperatorID], Operator]:
         @wraps(func)
