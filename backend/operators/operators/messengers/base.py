@@ -42,3 +42,7 @@ class BaseMessenger(ABC):
     @abstractmethod
     async def start(self, pipeline):
         pass
+
+    @abstractmethod
+    async def stop(self):
+        pass
