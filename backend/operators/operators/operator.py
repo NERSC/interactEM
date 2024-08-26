@@ -120,6 +120,7 @@ class Operator(ABC):
             self.kv = await self.js.create_key_value(config=bucket_cfg)
 
     async def initialize_messenger(self):
+        # TODO: put this somewhere else
         comm_backend = CommBackend.ZMQ
         messenger_cls = BACKEND_TO_MESSENGER.get(comm_backend)
         if messenger_cls is None:
@@ -162,16 +163,14 @@ class Operator(ABC):
     async def run(self):
         if not self.messenger:
             raise ValueError("Messenger not initialized")
-        if self.messenger.input_ports:
-            while not self._shutdown_event.is_set():
-                await asyncio.sleep(1)
+        has_input_op = True if len(self.messenger.input_ports) > 0 else False
+        while not self._shutdown_event.is_set():
+            if has_input_op:
                 message = await self.messenger.recv(self.input_queue)
                 if message:
                     logger.info(f"Received message: {message} on {self.id}")
                     await self.operate(message)
-        elif not self.messenger.input_ports:
-            while not self._shutdown_event.is_set():
-                await asyncio.sleep(1)
+            else:
                 await self.operate(None)
 
     async def operate(self, message: BaseMessage | None):
