@@ -1,4 +1,5 @@
 import asyncio
+import signal
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from functools import wraps
@@ -55,6 +56,8 @@ class Operator(ABC):
         self.js: JetStreamContext | None = None
         self.kv: KeyValue | None = None
         self.messenger_task: asyncio.Task | None = None
+        self.run_task: asyncio.Task | None = None
+        self._shutdown_event: asyncio.Event = asyncio.Event()
 
     @property
     def input_queue(self) -> str:
@@ -62,16 +65,34 @@ class Operator(ABC):
 
     async def start(self):
         logger.info(f"Starting operator {self.id}...")
+        await self.setup_signal_handlers()
+        await self.connect_to_nats()
+        await self.initialize_pipeline()
+        await self.setup_key_value_store()
+        await self.initialize_messenger()
+        if not self.messenger:
+            raise ValueError("Messenger not initialized")
+        await self.messenger.start(self.pipeline)
+        self.run_task = asyncio.create_task(self.run())
+        await self._shutdown_event.wait()
+        await self.shutdown()
+
+    async def connect_to_nats(self):
         logger.info(f"Connecting to NATS at {cfg.NATS_SERVER_URL}...")
         self.nc = await nats.connect(
             servers=[str(cfg.NATS_SERVER_URL)], name=f"operator-{self.id}"
         )
         logger.info("Connected to NATS...")
         self.js = self.nc.jetstream()
+
+    async def initialize_pipeline(self):
+        logger.info(f"Subscribing to stream {STREAM_OPERATORS} for operator {self.id}...")
         consumer_cfg = ConsumerConfig(
             description=f"operator-{self.id}",
             deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
         )
+        if not self.js:
+            raise ValueError("JetStream context not initialized")
         psub = await self.js.pull_subscribe(
             stream=STREAM_OPERATORS,
             subject=f"{STREAM_OPERATORS}.{self.id}",
@@ -81,8 +102,15 @@ class Operator(ABC):
         self.pipeline = await receive_pipeline(msg[0], self.js)
         if self.pipeline is None:
             raise ValueError("Pipeline not found")
+        self.info = self.pipeline.get_operator(self.id)
+        if self.info is None:
+            raise ValueError(f"Operator {self.id} not found in pipeline")
 
-        # TODO: make this a util (also present in orchestrator)
+
+    async def setup_key_value_store(self):
+        logger.info(f"Setting up Key-Value store for operator {self.id}...")
+        if not self.js:
+            raise ValueError("JetStream context not initialized")
         try:
             self.kv = await self.js.key_value(BUCKET_OPERATORS)
         except nats.js.errors.BucketNotFoundError:
@@ -91,34 +119,58 @@ class Operator(ABC):
             )
             self.kv = await self.js.create_key_value(config=bucket_cfg)
 
-        self.info = self.pipeline.get_operator(self.id)
-        if self.info is None:
-            raise ValueError(f"Operator {self.id} not found in pipeline")
-
+    async def initialize_messenger(self):
+        # TODO: put this somewhere else
         comm_backend = CommBackend.ZMQ
         messenger_cls = BACKEND_TO_MESSENGER.get(comm_backend)
         if messenger_cls is None:
             raise ValueError(f"Invalid communications backend: {comm_backend}")
-
+        if not self.js:
+            raise ValueError("JetStream context not initialized")
         self.messenger = messenger_cls(self.id, self.js)
-        logger.info(f"Starting messenger {self.messenger}...")
+        logger.info(f"Initialized messenger {self.messenger}...")
 
-        await self.messenger.start(self.pipeline)
-        await self.run()
+    async def shutdown(self):
+        logger.info(f"Shutting down operator {self.id}...")
+        if self.run_task:
+            self.run_task.cancel()
+            try:
+                await self.run_task
+            except asyncio.CancelledError:
+                logger.info("Run task cancelled")
+        if self.messenger:
+            logger.info(f"Stopping messenger {self.messenger}...")
+            await self.messenger.stop()
+        if self.nc:
+            logger.info("Closing NATS connection...")
+            await self.nc.close()
+
+        logger.info(f"Operator {self.id} shutdown complete")
+
+    # TODO: refactor into core
+    async def setup_signal_handlers(self):
+        logger.info("Setting up signal handlers...")
+
+        loop = asyncio.get_running_loop()
+
+        def handle_signal():
+            logger.info("Signal received, shutting down processes...")
+            self._shutdown_event.set()
+
+        loop.add_signal_handler(signal.SIGINT, handle_signal)
+        loop.add_signal_handler(signal.SIGTERM, handle_signal)
 
     async def run(self):
         if not self.messenger:
             raise ValueError("Messenger not initialized")
-        if self.messenger.input_ports:
-            while True:
-                await asyncio.sleep(1)
+        has_input_op = True if len(self.messenger.input_ports) > 0 else False
+        while not self._shutdown_event.is_set():
+            if has_input_op:
                 message = await self.messenger.recv(self.input_queue)
                 if message:
                     logger.info(f"Received message: {message} on {self.id}")
                     await self.operate(message)
-        elif not self.messenger.input_ports:
-            while True:
-                await asyncio.sleep(1)
+            else:
                 await self.operate(None)
 
     async def operate(self, message: BaseMessage | None):
@@ -126,7 +178,8 @@ class Operator(ABC):
             raise ValueError("Messenger not initialized")
         processed_message = self.kernel(message)
         print(processed_message)
-        await self.messenger.send(processed_message, str(self.id))
+        if self.messenger.output_ports:
+            await self.messenger.send(processed_message, str(self.id))
 
     @abstractmethod
     def kernel(
@@ -144,7 +197,7 @@ KernelFn = Callable[
 
 def operator(
     func: KernelFn | None = None,
-    start: bool = True,
+    start: bool = False,
 ) -> Any:
     def decorator(func: KernelFn) -> Callable[[OperatorID], Operator]:
         @wraps(func)
