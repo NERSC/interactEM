@@ -105,15 +105,17 @@ class Socket:
             raise ValueError("No addresses provided in address_map")
 
         if self.info.bind:
-            return self._bind() or (False, None)
+            return self._bind_to_addresses(self.info.address_map)
         else:
-            return (False, self._connect())
+            return (False, self._connect_to_addresses(self.info.address_map))
 
-    def _bind(self) -> tuple[bool, int | None] | None:
-        if len(self.info.address_map) > 1:
+    def _bind_to_addresses(
+        self, address_map: dict[IdType, Sequence[ZMQAddress]]
+    ) -> tuple[bool, int | None]:
+        if len(address_map) > 1:
             raise ValueError("Can't bind to multiple address groups when binding.")
 
-        addr_group = next(iter(self.info.address_map.values()))
+        addr_group = next(iter(address_map.values()))
         if len(addr_group) > 1:
             raise ValueError("Can't bind to multiple addresses within a single group.")
 
@@ -123,6 +125,8 @@ class Socket:
         else:
             self._socket.bind(addr.to_bind_address())
             self.info.bound_to.append(self.info.parent_id)
+            logger.info(f"Bound to {addr.to_bind_address()}")
+            return False, None
 
     def _bind_tcp(self, addr: ZMQAddress) -> tuple[bool, int | None]:
         bind_addr = addr.to_bind_address()
@@ -141,13 +145,14 @@ class Socket:
         )
         return updated, port
 
-    def _connect(self):
-        for id_type, addr_group in self.info.address_map.items():
+    def _connect_to_addresses(
+        self, address_map: dict[IdType, Sequence[ZMQAddress]]
+    ) -> None:
+        for id_type, addr_group in address_map.items():
             for addr in addr_group:
-                logger.info(f"Connecting to {addr.to_connect_address()}")
                 self._socket.connect(addr.to_connect_address())
+                logger.info(f"Connected to {addr.to_connect_address()}")
             self.info.connected_to.append(id_type)
-            logger.info(f"Connected to: {id_type}")
 
     def reconnect(self, id: IdType, new_addresses: Sequence[ZMQAddress]):
         self.disconnect(id)
@@ -161,7 +166,7 @@ class Socket:
 
         current_addresses = self.info.address_map.get(id_to_disconnect, [])
         for addr in current_addresses:
-            logger.info(f"Disconnecting from {id_to_disconnect}")
+            logger.info(f"Disconnecting from {addr.to_connect_address()}")
             self._socket.disconnect(addr.to_connect_address())
 
         self.info.connected_to.remove(id_to_disconnect)
@@ -169,11 +174,7 @@ class Socket:
     def _connect_to_new_addresses(
         self, id_to_connect: IdType, addresses: Sequence[ZMQAddress]
     ):
-        for addr in addresses:
-            self._socket.connect(addr.to_connect_address())
-
-        self.info.connected_to.append(id_to_connect)
-        logger.info(f"Reconnected to: {id_to_connect}")
+        self._connect_to_addresses({id_to_connect: addresses})
 
     def close(self):
         self.info.connected_to.clear()
