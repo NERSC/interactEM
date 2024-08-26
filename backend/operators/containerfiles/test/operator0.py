@@ -17,9 +17,7 @@ async def async_main(operator_id: str):
 
     print(operator.id)
 
-    # Keep the program running
-    while True:
-        await asyncio.sleep(1)
+    await operator.start()
 
 
 def main():
@@ -33,7 +31,12 @@ def main():
     args = parser.parse_args()
 
     # Run the async main function using asyncio.run
-    asyncio.run(async_main(args.id))
+    try:
+        asyncio.run(async_main(args.id))
+    except KeyboardInterrupt:
+        logger.info("Shutting down operator...")
+    finally:
+        print("Application terminated.")
 
 
 if __name__ == "__main__":

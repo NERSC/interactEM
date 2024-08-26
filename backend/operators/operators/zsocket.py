@@ -4,9 +4,13 @@ from typing import Any, Literal
 import zmq
 import zmq.asyncio
 from core.logger import get_logger
-from core.models.base import AgentID, OperatorID, OrchestratorID, PortID, Protocol
+from core.models.base import (
+    IdType,
+    PortID,
+    Protocol,
+)
 from core.models.uri import ZMQAddress
-from pydantic import BaseModel, ValidationError, model_validator
+from pydantic import BaseModel, model_validator
 
 logger = get_logger("socket", "INFO")
 
@@ -22,43 +26,19 @@ class SocketMetrics(BaseModel):
 
 class SocketInfo(BaseModel):
     type: int  # zmq.SocketType
-    addresses: Sequence[ZMQAddress] = []
-    parent_id: OperatorID | PortID | AgentID | OrchestratorID | None = None
+    address_map: dict[IdType, Sequence[ZMQAddress]] = {}
+    parent_id: PortID
     bind: bool
-    options: dict[zmq.SocketOption, Any] = {}
-    connected: bool = False
-
-    @model_validator(mode="before")
-    @classmethod
-    def coerce_into_address_model(cls, values: dict[str, Any]) -> dict[str, Any]:
-        addresses = values.get("addresses", [])
-
-        # If addresses is a single string or ZMQAddress, convert it to a list
-        if isinstance(addresses, str | ZMQAddress):
-            addresses = [addresses]
-        elif not isinstance(addresses, list):
-            raise ValueError("addresses must be a list, string, or ZMQAddress")
-
-        validated_addresses: Sequence[ZMQAddress] = []
-        for addr in addresses:
-            if isinstance(addr, str):
-                try:
-                    addr = ZMQAddress.from_address(addr)
-                except ValidationError as e:
-                    raise ValueError(f"Address isn't a proper ZeroMQ address: {e}")
-            elif not isinstance(addr, ZMQAddress):
-                raise ValueError(
-                    "Each address must be a string or a ZMQAddress instance"
-                )
-            validated_addresses.append(addr)
-
-        values["addresses"] = validated_addresses
-        return values
+    options: list[tuple[zmq.SocketOption, Any]] = []
+    connected_to: list[IdType] = []
+    bound_to: list[IdType] = []
 
     @model_validator(mode="after")
     def check_bind_and_ports(self):
-        if self.bind and len(self.addresses) > 1:
-            raise ValueError("If bind is True, len(addresses) must be <= 1")
+        if self.bind and len(self.address_map) > 1:
+            raise ValueError(
+                "If bind is True, the address_map must contain only one entry."
+            )
         return self
 
 
@@ -74,7 +54,7 @@ class Socket:
     def _configure(self):
         if self.info.options:
             logger.info("Setting socket options")
-        for opt, val in self.info.options.items():
+        for opt, val in self.info.options:
             self._socket.set(opt, val)
 
     async def send(
@@ -115,54 +95,88 @@ class Socket:
     ) -> list[bytes] | list[zmq.Frame]:
         return await self._socket.recv_multipart(flags=flags, copy=copy, track=track)
 
-    def update_addresses(self, addresses: Sequence[ZMQAddress]) -> None:
-        self.info.addresses = addresses
-
     def bind_or_connect(self) -> tuple[bool, int | None]:
         self._configure()
-        if not self.info.addresses:
-            logger.error("No addresses provided")
-            raise ValueError("No addresses provided")
+
+        if not self.info.address_map or all(
+            not addrs for addrs in self.info.address_map.values()
+        ):
+            logger.error("No addresses provided in address_map")
+            raise ValueError("No addresses provided in address_map")
 
         if self.info.bind:
-            return self._bind() or (False, None)
+            return self._bind_to_addresses(self.info.address_map)
         else:
-            return (False, self._connect())
+            return (False, self._connect_to_addresses(self.info.address_map))
 
-    def _bind(self) -> tuple[bool, int | None] | None:
-        if len(self.info.addresses) > 1:
-            raise ValueError("Can't bind to multiple addresses...")
+    def _bind_to_addresses(
+        self, address_map: dict[IdType, Sequence[ZMQAddress]]
+    ) -> tuple[bool, int | None]:
+        if len(address_map) > 1:
+            raise ValueError("Can't bind to multiple address groups when binding.")
 
-        addr = self.info.addresses[0]
+        addr_group = next(iter(address_map.values()))
+        if len(addr_group) > 1:
+            raise ValueError("Can't bind to multiple addresses within a single group.")
+
+        addr = addr_group[0]
         if addr.protocol == Protocol.tcp:
-            return self._bind_tcp()
+            return self._bind_tcp(addr)
         else:
             self._socket.bind(addr.to_bind_address())
-            self.info.connected = True
+            self.info.bound_to.append(self.info.parent_id)
+            logger.info(f"Bound to {addr.to_bind_address()}")
+            return False, None
 
-    def _bind_tcp(self) -> tuple[bool, int | None]:
-        addr = self.info.addresses[0]
+    def _bind_tcp(self, addr: ZMQAddress) -> tuple[bool, int | None]:
         bind_addr = addr.to_bind_address()
         updated = False
         if not addr.port:
             port = self._socket.bind_to_random_port(bind_addr)
-            self.info.addresses[0].port = port
+            addr.port = port  # Update the address with the bound port
             updated = True
         else:
             self._socket.bind(bind_addr)
             port = addr.port
-        self.info.connected = True
+
+        self.info.bound_to.append(self.info.parent_id)
         logger.info(
             f"Socket on {self.info.parent_id} bound to port: {port} on {addr.hostname}"
         )
         return updated, port
 
-    def _connect(self):
-        for addr in self.info.addresses:
-            self._socket.connect(addr.to_connect_address())
-        self.info.connected = True
+    def _connect_to_addresses(
+        self, address_map: dict[IdType, Sequence[ZMQAddress]]
+    ) -> None:
+        for id_type, addr_group in address_map.items():
+            for addr in addr_group:
+                self._socket.connect(addr.to_connect_address())
+                logger.info(f"Connected to {addr.to_connect_address()}")
+            self.info.connected_to.append(id_type)
+
+    def reconnect(self, id: IdType, new_addresses: Sequence[ZMQAddress]):
+        self.disconnect(id)
+        self.info.address_map[id] = new_addresses
+        self._connect_to_new_addresses(id, new_addresses)
+
+    def disconnect(self, id_to_disconnect: IdType):
+        if id_to_disconnect not in self.info.connected_to:
+            logger.warning(f"ID {id_to_disconnect} is not currently connected.")
+            return
+
+        current_addresses = self.info.address_map.get(id_to_disconnect, [])
+        for addr in current_addresses:
+            logger.info(f"Disconnecting from {addr.to_connect_address()}")
+            self._socket.disconnect(addr.to_connect_address())
+
+        self.info.connected_to.remove(id_to_disconnect)
+
+    def _connect_to_new_addresses(
+        self, id_to_connect: IdType, addresses: Sequence[ZMQAddress]
+    ):
+        self._connect_to_addresses({id_to_connect: addresses})
 
     def close(self):
-        if self.info.connected:
-            self.info.connected = False
+        self.info.connected_to.clear()
+        self.info.bound_to.clear()
         self._socket.close()
