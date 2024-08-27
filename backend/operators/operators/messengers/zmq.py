@@ -1,4 +1,6 @@
 import asyncio
+from collections.abc import Coroutine
+from typing import Any
 from uuid import UUID
 
 import nats
@@ -9,7 +11,7 @@ import nats.js.kv
 import zmq
 from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
 from core.logger import get_logger
-from core.models import BaseMessage, IdType, PortJSON, PortType
+from core.models import PortJSON, PortType
 from core.models.base import OperatorID, PortID, Protocol
 from core.models.pipeline import InputJSON, OutputJSON
 from core.models.ports import PortStatus, PortVal
@@ -19,8 +21,9 @@ from nats.js import JetStreamContext
 from nats.js.errors import BucketNotFoundError
 from zmq.asyncio import Context
 
+from ..messengers.base import BytesMessage
 from ..zsocket import Socket, SocketInfo
-from .base import BaseMessenger
+from .base import BaseMessenger, MessageHeader, MessageSubject
 
 logger = get_logger("messenger", "DEBUG")
 
@@ -43,6 +46,7 @@ class ZmqMessenger(BaseMessenger):
         self.js: JetStreamContext = js
         self.update_kv_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
+        self.recv_queue: asyncio.Queue[BytesMessage] = asyncio.Queue()
 
     def __del__(self):
         # TODO: implement cleanup
@@ -60,25 +64,64 @@ class ZmqMessenger(BaseMessenger):
     def type(self):
         return "zmq"
 
-    async def recv(self, src: IdType) -> BaseMessage | None:
-        msg_futures = []
-        for socket in self.input_sockets.values():
-            msg_futures.append(socket.recv(copy=False))
-        msgs = await asyncio.gather(*msg_futures)
+    async def recv(self) -> BytesMessage | None:
+        try:
+            return self.recv_queue.get_nowait()
+        except asyncio.QueueEmpty:
+            pass
 
-        for msg in msgs:
-            if isinstance(msg, zmq.Frame):
-                return BaseMessage.model_validate_json(msg.bytes)
-            elif isinstance(msg, bytes):
-                return BaseMessage.model_validate_json(msg)
-            else:
-                logger.error("Received an unknown message format: %s", msg)
+        msg_coros: list[Coroutine[Any, Any, list[bytes] | list[zmq.Message]]] = []
+
+        for socket in self.input_sockets.values():
+            msg_coros.append(socket.recv_multipart())
+
+        msgs = await asyncio.gather(*msg_coros)
+
+        all_messages: list[BytesMessage] = []
+
+        for msg_parts in msgs:
+            if len(msg_parts) != 2:
+                logger.error(
+                    "Received an unexpected number of message parts: %s", len(msg_parts)
+                )
                 return None
 
-    async def send(self, message: BaseMessage, dst: IdType):
+            header, data = msg_parts
+
+            if isinstance(header, zmq.Message):
+                header = MessageHeader.model_validate_json(header.bytes)
+            elif isinstance(header, bytes):
+                header = MessageHeader.model_validate_json(header)
+            else:
+                logger.error("Received an unexpected message type: %s", type(header))
+                continue
+
+            if header.subject != MessageSubject.BYTES:
+                logger.error("Received an unexpected message subject: %s", header.subject)
+                continue
+
+            msg = (
+                BytesMessage(header=header, data=data.bytes)
+                if isinstance(data, zmq.Message)
+                else BytesMessage(header=header, data=data)
+            )
+            all_messages.append(msg)
+
+        if not all_messages:
+            logger.warning("No messages were received from any socket.")
+            return None
+
+
+        tasks = [self.recv_queue.put(msg) for msg in all_messages[1:]]
+        await asyncio.gather(*tasks)
+        return all_messages[0]
+
+    async def send(self, message: BytesMessage):
         msg_futures = []
         for socket in self.output_sockets.values():
-            msg_futures.append(socket.send(message.model_dump_json().encode()))
+            data = message.data
+            header = message.header.model_dump_json().encode()
+            msg_futures.append(socket.send_multipart([header, data]))
         await asyncio.gather(*msg_futures)
 
     async def start(self, pipeline: Pipeline):
@@ -122,9 +165,7 @@ class ZmqMessenger(BaseMessenger):
         upstream_ports = list(self.upstream_port_map.keys())
         if len(upstream_ports) == 0:
             return
-        logger.info(
-            f"Starting upstream connection watcher, watching: {upstream_ports}"
-        )
+        logger.info(f"Starting upstream connection watcher, watching: {upstream_ports}")
         watchers: dict[UUID, nats.js.kv.KeyValue.KeyWatcher] = {}
         for key in upstream_ports:
             watchers[key] = await self.kv.watch(
