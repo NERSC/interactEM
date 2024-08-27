@@ -12,7 +12,6 @@ from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL, STREAM_OPERAT
 from core.logger import get_logger
 from core.models import CommBackend, IdType, OperatorJSON, PipelineJSON
 from core.models.base import OperatorID
-from core.models.messages import BaseMessage
 from core.pipeline import Pipeline
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
@@ -22,7 +21,7 @@ from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
 from .config import cfg
-from .messengers.base import BaseMessenger
+from .messengers.base import BaseMessenger, BytesMessage
 from .messengers.zmq import ZmqMessenger
 
 logger = get_logger("operator", "DEBUG")
@@ -166,32 +165,31 @@ class Operator(ABC):
         has_input_op = True if len(self.messenger.input_ports) > 0 else False
         while not self._shutdown_event.is_set():
             if has_input_op:
-                message = await self.messenger.recv(self.input_queue)
-                if message:
-                    logger.info(f"Received message: {message} on {self.id}")
-                    await self.operate(message)
+                msg = await self.messenger.recv()
+                if not msg:
+                    continue
+                await self.operate(msg)
             else:
                 await self.operate(None)
 
-    async def operate(self, message: BaseMessage | None):
+    async def operate(self, message: BytesMessage | None):
         if self.messenger is None:
             raise ValueError("Messenger not initialized")
         processed_message = self.kernel(message)
-        print(processed_message)
         if self.messenger.output_ports:
-            await self.messenger.send(processed_message, str(self.id))
+            await self.messenger.send(processed_message)
 
     @abstractmethod
     def kernel(
         self,
-        inputs: BaseMessage | None,
-    ) -> BaseMessage:
+        inputs: BytesMessage | None,
+    ) -> BytesMessage:
         pass
 
 
 KernelFn = Callable[
-    [BaseMessage | None],
-    BaseMessage,
+    [BytesMessage | None],
+    BytesMessage,
 ]
 
 

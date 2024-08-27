@@ -14,7 +14,6 @@ from .models import (
     PortJSON,
     PortType,
 )
-from .models.messages import PutPipelineNodeMessage
 
 logger = get_logger("pipeline")
 
@@ -189,14 +188,3 @@ class Pipeline(nx.DiGraph):
         if not edge:
             raise ValueError(f"Edge not found between {input_id} and {output_id}")
         return EdgeJSON(**edge)
-
-    def put_node(self, message: PutPipelineNodeMessage) -> PutPipelineNodeMessage:
-        node_id = message.node.id
-        if node_id not in self.nodes:
-            raise ValueError(f"Node {node_id} not found in the graph.")
-
-        logger.warning(f"Updating node {node_id} with message: {message}")
-        current_node = self.nodes[node_id]
-        current_node.update(message.node.model_dump())
-        logger.info(f"Updated node {node_id} with message: {message}")
-        return message
