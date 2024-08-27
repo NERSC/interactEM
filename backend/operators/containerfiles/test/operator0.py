@@ -3,7 +3,7 @@ import asyncio
 from uuid import UUID
 
 from core.logger import get_logger
-from operators.examples import create_hello_world, receive_hello_world
+from operators.examples import recv_image, send_image_every_second
 
 logger = get_logger("operator_main", "DEBUG")
 
@@ -11,9 +11,9 @@ logger = get_logger("operator_main", "DEBUG")
 async def async_main(operator_id: str):
     # Initialize the operator with the provided ID
     if operator_id == "12345678-1234-1234-1234-1234567890ab":
-        operator = create_hello_world(UUID(operator_id))
+        operator = send_image_every_second(UUID(operator_id))
     else:
-        operator = receive_hello_world(UUID(operator_id))
+        operator = recv_image(UUID(operator_id))
 
     print(operator.id)
 

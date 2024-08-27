@@ -1,9 +1,39 @@
 from abc import ABC, abstractmethod
+from enum import Enum
+from typing import Any
 
 from core.models.base import OperatorID
-from core.models.messages import BaseMessage
 from core.models.pipeline import InputJSON, OutputJSON
 from nats.js import JetStreamContext
+from pydantic import BaseModel
+
+
+class MessageSubject(str, Enum):
+    BYTES = "bytes"
+    SHM = "shm"
+
+
+class MessageHeader(BaseModel):
+    subject: MessageSubject
+    meta: dict[str, Any] = {}
+
+class BaseMessage(BaseModel):
+    header: MessageHeader
+
+
+class BytesMessage(BaseMessage):
+    data: bytes
+
+
+class ShmMessage(BaseMessage):
+    shm_meta: dict[str, Any] = {}
+
+
+MESSAGE_SUBJECT_TO_MODEL: dict[MessageSubject, type[BaseMessage]] = {
+    MessageSubject.BYTES: BytesMessage,
+    MessageSubject.SHM: ShmMessage,
+}
+
 
 
 class BaseMessenger(ABC):
@@ -32,11 +62,11 @@ class BaseMessenger(ABC):
         pass
 
     @abstractmethod
-    async def send(self, msg, dst: str):
+    async def send(self, message: BytesMessage):
         pass
 
     @abstractmethod
-    async def recv(self, src: str) -> BaseMessage | None:
+    async def recv(self) -> BytesMessage | None:
         pass
 
     @abstractmethod
