@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
     LOCAL: bool = True
     DOCKER_COMPATIBILITY_MODE: bool = False
+    PODMAN_SERVICE_URI: str | None = None
     MOUNTS: list[dict[str, Any]] = []
     NATS_SERVER_URL: NatsDsn = Field(default="nats://localhost:4222")
     NATS_SERVER_URL_IN_CONTAINER: NatsDsn = Field(default="nats://nats1:4222")

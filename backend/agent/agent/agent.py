@@ -29,8 +29,8 @@ from .config import cfg
 
 # Can use this for mac:
 # https://podman-desktop.io/blog/5-things-to-know-for-a-docker-user#docker-compatibility-mode
-if cfg.DOCKER_COMPATIBILITY_MODE:
-    PODMAN_SERVICE_URI = "unix:///var/run/docker.sock"
+if cfg.PODMAN_SERVICE_URI:
+    PODMAN_SERVICE_URI = cfg.PODMAN_SERVICE_URI
 else:
     PODMAN_SERVICE_URI = None
 
@@ -75,9 +75,9 @@ class Agent:
         self.heartbeat_task: asyncio.Task | None = None
         self.server_task: asyncio.Task | None = None
 
-    async def _start_podman_service(self):
+    async def _start_podman_service(self, create_process=False):
         self._podman_process = None
-        if not cfg.DOCKER_COMPATIBILITY_MODE:
+        if create_process:
             args = ["podman", "system", "service", "--time=0", self._podman_service_uri]
             logger.info(f"Starting podman service: {self._podman_service_uri}")
 
@@ -100,8 +100,12 @@ class Agent:
                     time.sleep(0.1)
                     tries -= 1
 
-            if tries == 0:
+            if tries == 0 and create_process:
                 raise RuntimeError("Podman service didn't successfully start")
+
+            if tries == 0:
+                logger.warning("Podman is not running, trying to start it up...")
+                await self._start_podman_service(create_process=True)
 
             logger.info("Podman service started")
 
