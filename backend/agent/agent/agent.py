@@ -153,15 +153,22 @@ class Agent:
         await asyncio.gather(self.server_task, self.heartbeat_task)
 
     async def heartbeat(self, js: JetStreamContext, id: uuid.UUID):
-        while True:
+        if not self.nc:
+            logger.error("NATS connection not established. Exiting heartbeat loop.")
+            return
+
+        tries = 10
+        while tries > 0:
             try:
                 bucket = await js.key_value(BUCKET_AGENTS)
             except BucketNotFoundError:
+                await asyncio.sleep(0.2)
+                tries -= 1
                 continue
             break
 
-        if not self.nc:
-            logger.error("NATS connection not established. Exiting heartbeat loop.")
+        if not bucket:
+            logger.error(f"Bucket {BUCKET_AGENTS} not found. Exiting heartbeat loop.")
             return
 
         while not self._shutdown_event.is_set():
