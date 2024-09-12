@@ -14,4 +14,4 @@ class Settings(BaseSettings):
     NATS_SERVER_URL_IN_CONTAINER: NatsDsn = Field(default="nats://nats1:4222")
     AGENT_MACHINE_NAME: str = "perlmutter"
 
-cfg = Settings()  # type: ignore
+cfg = Settings()
