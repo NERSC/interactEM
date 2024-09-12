@@ -12,5 +12,6 @@ class Settings(BaseSettings):
     MOUNTS: list[dict[str, Any]] = []
     NATS_SERVER_URL: NatsDsn = Field(default="nats://localhost:4222")
     NATS_SERVER_URL_IN_CONTAINER: NatsDsn = Field(default="nats://nats1:4222")
+    AGENT_MACHINE_NAME: str = "perlmutter"
 
 cfg = Settings()  # type: ignore

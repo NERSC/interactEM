@@ -14,4 +14,5 @@ class AgentStatus(StrEnum):
 class AgentVal(BaseModel):
     uri: URI
     status: AgentStatus
+    machine_name: str
     pipeline_id: str | None = None
