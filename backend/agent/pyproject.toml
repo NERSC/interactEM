@@ -8,12 +8,11 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.11"
 nats-py = "^2.8.0"
-pydantic = "^2.8.2"
 core = {path = "../core", develop = true}
 podman = "^5.0.0"
 podman-hpc = "^1.1.0"
 podman-hpc-client = {path = "thirdparty/podman-hpc-py"}
-pydantic-settings = "^2.4.0"
+pydantic-settings = "^2.4"
 
 [build-system]
 requires = ["poetry-core"]
