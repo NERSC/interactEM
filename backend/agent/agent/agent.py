@@ -11,11 +11,10 @@ import nats.errors
 import podman
 import podman.errors
 from core.constants import BUCKET_AGENTS, STREAM_AGENTS, STREAM_OPERATORS
-from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
 from core.models.base import IdType
-from core.models.pipeline import OperatorJSON, PipelineJSON
+from core.models.pipeline import OperatorJSON, PipelineAssignment, PipelineJSON
 from core.models.uri import URI, CommBackend, URILocation
 from core.pipeline import Pipeline
 from nats.aio.client import Client as NATSClient
@@ -29,8 +28,8 @@ from .config import cfg
 
 # Can use this for mac:
 # https://podman-desktop.io/blog/5-things-to-know-for-a-docker-user#docker-compatibility-mode
-if cfg.DOCKER_COMPATIBILITY_MODE:
-    PODMAN_SERVICE_URI = "unix:///var/run/docker.sock"
+if cfg.PODMAN_SERVICE_URI:
+    PODMAN_SERVICE_URI = cfg.PODMAN_SERVICE_URI
 else:
     PODMAN_SERVICE_URI = None
 
@@ -64,6 +63,7 @@ class Agent:
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
         self.agent_val: AgentVal = AgentVal(
+            machine_name=cfg.AGENT_MACHINE_NAME,
             uri=URI(
                 id=self.id,
                 location=URILocation.agent,
@@ -75,9 +75,9 @@ class Agent:
         self.heartbeat_task: asyncio.Task | None = None
         self.server_task: asyncio.Task | None = None
 
-    async def _start_podman_service(self):
+    async def _start_podman_service(self, create_process=False):
         self._podman_process = None
-        if not cfg.DOCKER_COMPATIBILITY_MODE:
+        if create_process:
             args = ["podman", "system", "service", "--time=0", self._podman_service_uri]
             logger.info(f"Starting podman service: {self._podman_service_uri}")
 
@@ -100,8 +100,12 @@ class Agent:
                     time.sleep(0.1)
                     tries -= 1
 
-            if tries == 0:
+            if tries == 0 and create_process:
                 raise RuntimeError("Podman service didn't successfully start")
+
+            if tries == 0:
+                logger.warning("Podman is not running, trying to start it up...")
+                await self._start_podman_service(create_process=True)
 
             logger.info("Podman service started")
 
@@ -115,8 +119,9 @@ class Agent:
         logger.info("Cleaning up containers...")
 
         with PodmanClient(base_url=self._podman_service_uri) as client:
-            # containers = client.containers.list()
-            containers = client.containers.list(label=f"agent.id={self.id}")
+            containers = client.containers.list(
+                filters={"label": f"agent.id={self.id}"}
+            )
             tasks = [stop_and_remove_container(container) for container in containers]
 
             # Run the tasks concurrently
@@ -149,15 +154,22 @@ class Agent:
         await asyncio.gather(self.server_task, self.heartbeat_task)
 
     async def heartbeat(self, js: JetStreamContext, id: uuid.UUID):
-        while True:
+        if not self.nc:
+            logger.error("NATS connection not established. Exiting heartbeat loop.")
+            return
+
+        tries = 10
+        while tries > 0:
             try:
                 bucket = await js.key_value(BUCKET_AGENTS)
             except BucketNotFoundError:
+                await asyncio.sleep(0.2)
+                tries -= 1
                 continue
             break
 
-        if not self.nc:
-            logger.error("NATS connection not established. Exiting heartbeat loop.")
+        if not bucket:
+            logger.error(f"Bucket {BUCKET_AGENTS} not found. Exiting heartbeat loop.")
             return
 
         while not self._shutdown_event.is_set():
@@ -246,13 +258,21 @@ class Agent:
                 asyncio.gather(*[msg.ack() for msg in msgs])
                 for msg in msgs:
                     try:
-                        event = PipelineRunEvent.model_validate_json(msg.data)
+                        event = PipelineAssignment.model_validate_json(msg.data)
                     except ValidationError:
-                        logger.error("Invalid message")
-                        return
-                    valid_pipeline = PipelineJSON(id=event.id, **event.data)
+                        logger.error(f"Invalid message: {msg.data}")
+                        continue
+                    try:
+                        assert event.agent_id == self.id
+                    except AssertionError:
+                        logger.error(
+                            f"Agent ID mismatch: {event.agent_id} != {self.id}"
+                        )
+                        continue
+                    valid_pipeline = PipelineJSON.model_validate(event.pipeline)
                     logger.info(f"Validated pipeline: {valid_pipeline.id}")
                     self.pipeline = Pipeline.from_pipeline(valid_pipeline)
+                    self.my_operator_ids = event.operators_assigned
                     break
 
                 self.containers = await self.start_operators()
@@ -293,6 +313,8 @@ class Agent:
         futures = []
         with PodmanClient(base_url=self._podman_service_uri) as client:
             for id, op_info in self.pipeline.operators.items():
+                if id not in self.my_operator_ids:
+                    continue
                 logger.info(f"Starting operator {id} with image {op_info.image}")
 
                 # TODO: could use async to create multiple at once
