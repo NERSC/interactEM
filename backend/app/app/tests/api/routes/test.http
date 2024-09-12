@@ -57,7 +57,8 @@ Authorization: bearer put_the_access_token_here
         ],
         "params": {
           "hello": "world"
-        }
+        },
+        "machine_name": "mothership6"
       },
       {
         "id": "12345678-1234-1234-1234-1234567890cd",
@@ -69,7 +70,8 @@ Authorization: bearer put_the_access_token_here
         "outputs": [],
         "params": {
           "hello": "world"
-        }
+        },
+        "machine_name": "perlmutter"
       },
       {
         "id": "12345678-1234-1234-1234-1234567890ef",
@@ -81,7 +83,8 @@ Authorization: bearer put_the_access_token_here
         "outputs": [],
         "params": {
           "hello": "world"
-        }
+        },
+        "machine_name": "perlmutter"
       }
     ],
     "ports": [
