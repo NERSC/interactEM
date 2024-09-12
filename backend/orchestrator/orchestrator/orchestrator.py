@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Awaitable, Callable
+from itertools import cycle
 from uuid import uuid4
 
 import nats
@@ -15,7 +16,9 @@ from core.constants import (
 from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 from core.models.agent import AgentVal
-from core.pipeline import Pipeline, PipelineJSON
+from core.models.base import IdType
+from core.models.pipeline import PipelineAssignment, PipelineJSON
+from core.pipeline import OperatorJSON, Pipeline
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
@@ -29,6 +32,88 @@ from .config import cfg
 logger = get_logger("orchestrator", "DEBUG")
 
 
+async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignment):
+    await js.publish(
+        f"{STREAM_AGENTS}.{assignment.agent_id}",
+        stream=f"{STREAM_AGENTS}",
+        payload=assignment.model_dump_json().encode(),
+    )
+
+
+def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
+    # Group agents by machine name
+    agents_on_machines: dict[str, list[AgentVal]] = {}
+    agents_without_machines: list[AgentVal] = []
+    for agent_info in agent_infos:
+        if agent_info.machine_name:
+            if agent_info.machine_name not in agents_on_machines:
+                agents_on_machines[agent_info.machine_name] = []
+            agents_on_machines[agent_info.machine_name].append(agent_info)
+        else:
+            agents_without_machines.append(agent_info)
+
+    # Group operators by machine name
+    operators_on_machines: dict[str, list[OperatorJSON]] = {}
+    operators_without_machines: list[OperatorJSON] = []
+    for operator in pipeline.operators.values():
+        if operator.machine_name:
+            if operator.machine_name not in operators_on_machines:
+                operators_on_machines[operator.machine_name] = []
+            operators_on_machines[operator.machine_name].append(operator)
+        else:
+            operators_without_machines.append(operator)
+
+    # Assign operators with machine names to agents with corresponding machine names using round-robin
+    assignments: dict[IdType, list[OperatorJSON]] = {}
+    for machine_name, operators in operators_on_machines.items():
+        agents_on_this_machine = agents_on_machines.get(machine_name, None)
+        if not agents_on_this_machine:
+            raise Exception(f"No agents available for machine {machine_name}")
+
+        agent_cycle = cycle(agents_on_this_machine)
+        for operator in operators:
+            agent = next(agent_cycle)
+            agent_id = agent.uri.id
+            if agent_id not in assignments:
+                assignments[agent_id] = []
+            assignments[agent_id].append(operator)
+
+    # Assign operators without machine names to agents without machine names using round-robin
+    if operators_without_machines:
+        if not agents_without_machines:
+            raise Exception("No agents available for operators without machine names")
+
+        agent_cycle = cycle(agents_without_machines)
+        for operator in operators_without_machines:
+            agent = next(agent_cycle)
+            agent_id = agent.uri.id
+            if agent_id not in assignments:
+                assignments[agent_id] = []
+            assignments[agent_id].append(operator)
+
+    pipeline_assignments: list[PipelineAssignment] = []
+    for agent_id, operators in assignments.items():
+        pipeline_assignment = PipelineAssignment(
+            agent_id=agent_id,
+            operators_assigned=[op.id for op in operators],
+            pipeline=pipeline.to_json(),
+        )
+        pipeline_assignments.append(pipeline_assignment)
+
+    formatted_assignments = "\n".join(
+        f"Agent {assignment.agent_id}:\n"
+        + "\n".join(
+            f"  Operator {op_id} on machine {next(op.machine_name for op in assignment.pipeline.operators if op.id == op_id)}"
+            for op_id in assignment.operators_assigned
+        )
+        for assignment in pipeline_assignments
+    )
+
+    logger.info(f"Final assignments:\n{formatted_assignments}")
+
+    return pipeline_assignments
+
+
 async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info("Received pipeline run event...")
     await msg.ack()
@@ -40,27 +125,25 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
         return
     valid_pipeline = PipelineJSON(id=event.id, **event.data)
     logger.info(f"Validated pipeline: {valid_pipeline.id}")
-    _ = Pipeline.from_pipeline(valid_pipeline)
+    pipeline = Pipeline.from_pipeline(valid_pipeline)
 
     agents = await get_agents(js)
-    logger.info(f"There are currently {len(agents)} agent(s) available...")
-    logger.info(f"Agents: {agents}")
-    if len(agents) < 1:
+    if len(agents) == 0:
         logger.info("No agents available to run pipeline.")
         # TODO: publish event to send message back to API that says this won't work
         return
 
-    first_agent_info = await get_agent_info(js, agents[0])
-    if not first_agent_info:
-        logger.error("Agent info not found.")
+    agent_infos = await asyncio.gather(*[get_agent_info(js, agent) for agent in agents])
+    agent_infos = [agent_info for agent_info in agent_infos if agent_info]
+
+    try:
+        assignments = assign_pipeline_to_agents(agent_infos, pipeline)
+    except Exception as e:
+        logger.error(f"Failed to assign pipeline to agents:  {e}")
         return
 
-    logger.info(f"Assigning pipeline to agent: {first_agent_info.uri.id}")
-    logger.info(f"Agent info: {first_agent_info}")
-    await js.publish(
-        f"{STREAM_AGENTS}.{first_agent_info.uri.id}",
-        stream=f"{STREAM_AGENTS}",
-        payload=msg.data,
+    await asyncio.gather(
+        *[publish_assignment(js, assignment) for assignment in assignments]
     )
 
     logger.info("Pipeline run event processed.")

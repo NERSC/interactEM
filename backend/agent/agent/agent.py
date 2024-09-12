@@ -11,11 +11,10 @@ import nats.errors
 import podman
 import podman.errors
 from core.constants import BUCKET_AGENTS, STREAM_AGENTS, STREAM_OPERATORS
-from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
 from core.models.base import IdType
-from core.models.pipeline import OperatorJSON, PipelineJSON
+from core.models.pipeline import OperatorJSON, PipelineAssignment, PipelineJSON
 from core.models.uri import URI, CommBackend, URILocation
 from core.pipeline import Pipeline
 from nats.aio.client import Client as NATSClient
@@ -259,13 +258,21 @@ class Agent:
                 asyncio.gather(*[msg.ack() for msg in msgs])
                 for msg in msgs:
                     try:
-                        event = PipelineRunEvent.model_validate_json(msg.data)
+                        event = PipelineAssignment.model_validate_json(msg.data)
                     except ValidationError:
-                        logger.error("Invalid message")
-                        return
-                    valid_pipeline = PipelineJSON(id=event.id, **event.data)
+                        logger.error(f"Invalid message: {msg.data}")
+                        continue
+                    try:
+                        assert event.agent_id == self.id
+                    except AssertionError:
+                        logger.error(
+                            f"Agent ID mismatch: {event.agent_id} != {self.id}"
+                        )
+                        continue
+                    valid_pipeline = PipelineJSON.model_validate(event.pipeline)
                     logger.info(f"Validated pipeline: {valid_pipeline.id}")
                     self.pipeline = Pipeline.from_pipeline(valid_pipeline)
+                    self.my_operator_ids = event.operators_assigned
                     break
 
                 self.containers = await self.start_operators()
@@ -306,6 +313,8 @@ class Agent:
         futures = []
         with PodmanClient(base_url=self._podman_service_uri) as client:
             for id, op_info in self.pipeline.operators.items():
+                if id not in self.my_operator_ids:
+                    continue
                 logger.info(f"Starting operator {id} with image {op_info.image}")
 
                 # TODO: could use async to create multiple at once

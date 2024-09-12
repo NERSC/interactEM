@@ -32,6 +32,7 @@ class OperatorJSON(PipelineNodeJSON):
     params: dict[str, Any] = {}
     inputs: list[PortID] = []
     outputs: list[PortID] = []
+    machine_name: str | None = None
 
 
 class EdgeJSON(BaseModel):
@@ -45,3 +46,9 @@ class PipelineJSON(BaseModel):
     operators: Sequence[OperatorJSON] = []
     ports: Sequence[PortJSON] = []
     edges: Sequence[EdgeJSON] = []
+
+
+class PipelineAssignment(BaseModel):
+    agent_id: IdType
+    operators_assigned: list[OperatorID] = []
+    pipeline: PipelineJSON
