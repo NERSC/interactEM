@@ -120,8 +120,9 @@ class Agent:
         logger.info("Cleaning up containers...")
 
         with PodmanClient(base_url=self._podman_service_uri) as client:
-            # containers = client.containers.list()
-            containers = client.containers.list(label=f"agent.id={self.id}")
+            containers = client.containers.list(
+                filters={"label": f"agent.id={self.id}"}
+            )
             tasks = [stop_and_remove_container(container) for container in containers]
 
             # Run the tasks concurrently
