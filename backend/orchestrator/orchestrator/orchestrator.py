@@ -6,6 +6,14 @@ from uuid import uuid4
 import nats
 import nats.js
 import nats.js.errors
+from nats.aio.client import Client as NATSClient
+from nats.aio.msg import Msg as NATSMsg
+from nats.js import JetStreamContext
+from nats.js.api import ConsumerConfig, DeliverPolicy, StreamConfig
+from nats.js.errors import BadRequestError, KeyNotFoundError, NoKeysError
+from nats.js.kv import KeyValue
+from pydantic import ValidationError
+
 from core.constants import (
     BUCKET_AGENTS,
     BUCKET_AGENTS_TTL,
@@ -19,13 +27,6 @@ from core.models.agent import AgentVal
 from core.models.base import IdType
 from core.models.pipeline import PipelineAssignment, PipelineJSON
 from core.pipeline import OperatorJSON, Pipeline
-from nats.aio.client import Client as NATSClient
-from nats.aio.msg import Msg as NATSMsg
-from nats.js import JetStreamContext
-from nats.js.api import ConsumerConfig, DeliverPolicy, StreamConfig
-from nats.js.errors import BadRequestError, KeyNotFoundError, NoKeysError
-from nats.js.kv import KeyValue
-from pydantic import ValidationError
 
 from .config import cfg
 
@@ -239,7 +240,6 @@ async def main():
             raise
 
     logger.info(f"Created or updated agents stream: {agent_stream_info}")
-
 
     operators_stream_cfg = StreamConfig(
         name=STREAM_OPERATORS,

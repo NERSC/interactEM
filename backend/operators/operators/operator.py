@@ -8,17 +8,18 @@ from typing import Any
 import nats
 import nats.js
 import nats.js.errors
-from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL, STREAM_OPERATORS
-from core.logger import get_logger
-from core.models import CommBackend, IdType, OperatorJSON, PipelineJSON
-from core.models.base import OperatorID
-from core.pipeline import Pipeline
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
 from nats.js.api import ConsumerConfig, DeliverPolicy
 from nats.js.kv import KeyValue
 from pydantic import ValidationError
+
+from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL, STREAM_OPERATORS
+from core.logger import get_logger
+from core.models import CommBackend, IdType, OperatorJSON, PipelineJSON
+from core.models.base import OperatorID
+from core.pipeline import Pipeline
 
 from .config import cfg
 from .messengers.base import BaseMessenger, BytesMessage
@@ -85,7 +86,9 @@ class Operator(ABC):
         self.js = self.nc.jetstream()
 
     async def initialize_pipeline(self):
-        logger.info(f"Subscribing to stream {STREAM_OPERATORS} for operator {self.id}...")
+        logger.info(
+            f"Subscribing to stream {STREAM_OPERATORS} for operator {self.id}..."
+        )
         consumer_cfg = ConsumerConfig(
             description=f"operator-{self.id}",
             deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
@@ -104,7 +107,6 @@ class Operator(ABC):
         self.info = self.pipeline.get_operator(self.id)
         if self.info is None:
             raise ValueError(f"Operator {self.id} not found in pipeline")
-
 
     async def setup_key_value_store(self):
         logger.info(f"Setting up Key-Value store for operator {self.id}...")

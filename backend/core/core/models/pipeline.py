@@ -11,6 +11,7 @@ class PipelineNodeJSON(BaseModel):
     id: IdType
     node_type: NodeType
 
+
 class PortJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.port
     port_type: PortType

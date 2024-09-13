@@ -1,6 +1,7 @@
 from uuid import UUID
 
 import pytest
+
 from core.models import (
     URI,
     CommBackend,
