@@ -1,8 +1,6 @@
 import uuid
 from typing import Any
 
-from core.events.pipelines import PipelineRunEvent
-from core.logger import get_logger
 from fastapi import APIRouter, HTTPException
 from sqlmodel import func, select
 
@@ -15,6 +13,8 @@ from app.models import (
     PipelinePublic,
     PipelinesPublic,
 )
+from core.events.pipelines import PipelineRunEvent
+from core.logger import get_logger
 
 logger = get_logger(__name__)
 router = APIRouter()

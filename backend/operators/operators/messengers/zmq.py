@@ -9,6 +9,10 @@ import nats.js
 import nats.js.errors
 import nats.js.kv
 import zmq
+from nats.js import JetStreamContext
+from nats.js.errors import BucketNotFoundError
+from zmq.asyncio import Context
+
 from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
 from core.logger import get_logger
 from core.models import PortJSON, PortType
@@ -17,9 +21,6 @@ from core.models.pipeline import InputJSON, OutputJSON
 from core.models.ports import PortStatus, PortVal
 from core.models.uri import URI, CommBackend, URILocation, ZMQAddress
 from core.pipeline import Pipeline
-from nats.js import JetStreamContext
-from nats.js.errors import BucketNotFoundError
-from zmq.asyncio import Context
 
 from ..messengers.base import BytesMessage
 from ..zsocket import Socket, SocketInfo
@@ -97,7 +98,9 @@ class ZmqMessenger(BaseMessenger):
                 continue
 
             if header.subject != MessageSubject.BYTES:
-                logger.error("Received an unexpected message subject: %s", header.subject)
+                logger.error(
+                    "Received an unexpected message subject: %s", header.subject
+                )
                 continue
 
             msg = (
@@ -110,7 +113,6 @@ class ZmqMessenger(BaseMessenger):
         if not all_messages:
             logger.warning("No messages were received from any socket.")
             return None
-
 
         tasks = [self.recv_queue.put(msg) for msg in all_messages[1:]]
         await asyncio.gather(*tasks)
