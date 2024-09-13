@@ -1,4 +1,5 @@
 import pytest
+
 from core.fixtures import (
     EDGE_0,
     EDGE_1,

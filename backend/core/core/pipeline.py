@@ -176,7 +176,9 @@ class Pipeline(nx.DiGraph):
     def get_predecessors(self, node_id: IdType) -> list[IdType]:
         return list(self.predecessors(node_id))
 
-    async def get_predecessors_async(self, node_id: IdType) -> AsyncGenerator[IdType, None]:
+    async def get_predecessors_async(
+        self, node_id: IdType
+    ) -> AsyncGenerator[IdType, None]:
         for predecessor in self.predecessors(node_id):
             yield predecessor
 
