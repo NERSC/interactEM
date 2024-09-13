@@ -6,4 +6,5 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=None)
     NATS_SERVER_URL: NatsDsn = Field(default="nats://localhost:4222")
 
+
 cfg = Settings()

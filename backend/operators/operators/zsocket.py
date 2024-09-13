@@ -3,6 +3,8 @@ from typing import Any, Literal
 
 import zmq
 import zmq.asyncio
+from pydantic import BaseModel, model_validator
+
 from core.logger import get_logger
 from core.models.base import (
     IdType,
@@ -10,7 +12,6 @@ from core.models.base import (
     Protocol,
 )
 from core.models.uri import ZMQAddress
-from pydantic import BaseModel, model_validator
 
 logger = get_logger("socket", "INFO")
 
