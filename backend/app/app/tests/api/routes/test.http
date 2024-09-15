@@ -122,6 +122,79 @@ Authorization: bearer put_the_access_token_here
 
 
 ###
+
+POST http://localhost:80/api/v1/pipelines
+Content-Type: application/json
+Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjY4NTk3MTMsInN1YiI6IjJiOWI3YWJmLTY1N2YtNGMyMC05NzU3LTIyMjYxNGExOWEzOCJ9.50EoHCwcERlGDmgpHIyjPE8xiXGT9UmTQGwznDdS76s
+
+
+{
+  "data": {
+    "edges": [
+      {
+        "input_id": "12345678-1234-1234-1234-1234567890ab",
+        "num_connections": 1,
+        "output_id": "87654321-4321-4321-4321-1234567890ab"
+      },
+      {
+        "input_id": "87654321-4321-4321-4321-1234567890ab",
+        "num_connections": 1,
+        "output_id": "87654321-4321-4321-4321-1234567890ef"
+      },
+      {
+        "input_id": "87654321-4321-4321-4321-1234567890ef",
+        "num_connections": 1,
+        "output_id": "12345678-1234-1234-1234-1234567890cd"
+      }
+    ],
+    "operators": [
+      {
+        "id": "12345678-1234-1234-1234-1234567890ab",
+        "image": "interactem/operator",
+        "inputs": [],
+        "node_type": "operator",
+        "outputs": [
+          "87654321-4321-4321-4321-1234567890ab"
+        ],
+        "params": {
+          "hello": "world"
+        },
+        "machine_name": "mothership6"
+      },
+      {
+        "id": "12345678-1234-1234-1234-1234567890cd",
+        "image": "samwelborn/count-electrons:latest",
+        "inputs": [
+          "87654321-4321-4321-4321-1234567890ef"
+        ],
+        "node_type": "operator",
+        "outputs": [],
+        "params": {
+          "hello": "world"
+        },
+        "machine_name": "perlmutter"
+      }
+    ],
+    "ports": [
+      {
+        "id": "87654321-4321-4321-4321-1234567890ab",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1234-1234567890ab",
+        "port_type": "output",
+        "portkey": "out1"
+      },
+      {
+        "id": "87654321-4321-4321-4321-1234567890ef",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1234-1234567890cd",
+        "port_type": "input",
+        "portkey": "in1"
+      }
+    ]
+  }
+}
+
+###
 GET http://localhost:80/api/v1/pipelines
 Authorization: bearer put_the_access_token_here
 
