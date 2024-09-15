@@ -39,7 +39,8 @@ def process_hello_world(inputs: BytesMessage | None) -> BytesMessage:
 @operator
 def send_image_every_second(inputs: BytesMessage | None) -> BytesMessage:
     time.sleep(1)
-    arr = np.random.randint(0, 255, (100, 100), dtype=np.uint8)
+    logger.info("Creating image...")
+    arr = np.random.randint(0, 255, (100, 100), dtype=np.uint16)
     header = MessageHeader(subject=MessageSubject.BYTES, meta={})
     return BytesMessage(header=header, data=arr.tobytes())
 
@@ -47,7 +48,7 @@ def send_image_every_second(inputs: BytesMessage | None) -> BytesMessage:
 @operator
 def recv_image(inputs: BytesMessage | None) -> BytesMessage:
     if inputs:
-        arr = np.frombuffer(inputs.data, dtype=np.uint8).reshape(100, 100)
+        arr = np.frombuffer(inputs.data, dtype=np.uint16).reshape(100, 100)
         logger.info(f"Received image: {arr}")
     header = MessageHeader(subject=MessageSubject.BYTES, meta={})
     return inputs or BytesMessage(header=header, data=b"No input provided")
