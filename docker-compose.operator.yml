@@ -1,0 +1,11 @@
+services:
+  operator:
+    restart: no
+    volumes:
+      - ./backend/operators/:/app
+      - ./backend/core/:/core
+    build:  # Override the build section to disable it
+      context: ./backend/
+      dockerfile: ./operators/containerfiles/electron-count/Containerfile
+    image: samwelborn/count-electrons:latest
+    command: sleep infinity  # Infinite loop to keep container alive doing nothing
