@@ -41,6 +41,8 @@ ignore = [
     "B904", # Allow raising exceptions without from e, for HTTPException
 ]
 
+isort = { known-first-party = ['operators', 'core'] }
+
 [tool.ruff.lint.pyupgrade]
 # Preserve types, even if a file imports `from __future__ import annotations`.
 keep-runtime-typing = true
