@@ -139,16 +139,17 @@ class ZmqMessenger(BaseMessenger):
             self.kv = await self.js.create_key_value(config=bucket_cfg)
 
         try:
-            async with asyncio.timeout(10):
-                try:
-                    async with asyncio.TaskGroup() as tg:
-                        tg.create_task(self.setup_outputs(pipeline))
-                        tg.create_task(self.setup_inputs(pipeline))
-                except* Exception as e:
-                    for ex in e.exceptions:
-                        logger.error(f"Failed to zmq messenger: {ex}")
+            await asyncio.wait_for(
+                asyncio.gather(
+                    self.setup_outputs(pipeline), self.setup_inputs(pipeline)
+                ),
+                timeout=10,
+            )
         except asyncio.TimeoutError as e:
             logger.info(f"Failed to setup zmq messenger within timeout: {e}")
+            raise e
+        except Exception as e:
+            logger.error(f"Failed to setup zmq messenger: {e}")
             raise e
 
         self.update_kv_task = asyncio.create_task(self.update_kv())
