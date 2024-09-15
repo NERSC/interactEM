@@ -1,11 +1,11 @@
-from enum import StrEnum
+from enum import Enum
 
 from pydantic import BaseModel
 
 from .uri import URI
 
 
-class AgentStatus(StrEnum):
+class AgentStatus(str, Enum):
     INITIALIZING = "initializing"
     IDLE = "idle"
     BUSY = "busy"

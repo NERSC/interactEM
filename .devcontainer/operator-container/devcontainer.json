@@ -3,7 +3,7 @@
 
 {
     "name": "Operator Container",
-    "dockerComposeFile": ["../../docker-compose.yml", "../../docker-compose.override.yml"],
+    "dockerComposeFile": ["../../docker-compose.yml", "../../docker-compose.override.yml", "../../docker-compose.operator.yml"],
     "service": "operator",
     "shutdownAction": "none",
     "workspaceFolder": "/app",
@@ -23,4 +23,3 @@
 		}
 	}
 }
-

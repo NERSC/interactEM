@@ -1,11 +1,11 @@
-from enum import StrEnum
+from enum import Enum
 
 from pydantic import BaseModel
 
 from .uri import URI
 
 
-class PortStatus(StrEnum):
+class PortStatus(str, Enum):
     INITIALIZING = "initializing"
     IDLE = "idle"
     BUSY = "busy"
