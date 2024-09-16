@@ -173,7 +173,10 @@ Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjY4NTk3M
             "target": "/core/core/",
             "read_only": true
           }
-        ]
+        ],
+        "env": {
+          "TEST_ENV": "ENV_VAR"
+        }
       },
       {
         "id": "12345678-1234-1234-1234-1234567890cd",
@@ -200,7 +203,10 @@ Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjY4NTk3M
             "target": "/core/core/",
             "read_only": true
           }
-        ]
+        ],
+        "env": {
+          "TEST_ENV": "ENV_VAR"
+        }
       }
     ],
     "ports": [

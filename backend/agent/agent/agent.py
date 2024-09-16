@@ -313,8 +313,8 @@ class Agent:
 
         logger.info("Starting operators...")
 
-        env = {k: str(v) for k, v in cfg.model_dump().items()}
-        env["NATS_SERVER_URL"] = env["NATS_SERVER_URL_IN_CONTAINER"]
+        global_env = {k: str(v) for k, v in cfg.model_dump().items()}
+        global_env["NATS_SERVER_URL"] = global_env["NATS_SERVER_URL_IN_CONTAINER"]
 
         futures = []
         with PodmanClient(base_url=self._podman_service_uri) as client:
@@ -322,10 +322,11 @@ class Agent:
                 if id not in self.my_operator_ids:
                     continue
                 logger.info(f"Starting operator {id} with image {op_info.image}")
-
+                this_container_env = global_env.copy()
+                this_container_env.update(op_info.env)
                 # TODO: could use async to create multiple at once
                 container = await create_container(
-                    self.id, client, id, op_info, env, op_info.mounts
+                    self.id, client, id, op_info, this_container_env, op_info.mounts
                 )
                 if container:
                     container.start()
