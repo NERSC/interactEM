@@ -49,6 +49,7 @@ class OperatorJSON(PipelineNodeJSON):
     outputs: list[PortID] = []
     machine_name: str | None = None
     mounts: list[PodmanMount] = []
+    env: dict[str, str] = {}
 
 
 class EdgeJSON(BaseModel):
