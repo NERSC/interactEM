@@ -21,7 +21,12 @@ from core.constants import BUCKET_AGENTS, STREAM_AGENTS, STREAM_OPERATORS
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
 from core.models.base import IdType
-from core.models.pipeline import OperatorJSON, PipelineAssignment, PipelineJSON
+from core.models.pipeline import (
+    OperatorJSON,
+    PipelineAssignment,
+    PipelineJSON,
+    PodmanMount,
+)
 from core.models.uri import URI, CommBackend, URILocation
 from core.pipeline import Pipeline
 
@@ -320,7 +325,7 @@ class Agent:
 
                 # TODO: could use async to create multiple at once
                 container = await create_container(
-                    self.id, client, id, op_info, env, cfg.MOUNTS
+                    self.id, client, id, op_info, env, op_info.mounts
                 )
                 if container:
                     container.start()
@@ -350,7 +355,7 @@ async def create_container(
     op_id: IdType,
     op_info: OperatorJSON,
     env: dict[str, Any],
-    volumes: list[dict[str, Any]],
+    mounts: list[PodmanMount],
     max_retries=1,
 ) -> Container | None:
     name = f"operator-{op_id}"
@@ -365,7 +370,7 @@ async def create_container(
                 network_mode="host",
                 remove=True,
                 labels={"agent.id": str(agent_id)},
-                mounts=volumes,
+                mounts=[mount.model_dump() for mount in mounts],
             )
         except podman.errors.exceptions.APIError as e:
             # _cleanup_containers() doesn't work for dead containers
