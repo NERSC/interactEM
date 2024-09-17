@@ -17,11 +17,21 @@ from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
 from pydantic import ValidationError
 
-from core.constants import BUCKET_AGENTS, STREAM_AGENTS, STREAM_OPERATORS
+from core.constants import (
+    BUCKET_AGENTS,
+    OPERATOR_ID_ENV_VAR,
+    STREAM_AGENTS,
+    STREAM_OPERATORS,
+)
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
 from core.models.base import IdType
-from core.models.pipeline import OperatorJSON, PipelineAssignment, PipelineJSON
+from core.models.pipeline import (
+    OperatorJSON,
+    PipelineAssignment,
+    PipelineJSON,
+    PodmanMount,
+)
 from core.models.uri import URI, CommBackend, URILocation
 from core.pipeline import Pipeline
 
@@ -308,8 +318,8 @@ class Agent:
 
         logger.info("Starting operators...")
 
-        env = {k: str(v) for k, v in cfg.model_dump().items()}
-        env["NATS_SERVER_URL"] = env["NATS_SERVER_URL_IN_CONTAINER"]
+        global_env = {k: str(v) for k, v in cfg.model_dump().items()}
+        global_env["NATS_SERVER_URL"] = global_env["NATS_SERVER_URL_IN_CONTAINER"]
 
         futures = []
         with PodmanClient(base_url=self._podman_service_uri) as client:
@@ -317,10 +327,12 @@ class Agent:
                 if id not in self.my_operator_ids:
                     continue
                 logger.info(f"Starting operator {id} with image {op_info.image}")
-
+                this_container_env = global_env.copy()
+                this_container_env.update(op_info.env)
+                this_container_env.update({OPERATOR_ID_ENV_VAR: str(id)})
                 # TODO: could use async to create multiple at once
                 container = await create_container(
-                    self.id, client, id, op_info, env, cfg.MOUNTS
+                    self.id, client, id, op_info, this_container_env, op_info.mounts
                 )
                 if container:
                     container.start()
@@ -350,7 +362,7 @@ async def create_container(
     op_id: IdType,
     op_info: OperatorJSON,
     env: dict[str, Any],
-    volumes: list[dict[str, Any]],
+    mounts: list[PodmanMount],
     max_retries=1,
 ) -> Container | None:
     name = f"operator-{op_id}"
@@ -360,12 +372,11 @@ async def create_container(
                 image=op_info.image,
                 environment=env,
                 name=name,
-                command=["--id", str(op_id)],
                 detach=True,
                 network_mode="host",
                 remove=True,
                 labels={"agent.id": str(agent_id)},
-                mounts=volumes,
+                mounts=[mount.model_dump() for mount in mounts],
             )
         except podman.errors.exceptions.APIError as e:
             # _cleanup_containers() doesn't work for dead containers
