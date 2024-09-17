@@ -17,7 +17,12 @@ from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
 from pydantic import ValidationError
 
-from core.constants import BUCKET_AGENTS, STREAM_AGENTS, STREAM_OPERATORS
+from core.constants import (
+    BUCKET_AGENTS,
+    OPERATOR_ID_ENV_VAR,
+    STREAM_AGENTS,
+    STREAM_OPERATORS,
+)
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
 from core.models.base import IdType
@@ -324,6 +329,7 @@ class Agent:
                 logger.info(f"Starting operator {id} with image {op_info.image}")
                 this_container_env = global_env.copy()
                 this_container_env.update(op_info.env)
+                this_container_env.update({OPERATOR_ID_ENV_VAR: str(id)})
                 # TODO: could use async to create multiple at once
                 container = await create_container(
                     self.id, client, id, op_info, this_container_env, op_info.mounts
@@ -366,7 +372,6 @@ async def create_container(
                 image=op_info.image,
                 environment=env,
                 name=name,
-                command=["--id", str(op_id)],
                 detach=True,
                 network_mode="host",
                 remove=True,

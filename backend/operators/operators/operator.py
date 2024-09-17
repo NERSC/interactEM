@@ -1,9 +1,10 @@
 import asyncio
+import os
 import signal
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from functools import wraps
-from typing import Any
+from typing import Any, cast
 
 import nats
 import nats.js
@@ -15,10 +16,14 @@ from nats.js.api import ConsumerConfig, DeliverPolicy
 from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
-from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL, STREAM_OPERATORS
+from core.constants import (
+    BUCKET_OPERATORS,
+    BUCKET_OPERATORS_TTL,
+    OPERATOR_ID_ENV_VAR,
+    STREAM_OPERATORS,
+)
 from core.logger import get_logger
-from core.models import CommBackend, IdType, OperatorJSON, PipelineJSON
-from core.models.base import OperatorID
+from core.models import CommBackend, OperatorJSON, PipelineJSON
 from core.pipeline import Pipeline
 
 from .config import cfg
@@ -30,6 +35,8 @@ logger = get_logger("operator", "DEBUG")
 BACKEND_TO_MESSENGER: dict[CommBackend, type[BaseMessenger]] = {
     CommBackend.ZMQ: ZmqMessenger,
 }
+
+OPERATOR_ID = cast(str, os.getenv(OPERATOR_ID_ENV_VAR))
 
 
 async def receive_pipeline(msg: NATSMsg, js: JetStreamContext) -> Pipeline | None:
@@ -44,11 +51,10 @@ async def receive_pipeline(msg: NATSMsg, js: JetStreamContext) -> Pipeline | Non
 
 
 class Operator(ABC):
-    def __init__(
-        self,
-        id: IdType,
-    ):
-        self.id = id
+    def __init__(self):
+        self.id = OPERATOR_ID
+        if not self.id:
+            raise ValueError("Operator ID not set")
         self.messenger: BaseMessenger | None = None
         self.pipeline: Pipeline | None = None
         self.info: OperatorJSON | None = None
@@ -199,9 +205,9 @@ def operator(
     func: KernelFn | None = None,
     start: bool = False,
 ) -> Any:
-    def decorator(func: KernelFn) -> Callable[[OperatorID], Operator]:
+    def decorator(func: KernelFn) -> Callable[[], Operator]:
         @wraps(func)
-        def wrapper(operator_id: OperatorID):
+        def wrapper():
             @wraps(func)
             def kernel(_, *args, **kwargs):
                 return func(*args, **kwargs)
@@ -210,7 +216,7 @@ def operator(
             class_name = f"{name.capitalize()}Operator"
             OpClass = type(class_name, (Operator,), {"kernel": kernel})
 
-            obj = OpClass(operator_id)
+            obj = OpClass()
 
             if start:
                 asyncio.create_task(obj.start())
