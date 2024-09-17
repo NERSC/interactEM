@@ -1,6 +1,4 @@
-import argparse
 import asyncio
-from uuid import UUID
 
 import numpy as np
 import stempy.image as stim
@@ -41,25 +39,15 @@ def count_image(inputs: BytesMessage | None) -> BytesMessage:
     ) or BytesMessage(header=header, data=b"No input provided")
 
 
-async def async_main(operator_id: str):
-    op = count_image(UUID(operator_id))
+async def async_main():
+    op = count_image()
     await op.start()
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Initialize an Operator with a specific ID."
-    )
-    parser.add_argument(
-        "--id", type=str, required=True, help="The ID of the Operator to initialize."
-    )
-    logger.info("STARTING OPERATOR FOR COUNTING ELECTRONS")
-
-    args = parser.parse_args()
-
     # Run the async main function using asyncio.run
     try:
-        asyncio.run(async_main(args.id))
+        asyncio.run(async_main())
     except KeyboardInterrupt:
         logger.info("Shutting down operator...")
     finally:
