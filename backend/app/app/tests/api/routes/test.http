@@ -8,7 +8,7 @@ username=admin@example.com&password=changethis
 
 POST http://localhost:80/api/v1/pipelines
 Content-Type: application/json
-Authorization: bearer put_the_access_token_here
+Authorization: bearer <TOKEN>
 
 
 {
@@ -159,7 +159,24 @@ Authorization: bearer <TOKEN>
         "params": {
           "hello": "world"
         },
-        "machine_name": "mothership6"
+        "machine_name": "mothership6",
+        "mounts": [
+          {
+            "type": "bind",
+            "source": "~/Documents/gits/interactEM/backend/operators/operators/",
+            "target": "/app/operators/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "~/Documents/gits/interactEM/backend/core/core/",
+            "target": "/core/core/",
+            "read_only": true
+          }
+        ],
+        "env": {
+          "TEST_ENV": "ENV_VAR"
+        }
       },
       {
         "id": "12345678-1234-1234-1234-1234567890cd",
@@ -172,7 +189,24 @@ Authorization: bearer <TOKEN>
         "params": {
           "hello": "world"
         },
-        "machine_name": "perlmutter"
+        "machine_name": "perlmutter",
+        "mounts": [
+          {
+            "type": "bind",
+            "source": "~/Documents/gits/interactEM/backend/operators/operators/",
+            "target": "/app/operators/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "~/Documents/gits/interactEM/backend/core/core/",
+            "target": "/core/core/",
+            "read_only": true
+          }
+        ],
+        "env": {
+          "TEST_ENV": "ENV_VAR"
+        }
       }
     ],
     "ports": [

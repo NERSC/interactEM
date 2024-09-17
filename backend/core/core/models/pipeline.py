@@ -1,10 +1,24 @@
 from collections.abc import Sequence
+from enum import Enum
 from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
 
 from .base import IdType, NodeType, OperatorID, PortID, PortType
+
+
+class PodmanMountType(str, Enum):
+    bind = "bind"
+    volume = "volume"
+    tmpfs = "tmpfs"
+
+
+class PodmanMount(BaseModel):
+    type: PodmanMountType
+    source: str
+    target: str
+    read_only: bool = True
 
 
 class PipelineNodeJSON(BaseModel):
@@ -34,6 +48,8 @@ class OperatorJSON(PipelineNodeJSON):
     inputs: list[PortID] = []
     outputs: list[PortID] = []
     machine_name: str | None = None
+    mounts: list[PodmanMount] = []
+    env: dict[str, str] = {}
 
 
 class EdgeJSON(BaseModel):
