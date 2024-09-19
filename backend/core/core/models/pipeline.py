@@ -14,6 +14,18 @@ class PodmanMountType(str, Enum):
     tmpfs = "tmpfs"
 
 
+
+class NetworkMode(str, Enum):
+    BRIDGE = "bridge"
+    NONE = "none"
+    CONTAINER = "container"
+    HOST = "host"
+    NS = "ns"
+
+    def __str__(self):
+        return self.value
+
+
 class PodmanMount(BaseModel):
     type: PodmanMountType
     source: str
@@ -50,6 +62,8 @@ class OperatorJSON(PipelineNodeJSON):
     machine_name: str | None = None
     mounts: list[PodmanMount] = []
     env: dict[str, str] = {}
+    command: str | list[str] = []
+    network_mode: NetworkMode | None = None
 
 
 class EdgeJSON(BaseModel):
