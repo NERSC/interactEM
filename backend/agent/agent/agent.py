@@ -332,7 +332,13 @@ class Agent:
                 this_container_env.update({OPERATOR_ID_ENV_VAR: str(id)})
                 # TODO: could use async to create multiple at once
                 container = await create_container(
-                    self.id, client, id, op_info, this_container_env, op_info.mounts
+                    self.id,
+                    client,
+                    id,
+                    op_info,
+                    this_container_env,
+                    op_info.mounts,
+                    op_info.command,
                 )
                 if container:
                     container.start()
@@ -363,17 +369,20 @@ async def create_container(
     op_info: OperatorJSON,
     env: dict[str, Any],
     mounts: list[PodmanMount],
+    command: str | list[str],
     max_retries=1,
 ) -> Container | None:
     name = f"operator-{op_id}"
+    network_mode = op_info.network_mode or "host"
     for attempt in range(max_retries + 1):
         try:
             return client.containers.create(
                 image=op_info.image,
                 environment=env,
                 name=name,
+                command=command,
                 detach=True,
-                network_mode="host",
+                network_mode=network_mode,
                 remove=True,
                 labels={"agent.id": str(agent_id)},
                 mounts=[mount.model_dump() for mount in mounts],
