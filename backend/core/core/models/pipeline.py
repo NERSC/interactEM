@@ -13,6 +13,8 @@ class PodmanMountType(str, Enum):
     volume = "volume"
     tmpfs = "tmpfs"
 
+    def __str__(self):
+        return self.value
 
 
 class NetworkMode(str, Enum):
