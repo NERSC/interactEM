@@ -8,6 +8,7 @@ from typing import Any, cast
 from uuid import UUID
 
 import nats
+import nats.errors
 import nats.js
 import nats.js.errors
 from nats.aio.client import Client as NATSClient
@@ -86,7 +87,12 @@ class Operator(ABC):
         await self.execute_dependencies_startup()
         await self.setup_signal_handlers()
         await self.connect_to_nats()
-        await self.initialize_pipeline()
+        try:
+            await self.initialize_pipeline()
+        except ValueError as e:
+            logger.error(e)
+            self._shutdown_event.set()
+            return
         await self.setup_key_value_store()
         await self.initialize_messenger()
         if not self.messenger:
@@ -125,7 +131,10 @@ class Operator(ABC):
             subject=f"{STREAM_OPERATORS}.{self.id}",
             config=consumer_cfg,
         )
-        msg = await psub.fetch(1)
+        try:
+            msg = await psub.fetch(1)
+        except nats.errors.TimeoutError:
+            raise ValueError("No pipeline message received")
         self.pipeline = await receive_pipeline(msg[0], self.js)
         if self.pipeline is None:
             raise ValueError("Pipeline not found")
