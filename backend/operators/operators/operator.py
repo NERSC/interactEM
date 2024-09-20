@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Generator
 from functools import wraps
 from typing import Any, cast
+from uuid import UUID
 
 import nats
 import nats.js
@@ -152,7 +153,7 @@ class Operator(ABC):
             raise ValueError(f"Invalid communications backend: {comm_backend}")
         if not self.js:
             raise ValueError("JetStream context not initialized")
-        self.messenger = messenger_cls(self.id, self.js)
+        self.messenger = messenger_cls(UUID(self.id), self.js)
         logger.info(f"Initialized messenger {self.messenger}...")
 
     async def shutdown(self):
