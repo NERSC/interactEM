@@ -220,14 +220,14 @@ class Operator(ABC):
         if self.messenger is None:
             raise ValueError("Messenger not initialized")
         processed_message = self.kernel(message)
-        if self.messenger.output_ports:
+        if self.messenger.output_ports and processed_message:
             await self.messenger.send(processed_message)
 
     @abstractmethod
     def kernel(
         self,
         inputs: BytesMessage | None,
-    ) -> BytesMessage:
+    ) -> BytesMessage | None:
         pass
 
 
