@@ -157,6 +157,7 @@ class Operator(ABC):
 
     async def shutdown(self):
         logger.info(f"Shutting down operator {self.id}...")
+        await self.execute_dependencies_teardown()
         if self.run_task:
             self.run_task.cancel()
             try:
