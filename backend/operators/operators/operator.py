@@ -2,7 +2,7 @@ import asyncio
 import os
 import signal
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from functools import wraps
 from typing import Any, cast
 
@@ -39,6 +39,16 @@ BACKEND_TO_MESSENGER: dict[CommBackend, type[BaseMessenger]] = {
 OPERATOR_ID = cast(str, os.getenv(OPERATOR_ID_ENV_VAR))
 
 
+dependencies_funcs: list[Callable[[], Generator[None, None, None]]] = []
+
+
+def dependencies(
+    func: Callable[[], Generator[None, None, None]],
+) -> Callable[[], Generator[None, None, None]]:
+    dependencies_funcs.append(func)
+    return func
+
+
 async def receive_pipeline(msg: NATSMsg, js: JetStreamContext) -> Pipeline | None:
     await msg.ack()
 
@@ -64,6 +74,7 @@ class Operator(ABC):
         self.messenger_task: asyncio.Task | None = None
         self.run_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
+        self._dependencies = []
 
     @property
     def input_queue(self) -> str:
@@ -71,6 +82,7 @@ class Operator(ABC):
 
     async def start(self):
         logger.info(f"Starting operator {self.id}...")
+        await self.execute_dependencies_startup()
         await self.setup_signal_handlers()
         await self.connect_to_nats()
         await self.initialize_pipeline()
@@ -82,6 +94,12 @@ class Operator(ABC):
         self.run_task = asyncio.create_task(self.run())
         await self._shutdown_event.wait()
         await self.shutdown()
+
+    async def execute_dependencies_startup(self):
+        for func in dependencies_funcs:
+            gen = func()
+            self._dependencies.append(gen)
+            await gen.__next__() if asyncio.iscoroutinefunction(func) else next(gen)
 
     async def connect_to_nats(self):
         logger.info(f"Connecting to NATS at {cfg.NATS_SERVER_URL}...")
@@ -153,6 +171,13 @@ class Operator(ABC):
             await self.nc.close()
 
         logger.info(f"Operator {self.id} shutdown complete")
+
+    async def execute_dependencies_teardown(self):
+        for gen in reversed(self._dependencies):
+            try:
+                await gen.__next__() if asyncio.iscoroutinefunction(gen) else next(gen)
+            except StopIteration:
+                pass
 
     # TODO: refactor into core
     async def setup_signal_handlers(self):
