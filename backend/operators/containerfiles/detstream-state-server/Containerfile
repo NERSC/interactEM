@@ -1,0 +1,3 @@
+FROM samwelborn/detstream-worker:e43332d
+
+ENTRYPOINT [ "/usr/local/bin/state_server" ]
