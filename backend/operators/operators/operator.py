@@ -233,7 +233,7 @@ class Operator(ABC):
 
 KernelFn = Callable[
     [BytesMessage | None],
-    BytesMessage,
+    BytesMessage | None,
 ]
 
 
