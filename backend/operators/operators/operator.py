@@ -4,7 +4,7 @@ import signal
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Generator
 from functools import wraps
-from typing import Any, cast
+from typing import Any
 from uuid import UUID
 
 import nats
@@ -38,7 +38,7 @@ BACKEND_TO_MESSENGER: dict[CommBackend, type[BaseMessenger]] = {
     CommBackend.ZMQ: ZmqMessenger,
 }
 
-OPERATOR_ID = cast(str, os.getenv(OPERATOR_ID_ENV_VAR))
+OPERATOR_ID = os.getenv(OPERATOR_ID_ENV_VAR)
 
 
 dependencies_funcs: list[Callable[[], Generator[None, None, None]]] = []
@@ -64,7 +64,7 @@ async def receive_pipeline(msg: NATSMsg, js: JetStreamContext) -> Pipeline | Non
 
 class Operator(ABC):
     def __init__(self):
-        self.id = OPERATOR_ID
+        self.id = UUID(OPERATOR_ID)
         if not self.id:
             raise ValueError("Operator ID not set")
         self.messenger: BaseMessenger | None = None
@@ -162,7 +162,7 @@ class Operator(ABC):
             raise ValueError(f"Invalid communications backend: {comm_backend}")
         if not self.js:
             raise ValueError("JetStream context not initialized")
-        self.messenger = messenger_cls(UUID(self.id), self.js)
+        self.messenger = messenger_cls(self.id, self.js)
         logger.info(f"Initialized messenger {self.messenger}...")
 
     async def shutdown(self):
