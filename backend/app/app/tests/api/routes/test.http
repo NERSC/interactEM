@@ -247,19 +247,37 @@ Authorization: bearer put_the_access_token_here
         "num_connections": 1,
         "output_id": "10000008-4321-4321-4321-1000000890ab"
       },
-      {"input_id":"10000008-4321-4321-4321-1000000890ab",
-      "num_connections":1,
-      "output_id":"10000008-1234-1234-1234-1000000890ab"},
-      {"input_id":"10000008-1234-1234-1234-1000000890ab",
-      "num_connections":1,
-      "output_id":"87654321-4321-4321-4321-1000000890ab"},
-      {"input_id":"87654321-4321-4321-4321-1000000890ab",
-      "num_connections":1,
-      "output_id":"87654321-4321-4321-4321-1234567890ef"},
+      {
+        "input_id":"10000008-4321-4321-4321-1000000890ab",
+        "num_connections":1,
+        "output_id":"10000008-1234-1234-1234-1000000890ab"},
+      {
+        "input_id":"10000008-1234-1234-1234-1000000890ab",
+        "num_connections":1,
+        "output_id":"87654321-4321-4321-4321-1000000890ab"},
+      {
+        "input_id":"87654321-4321-4321-4321-1000000890ab",
+        "num_connections":1,
+        "output_id":"87654321-4321-4321-4321-1234567890ef"},
       {
         "input_id": "87654321-4321-4321-4321-1234567890ef",
         "num_connections": 1,
         "output_id": "12345678-1234-1234-1234-1234567890cd"
+      },
+      {
+        "input_id": "12345678-1234-1234-1234-1234567890cd",
+        "num_connections": 1,
+        "output_id": "87654123-4321-4321-4321-1000000890ab"
+      },
+      {
+        "input_id": "87654123-4321-4321-4321-1000000890ab",
+        "num_connections": 1,
+        "output_id": "87654321-4321-4321-4321-1234567890af"
+      },
+      {
+        "input_id":  "87654321-4321-4321-4321-1234567890af",
+        "num_connections": 1,
+        "output_id":"12345678-1234-1234-1234-1432567890cd"
       }
     ],
     "operators": [
@@ -408,12 +426,14 @@ Authorization: bearer put_the_access_token_here
       },
       {
         "id": "12345678-1234-1234-1234-1234567890cd",
-        "image": "samwelborn/count-electrons:latest",
+        "image": "interactem/count-electrons:latest",
         "inputs": [
           "87654321-4321-4321-4321-1234567890ef"
         ],
         "node_type": "operator",
-        "outputs": [],
+        "outputs": [
+          "87654123-4321-4321-4321-1000000890ab"
+          ],
         "params": {
           "hello": "world"
         },
@@ -430,6 +450,50 @@ Authorization: bearer put_the_access_token_here
             "source": "/Users/swelborn/Documents/gits/interactEM/backend/core/core/",
             "target": "/core/core/",
             "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/operators/containerfiles/electron-count/run.py",
+            "target": "/app/run.py",
+            "read_only": true
+          }
+        ]
+      },
+      {
+        "id": "12345678-1234-1234-1234-1432567890cd",
+        "image": "interactem/electron-count-save:latest",
+        "inputs": [
+          "87654321-4321-4321-4321-1234567890af"
+        ],
+        "node_type": "operator",
+        "params": {
+          "hello": "world"
+        },
+        "machine_name": "perlmutter",
+        "mounts": [
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/operators/operators/",
+            "target": "/app/operators/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/core/core/",
+            "target": "/core/core/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/operators/containerfiles/electron-count-save/run.py",
+            "target": "/app/run.py",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/electron-count-h5-test/",
+            "target": "/output/",
+            "read_only": false
           }
         ]
       }
@@ -462,6 +526,20 @@ Authorization: bearer put_the_access_token_here
         "operator_id": "10000008-1234-1234-1234-1000000890ab",
         "port_type": "output",
         "portkey": "out2"
+      },
+      {
+        "id": "87654123-4321-4321-4321-1000000890ab",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1234-1234567890cd",
+        "port_type": "output",
+        "portkey": "out3"
+      },
+      {
+        "id": "87654321-4321-4321-4321-1234567890af",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1234-1432567890cd",
+        "port_type": "input",
+        "portkey": "in3"
       }
     ]
   }

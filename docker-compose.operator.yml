@@ -6,6 +6,6 @@ services:
       - ./backend/core/:/core
     build:  # Override the build section to disable it
       context: ./backend/
-      dockerfile: ./operators/containerfiles/electron-count/Containerfile
-    image: samwelborn/count-electrons:latest
+      dockerfile: ./operators/containerfiles/electron-count-save/Containerfile
+    image: samwelborn/save-counted-electrons:latest
     command: sleep infinity  # Infinite loop to keep container alive doing nothing
