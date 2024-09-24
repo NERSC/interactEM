@@ -25,7 +25,7 @@ RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root ; els
 
 COPY ./operators/operators /app/operators/
 
-COPY ./operators/containerfiles/test/operator0.py /app/run.py
+COPY ./operators/containerfiles/image-receiver/run.py /app/run.py
 
 ENV PYTHONUNBUFFERED=1
 

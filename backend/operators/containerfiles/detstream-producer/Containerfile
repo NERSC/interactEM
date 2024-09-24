@@ -1,0 +1,3 @@
+FROM samwelborn/detstream-worker:852f169
+
+ENTRYPOINT [ "/usr/local/bin/producer_sim" ]

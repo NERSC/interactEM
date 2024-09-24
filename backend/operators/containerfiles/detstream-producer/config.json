@@ -1,0 +1,40 @@
+{
+    "producer": {
+        "client_type": "producer",
+        "connect": {
+            "state_hostname": "192.168.127.2",
+            "state_port": 15000
+        },
+        "process": {
+            "num_processes": 4,
+            "num_threads_per_process": 1,
+            "io_thread_affinity": true
+        },
+        "upstream": {
+            "client_type": "none"
+        },
+        "downstream": {
+            "first_bound_port": 6001,
+            "hostname_bind": [
+                "192.168.127.2",
+                "192.168.127.2",
+                "192.168.127.2",
+                "192.168.127.2"
+            ],
+            "max_num_downstream_processes": 1
+        },
+        "sockopts": {
+            "sndhwm": 1000,
+            "io_thread_affinity": true,
+            "sndtimeo": 10000
+        },
+        "ctxopts": {
+            "scheduler": "SCHED_OTHER",
+            "io_threads": 1
+        },
+        "filepaths": {
+            "status_json_output_dir": "/mnt/data/",
+            "save_raw_data_dir": "/output"
+        }
+    }
+}
