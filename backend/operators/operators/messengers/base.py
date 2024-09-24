@@ -31,12 +31,6 @@ class ShmMessage(BaseMessage):
     shm_meta: dict[str, Any] = {}
 
 
-MESSAGE_SUBJECT_TO_MODEL: dict[MessageSubject, type[BaseMessage]] = {
-    MessageSubject.BYTES: BytesMessage,
-    MessageSubject.SHM: ShmMessage,
-}
-
-
 class BaseMessenger(ABC):
     @abstractmethod
     def __init__(self, operator_id: OperatorID, js: JetStreamContext):
