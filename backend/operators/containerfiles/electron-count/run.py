@@ -21,8 +21,12 @@ class FrameHeader(BaseModel):
     modules: list[int]
 
 
+first_time = True
+
+
 @operator
 def count_image(inputs: BytesMessage | None) -> BytesMessage | None:
+    global first_time
     if not inputs:
         return None
 
@@ -32,11 +36,13 @@ def count_image(inputs: BytesMessage | None) -> BytesMessage | None:
         logger.error("Invalid message")
         return None
     arr = np.frombuffer(inputs.data, dtype=np.uint16).reshape(576, 576)
-    sparse_array = stim.electron_count_frame(arr)
-    print(f"Stempy counted: {sparse_array.to_dense()[0][0][45:55, 45:55]}")
-
-    header = MessageHeader(subject=MessageSubject.BYTES, meta={})
-    return BytesMessage(header=header, data=sparse_array.data.tobytes())
+    sparse_array = stim.electron_count_frame(arr, background_threshold=100)
+    header = MessageHeader(subject=MessageSubject.BYTES, meta=header.model_dump())
+    if first_time:
+        print(sparse_array.dtype)
+        print(sparse_array.data)
+        first_time = False
+    return BytesMessage(header=header, data=sparse_array.data[0][0].tobytes())
 
 
 async def async_main():
