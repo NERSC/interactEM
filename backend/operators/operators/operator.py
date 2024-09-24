@@ -2,11 +2,13 @@ import asyncio
 import os
 import signal
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from functools import wraps
-from typing import Any, cast
+from typing import Any
+from uuid import UUID
 
 import nats
+import nats.errors
 import nats.js
 import nats.js.errors
 from nats.aio.client import Client as NATSClient
@@ -36,7 +38,17 @@ BACKEND_TO_MESSENGER: dict[CommBackend, type[BaseMessenger]] = {
     CommBackend.ZMQ: ZmqMessenger,
 }
 
-OPERATOR_ID = cast(str, os.getenv(OPERATOR_ID_ENV_VAR))
+OPERATOR_ID = os.getenv(OPERATOR_ID_ENV_VAR)
+
+
+dependencies_funcs: list[Callable[[], Generator[None, None, None]]] = []
+
+
+def dependencies(
+    func: Callable[[], Generator[None, None, None]],
+) -> Callable[[], Generator[None, None, None]]:
+    dependencies_funcs.append(func)
+    return func
 
 
 async def receive_pipeline(msg: NATSMsg, js: JetStreamContext) -> Pipeline | None:
@@ -52,7 +64,7 @@ async def receive_pipeline(msg: NATSMsg, js: JetStreamContext) -> Pipeline | Non
 
 class Operator(ABC):
     def __init__(self):
-        self.id = OPERATOR_ID
+        self.id = UUID(OPERATOR_ID)
         if not self.id:
             raise ValueError("Operator ID not set")
         self.messenger: BaseMessenger | None = None
@@ -64,6 +76,7 @@ class Operator(ABC):
         self.messenger_task: asyncio.Task | None = None
         self.run_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
+        self._dependencies = []
 
     @property
     def input_queue(self) -> str:
@@ -71,9 +84,15 @@ class Operator(ABC):
 
     async def start(self):
         logger.info(f"Starting operator {self.id}...")
+        await self.execute_dependencies_startup()
         await self.setup_signal_handlers()
         await self.connect_to_nats()
-        await self.initialize_pipeline()
+        try:
+            await self.initialize_pipeline()
+        except ValueError as e:
+            logger.error(e)
+            self._shutdown_event.set()
+            return
         await self.setup_key_value_store()
         await self.initialize_messenger()
         if not self.messenger:
@@ -82,6 +101,12 @@ class Operator(ABC):
         self.run_task = asyncio.create_task(self.run())
         await self._shutdown_event.wait()
         await self.shutdown()
+
+    async def execute_dependencies_startup(self):
+        for func in dependencies_funcs:
+            gen = func()
+            self._dependencies.append(gen)
+            await gen.__next__() if asyncio.iscoroutinefunction(func) else next(gen)
 
     async def connect_to_nats(self):
         logger.info(f"Connecting to NATS at {cfg.NATS_SERVER_URL}...")
@@ -106,7 +131,10 @@ class Operator(ABC):
             subject=f"{STREAM_OPERATORS}.{self.id}",
             config=consumer_cfg,
         )
-        msg = await psub.fetch(1)
+        try:
+            msg = await psub.fetch(1)
+        except nats.errors.TimeoutError:
+            raise ValueError("No pipeline message received")
         self.pipeline = await receive_pipeline(msg[0], self.js)
         if self.pipeline is None:
             raise ValueError("Pipeline not found")
@@ -139,6 +167,7 @@ class Operator(ABC):
 
     async def shutdown(self):
         logger.info(f"Shutting down operator {self.id}...")
+        await self.execute_dependencies_teardown()
         if self.run_task:
             self.run_task.cancel()
             try:
@@ -153,6 +182,13 @@ class Operator(ABC):
             await self.nc.close()
 
         logger.info(f"Operator {self.id} shutdown complete")
+
+    async def execute_dependencies_teardown(self):
+        for gen in reversed(self._dependencies):
+            try:
+                await gen.__next__() if asyncio.iscoroutinefunction(gen) else next(gen)
+            except StopIteration:
+                pass
 
     # TODO: refactor into core
     async def setup_signal_handlers(self):
@@ -184,20 +220,20 @@ class Operator(ABC):
         if self.messenger is None:
             raise ValueError("Messenger not initialized")
         processed_message = self.kernel(message)
-        if self.messenger.output_ports:
+        if self.messenger.output_ports and processed_message:
             await self.messenger.send(processed_message)
 
     @abstractmethod
     def kernel(
         self,
         inputs: BytesMessage | None,
-    ) -> BytesMessage:
+    ) -> BytesMessage | None:
         pass
 
 
 KernelFn = Callable[
     [BytesMessage | None],
-    BytesMessage,
+    BytesMessage | None,
 ]
 
 

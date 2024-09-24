@@ -1,0 +1,8 @@
+{
+    "server": {
+        "connect": {
+            "state_hostname": "192.168.127.2",
+            "state_port": 15000
+        }
+    }
+}
