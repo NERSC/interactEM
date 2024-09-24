@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Any
 
 import zmq
 import zmq.asyncio
@@ -42,59 +42,30 @@ class SocketInfo(BaseModel):
             )
         return self
 
+class Socket(zmq.asyncio.Socket):
+    metrics: SocketMetrics
+    info: SocketInfo
 
-class Socket:
-    def __init__(self, info: SocketInfo, context: zmq.asyncio.Context):
-        self.info: SocketInfo = info
-        self._socket: zmq.asyncio.Socket = context.socket(info.type)
-        self._metrics: SocketMetrics = SocketMetrics()
+    def __init__(
+        self,
+        context=None,
+        socket_type=-1,
+        io_loop=None,
+        _from_socket: zmq.Socket | None = None,
+        **kwargs,
+    ) -> None:
+        info = kwargs.pop("info", None)
+        info = SocketInfo.model_validate(info)
+        super().__init__(context, socket_type, io_loop, _from_socket, **kwargs)
+        self.metrics = SocketMetrics()
+        self.info = info
 
-    def __del__(self):
-        self.close()
 
     def _configure(self):
         if self.info.options:
             logger.info("Setting socket options")
         for opt, val in self.info.options:
-            self._socket.set(opt, val)
-
-    async def send(
-        self,
-        data: Any,
-        flags: int = 0,
-        copy: bool = True,
-        track: bool = False,
-        **kwargs: Any,
-    ) -> zmq.MessageTracker | None:
-        return await self._socket.send(
-            data, flags=flags, copy=copy, track=track, **kwargs
-        )
-
-    async def send_multipart(
-        self,
-        msg_parts: list[Any],
-        flags: int = 0,
-        copy: bool = True,
-        track=False,
-        **kwargs,
-    ) -> zmq.MessageTracker | None:
-        return await self._socket.send_multipart(
-            msg_parts, flags=flags, copy=copy, track=track, **kwargs
-        )
-
-    async def recv(
-        # TODO: unsure about this Literal here...
-        self,
-        flags: int = 0,
-        copy: Literal[False] = False,
-        track: bool = False,
-    ) -> bytes | zmq.Frame:
-        return await self._socket.recv(flags, copy=copy, track=track)
-
-    async def recv_multipart(
-        self, flags: int = 0, copy: bool = True, track: bool = False
-    ) -> list[bytes] | list[zmq.Frame]:
-        return await self._socket.recv_multipart(flags=flags, copy=copy, track=track)
+            self.set(opt, val)
 
     def bind_or_connect(self) -> tuple[bool, int | None]:
         self._configure()
@@ -124,7 +95,7 @@ class Socket:
         if addr.protocol == Protocol.tcp:
             return self._bind_tcp(addr)
         else:
-            self._socket.bind(addr.to_bind_address())
+            self.bind(addr.to_bind_address())
             self.info.bound_to.append(self.info.parent_id)
             logger.info(f"Bound to {addr.to_bind_address()}")
             return False, None
@@ -133,11 +104,11 @@ class Socket:
         bind_addr = addr.to_bind_address()
         updated = False
         if not addr.port:
-            port = self._socket.bind_to_random_port(bind_addr)
+            port = self.bind_to_random_port(bind_addr)
             addr.port = port  # Update the address with the bound port
             updated = True
         else:
-            self._socket.bind(bind_addr)
+            self.bind(bind_addr)
             port = addr.port
 
         self.info.bound_to.append(self.info.parent_id)
@@ -151,7 +122,7 @@ class Socket:
     ) -> None:
         for id_type, addr_group in address_map.items():
             for addr in addr_group:
-                self._socket.connect(addr.to_connect_address())
+                self.connect(addr.to_connect_address())
                 logger.info(f"Connected to {addr.to_connect_address()}")
             self.info.connected_to.append(id_type)
 
@@ -168,7 +139,7 @@ class Socket:
         current_addresses = self.info.address_map.get(id_to_disconnect, [])
         for addr in current_addresses:
             logger.info(f"Disconnecting from {addr.to_connect_address()}")
-            self._socket.disconnect(addr.to_connect_address())
+            super().disconnect(addr.to_connect_address())
 
         self.info.connected_to.remove(id_to_disconnect)
 
@@ -180,4 +151,15 @@ class Socket:
     def close(self):
         self.info.connected_to.clear()
         self.info.bound_to.clear()
-        self._socket.close()
+        super().close()
+
+
+class Context(zmq.Context[Socket]):
+    # Here we copy zmq.asyncio.Context but replace
+    # the generic with our own Socket class
+    # This is the only way to get the correct type hints
+    _socket_class = Socket
+    _instance = None
+
+    def socket(self, info: SocketInfo) -> Socket:
+        return super().socket(socket_type=info.type, socket_class=Socket, info=info)

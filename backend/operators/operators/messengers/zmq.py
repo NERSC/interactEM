@@ -11,7 +11,6 @@ import nats.js.kv
 import zmq
 from nats.js import JetStreamContext
 from nats.js.errors import BucketNotFoundError
-from zmq.asyncio import Context
 
 from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
 from core.logger import get_logger
@@ -23,7 +22,7 @@ from core.models.uri import URI, CommBackend, URILocation, ZMQAddress
 from core.pipeline import Pipeline
 
 from ..messengers.base import BytesMessage
-from ..zsocket import Socket, SocketInfo
+from ..zsocket import Context, Socket, SocketInfo
 from .base import BaseMessenger, MessageHeader, MessageSubject
 
 logger = get_logger("messenger", "DEBUG")
@@ -253,7 +252,7 @@ class ZmqMessenger(BaseMessenger):
             )
             sockets = self.input_sockets
 
-        socket = Socket(info=socket_info, context=self._context)
+        socket = self._context.socket(info=socket_info)
         sockets[port_info.id] = socket
 
     async def setup_inputs(self, pipeline: Pipeline):
