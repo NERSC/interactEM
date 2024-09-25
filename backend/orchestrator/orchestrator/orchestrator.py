@@ -1,5 +1,4 @@
 import asyncio
-from collections.abc import Awaitable, Callable
 from itertools import cycle
 from uuid import uuid4
 
@@ -10,8 +9,6 @@ from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
 from nats.js.api import ConsumerConfig, DeliverPolicy, StreamConfig
-from nats.js.errors import BadRequestError, KeyNotFoundError, NoKeysError
-from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
 from core.constants import (
@@ -26,6 +23,13 @@ from core.logger import get_logger
 from core.models.agent import AgentVal
 from core.models.base import IdType
 from core.models.pipeline import PipelineAssignment, PipelineJSON
+from core.nats import (
+    consume_messages,
+    create_bucket_if_doesnt_exist,
+    create_or_update_stream,
+    get_agent_info,
+    get_agents,
+)
 from core.pipeline import OperatorJSON, Pipeline
 
 from .config import cfg
@@ -151,63 +155,6 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info("Pipeline run event processed.")
 
 
-async def consume_messages(
-    psub: JetStreamContext.PullSubscription,
-    handler: Callable[[NATSMsg, JetStreamContext], Awaitable],
-    js: JetStreamContext,
-):
-    while True:
-        msgs = await psub.fetch(1, timeout=None)
-        for msg in msgs:
-            await handler(msg, js)
-
-
-async def get_current_num_agents(js: JetStreamContext):
-    try:
-        bucket = await js.key_value(BUCKET_AGENTS)
-    except nats.js.errors.BucketNotFoundError:
-        bucket_cfg = nats.js.api.KeyValueConfig(
-            bucket=BUCKET_AGENTS, ttl=BUCKET_AGENTS_TTL
-        )
-        bucket = await js.create_key_value(config=bucket_cfg)
-    try:
-        num_agents = len(await bucket.keys())
-    except NoKeysError:
-        return 0
-    return num_agents
-
-
-async def get_agents(js: JetStreamContext) -> list[str]:
-    bucket = await js.key_value(BUCKET_AGENTS)
-    try:
-        agents = await bucket.keys()
-    except NoKeysError:
-        return []
-    return agents
-
-
-async def get_agent_info(js: JetStreamContext, agent_id: str) -> AgentVal | None:
-    bucket = await js.key_value(BUCKET_AGENTS)
-    try:
-        entry = await bucket.get(agent_id)
-        if not entry.value:
-            return
-        return AgentVal.model_validate_json(entry.value)
-    except KeyNotFoundError:
-        return
-
-
-async def create_bucket_if_doesnt_exist(
-    js: JetStreamContext, bucket_name: str, ttl: int
-) -> KeyValue:
-    try:
-        kv = await js.key_value(bucket_name)
-    except nats.js.errors.BucketNotFoundError:
-        bucket_cfg = nats.js.api.KeyValueConfig(bucket=bucket_name, ttl=ttl)
-        kv = await js.create_key_value(config=bucket_cfg)
-    return kv
-
-
 async def main():
     id: str = str(uuid4())
     nc: NATSClient = await nats.connect(
@@ -223,7 +170,10 @@ async def main():
         subject=SUBJECT_PIPELINES_RUN, config=consumer_cfg
     )
 
-    await create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL)
+    startup_tasks = []
+    startup_tasks.append(
+        create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL)
+    )
 
     agent_stream_cfg = StreamConfig(
         name=STREAM_AGENTS,
@@ -231,16 +181,7 @@ async def main():
         subjects=[f"{STREAM_AGENTS}.>"],
     )
 
-    # TODO: make this a util
-    try:
-        agent_stream_info = await js.add_stream(config=agent_stream_cfg)
-    except BadRequestError as e:
-        if e.err_code == 10058:  # Stream already exists
-            agent_stream_info = await js.update_stream(config=agent_stream_cfg)
-        else:
-            raise
-
-    logger.info(f"Created or updated agents stream: {agent_stream_info}")
+    startup_tasks.append(create_or_update_stream(agent_stream_cfg, js))
 
     operators_stream_cfg = StreamConfig(
         name=STREAM_OPERATORS,
@@ -248,16 +189,9 @@ async def main():
         subjects=[f"{STREAM_OPERATORS}.>"],
     )
 
-    # TODO: make this a util
-    try:
-        operators_stream_info = await js.add_stream(config=operators_stream_cfg)
-    except BadRequestError as e:
-        if e.err_code == 10058:  # Stream already exists
-            operators_stream_info = await js.update_stream(config=operators_stream_cfg)
-        else:
-            raise
+    startup_tasks.append(create_or_update_stream(operators_stream_cfg, js))
 
-    logger.info(f"Created or updated operators stream: {operators_stream_info}")
+    await asyncio.gather(*startup_tasks)
 
     await asyncio.gather(
         consume_messages(pipeline_run_psub, handle_run_pipeline, js),
