@@ -11,18 +11,11 @@ from core.models.base import (
     PortID,
     Protocol,
 )
+from core.models.ports import SocketMetrics
 from core.models.uri import ZMQAddress
 
 logger = get_logger("socket", "INFO")
 
-
-class SocketMetrics(BaseModel):
-    send_count: int = 0
-    send_bytes: int = 0
-    send_timeouts: int = 0
-    recv_count: int = 0
-    recv_bytes: int = 0
-    recv_timeouts: int = 0
 
 
 class SocketInfo(BaseModel):
