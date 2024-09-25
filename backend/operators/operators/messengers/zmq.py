@@ -69,10 +69,10 @@ class ZmqMessenger(BaseMessenger):
         except asyncio.QueueEmpty:
             pass
 
-        msg_coros: list[Awaitable[list[bytes] | list[zmq.Message]]] = []
-
-        for socket in self.input_sockets.values():
-            msg_coros.append(socket.recv_multipart())
+        msg_coros: list[Awaitable[list[bytes]]] = [
+            self._recv_and_update_metrics(socket)
+            for socket in self.input_sockets.values()
+        ]
 
         msgs = await asyncio.gather(*msg_coros)
 
@@ -115,6 +115,13 @@ class ZmqMessenger(BaseMessenger):
         tasks = [self.recv_queue.put(msg) for msg in all_messages[1:]]
         await asyncio.gather(*tasks)
         return all_messages[0]
+
+    async def _recv_and_update_metrics(self, socket: Socket) -> list[bytes]:
+        # TODO: handle timeout
+        msg_parts = await socket.recv_multipart()
+        socket.metrics.recv_count += 1
+        socket.metrics.recv_bytes += sum(len(part) for part in msg_parts)
+        return msg_parts
 
     async def send(self, message: BytesMessage):
         msg_futures = []
