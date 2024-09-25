@@ -271,7 +271,7 @@ class ZmqMessenger(BaseMessenger):
         for upstream_port, port_ids in self.upstream_port_map.items():
             addrs = await self.get_upstream_addresses(upstream_port)
             for port in port_ids:
-                self.input_sockets[port].info.address_map[upstream_port] = addrs
+                self.input_sockets[port].update_address_map(upstream_port, addrs)
                 self.input_sockets[port].bind_or_connect()
 
     async def get_upstream_addresses(self, upstream_port: PortID) -> list[ZMQAddress]:
@@ -296,11 +296,12 @@ class ZmqMessenger(BaseMessenger):
             self.add_socket(info)
 
         for port_id, socket in self.output_sockets.items():
+            # TODO: make interface/hostname configurable
             address = ZMQAddress(
                 protocol=Protocol.tcp, hostname="localhost", interface="lo"
             )
-            socket.info.address_map[port_id] = [address]
-            updated, port = socket.bind_or_connect()
+            socket.update_address_map(port_id, [address])
+            socket.bind_or_connect()
             info = self.output_infos[port_id]
             addresses = [a.to_address() for a in socket.info.address_map[port_id]]
 
