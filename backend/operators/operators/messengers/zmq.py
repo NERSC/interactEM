@@ -9,7 +9,6 @@ import nats.js.errors
 import nats.js.kv
 import zmq
 from nats.js import JetStreamContext
-from nats.js.errors import BucketNotFoundError
 
 from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
 from core.logger import get_logger
@@ -18,6 +17,7 @@ from core.models.base import OperatorID, PortID, Protocol
 from core.models.pipeline import InputJSON, OutputJSON
 from core.models.ports import PortStatus, PortVal
 from core.models.uri import URI, CommBackend, URILocation, ZMQAddress
+from core.nats import create_bucket_if_doesnt_exist
 from core.pipeline import Pipeline
 
 from ..messengers.base import BytesMessage
@@ -139,14 +139,9 @@ class ZmqMessenger(BaseMessenger):
     async def start(self, pipeline: Pipeline):
         logger.info(f"Setting up operator {self._id}...")
 
-        # TODO: make this a util (also present in orchestrator)
-        try:
-            self.kv = await self.js.key_value(BUCKET_OPERATORS)
-        except BucketNotFoundError:
-            bucket_cfg = nats.js.api.KeyValueConfig(
-                bucket=BUCKET_OPERATORS, ttl=BUCKET_OPERATORS_TTL
-            )
-            self.kv = await self.js.create_key_value(config=bucket_cfg)
+        self.kv = await create_bucket_if_doesnt_exist(
+            self.js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
+        )
 
         try:
             await asyncio.wait_for(

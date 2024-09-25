@@ -14,3 +14,12 @@ class PortStatus(str, Enum):
 class PortVal(BaseModel):
     uri: URI
     status: PortStatus
+
+
+class SocketMetrics(BaseModel):
+    send_count: int = 0
+    send_bytes: int = 0
+    send_timeouts: int = 0
+    recv_count: int = 0
+    recv_bytes: int = 0
+    recv_timeouts: int = 0
