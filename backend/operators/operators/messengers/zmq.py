@@ -1,6 +1,5 @@
 import asyncio
-from collections.abc import Coroutine
-from typing import Any
+from collections.abc import Awaitable
 from uuid import UUID
 
 import nats
@@ -70,7 +69,7 @@ class ZmqMessenger(BaseMessenger):
         except asyncio.QueueEmpty:
             pass
 
-        msg_coros: list[Coroutine[Any, Any, list[bytes] | list[zmq.Message]]] = []
+        msg_coros: list[Awaitable[list[bytes] | list[zmq.Message]]] = []
 
         for socket in self.input_sockets.values():
             msg_coros.append(socket.recv_multipart())
