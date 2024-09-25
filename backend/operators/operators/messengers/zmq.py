@@ -128,8 +128,13 @@ class ZmqMessenger(BaseMessenger):
         for socket in self.output_sockets.values():
             data = message.data
             header = message.header.model_dump_json().encode()
-            msg_futures.append(socket.send_multipart([header, data]))
+            msg_futures.append(self._send_and_update_metrics(socket, [header, data]))
         await asyncio.gather(*msg_futures)
+
+    async def _send_and_update_metrics(self, socket: Socket, messages: list[bytes]):
+        await socket.send_multipart(messages)
+        socket.metrics.send_count += 1
+        socket.metrics.send_bytes += sum(len(part) for part in messages)
 
     async def start(self, pipeline: Pipeline):
         logger.info(f"Setting up operator {self._id}...")
