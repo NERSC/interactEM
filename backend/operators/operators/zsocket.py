@@ -67,7 +67,7 @@ class Socket(zmq.asyncio.Socket):
         for opt, val in self.info.options:
             self.set(opt, val)
 
-    def bind_or_connect(self) -> tuple[bool, int | None]:
+    def bind_or_connect(self) -> None:
         self._configure()
 
         if not self.info.address_map or all(
@@ -79,11 +79,14 @@ class Socket(zmq.asyncio.Socket):
         if self.info.bind:
             return self._bind_to_addresses(self.info.address_map)
         else:
-            return (False, self._connect_to_addresses(self.info.address_map))
+            return self._connect_to_addresses(self.info.address_map)
+
+    def update_address_map(self, port_id: IdType, addresses: Sequence[ZMQAddress]):
+        self.info.address_map[port_id] = addresses
 
     def _bind_to_addresses(
         self, address_map: dict[IdType, Sequence[ZMQAddress]]
-    ) -> tuple[bool, int | None]:
+    ) -> None:
         if len(address_map) > 1:
             raise ValueError("Can't bind to multiple address groups when binding.")
 
@@ -92,30 +95,18 @@ class Socket(zmq.asyncio.Socket):
             raise ValueError("Can't bind to multiple addresses within a single group.")
 
         addr = addr_group[0]
-        if addr.protocol == Protocol.tcp:
-            return self._bind_tcp(addr)
-        else:
-            self.bind(addr.to_bind_address())
-            self.info.bound_to.append(self.info.parent_id)
-            logger.info(f"Bound to {addr.to_bind_address()}")
-            return False, None
-
-    def _bind_tcp(self, addr: ZMQAddress) -> tuple[bool, int | None]:
         bind_addr = addr.to_bind_address()
-        updated = False
-        if not addr.port:
+        if addr.protocol == Protocol.tcp and not addr.port:
             port = self.bind_to_random_port(bind_addr)
-            addr.port = port  # Update the address with the bound port
-            updated = True
+            addr.port = port
+            # TODO: check if this correctly updates the address_map
         else:
             self.bind(bind_addr)
-            port = addr.port
 
         self.info.bound_to.append(self.info.parent_id)
         logger.info(
-            f"Socket on {self.info.parent_id} bound to port: {port} on {addr.hostname}"
+            f"Socket on {self.info.parent_id} bound to {addr.to_bind_address()}"
         )
-        return updated, port
 
     def _connect_to_addresses(
         self, address_map: dict[IdType, Sequence[ZMQAddress]]
