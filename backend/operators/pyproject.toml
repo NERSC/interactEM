@@ -7,7 +7,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-nats-py = "^2.8.0"
 core = {path = "../core", develop = true}
 pyzmq = "^26.1.0"
 networkx = "^3.3"
