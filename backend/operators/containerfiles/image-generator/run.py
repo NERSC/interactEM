@@ -3,7 +3,7 @@ import os
 
 from core.constants import OPERATOR_ID_ENV_VAR
 from core.logger import get_logger
-from operators.examples import send_image_every_second
+from operators.examples import send_image
 
 logger = get_logger("operator_main", "DEBUG")
 
@@ -14,7 +14,7 @@ async def async_main():
     if OPERATOR_ID is None:
         logger.error("No operator ID provided")
         return
-    operator = send_image_every_second()
+    operator = send_image()
     await operator.start()
 
 
