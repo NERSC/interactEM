@@ -139,7 +139,7 @@ class ZmqMessenger(BaseMessenger):
     async def start(self, pipeline: Pipeline):
         logger.info(f"Setting up operator {self._id}...")
 
-        self.kv = await create_bucket_if_doesnt_exist(
+        self.operator_kv = await create_bucket_if_doesnt_exist(
             self.js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
         )
 
@@ -181,7 +181,7 @@ class ZmqMessenger(BaseMessenger):
         logger.info(f"Starting upstream connection watcher, watching: {upstream_ports}")
         watchers: dict[UUID, nats.js.kv.KeyValue.KeyWatcher] = {}
         for key in upstream_ports:
-            watchers[key] = await self.kv.watch(
+            watchers[key] = await self.operator_kv.watch(
                 key, ignore_deletes=False, include_history=False
             )
 
@@ -213,13 +213,20 @@ class ZmqMessenger(BaseMessenger):
                     continue
                 state[key] = val
                 val = PortVal.model_validate_json(val)
+                if val.uri is None:
+                    logger.warning(f"URI not found for port {key}")
+                    ids_to_disconnect = self.upstream_port_map[key]
+                    for id in ids_to_disconnect:
+                        self.input_sockets[id].disconnect(key)
+                    continue
                 addrs = val.uri.query.get("address", [])
                 if not addrs:
                     logger.warning(f"No addresses found for port {key}")
                     continue
                 addrs = [ZMQAddress.from_address(addr) for addr in addrs]
                 for id in self.upstream_port_map[key]:
-                    self.input_sockets[id].reconnect(key, addrs)
+                    if self.input_sockets[id].info.address_map.get(key) != addrs:
+                        self.input_sockets[id].reconnect(key, addrs)
 
             # If shutdown is requested, cancel all pending tasks
             if self._shutdown_event.is_set():
@@ -231,14 +238,18 @@ class ZmqMessenger(BaseMessenger):
     async def update_kv(self):
         while not self._shutdown_event.is_set():
             fut = []
-            for port_id, val in self.port_vals.items():
-                fut.append(self.kv.put(str(port_id), val.model_dump_json().encode()))
+            for val in self.port_vals.values():
+                fut.append(
+                    self.operator_kv.put(str(val.id), val.model_dump_json().encode())
+                )
             await asyncio.gather(*fut)
             await asyncio.sleep(1)
         logger.info(f"Operator {self._id} shutting down, deleting KV...")
         logger.info("Removing ports from KV store...")
         logger.info(f"Deleting keys: {self.port_vals.keys()}")
-        fut = [self.kv.delete(str(port_id)) for port_id in self.port_vals.keys()]
+        fut = [
+            self.operator_kv.delete(str(port_id)) for port_id in self.port_vals.keys()
+        ]
         await asyncio.gather(*fut)
         logger.info("KV store cleanup complete")
 
@@ -280,15 +291,22 @@ class ZmqMessenger(BaseMessenger):
             for port in port_ids:
                 self.input_sockets[port].update_address_map(upstream_port, addrs)
                 self.input_sockets[port].bind_or_connect()
+                self.port_vals[port] = PortVal(
+                    id=port,
+                    status=PortStatus.IDLE,
+                )
 
     async def get_upstream_addresses(self, upstream_port: PortID) -> list[ZMQAddress]:
         while True:
             try:
-                val = await self.kv.get(str(upstream_port))
+                val = await self.operator_kv.get(str(upstream_port))
                 if not val.value:
                     raise nats.js.errors.KeyNotFoundError
                 port_val = PortVal.model_validate_json(val.value)
                 uri = port_val.uri
+                if not uri:
+                    await asyncio.sleep(1)
+                    continue
                 addrs = uri.query.get("address", [])
                 addresses = [ZMQAddress.from_address(addr) for addr in addrs]
                 return addresses
@@ -320,8 +338,8 @@ class ZmqMessenger(BaseMessenger):
                 query={"address": addresses},
                 comm_backend=CommBackend.ZMQ,
             )
-            val = PortVal(uri=uri, status=PortStatus.IDLE)
-            await self.kv.put(str(port_id), val.model_dump_json().encode())
+            val = PortVal(id=port_id, uri=uri, status=PortStatus.IDLE)
+            await self.operator_kv.put(str(val.id), val.model_dump_json().encode())
             self.port_vals[port_id] = val
 
     # TODO: implement
