@@ -10,7 +10,12 @@ import nats.js.kv
 import zmq
 from nats.js import JetStreamContext
 
-from core.constants import BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
+from core.constants import (
+    BUCKET_METRICS,
+    BUCKET_METRICS_TTL,
+    BUCKET_OPERATORS,
+    BUCKET_OPERATORS_TTL,
+)
 from core.logger import get_logger
 from core.models import PortJSON, PortType
 from core.models.base import OperatorID, PortID, Protocol
@@ -143,6 +148,10 @@ class ZmqMessenger(BaseMessenger):
             self.js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
         )
 
+        self.metrics_kv = await create_bucket_if_doesnt_exist(
+            self.js, BUCKET_METRICS, BUCKET_METRICS_TTL
+        )
+
         try:
             await asyncio.wait_for(
                 asyncio.gather(
@@ -241,6 +250,16 @@ class ZmqMessenger(BaseMessenger):
             for val in self.port_vals.values():
                 fut.append(
                     self.operator_kv.put(str(val.id), val.model_dump_json().encode())
+                )
+            all_sockets = list(self.input_sockets.values()) + list(
+                self.output_sockets.values()
+            )
+            for socket in all_sockets:
+                fut.append(
+                    self.metrics_kv.put(
+                        f"{self._id}.{socket.info.parent_id}",
+                        socket.metrics.model_dump_json().encode(),
+                    )
                 )
             await asyncio.gather(*fut)
             await asyncio.sleep(1)
