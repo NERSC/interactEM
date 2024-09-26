@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "metrics"
+version = "0.1.0"
+description = ""
+authors = ["Sam Welborn <swelborn@lbl.gov>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+core = {path = "../core", develop = true}
+pydantic-settings = "^2.4.0"
+aiohttp = "^3.10.5"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py310"
+
+[tool.ruff.lint]
+exclude = ["**/__init__.py", "thirdparty/**", "conftest.py"]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4", # flake8-comprehensions
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501", # line too long, handled by black
+    "B008", # do not perform function calls in argument defaults
+    "W191", # indentation contains tabs
+    "B904", # Allow raising exceptions without from e, for HTTPException
+]
+
+isort = { known-first-party = ['operators', 'core'] }
+
+[tool.ruff.lint.pyupgrade]
+# Preserve types, even if a file imports `from __future__ import annotations`.
+keep-runtime-typing = true
