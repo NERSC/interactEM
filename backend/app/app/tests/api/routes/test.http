@@ -55,6 +55,20 @@ Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjY4NTk3M
           "87654321-4321-4321-4321-1234567890ab",
           "87654321-4321-4321-4321-1234567890cd"
         ],
+        "mounts": [
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/operators/operators/",
+            "target": "/app/operators/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/core/core/",
+            "target": "/core/core/",
+            "read_only": true
+          }
+        ],
         "params": {
           "hello": "world"
         },
@@ -68,6 +82,20 @@ Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjY4NTk3M
         ],
         "node_type": "operator",
         "outputs": [],
+        "mounts": [
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/operators/operators/",
+            "target": "/app/operators/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/core/core/",
+            "target": "/core/core/",
+            "read_only": true
+          }
+        ],
         "params": {
           "hello": "world"
         },
@@ -78,6 +106,20 @@ Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjY4NTk3M
         "image": "interactem/image-receiver",
         "inputs": [
           "87654321-4321-4321-4321-1234567890ff"
+        ],
+        "mounts": [
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/operators/operators/",
+            "target": "/app/operators/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/core/core/",
+            "target": "/core/core/",
+            "read_only": true
+          }
         ],
         "node_type": "operator",
         "outputs": [],
