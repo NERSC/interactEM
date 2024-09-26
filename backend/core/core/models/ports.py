@@ -13,11 +13,6 @@ class PortStatus(str, Enum):
     BUSY = "busy"
 
 
-class PortVal(BaseModel):
-    uri: URI
-    status: PortStatus
-
-
 class PortMetrics(BaseModel):
     id: IdType
     send_count: int = 0
@@ -26,3 +21,9 @@ class PortMetrics(BaseModel):
     recv_count: int = 0
     recv_bytes: int = 0
     recv_timeouts: int = 0
+
+
+class PortVal(BaseModel):
+    id: IdType
+    uri: URI | None = None
+    status: PortStatus | None = None
