@@ -11,7 +11,7 @@ from core.models.base import (
     PortID,
     Protocol,
 )
-from core.models.ports import SocketMetrics
+from core.models.ports import PortMetrics
 from core.models.uri import ZMQAddress
 
 logger = get_logger("socket", "INFO")
@@ -36,7 +36,7 @@ class SocketInfo(BaseModel):
         return self
 
 class Socket(zmq.asyncio.Socket):
-    metrics: SocketMetrics
+    metrics: PortMetrics
     info: SocketInfo
 
     def __init__(
@@ -50,7 +50,7 @@ class Socket(zmq.asyncio.Socket):
         info = kwargs.pop("info", None)
         info = SocketInfo.model_validate(info)
         super().__init__(context, socket_type, io_loop, _from_socket, **kwargs)
-        self.metrics = SocketMetrics()
+        self.metrics = PortMetrics(id=info.parent_id)
         self.info = info
 
 
