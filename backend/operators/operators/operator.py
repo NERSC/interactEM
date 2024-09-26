@@ -3,6 +3,7 @@ import os
 import signal
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Generator
+from datetime import datetime
 from functools import wraps
 from typing import Any
 from uuid import UUID
@@ -19,6 +20,8 @@ from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
 from core.constants import (
+    BUCKET_METRICS,
+    BUCKET_METRICS_TTL,
     BUCKET_OPERATORS,
     BUCKET_OPERATORS_TTL,
     OPERATOR_ID_ENV_VAR,
@@ -26,6 +29,8 @@ from core.constants import (
 )
 from core.logger import get_logger
 from core.models import CommBackend, OperatorJSON, PipelineJSON
+from core.models.operators import OperatorMetrics, OperatorTiming
+from core.nats import create_bucket_if_doesnt_exist
 from core.pipeline import Pipeline
 
 from .config import cfg
@@ -72,8 +77,12 @@ class Operator(ABC):
         self.info: OperatorJSON | None = None
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
-        self.kv: KeyValue | None = None
+        self.operators_kv: KeyValue | None = None
         self.messenger_task: asyncio.Task | None = None
+        self.update_kv_task: asyncio.Task | None = None
+        self.metrics: OperatorMetrics = OperatorMetrics(
+            id=self.id, timing=OperatorTiming()
+        )
         self.run_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self._dependencies = []
@@ -98,6 +107,7 @@ class Operator(ABC):
         if not self.messenger:
             raise ValueError("Messenger not initialized")
         await self.messenger.start(self.pipeline)
+        self.update_kv_task = asyncio.create_task(self.update_kv())
         self.run_task = asyncio.create_task(self.run())
         await self._shutdown_event.wait()
         await self.shutdown()
@@ -142,17 +152,27 @@ class Operator(ABC):
         if self.info is None:
             raise ValueError(f"Operator {self.id} not found in pipeline")
 
+    async def update_kv(self):
+        while not self._shutdown_event.is_set():
+            try:
+                timing = OperatorTiming.model_validate(self.metrics.timing)
+                metrics = OperatorMetrics(id=self.id, timing=timing)
+            except ValidationError:
+                await asyncio.sleep(1)
+                continue
+            await self.metrics_kv.put(str(self.id), metrics.model_dump_json().encode())
+            await asyncio.sleep(1)
+
     async def setup_key_value_store(self):
         logger.info(f"Setting up Key-Value store for operator {self.id}...")
         if not self.js:
             raise ValueError("JetStream context not initialized")
-        try:
-            self.kv = await self.js.key_value(BUCKET_OPERATORS)
-        except nats.js.errors.BucketNotFoundError:
-            bucket_cfg = nats.js.api.KeyValueConfig(
-                bucket=BUCKET_OPERATORS, ttl=BUCKET_OPERATORS_TTL
-            )
-            self.kv = await self.js.create_key_value(config=bucket_cfg)
+        self.operators_kv = await create_bucket_if_doesnt_exist(
+            self.js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
+        )
+        self.metrics_kv = await create_bucket_if_doesnt_exist(
+            self.js, BUCKET_METRICS, BUCKET_METRICS_TTL
+        )
 
     async def initialize_messenger(self):
         # TODO: put this somewhere else
@@ -207,21 +227,26 @@ class Operator(ABC):
         if not self.messenger:
             raise ValueError("Messenger not initialized")
         has_input_op = True if len(self.messenger.input_ports) > 0 else False
+        loop_counter = 0
         while not self._shutdown_event.is_set():
+            msg = None
+            timing: bool = loop_counter % 100 == 0
+            if timing:
+                self.metrics.timing.before_recv = datetime.now()
             if has_input_op:
                 msg = await self.messenger.recv()
                 if not msg:
                     continue
-                await self.operate(msg)
-            else:
-                await self.operate(None)
-
-    async def operate(self, message: BytesMessage | None):
-        if self.messenger is None:
-            raise ValueError("Messenger not initialized")
-        processed_message = self.kernel(message)
-        if self.messenger.output_ports and processed_message:
-            await self.messenger.send(processed_message)
+            if timing:
+                self.metrics.timing.before_kernel = datetime.now()
+            processed_msg = self.kernel(msg)
+            if timing:
+                self.metrics.timing.after_kernel = datetime.now()
+            if self.messenger.output_ports and processed_msg:
+                await self.messenger.send(processed_msg)
+            if timing:
+                self.metrics.timing.after_send = datetime.now()
+            loop_counter += 1
 
     @abstractmethod
     def kernel(

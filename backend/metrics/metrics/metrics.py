@@ -11,6 +11,7 @@ from nats.js.kv import KeyValue
 
 from core.constants import BUCKET_METRICS, BUCKET_METRICS_TTL
 from core.logger import get_logger
+from core.models.operators import OperatorMetrics  # Import the OperatorMetrics model
 from core.models.ports import PortMetrics
 from core.nats import create_bucket_if_doesnt_exist
 
@@ -45,6 +46,7 @@ async def metrics_watch(bucket: KeyValue):
 
     while True:
         keys: list[str] = []
+
         try:
             keys = await bucket.keys()
         except NoKeysError:
@@ -53,51 +55,65 @@ async def metrics_watch(bucket: KeyValue):
 
         current_time = asyncio.get_event_loop().time()
 
-        for key in keys:
+        fut = []
+
+        async def safe_get(bucket: KeyValue, key: str) -> KeyValue.Entry | None:
             try:
-                entry = await bucket.get(key)
+                return await bucket.get(key)
             except KeyNotFoundError:
+                return None
+
+        fut = [safe_get(bucket, key) for key in keys]
+        entries: list[KeyValue.Entry | None] = await asyncio.gather(*fut)
+        entries = [entry for entry in entries if entry is not None]
+
+        for entry in entries:
+            if not entry:
                 continue
             if not entry.value:
                 continue
-            metrics = PortMetrics.model_validate_json(entry.value)
+            key = entry.key
 
-            if key not in moving_averages:
-                moving_averages[key] = {
-                    "send": {
-                        "2s": MovingAverage(2),
-                        "5s": MovingAverage(5),
-                        "30s": MovingAverage(30),
-                    },
-                    "recv": {
-                        "2s": MovingAverage(2),
-                        "5s": MovingAverage(5),
-                        "30s": MovingAverage(30),
-                    },
-                }
+            # TODO: these could go into separate buckets instead of a single bucket
+            if "." in key:  # Port key (contains a period)
+                metrics = PortMetrics.model_validate_json(entry.value)
+                port_key = metrics.id
 
-            moving_averages[key]["send"]["2s"].add_value(
-                current_time, metrics.send_bytes
-            )
-            moving_averages[key]["send"]["5s"].add_value(
-                current_time, metrics.send_bytes
-            )
-            moving_averages[key]["send"]["30s"].add_value(
-                current_time, metrics.send_bytes
-            )
+                if key not in moving_averages:
+                    moving_averages[key] = {
+                        "send": {
+                            "2s": MovingAverage(2),
+                            "5s": MovingAverage(5),
+                            "30s": MovingAverage(30),
+                        },
+                        "recv": {
+                            "2s": MovingAverage(2),
+                            "5s": MovingAverage(5),
+                            "30s": MovingAverage(30),
+                        },
+                    }
 
-            moving_averages[key]["recv"]["2s"].add_value(
-                current_time, metrics.recv_bytes
-            )
-            moving_averages[key]["recv"]["5s"].add_value(
-                current_time, metrics.recv_bytes
-            )
-            moving_averages[key]["recv"]["30s"].add_value(
-                current_time, metrics.recv_bytes
-            )
+                moving_averages[key]["send"]["2s"].add_value(
+                    current_time, metrics.send_bytes
+                )
+                moving_averages[key]["send"]["5s"].add_value(
+                    current_time, metrics.send_bytes
+                )
+                moving_averages[key]["send"]["30s"].add_value(
+                    current_time, metrics.send_bytes
+                )
 
-            if key == keys[0]:
-                logger.info(f"Key: {key}")
+                moving_averages[key]["recv"]["2s"].add_value(
+                    current_time, metrics.recv_bytes
+                )
+                moving_averages[key]["recv"]["5s"].add_value(
+                    current_time, metrics.recv_bytes
+                )
+                moving_averages[key]["recv"]["30s"].add_value(
+                    current_time, metrics.recv_bytes
+                )
+
+                logger.info(f"Port Key: {port_key}")
                 logger.info(
                     f"  Send 2s avg throughput: {moving_averages[key]['send']['2s'].average():.2f} Mbit/s"
                 )
@@ -116,6 +132,12 @@ async def metrics_watch(bucket: KeyValue):
                 logger.info(
                     f"  Recv 30s avg throughput: {moving_averages[key]['recv']['30s'].average():.2f} Mbit/s"
                 )
+            else:  # Operator key (does not contain a period)
+                metrics = OperatorMetrics.model_validate_json(entry.value)
+
+                logger.info(f"Operator Key: {key}")
+                metrics.timing.print_timing_info(logger)
+
         await asyncio.sleep(1)
 
 
