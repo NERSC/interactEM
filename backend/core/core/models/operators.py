@@ -57,17 +57,17 @@ class OperatorTiming(BaseModel):
         total_time = self.total_time()
 
         if time_to_recv:
-            logger.info(
-                f"  Time to receive: {time_to_recv.total_seconds():.6f} seconds"
-            )
+            s = time_to_recv.total_seconds()
+            logger.info(f"  Time to receive: {s:.6f} seconds")
         if time_to_kernel:
-            logger.info(
-                f"  Time to run kernel: {time_to_kernel.total_seconds():.6f} seconds"
-            )
+            s = time_to_kernel.total_seconds()
+            logger.info(f"  Time to run kernel: {s:.6f} seconds")
         if time_to_send:
-            logger.info(f"  Time to send: {time_to_send.total_seconds():.6f} seconds")
+            s = time_to_send.total_seconds()
+            logger.info(f"  Time to send: {s:.6f} seconds")
         if total_time:
-            logger.info(f"  Total time: {total_time.total_seconds():.6f} seconds")
+            s = total_time.total_seconds()
+            logger.info(f"  Total time: {s:.6f} seconds")
 
 
 class OperatorMetrics(BaseModel):
