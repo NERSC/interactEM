@@ -14,6 +14,8 @@ from pydantic import ValidationError
 from core.constants import (
     BUCKET_AGENTS,
     BUCKET_AGENTS_TTL,
+    BUCKET_PIPELINES,
+    BUCKET_PIPELINES_TTL,
     STREAM_AGENTS,
     STREAM_OPERATORS,
     SUBJECT_PIPELINES_RUN,
@@ -29,6 +31,7 @@ from core.nats import (
     create_or_update_stream,
     get_agents_bucket,
     get_keys,
+    get_pipelines_bucket,
     get_val,
 )
 from core.pipeline import OperatorJSON, Pipeline
@@ -37,6 +40,8 @@ from .config import cfg
 
 logger = get_logger("orchestrator", "DEBUG")
 
+pipelines = {}
+
 
 async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignment):
     await js.publish(
@@ -44,6 +49,18 @@ async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignmen
         stream=f"{STREAM_AGENTS}",
         payload=assignment.model_dump_json().encode(),
     )
+
+
+async def update_pipeline_kv(js: JetStreamContext, pipeline: PipelineJSON):
+    pipeline_bucket = await get_pipelines_bucket(js)
+    await pipeline_bucket.put(str(pipeline.id), pipeline.model_dump_json().encode())
+
+
+async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
+    while True:
+        for pipeline in pipelines.values():
+            await update_pipeline_kv(js, pipeline)
+        await asyncio.sleep(interval)
 
 
 def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
@@ -161,6 +178,9 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
         *[publish_assignment(js, assignment) for assignment in assignments]
     )
 
+    logger.info("Pipeline assigned to agents.")
+    await update_pipeline_kv(js, valid_pipeline)
+    pipelines[valid_pipeline.id] = valid_pipeline
     logger.info("Pipeline run event processed.")
 
 
@@ -172,6 +192,7 @@ async def main():
     js: JetStreamContext = nc.jetstream()
 
     logger.info("Orchestrator is running...")
+
     consumer_cfg = ConsumerConfig(
         description=f"orchestrator-{id}", deliver_policy=DeliverPolicy.LAST_PER_SUBJECT
     )
@@ -181,7 +202,10 @@ async def main():
 
     startup_tasks = []
     startup_tasks.append(
-        create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL)
+        create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL),
+    )
+    startup_tasks.append(
+        create_bucket_if_doesnt_exist(js, BUCKET_PIPELINES, BUCKET_PIPELINES_TTL),
     )
 
     agent_stream_cfg = StreamConfig(
@@ -189,7 +213,6 @@ async def main():
         description="A stream for messages to the agents.",
         subjects=[f"{STREAM_AGENTS}.>"],
     )
-
     startup_tasks.append(create_or_update_stream(agent_stream_cfg, js))
 
     operators_stream_cfg = StreamConfig(
@@ -197,10 +220,11 @@ async def main():
         description="A stream for messages for operators.",
         subjects=[f"{STREAM_OPERATORS}.>"],
     )
-
     startup_tasks.append(create_or_update_stream(operators_stream_cfg, js))
 
     await asyncio.gather(*startup_tasks)
+
+    asyncio.create_task(continuous_update_kv(js))
 
     await asyncio.gather(
         consume_messages(pipeline_run_psub, handle_run_pipeline, js),

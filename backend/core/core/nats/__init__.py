@@ -6,6 +6,8 @@ from core.constants import (
     BUCKET_METRICS_TTL,
     BUCKET_OPERATORS,
     BUCKET_OPERATORS_TTL,
+    BUCKET_PIPELINES,
+    BUCKET_PIPELINES_TTL,
 )
 from core.models.agent import AgentVal
 from core.models.operators import OperatorMetrics, OperatorVal
@@ -46,6 +48,12 @@ async def get_agents_bucket(js: JetStreamContext) -> KeyValue:
 async def get_operators_bucket(js: JetStreamContext) -> KeyValue:
     return await create_bucket_if_doesnt_exist(
         js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
+    )
+
+
+async def get_pipelines_bucket(js: JetStreamContext) -> KeyValue:
+    return await create_bucket_if_doesnt_exist(
+        js, BUCKET_PIPELINES, BUCKET_PIPELINES_TTL
     )
 
 
