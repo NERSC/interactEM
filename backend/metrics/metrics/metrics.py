@@ -1,5 +1,6 @@
 import asyncio
 from collections import deque
+from enum import Enum
 
 import nats
 from nats.aio.client import Client as NATSClient
@@ -13,6 +14,10 @@ from core.nats import get_keys, get_metrics_bucket, get_val
 from .config import cfg
 
 logger = get_logger("metrics", "DEBUG")
+
+class MetricType(str, Enum):
+    THROUGHPUT = "throughput (Mbps)"
+    MESSAGES = "messages"
 
 
 class MovingAverage:
@@ -28,16 +33,32 @@ class MovingAverage:
         while self.values and (current_time - self.values[0][0]) > self.max_seconds:
             self.values.popleft()
 
-    def average(self) -> float:
+    def average_throughput(self) -> float:
         if not self.values:
             return 0.0
         total_bytes = self.values[-1][1] - self.values[0][1]
         total_time = self.values[-1][0] - self.values[0][0]
-        return (total_bytes * 8) / (total_time * 1_000_000) if total_time > 0 else 0.0
+        if total_time > 0:
+            total_bits = total_bytes * 8
+            total_megabits = total_bits / 1_000_000
+            return total_megabits / total_time
+        return 0.0
 
-    def log_averages(self, interval: str, direction: str):
-        avg = self.average()
-        logger.info(f"  {direction} {interval} avg throughput: {avg:.2f} Mbit/s")
+    def average_messages(self) -> float:
+        if not self.values:
+            return 0.0
+        total_messages = self.values[-1][1] - self.values[0][1]
+        total_time = self.values[-1][0] - self.values[0][0]
+        return total_messages / total_time if total_time > 0 else 0.0
+
+    def log_averages(self, interval: str, metric_type: MetricType, direction: str):
+        metric_types = {
+            MetricType.THROUGHPUT: self.average_throughput,
+            MetricType.MESSAGES: self.average_messages,
+        }
+        avg = metric_types[metric_type]()
+        logger.info(f"  {direction} {interval} avg {metric_type.value}: {avg:.2f}")
+
 
 
 class PortMovingAverages:
@@ -46,22 +67,36 @@ class PortMovingAverages:
         self.send_bytes = {
             f"{interval}s": MovingAverage(interval) for interval in intervals
         }
+        self.send_num_msgs = {
+            f"{interval}s": MovingAverage(interval) for interval in intervals
+        }
         self.recv_bytes = {
+            f"{interval}s": MovingAverage(interval) for interval in intervals
+        }
+        self.recv_num_msgs = {
             f"{interval}s": MovingAverage(interval) for interval in intervals
         }
 
     def add_metrics(self, current_time: float, metric: PortMetrics):
         for moving_average in self.send_bytes.values():
             moving_average.add_value(current_time, metric.send_bytes)
+        for moving_average in self.send_num_msgs.values():
+            moving_average.add_value(current_time, metric.send_count)
         for moving_average in self.recv_bytes.values():
             moving_average.add_value(current_time, metric.recv_bytes)
+        for moving_average in self.recv_num_msgs.values():
+            moving_average.add_value(current_time, metric.recv_count)
 
     def log_averages(self, key: str):
         logger.info(f"Port: {key}")
         for interval, moving_average in self.send_bytes.items():
-            moving_average.log_averages(interval, "Send")
+            moving_average.log_averages(interval, MetricType.THROUGHPUT, "Send")
+        for interval, moving_average in self.send_num_msgs.items():
+            moving_average.log_averages(interval, MetricType.MESSAGES, "Send")
         for interval, moving_average in self.recv_bytes.items():
-            moving_average.log_averages(interval, "Recv")
+            moving_average.log_averages(interval, MetricType.THROUGHPUT, "Recv")
+        for interval, moving_average in self.recv_num_msgs.items():
+            moving_average.log_averages(interval, MetricType.MESSAGES, "Recv")
 
 
 async def metrics_watch(
