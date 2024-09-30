@@ -56,7 +56,7 @@ def dependencies(
     return func
 
 
-async def receive_pipeline(msg: NATSMsg, js: JetStreamContext) -> Pipeline | None:
+async def receive_pipeline(msg: NATSMsg) -> Pipeline | None:
     await msg.ack()
 
     try:
@@ -145,7 +145,7 @@ class Operator(ABC):
             msg = await psub.fetch(1)
         except nats.errors.TimeoutError:
             raise ValueError("No pipeline message received")
-        self.pipeline = await receive_pipeline(msg[0], self.js)
+        self.pipeline = await receive_pipeline(msg[0])
         if self.pipeline is None:
             raise ValueError("Pipeline not found")
         self.info = self.pipeline.get_operator(self.id)
