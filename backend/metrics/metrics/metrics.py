@@ -5,11 +5,14 @@ from enum import Enum
 import nats
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
+from pydantic import BaseModel
 
 from core.logger import get_logger
+from core.models.base import IdType
 from core.models.operators import OperatorMetrics  # Import the OperatorMetrics model
+from core.models.pipeline import PipelineJSON
 from core.models.ports import PortMetrics
-from core.nats import get_keys, get_metrics_bucket, get_val
+from core.nats import get_keys, get_metrics_bucket, get_pipelines_bucket, get_val
 
 from .config import cfg
 
@@ -18,6 +21,72 @@ logger = get_logger("metrics", "DEBUG")
 class MetricType(str, Enum):
     THROUGHPUT = "throughput (Mbps)"
     MESSAGES = "messages"
+
+class EdgeMetric(BaseModel):
+    input_id: IdType
+    input_num_messages: int = 0
+    input_num_bytes: int = 0
+    input_throughput: float = 0.0
+    input_avg_messages: float = 0.0
+    output_id: IdType
+    output_num_messages: int = 0
+    output_num_bytes: int = 0
+    output_throughput: float = 0.0
+    output_avg_messages: float = 0.0
+
+    def calculate_differences(self):
+        message_diff = self.input_num_messages - self.output_num_messages
+        byte_diff = self.input_num_bytes - self.output_num_bytes
+        throughput_diff = self.input_throughput - self.output_throughput
+        avg_messages_diff = self.input_avg_messages - self.output_avg_messages
+        return {
+            "message_diff": message_diff,
+            "byte_diff": byte_diff,
+            "throughput_diff": throughput_diff,
+            "avg_messages_diff": avg_messages_diff,
+        }
+
+    def log_metrics(self):
+        logger.info(f"Edge from {self.input_id} to {self.output_id}:")
+        logger.info(
+            f"  Sent {self.input_num_messages} messages, {self.input_num_bytes} bytes"
+        )
+        logger.info(
+            f"  Received {self.output_num_messages} messages, {self.output_num_bytes} bytes"
+        )
+
+        differences = self.calculate_differences()
+        logger.info(f"  Message diff: {differences['message_diff']}")
+        logger.info(f"  Byte diff: {differences['byte_diff']}")
+        logger.info(f"  Throughput diff: {differences['throughput_diff']:.2f} Mbps")
+        logger.info(f"  Avg messages diff: {differences['avg_messages_diff']:.2f}")
+        logger.info(f"  Input throughput: {self.input_throughput:.2f} Mbps")
+        logger.info(f"  Input average messages: {self.input_avg_messages:.2f}")
+        logger.info(f"  Output throughput: {self.output_throughput:.2f} Mbps")
+        logger.info(f"  Output average messages: {self.output_avg_messages:.2f}")
+
+    @classmethod
+    def from_io_and_moving_average(
+        cls,
+        input_metric: PortMetrics,
+        output_metric: PortMetrics,
+        input_moving_avg: "PortMovingAverages",
+        output_moving_avg: "PortMovingAverages",
+    ):
+        return cls(
+            input_id=input_metric.id,
+            input_num_messages=input_metric.send_count,
+            input_num_bytes=input_metric.send_bytes,
+            input_throughput=input_moving_avg.send_bytes["2s"].average_throughput(),
+            input_avg_messages=input_moving_avg.send_num_msgs["2s"].average_messages(),
+            output_id=output_metric.id,
+            output_num_messages=output_metric.recv_count,
+            output_num_bytes=output_metric.recv_bytes,
+            output_throughput=output_moving_avg.recv_bytes["2s"].average_throughput(),
+            output_avg_messages=output_moving_avg.recv_num_msgs[
+                "2s"
+            ].average_messages(),
+        )
 
 
 class MovingAverage:
@@ -103,17 +172,36 @@ async def metrics_watch(
     js: JetStreamContext, intervals: list[int], update_interval: int
 ):
     moving_averages: dict[str, PortMovingAverages] = {}
-    bucket = await get_metrics_bucket(js)
+    metrics_bucket = await get_metrics_bucket(js)
+    pipeline_bucket = await get_pipelines_bucket(js)
+
     while True:
-        keys = await get_keys(bucket)
+        pipeline_keys = await get_keys(pipeline_bucket)
+        if not pipeline_keys:
+            logger.info("No pipelines found...")
+            await asyncio.sleep(update_interval)
+            continue
+
+        pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineJSON)
+        if not pipeline:
+            logger.info("No pipeline found...")
+            await asyncio.sleep(update_interval)
+            continue
+
+        keys = await get_keys(metrics_bucket)
         if not keys:
             await asyncio.sleep(update_interval)
             continue
+
         operator_keys = [key for key in keys if "." not in key]
         port_keys = [key for key in keys if "." in key]
+        edge_metrics: list[EdgeMetric] = []
 
-        operator_futs = [get_val(bucket, key, OperatorMetrics) for key in operator_keys]
-        port_futs = [get_val(bucket, key, PortMetrics) for key in port_keys]
+        operator_futs = [
+            get_val(metrics_bucket, key, OperatorMetrics) for key in operator_keys
+        ]
+        port_metrics_map = {}
+        port_futs = [get_val(metrics_bucket, key, PortMetrics) for key in port_keys]
 
         current_time = asyncio.get_event_loop().time()
 
@@ -122,12 +210,29 @@ async def metrics_watch(
             if not metric:
                 continue
             key = str(metric.id)
+            port_metrics_map[key] = metric
 
             if key not in moving_averages:
                 moving_averages[key] = PortMovingAverages(intervals, update_interval)
 
             moving_averages[key].add_metrics(current_time, metric)
-            moving_averages[key].log_averages(key)
+
+        # Match edges to port metrics
+        for edge in pipeline.edges:
+            input_metric = port_metrics_map.get(str(edge.input_id))
+            output_metric = port_metrics_map.get(str(edge.output_id))
+            if input_metric and output_metric:
+                input_moving_avg = moving_averages.get(str(edge.input_id))
+                output_moving_avg = moving_averages.get(str(edge.output_id))
+
+                if input_moving_avg and output_moving_avg:
+                    edge_metric = EdgeMetric.from_io_and_moving_average(
+                        input_metric, output_metric, input_moving_avg, output_moving_avg
+                    )
+                    edge_metrics.append(edge_metric)
+
+        for edge_metric in edge_metrics:
+            edge_metric.log_metrics()
 
         for fut in asyncio.as_completed(operator_futs):
             metric = await fut
