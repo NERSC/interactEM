@@ -27,8 +27,9 @@ from core.nats import (
     consume_messages,
     create_bucket_if_doesnt_exist,
     create_or_update_stream,
-    get_agent_info,
-    get_agents,
+    get_agents_bucket,
+    get_keys,
+    get_val,
 )
 from core.pipeline import OperatorJSON, Pipeline
 
@@ -137,18 +138,21 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
         return
     logger.info(f"Validated pipeline: {valid_pipeline.id}")
     pipeline = Pipeline.from_pipeline(valid_pipeline)
+    bucket = await get_agents_bucket(js)
 
-    agents = await get_agents(js)
-    if len(agents) == 0:
+    agent_keys = await get_keys(bucket)
+    if len(agent_keys) == 0:
         logger.info("No agents available to run pipeline.")
         # TODO: publish event to send message back to API that says this won't work
         return
 
-    agent_infos = await asyncio.gather(*[get_agent_info(js, agent) for agent in agents])
-    agent_infos = [agent_info for agent_info in agent_infos if agent_info]
+    agent_vals = await asyncio.gather(
+        *[get_val(bucket, agent, AgentVal) for agent in agent_keys]
+    )
+    agent_vals = [agent_info for agent_info in agent_vals if agent_info]
 
     try:
-        assignments = assign_pipeline_to_agents(agent_infos, pipeline)
+        assignments = assign_pipeline_to_agents(agent_vals, pipeline)
     except Exception as e:
         logger.error(f"Failed to assign pipeline to agents:  {e}")
         return

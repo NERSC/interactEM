@@ -1,13 +1,28 @@
 from typing import Awaitable, Callable
-from core.constants import BUCKET_AGENTS, BUCKET_AGENTS_TTL
+from core.constants import (
+    BUCKET_AGENTS,
+    BUCKET_AGENTS_TTL,
+    BUCKET_METRICS,
+    BUCKET_METRICS_TTL,
+    BUCKET_OPERATORS,
+    BUCKET_OPERATORS_TTL,
+)
 from core.models.agent import AgentVal
+from core.models.operators import OperatorMetrics, OperatorVal
+from core.models.ports import PortMetrics, PortVal
 from nats.js import JetStreamContext
 from nats.js.api import KeyValueConfig
 from nats.js.errors import BucketNotFoundError, KeyNotFoundError, NoKeysError
 from nats.js.kv import KeyValue
 from nats.aio.msg import Msg as NATSMsg
-from nats.js.api import ConsumerConfig, DeliverPolicy, StreamConfig, StreamInfo
+from nats.js.api import StreamConfig, StreamInfo
 from nats.js.errors import BadRequestError
+from typing import TypeVar, Type
+from pydantic import BaseModel, ValidationError
+from nats.js.kv import KeyValue
+from nats.js.errors import KeyNotFoundError
+
+ValType = TypeVar("ValType", bound=BaseModel)
 
 from core.logger import get_logger
 
@@ -24,38 +39,46 @@ async def create_bucket_if_doesnt_exist(
         kv = await js.create_key_value(config=bucket_cfg)
     return kv
 
+async def get_agents_bucket(js: JetStreamContext) -> KeyValue:
+    return await create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL)
 
-async def get_agents(js: JetStreamContext) -> list[str]:
-    bucket = await js.key_value(BUCKET_AGENTS)
+
+async def get_operators_bucket(js: JetStreamContext) -> KeyValue:
+    return await create_bucket_if_doesnt_exist(
+        js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
+    )
+
+
+async def get_metrics_bucket(js: JetStreamContext) -> KeyValue:
+    return await create_bucket_if_doesnt_exist(js, BUCKET_METRICS, BUCKET_METRICS_TTL)
+
+
+async def get_keys(bucket: KeyValue) -> list[str]:
     try:
-        agents = await bucket.keys()
+        keys = await bucket.keys()
     except NoKeysError:
         return []
-    return agents
+    return keys
 
 
-async def get_agent_info(js: JetStreamContext, agent_id: str) -> AgentVal | None:
-    bucket = await js.key_value(BUCKET_AGENTS)
+async def get_val(
+    bucket: KeyValue, key: str, pydantic_cls: Type[ValType]
+) -> ValType | None:
     try:
-        entry = await bucket.get(agent_id)
+        entry = await bucket.get(key)
         if not entry.value:
-            return
-        return AgentVal.model_validate_json(entry.value)
+            logger.warning(f"Key {key} has no value in bucket for {pydantic_cls}...")
+            return None
+        try:
+            return pydantic_cls.model_validate_json(entry.value)
+        except ValidationError:
+            logger.warning(
+                f"Key {key} has invalid value in bucket for {pydantic_cls}..."
+            )
+            return None
     except KeyNotFoundError:
-        return
-
-
-async def get_current_num_agents(js: JetStreamContext):
-    try:
-        bucket = await js.key_value(BUCKET_AGENTS)
-    except BucketNotFoundError:
-        bucket_cfg = KeyValueConfig(bucket=BUCKET_AGENTS, ttl=BUCKET_AGENTS_TTL)
-        bucket = await js.create_key_value(config=bucket_cfg)
-    try:
-        num_agents = len(await bucket.keys())
-    except NoKeysError:
-        return 0
-    return num_agents
+        logger.warning(f"Key {key} not found in bucket for {pydantic_cls}...")
+        return None
 
 
 async def consume_messages(
