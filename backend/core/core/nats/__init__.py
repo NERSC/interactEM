@@ -85,9 +85,10 @@ async def consume_messages(
     psub: JetStreamContext.PullSubscription,
     handler: Callable[[NATSMsg, JetStreamContext], Awaitable],
     js: JetStreamContext,
+    num_msgs: int = 1,
 ):
     while True:
-        msgs = await psub.fetch(1, timeout=None)
+        msgs = await psub.fetch(num_msgs, timeout=None)
         for msg in msgs:
             await handler(msg, js)
 
