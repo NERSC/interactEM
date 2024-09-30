@@ -2,22 +2,17 @@ import asyncio
 from collections import deque
 
 import nats
-import nats.js
-import nats.js.errors
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
-from nats.js.errors import KeyNotFoundError, NoKeysError
-from nats.js.kv import KeyValue
 
-from core.constants import BUCKET_METRICS, BUCKET_METRICS_TTL
 from core.logger import get_logger
 from core.models.operators import OperatorMetrics  # Import the OperatorMetrics model
 from core.models.ports import PortMetrics
-from core.nats import create_bucket_if_doesnt_exist
+from core.nats import get_keys, get_metrics_bucket, get_val
 
 from .config import cfg
 
-logger = get_logger("orchestrator", "DEBUG")
+logger = get_logger("metrics", "DEBUG")
 
 
 class MovingAverage:
@@ -40,118 +35,86 @@ class MovingAverage:
         total_time = self.values[-1][0] - self.values[0][0]
         return (total_bytes * 8) / (total_time * 1_000_000) if total_time > 0 else 0.0
 
+    def log_averages(self, interval: str, direction: str):
+        avg = self.average()
+        logger.info(f"  {direction} {interval} avg throughput: {avg:.2f} Mbit/s")
 
-async def metrics_watch(bucket: KeyValue):
-    moving_averages: dict[str, dict[str, dict[str, MovingAverage]]] = {}
 
+class PortMovingAverages:
+    def __init__(self, intervals: list[int], update_interval: int):
+        self.update_interval = update_interval
+        self.send_bytes = {
+            f"{interval}s": MovingAverage(interval) for interval in intervals
+        }
+        self.recv_bytes = {
+            f"{interval}s": MovingAverage(interval) for interval in intervals
+        }
+
+    def add_metrics(self, current_time: float, metric: PortMetrics):
+        for moving_average in self.send_bytes.values():
+            moving_average.add_value(current_time, metric.send_bytes)
+        for moving_average in self.recv_bytes.values():
+            moving_average.add_value(current_time, metric.recv_bytes)
+
+    def log_averages(self, key: str):
+        logger.info(f"Port: {key}")
+        for interval, moving_average in self.send_bytes.items():
+            moving_average.log_averages(interval, "Send")
+        for interval, moving_average in self.recv_bytes.items():
+            moving_average.log_averages(interval, "Recv")
+
+
+async def metrics_watch(
+    js: JetStreamContext, intervals: list[int], update_interval: int
+):
+    moving_averages: dict[str, PortMovingAverages] = {}
+    bucket = await get_metrics_bucket(js)
     while True:
-        keys: list[str] = []
-
-        try:
-            keys = await bucket.keys()
-        except NoKeysError:
-            await asyncio.sleep(1)
+        keys = await get_keys(bucket)
+        if not keys:
+            await asyncio.sleep(update_interval)
             continue
+        operator_keys = [key for key in keys if "." not in key]
+        port_keys = [key for key in keys if "." in key]
+
+        operator_futs = [get_val(bucket, key, OperatorMetrics) for key in operator_keys]
+        port_futs = [get_val(bucket, key, PortMetrics) for key in port_keys]
 
         current_time = asyncio.get_event_loop().time()
 
-        fut = []
-
-        async def safe_get(bucket: KeyValue, key: str) -> KeyValue.Entry | None:
-            try:
-                return await bucket.get(key)
-            except KeyNotFoundError:
-                return None
-
-        fut = [safe_get(bucket, key) for key in keys]
-        entries: list[KeyValue.Entry | None] = await asyncio.gather(*fut)
-        entries = [entry for entry in entries if entry is not None]
-
-        for entry in entries:
-            if not entry:
+        for fut in asyncio.as_completed(port_futs):
+            metric = await fut
+            if not metric:
                 continue
-            if not entry.value:
+            key = str(metric.id)
+
+            if key not in moving_averages:
+                moving_averages[key] = PortMovingAverages(intervals, update_interval)
+
+            moving_averages[key].add_metrics(current_time, metric)
+            moving_averages[key].log_averages(key)
+
+        for fut in asyncio.as_completed(operator_futs):
+            metric = await fut
+            if not metric:
+                logger.warning("Operator metric not found...")
                 continue
-            key = entry.key
+            logger.info(f"Operator Key: {metric.id}")
+            metric.timing.print_timing_info(logger)
 
-            # TODO: these could go into separate buckets instead of a single bucket
-            if "." in key:  # Port key (contains a period)
-                metrics = PortMetrics.model_validate_json(entry.value)
-                port_key = metrics.id
-
-                if key not in moving_averages:
-                    moving_averages[key] = {
-                        "send": {
-                            "2s": MovingAverage(2),
-                            "5s": MovingAverage(5),
-                            "30s": MovingAverage(30),
-                        },
-                        "recv": {
-                            "2s": MovingAverage(2),
-                            "5s": MovingAverage(5),
-                            "30s": MovingAverage(30),
-                        },
-                    }
-
-                moving_averages[key]["send"]["2s"].add_value(
-                    current_time, metrics.send_bytes
-                )
-                moving_averages[key]["send"]["5s"].add_value(
-                    current_time, metrics.send_bytes
-                )
-                moving_averages[key]["send"]["30s"].add_value(
-                    current_time, metrics.send_bytes
-                )
-
-                moving_averages[key]["recv"]["2s"].add_value(
-                    current_time, metrics.recv_bytes
-                )
-                moving_averages[key]["recv"]["5s"].add_value(
-                    current_time, metrics.recv_bytes
-                )
-                moving_averages[key]["recv"]["30s"].add_value(
-                    current_time, metrics.recv_bytes
-                )
-
-                logger.info(f"Port Key: {port_key}")
-                logger.info(
-                    f"  Send 2s avg throughput: {moving_averages[key]['send']['2s'].average():.2f} Mbit/s"
-                )
-                logger.info(
-                    f"  Send 5s avg throughput: {moving_averages[key]['send']['5s'].average():.2f} Mbit/s"
-                )
-                logger.info(
-                    f"  Send 30s avg throughput: {moving_averages[key]['send']['30s'].average():.2f} Mbit/s"
-                )
-                logger.info(
-                    f"  Recv 2s avg throughput: {moving_averages[key]['recv']['2s'].average():.2f} Mbit/s"
-                )
-                logger.info(
-                    f"  Recv 5s avg throughput: {moving_averages[key]['recv']['5s'].average():.2f} Mbit/s"
-                )
-                logger.info(
-                    f"  Recv 30s avg throughput: {moving_averages[key]['recv']['30s'].average():.2f} Mbit/s"
-                )
-            else:  # Operator key (does not contain a period)
-                metrics = OperatorMetrics.model_validate_json(entry.value)
-
-                logger.info(f"Operator Key: {key}")
-                metrics.timing.print_timing_info(logger)
-
-        await asyncio.sleep(1)
+        await asyncio.sleep(update_interval)
 
 
 async def main():
+    intervals = [2, 5, 30]  # List of intervals in seconds
+    update_interval = 1  # Time difference between entries in seconds
+
     nc: NATSClient = await nats.connect(servers=[str(cfg.NATS_SERVER_URL)])
     js: JetStreamContext = nc.jetstream()
 
     logger.info("Metrics microservice is running...")
 
-    metrics_bucket = await create_bucket_if_doesnt_exist(
-        js, BUCKET_METRICS, BUCKET_METRICS_TTL
-    )
-
-    await metrics_watch(metrics_bucket)
+    await metrics_watch(js, intervals, update_interval)
 
 
 if __name__ == "__main__":
