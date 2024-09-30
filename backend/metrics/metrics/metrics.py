@@ -20,50 +20,48 @@ logger = get_logger("metrics", "DEBUG")
 
 class MetricType(str, Enum):
     THROUGHPUT = "throughput (Mbps)"
-    MESSAGES = "messages"
+    MESSAGES = "msgs"
 
 class EdgeMetric(BaseModel):
     input_id: IdType
-    input_num_messages: int = 0
+    input_num_msgs: int = 0
     input_num_bytes: int = 0
     input_throughput: float = 0.0
-    input_avg_messages: float = 0.0
+    input_avg_msgs: float = 0.0
     output_id: IdType
-    output_num_messages: int = 0
+    output_num_msgs: int = 0
     output_num_bytes: int = 0
     output_throughput: float = 0.0
-    output_avg_messages: float = 0.0
+    output_avg_msgs: float = 0.0
 
     def calculate_differences(self):
-        message_diff = self.input_num_messages - self.output_num_messages
+        message_diff = self.input_num_msgs - self.output_num_msgs
         byte_diff = self.input_num_bytes - self.output_num_bytes
         throughput_diff = self.input_throughput - self.output_throughput
-        avg_messages_diff = self.input_avg_messages - self.output_avg_messages
+        avg_msgs_diff = self.input_avg_msgs - self.output_avg_msgs
         return {
             "message_diff": message_diff,
             "byte_diff": byte_diff,
             "throughput_diff": throughput_diff,
-            "avg_messages_diff": avg_messages_diff,
+            "avg_msgs_diff": avg_msgs_diff,
         }
 
     def log_metrics(self):
         logger.info(f"Edge from {self.input_id} to {self.output_id}:")
+        logger.info(f"  Sent {self.input_num_msgs} msgs, {self.input_num_bytes} bytes")
         logger.info(
-            f"  Sent {self.input_num_messages} messages, {self.input_num_bytes} bytes"
-        )
-        logger.info(
-            f"  Received {self.output_num_messages} messages, {self.output_num_bytes} bytes"
+            f"  Received {self.output_num_msgs} msgs, {self.output_num_bytes} bytes"
         )
 
         differences = self.calculate_differences()
         logger.info(f"  Message diff: {differences['message_diff']}")
         logger.info(f"  Byte diff: {differences['byte_diff']}")
         logger.info(f"  Throughput diff: {differences['throughput_diff']:.2f} Mbps")
-        logger.info(f"  Avg messages diff: {differences['avg_messages_diff']:.2f}")
+        logger.info(f"  Avg msgs diff: {differences['avg_msgs_diff']:.2f}")
         logger.info(f"  Input throughput: {self.input_throughput:.2f} Mbps")
-        logger.info(f"  Input average messages: {self.input_avg_messages:.2f}")
+        logger.info(f"  Input average msgs: {self.input_avg_msgs:.2f}")
         logger.info(f"  Output throughput: {self.output_throughput:.2f} Mbps")
-        logger.info(f"  Output average messages: {self.output_avg_messages:.2f}")
+        logger.info(f"  Output average msgs: {self.output_avg_msgs:.2f}")
 
     @classmethod
     def from_io_and_moving_average(
@@ -75,17 +73,15 @@ class EdgeMetric(BaseModel):
     ):
         return cls(
             input_id=input_metric.id,
-            input_num_messages=input_metric.send_count,
+            input_num_msgs=input_metric.send_count,
             input_num_bytes=input_metric.send_bytes,
             input_throughput=input_moving_avg.send_bytes["2s"].average_throughput(),
-            input_avg_messages=input_moving_avg.send_num_msgs["2s"].average_messages(),
+            input_avg_msgs=input_moving_avg.send_num_msgs["2s"].average_msgs(),
             output_id=output_metric.id,
-            output_num_messages=output_metric.recv_count,
+            output_num_msgs=output_metric.recv_count,
             output_num_bytes=output_metric.recv_bytes,
             output_throughput=output_moving_avg.recv_bytes["2s"].average_throughput(),
-            output_avg_messages=output_moving_avg.recv_num_msgs[
-                "2s"
-            ].average_messages(),
+            output_avg_msgs=output_moving_avg.recv_num_msgs["2s"].average_msgs(),
         )
 
 
@@ -113,17 +109,17 @@ class MovingAverage:
             return total_megabits / total_time
         return 0.0
 
-    def average_messages(self) -> float:
+    def average_msgs(self) -> float:
         if not self.values:
             return 0.0
-        total_messages = self.values[-1][1] - self.values[0][1]
+        total_msgs = self.values[-1][1] - self.values[0][1]
         total_time = self.values[-1][0] - self.values[0][0]
-        return total_messages / total_time if total_time > 0 else 0.0
+        return total_msgs / total_time if total_time > 0 else 0.0
 
     def log_averages(self, interval: str, metric_type: MetricType, direction: str):
         metric_types = {
             MetricType.THROUGHPUT: self.average_throughput,
-            MetricType.MESSAGES: self.average_messages,
+            MetricType.MESSAGES: self.average_msgs,
         }
         avg = metric_types[metric_type]()
         logger.info(f"  {direction} {interval} avg {metric_type.value}: {avg:.2f}")
