@@ -2,7 +2,7 @@ import asyncio
 import os
 import signal
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Coroutine, Generator
 from datetime import datetime
 from functools import wraps
 from typing import Any
@@ -241,53 +241,93 @@ class Operator(ABC):
         has_input_op = True if len(self.messenger.input_ports) > 0 else False
         loop_counter = 0
         while not self._shutdown_event.is_set():
+            coros: list[Coroutine] = []
             msg = None
-            timing: bool = loop_counter % 20000 == 0
-            _tracking_meta = None
+            _tracking = None
 
             if has_input_op:
                 msg = await self.messenger.recv()
                 if not msg:
                     continue
-                _tracking_meta = msg.header.tracking
+                _tracking = msg.header.tracking
 
-            inject_tracking: bool = not has_input_op and timing
-            timing = timing or inject_tracking or _tracking_meta is not None
+            inject_tracking: bool = loop_counter % 100 == 0 and not has_input_op
+            timing = inject_tracking or _tracking is not None
             before_kernel = datetime.now() if timing else None
             processed_msg = self.kernel(msg)
             after_kernel = datetime.now() if timing else None
 
             if processed_msg:
-                processed_msg.header.tracking = _tracking_meta
-                if timing and before_kernel and after_kernel:
-                    meta = OperatorTrackingMetadata(
-                        id=self.id,
-                        time_before_operate=before_kernel,
-                        time_after_operate=after_kernel,
-                    )
-                    if not processed_msg.header.tracking:
-                        processed_msg.header.tracking = []
-                    processed_msg.header.tracking.append(meta)
+                processed_msg.header.tracking = _tracking
+                if timing:
+                    self._update_metrics(processed_msg, before_kernel, after_kernel)
+                if self.messenger.output_ports:
+                    await self.messenger.send(processed_msg)
+                else:
+                    coros.append(self._publish_metrics(processed_msg))
 
-            if self.messenger.output_ports and processed_msg:
-                await self.messenger.send(processed_msg)
+            if not processed_msg and _tracking:
+                coros.append(
+                    self._update_and_publish_metrics(msg, before_kernel, after_kernel)
+                )
 
             if timing:
                 self.metrics.timing.after_send = datetime.now()
                 self.metrics.timing.before_kernel = before_kernel
                 self.metrics.timing.after_kernel = after_kernel
 
-            if not self.messenger.output_ports and processed_msg:
-                if not processed_msg.header.tracking:
-                    pass
-                else:
-                    if self.js:
-                        await self.js.publish(
-                            subject=f"{STREAM_METRICS}.messages",
-                            payload=processed_msg.header.model_dump_json().encode(),
-                        )
+            if coros:
+                await asyncio.gather(*coros)
 
             loop_counter += 1
+
+    async def _publish_metrics(self, msg: BytesMessage):
+        if not self.js:
+            logger.warning("JetStream context not initialized...")
+            return
+        if not msg or not msg.header.tracking:
+            logger.warning("Message or tracking data incomplete...")
+            return
+        await self.js.publish(
+            subject=f"{STREAM_METRICS}.operators",
+            payload=msg.header.model_dump_json().encode(),
+        )
+
+    def _update_metrics(
+        self,
+        msg: BytesMessage | None,
+        before_kernel: datetime | None,
+        after_kernel: datetime | None,
+    ) -> BytesMessage | None:
+        if not msg or not before_kernel or not after_kernel:
+            logger.warning("Message or tracking data incomplete...")
+            return
+
+        meta = OperatorTrackingMetadata(
+            id=self.id,
+            time_before_operate=before_kernel,
+            time_after_operate=after_kernel,
+        )
+        if msg.header.tracking is None:
+            msg.header.tracking = []
+        msg.header.tracking.append(meta)
+        return msg
+
+    async def _update_and_publish_metrics(
+        self,
+        msg: BytesMessage | None,
+        before_kernel: datetime | None,
+        after_kernel: datetime | None,
+    ):
+        if not self.js:
+            logger.warning("JetStream context not initialized...")
+            return
+
+        msg = self._update_metrics(msg, before_kernel, after_kernel)
+        if not msg:
+            return
+
+        await self._publish_metrics(msg)
 
     @abstractmethod
     def kernel(
