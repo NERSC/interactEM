@@ -305,6 +305,8 @@ class Agent:
 
     async def start_operators(self) -> dict[uuid.UUID, Container]:
         # Destroy any existing containers
+        # TODO: something is going on here that prevents containers from
+        # starting up again after the first time, randomly. Need to investigate.
         await self._cleanup_containers()
         containers = {}
         if not self.pipeline:
