@@ -267,7 +267,6 @@ class Agent:
         while not self._shutdown_event.is_set():
             try:
                 msgs = await psub.fetch(1)
-                asyncio.gather(*[msg.ack() for msg in msgs])
                 for msg in msgs:
                     try:
                         event = PipelineAssignment.model_validate_json(msg.data)
@@ -288,6 +287,7 @@ class Agent:
                     break
 
                 self.containers = await self.start_operators()
+                await asyncio.gather(*[msg.ack() for msg in msgs])
             except nats.errors.TimeoutError:
                 try:
                     await psub.consumer_info()
