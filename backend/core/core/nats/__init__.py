@@ -95,6 +95,7 @@ async def consume_messages(
     js: JetStreamContext,
     num_msgs: int = 1,
 ):
+    logger.info(f"Consuming messages on pull subscription {await psub.consumer_info()}")
     while True:
         msgs = await psub.fetch(num_msgs, timeout=None)
         for msg in msgs:
