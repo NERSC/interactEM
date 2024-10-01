@@ -196,6 +196,11 @@ async def metrics_watch(
             await asyncio.sleep(update_interval)
             continue
 
+        if len(pipeline_keys) > 1:
+            logger.error("More than one pipeline found...")
+            await asyncio.sleep(update_interval)
+            continue
+
         pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineJSON)
         if not pipeline:
             logger.info("No pipeline found...")
@@ -318,7 +323,10 @@ async def handle_metrics(msg: NATSMsg, js: JetStreamContext):
     pipeline_keys = await get_keys(pipeline_bucket)
     if not pipeline_keys:
         logger.info("No pipelines found...")
-
+        return
+    if len(pipeline_keys) > 1:
+        logger.error("More than one pipeline found...")
+        return
     pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineJSON)
     if not pipeline:
         logger.info("No pipeline found...")

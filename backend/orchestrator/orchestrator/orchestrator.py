@@ -1,6 +1,6 @@
 import asyncio
 from itertools import cycle
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import nats
 import nats.js
@@ -49,6 +49,10 @@ async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignmen
         stream=f"{STREAM_AGENTS}",
         payload=assignment.model_dump_json().encode(),
     )
+
+async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
+    pipeline_bucket = await get_pipelines_bucket(js)
+    await pipeline_bucket.delete(str(pipeline_id))
 
 
 async def update_pipeline_kv(js: JetStreamContext, pipeline: PipelineJSON):
@@ -173,12 +177,17 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     except Exception as e:
         logger.error(f"Failed to assign pipeline to agents:  {e}")
         return
-
     await asyncio.gather(
         *[publish_assignment(js, assignment) for assignment in assignments]
     )
 
+
     logger.info("Pipeline assigned to agents.")
+    current_pipelines = await get_keys(await get_pipelines_bucket(js))
+    for pipeline_id in current_pipelines:
+        if pipeline_id != valid_pipeline.id:
+            uid = UUID(pipeline_id)
+            await delete_pipeline_kv(js, uid)
     await update_pipeline_kv(js, valid_pipeline)
     pipelines[valid_pipeline.id] = valid_pipeline
     logger.info("Pipeline run event processed.")
