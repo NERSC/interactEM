@@ -50,6 +50,31 @@ class Pipeline(nx.DiGraph):
 
         return subgraph
 
+    @classmethod
+    def from_upstream_subgraph(cls, graph: "Pipeline", id: IdType) -> "Pipeline":
+        subgraph = cls(id=id)
+
+        # Use a stack to perform DFS and collect all upstream nodes
+        stack = [id]
+        visited = set()
+
+        while stack:
+            current_node = stack.pop()
+            if current_node not in visited:
+                visited.add(current_node)
+                predecessors = list(graph.predecessors(current_node))
+                stack.extend(predecessors)
+
+        # Add nodes and edges to the subgraph
+        for node in visited:
+            subgraph.add_node(node, **graph.nodes[node])
+
+        for u, v in graph.edges:
+            if u in visited and v in visited:
+                subgraph.add_edge(u, v, **graph.edges[u, v])
+
+        return subgraph
+
     def __eq__(self, other):
         if not isinstance(other, Pipeline):
             return False

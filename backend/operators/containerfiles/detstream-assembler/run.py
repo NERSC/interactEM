@@ -7,7 +7,7 @@ import numpy as np
 from pydantic import BaseModel
 
 from core.logger import get_logger
-from operators.messengers.base import (
+from core.models.messages import (
     BytesMessage,
     MessageHeader,
     MessageSubject,

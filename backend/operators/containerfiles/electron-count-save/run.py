@@ -10,7 +10,7 @@ import stempy.io
 from pydantic import BaseModel, ValidationError
 
 from core.logger import get_logger
-from operators.messengers.base import BytesMessage
+from core.models.messages import BytesMessage
 from operators.operator import operator
 
 logger = get_logger("operator_main", "DEBUG")

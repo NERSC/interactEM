@@ -1,18 +1,36 @@
 import asyncio
 from collections import deque
 from enum import Enum
+from uuid import UUID
 
 import nats
 from nats.aio.client import Client as NATSClient
+from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
+from nats.js.api import ConsumerConfig, DeliverPolicy
+from networkx.readwrite.text import generate_network_text
 from pydantic import BaseModel
 
+from core.constants import STREAM_METRICS
 from core.logger import get_logger
 from core.models.base import IdType
+from core.models.messages import (
+    InputPortTrackingMetadata,
+    MessageHeader,
+    OperatorTrackingMetadata,
+    OutputPortTrackingMetadata,
+)
 from core.models.operators import OperatorMetrics  # Import the OperatorMetrics model
 from core.models.pipeline import PipelineJSON
 from core.models.ports import PortMetrics
-from core.nats import get_keys, get_metrics_bucket, get_pipelines_bucket, get_val
+from core.nats import (
+    consume_messages,
+    get_keys,
+    get_metrics_bucket,
+    get_pipelines_bucket,
+    get_val,
+)
+from core.pipeline import Pipeline
 
 from .config import cfg
 
@@ -20,7 +38,7 @@ logger = get_logger("metrics", "DEBUG")
 
 class MetricType(str, Enum):
     THROUGHPUT = "throughput (Mbps)"
-    MESSAGES = "msgs"
+    MESSAGES = "msgs (msgs/s)"
 
 class EdgeMetric(BaseModel):
     input_id: IdType
@@ -240,6 +258,77 @@ async def metrics_watch(
 
         await asyncio.sleep(update_interval)
 
+def log_comparison(header: MessageHeader, pipeline: PipelineJSON):
+    tracking = header.tracking
+    if not tracking:
+        logger.warning("No tracking information found...")
+        return
+    last_id = tracking[-1].id
+
+    # Create a dictionary to map node IDs to their tracking metadata
+    tracking_dict = {meta.id: meta for meta in tracking}
+
+    pipeline_obj = Pipeline.from_pipeline(pipeline)
+    pipeline_obj = Pipeline.from_upstream_subgraph(pipeline_obj, last_id)
+
+    previous_node_id = None
+    previous_metadata = None
+    first_line = True
+    for line in generate_network_text(pipeline_obj):
+        logger.info(line)
+
+        # Extract the node ID from the line
+        node_id = UUID(line.split()[-1])
+
+        # Print the tracking information for the node
+        if node_id in tracking_dict:
+            metadata = tracking_dict[node_id]
+            if not first_line:
+                previous_metadata = tracking_dict.get(previous_node_id, None)  # type: ignore
+            if isinstance(metadata, OperatorTrackingMetadata):
+                if metadata.time_after_operate and metadata.time_before_operate:
+                    logger.info(
+                        f"  Operate time (per frame): {(metadata.time_after_operate - metadata.time_before_operate).microseconds}"
+                    )
+            elif isinstance(metadata, InputPortTrackingMetadata):
+                if metadata.time_after_header_validate:
+                    logger.info(
+                        f"  Time After Header Validate: {metadata.time_after_header_validate}"
+                    )
+                if isinstance(previous_metadata, OutputPortTrackingMetadata):
+                    if previous_metadata and previous_metadata.time_before_send:
+                        time_diff = (
+                            metadata.time_after_header_validate
+                            - previous_metadata.time_before_send
+                        ).microseconds
+                        logger.info(f"  Time between ports: {time_diff}")
+
+            elif isinstance(metadata, OutputPortTrackingMetadata):
+                if metadata.time_before_send:
+                    logger.info(f"  Time Before Send: {metadata.time_before_send}")
+
+        if first_line:
+            first_line = False
+        previous_node_id = node_id
+
+
+async def handle_metrics(msg: NATSMsg, js: JetStreamContext):
+    await msg.ack()
+    pipeline_bucket = await get_pipelines_bucket(js)
+    pipeline_keys = await get_keys(pipeline_bucket)
+    if not pipeline_keys:
+        logger.info("No pipelines found...")
+
+    pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineJSON)
+    if not pipeline:
+        logger.info("No pipeline found...")
+        return
+
+    data = MessageHeader.model_validate_json(msg.data.decode("utf-8"))
+    log_comparison(data, pipeline)
+    # for port_id, metrics in data.items():
+    #     port_metrics = PortMetrics.model_validate_json(metrics)
+    #     logger.info(f"Received metrics for port {port_id}: {port_metrics}")
 
 async def main():
     intervals = [2, 5, 30]  # List of intervals in seconds
@@ -250,7 +339,21 @@ async def main():
 
     logger.info("Metrics microservice is running...")
 
-    await metrics_watch(js, intervals, update_interval)
+    consumer_cfg = ConsumerConfig(
+        description=f"orchestrator-{id}", deliver_policy=DeliverPolicy.LAST_PER_SUBJECT
+    )
+    metrics_psub = await js.pull_subscribe(
+        subject=f"{STREAM_METRICS}.>", config=consumer_cfg
+    )
+
+    metrics_watch_task = asyncio.create_task(
+        metrics_watch(js, intervals, update_interval)
+    )
+    consume_messages_task = asyncio.create_task(
+        consume_messages(metrics_psub, handler=handle_metrics, js=js)
+    )
+
+    await asyncio.gather(metrics_watch_task, consume_messages_task)
 
 
 if __name__ == "__main__":

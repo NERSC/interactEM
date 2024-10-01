@@ -1,5 +1,6 @@
 import asyncio
 from collections.abc import Awaitable
+from datetime import datetime
 from uuid import UUID
 
 import nats
@@ -18,16 +19,24 @@ from core.constants import (
 )
 from core.logger import get_logger
 from core.models import PortJSON, PortType
-from core.models.base import OperatorID, PortID, Protocol
+from core.models.base import IdType, OperatorID, PortID, Protocol
+from core.models.messages import (
+    BytesMessage,
+    InputPortTrackingMetadata,
+    MessageHeader,
+    MessageSubject,
+    OutputPortTrackingMetadata,
+)
 from core.models.pipeline import InputJSON, OutputJSON
 from core.models.ports import PortStatus, PortVal
 from core.models.uri import URI, CommBackend, URILocation, ZMQAddress
 from core.nats import create_bucket_if_doesnt_exist
 from core.pipeline import Pipeline
 
-from ..messengers.base import BytesMessage
 from ..zsocket import Context, Socket, SocketInfo
-from .base import BaseMessenger, MessageHeader, MessageSubject
+from .base import (
+    BaseMessenger,
+)
 
 logger = get_logger("messenger", "DEBUG")
 
@@ -74,30 +83,29 @@ class ZmqMessenger(BaseMessenger):
         except asyncio.QueueEmpty:
             pass
 
-        msg_coros: list[Awaitable[list[bytes]]] = [
+        msg_coros: list[Awaitable[tuple[IdType, list[bytes]]]] = [
             self._recv_and_update_metrics(socket)
             for socket in self.input_sockets.values()
         ]
 
-        msgs = await asyncio.gather(*msg_coros)
-
+        id_msgs = await asyncio.gather(*msg_coros)
         all_messages: list[BytesMessage] = []
 
-        for msg_parts in msgs:
+        for id, msg_parts in id_msgs:
             if len(msg_parts) != 2:
                 logger.error(
                     "Received an unexpected number of message parts: %s", len(msg_parts)
                 )
                 return None
 
-            header, data = msg_parts
+            _header, _data = msg_parts
 
-            if isinstance(header, zmq.Message):
-                header = MessageHeader.model_validate_json(header.bytes)
-            elif isinstance(header, bytes):
-                header = MessageHeader.model_validate_json(header)
+            if isinstance(_header, zmq.Message):
+                header = MessageHeader.model_validate_json(_header.bytes)
+            elif isinstance(_header, bytes):
+                header = MessageHeader.model_validate_json(_header)
             else:
-                logger.error("Received an unexpected message type: %s", type(header))
+                logger.error("Received an unexpected message type: %s", type(_header))
                 continue
 
             if header.subject != MessageSubject.BYTES:
@@ -107,10 +115,16 @@ class ZmqMessenger(BaseMessenger):
                 continue
 
             msg = (
-                BytesMessage(header=header, data=data.bytes)
-                if isinstance(data, zmq.Message)
-                else BytesMessage(header=header, data=data)
+                BytesMessage(header=header, data=_data.bytes)
+                if isinstance(_data, zmq.Message)
+                else BytesMessage(header=header, data=_data)
             )
+            if header.tracking is not None:
+                header.tracking.append(
+                    InputPortTrackingMetadata(
+                        id=id, time_after_header_validate=datetime.now()
+                    )
+                )
             all_messages.append(msg)
 
         if not all_messages:
@@ -121,16 +135,23 @@ class ZmqMessenger(BaseMessenger):
         await asyncio.gather(*tasks)
         return all_messages[0]
 
-    async def _recv_and_update_metrics(self, socket: Socket) -> list[bytes]:
+    async def _recv_and_update_metrics(
+        self, socket: Socket
+    ) -> tuple[IdType, list[bytes]]:
         # TODO: handle timeout
         msg_parts = await socket.recv_multipart()
         socket.metrics.recv_count += 1
         socket.metrics.recv_bytes += sum(len(part) for part in msg_parts)
-        return msg_parts
+        return socket.info.parent_id, msg_parts
 
     async def send(self, message: BytesMessage):
         msg_futures = []
         for socket in self.output_sockets.values():
+            if message.header.tracking is not None:
+                meta = OutputPortTrackingMetadata(
+                    id=socket.info.parent_id, time_before_send=datetime.now()
+                )
+                message.header.tracking.append(meta)
             data = message.data
             header = message.header.model_dump_json().encode()
             msg_futures.append(self._send_and_update_metrics(socket, [header, data]))

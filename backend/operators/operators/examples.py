@@ -2,8 +2,8 @@
 import numpy as np
 
 from core.logger import get_logger
+from core.models.messages import BytesMessage, MessageHeader, MessageSubject
 
-from .messengers.base import BytesMessage, MessageHeader, MessageSubject
 from .operator import operator
 
 logger = get_logger("operators.examples", "DEBUG")
