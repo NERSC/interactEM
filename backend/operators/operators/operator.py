@@ -15,7 +15,7 @@ import nats.js.errors
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
-from nats.js.api import ConsumerConfig, DeliverPolicy
+from nats.js.api import ConsumerConfig, DeliverPolicy, StreamConfig, StreamInfo
 from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
@@ -25,16 +25,20 @@ from core.constants import (
     BUCKET_OPERATORS,
     BUCKET_OPERATORS_TTL,
     OPERATOR_ID_ENV_VAR,
+    STREAM_METRICS,
     STREAM_OPERATORS,
 )
 from core.logger import get_logger
 from core.models import CommBackend, OperatorJSON, PipelineJSON
+from core.models.messages import BytesMessage, OperatorTrackingMetadata
 from core.models.operators import OperatorMetrics, OperatorTiming
-from core.nats import create_bucket_if_doesnt_exist
+from core.nats import create_bucket_if_doesnt_exist, create_or_update_stream
 from core.pipeline import Pipeline
 
 from .config import cfg
-from .messengers.base import BaseMessenger, BytesMessage
+from .messengers.base import (
+    BaseMessenger,
+)
 from .messengers.zmq import ZmqMessenger
 
 logger = get_logger("operator", "DEBUG")
@@ -83,6 +87,7 @@ class Operator(ABC):
         self.metrics: OperatorMetrics = OperatorMetrics(
             id=self.id, timing=OperatorTiming()
         )
+        self.metrics_stream: StreamInfo | None = None
         self.run_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self._dependencies = []
@@ -125,6 +130,13 @@ class Operator(ABC):
         )
         logger.info("Connected to NATS...")
         self.js = self.nc.jetstream()
+        stream_cfg = StreamConfig(
+            name=STREAM_METRICS,
+            description="A stream for message metrics.",
+            subjects=[f"{STREAM_METRICS}.>"],
+        )
+        stream_cfg = StreamConfig(name=STREAM_METRICS, subjects=[f"{STREAM_METRICS}.>"])
+        self.metrics_stream = await create_or_update_stream(stream_cfg, self.js)
 
     async def initialize_pipeline(self):
         logger.info(
@@ -230,22 +242,51 @@ class Operator(ABC):
         loop_counter = 0
         while not self._shutdown_event.is_set():
             msg = None
-            timing: bool = loop_counter % 100 == 0
-            if timing:
-                self.metrics.timing.before_recv = datetime.now()
+            timing: bool = loop_counter % 20000 == 0
+            _tracking_meta = None
+
             if has_input_op:
                 msg = await self.messenger.recv()
                 if not msg:
                     continue
-            if timing:
-                self.metrics.timing.before_kernel = datetime.now()
+                _tracking_meta = msg.header.tracking
+
+            inject_tracking: bool = not has_input_op and timing
+            timing = timing or inject_tracking or _tracking_meta is not None
+            before_kernel = datetime.now() if timing else None
             processed_msg = self.kernel(msg)
-            if timing:
-                self.metrics.timing.after_kernel = datetime.now()
+            after_kernel = datetime.now() if timing else None
+
+            if processed_msg:
+                processed_msg.header.tracking = _tracking_meta
+                if timing and before_kernel and after_kernel:
+                    meta = OperatorTrackingMetadata(
+                        id=self.id,
+                        time_before_operate=before_kernel,
+                        time_after_operate=after_kernel,
+                    )
+                    if not processed_msg.header.tracking:
+                        processed_msg.header.tracking = []
+                    processed_msg.header.tracking.append(meta)
+
             if self.messenger.output_ports and processed_msg:
                 await self.messenger.send(processed_msg)
+
             if timing:
                 self.metrics.timing.after_send = datetime.now()
+                self.metrics.timing.before_kernel = before_kernel
+                self.metrics.timing.after_kernel = after_kernel
+
+            if not self.messenger.output_ports and processed_msg:
+                if not processed_msg.header.tracking:
+                    pass
+                else:
+                    if self.js:
+                        await self.js.publish(
+                            subject=f"{STREAM_METRICS}.messages",
+                            payload=processed_msg.header.model_dump_json().encode(),
+                        )
+
             loop_counter += 1
 
     @abstractmethod
