@@ -255,6 +255,7 @@ class Agent:
         consumer_cfg = ConsumerConfig(
             description=f"agent-{self.id}",
             deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
+            inactive_threshold=30,
         )
         psub = await self.js.pull_subscribe(
             stream=STREAM_AGENTS,
@@ -288,6 +289,10 @@ class Agent:
 
                 self.containers = await self.start_operators()
             except nats.errors.TimeoutError:
+                try:
+                    await psub.consumer_info()
+                except nats.js.errors.NotFoundError as e:
+                    logger.error(e)
                 continue
         logger.info("Server loop exiting")
 
@@ -305,8 +310,6 @@ class Agent:
 
     async def start_operators(self) -> dict[uuid.UUID, Container]:
         # Destroy any existing containers
-        # TODO: something is going on here that prevents containers from
-        # starting up again after the first time, randomly. Need to investigate.
         await self._cleanup_containers()
         containers = {}
         if not self.pipeline:
