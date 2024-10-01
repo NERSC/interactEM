@@ -4,6 +4,7 @@ from enum import Enum
 from uuid import UUID
 
 import nats
+import networkx
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
@@ -333,7 +334,10 @@ async def handle_metrics(msg: NATSMsg, js: JetStreamContext):
         return
 
     data = MessageHeader.model_validate_json(msg.data.decode("utf-8"))
-    log_comparison(data, pipeline)
+    try:
+        log_comparison(data, pipeline)
+    except networkx.exception.NetworkXError:
+        logger.warning("Failed to log comparison...")
     # for port_id, metrics in data.items():
     #     port_metrics = PortMetrics.model_validate_json(metrics)
     #     logger.info(f"Received metrics for port {port_id}: {port_metrics}")
