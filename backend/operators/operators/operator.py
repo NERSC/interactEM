@@ -263,7 +263,7 @@ class Operator(ABC):
                     self._update_metrics(processed_msg, before_kernel, after_kernel)
                 if self.messenger.output_ports:
                     await self.messenger.send(processed_msg)
-                else:
+                elif timing:
                     coros.append(self._publish_metrics(processed_msg))
 
             if not processed_msg and _tracking:
