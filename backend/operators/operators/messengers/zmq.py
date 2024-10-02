@@ -1,6 +1,7 @@
 import asyncio
 from collections.abc import Awaitable
 from datetime import datetime
+from typing import cast
 from uuid import UUID
 
 import nats
@@ -102,8 +103,12 @@ class ZmqMessenger(BaseMessenger):
 
             if isinstance(_header, zmq.Message):
                 header = MessageHeader.model_validate_json(_header.bytes)
+                _data = cast(zmq.Message, _data)
+                msg = BytesMessage(header=header, data=_data.bytes)
             elif isinstance(_header, bytes):
                 header = MessageHeader.model_validate_json(_header)
+                _data = cast(bytes, _data)
+                msg = BytesMessage(header=header, data=_data)
             else:
                 logger.error("Received an unexpected message type: %s", type(_header))
                 continue
@@ -114,11 +119,6 @@ class ZmqMessenger(BaseMessenger):
                 )
                 continue
 
-            msg = (
-                BytesMessage(header=header, data=_data.bytes)
-                if isinstance(_data, zmq.Message)
-                else BytesMessage(header=header, data=_data)
-            )
             if header.tracking is not None:
                 header.tracking.append(
                     InputPortTrackingMetadata(
