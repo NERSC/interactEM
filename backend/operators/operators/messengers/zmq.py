@@ -4,13 +4,11 @@ from datetime import datetime
 from typing import cast
 from uuid import UUID
 
-import nats
-import nats.errors
-import nats.js
-import nats.js.errors
-import nats.js.kv
 import zmq
+from nats.errors import TimeoutError as NatsTimeoutError
 from nats.js import JetStreamContext
+from nats.js.errors import KeyNotFoundError
+from nats.js.kv import KeyValue
 
 from core.constants import (
     BUCKET_METRICS,
@@ -205,7 +203,7 @@ class ZmqMessenger(BaseMessenger):
         if len(upstream_ports) == 0:
             return
         logger.info(f"Starting upstream connection watcher, watching: {upstream_ports}")
-        watchers: dict[UUID, nats.js.kv.KeyValue.KeyWatcher] = {}
+        watchers: dict[UUID, KeyValue.KeyWatcher] = {}
         for key in upstream_ports:
             watchers[key] = await self.operator_kv.watch(
                 key, ignore_deletes=False, include_history=False
@@ -221,7 +219,7 @@ class ZmqMessenger(BaseMessenger):
             for task in asyncio.as_completed(update_tasks):
                 try:
                     msg = await task  # Await the result of the completed task
-                except nats.errors.TimeoutError:
+                except NatsTimeoutError:
                     pass
                 if not msg:
                     continue
@@ -337,7 +335,7 @@ class ZmqMessenger(BaseMessenger):
             try:
                 val = await self.operator_kv.get(str(upstream_port))
                 if not val.value:
-                    raise nats.js.errors.KeyNotFoundError
+                    raise KeyNotFoundError
                 port_val = PortVal.model_validate_json(val.value)
                 uri = port_val.uri
                 if not uri:
@@ -346,7 +344,7 @@ class ZmqMessenger(BaseMessenger):
                 addrs = uri.query.get("address", [])
                 addresses = [ZMQAddress.from_address(addr) for addr in addrs]
                 return addresses
-            except nats.js.errors.KeyNotFoundError:
+            except KeyNotFoundError:
                 await asyncio.sleep(1)
 
     async def setup_outputs(self, pipeline: Pipeline):
