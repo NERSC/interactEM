@@ -8,6 +8,8 @@ from typing import Any
 
 import nats
 import nats.errors
+import nats.js
+import nats.js.errors
 import podman
 import podman.errors
 from nats.aio.client import Client as NATSClient
@@ -194,6 +196,11 @@ class Agent:
                     "Connection closed while trying to update key-value. Exiting loop."
                 )
                 break
+            except nats.js.errors.ServiceUnavailableError as e:
+                logger.error(
+                    f"JetStream service unavailable while trying to update key-value: {e}."
+                )
+                break
 
             try:
                 # this avoids waiting in this loop after the shutdown event is set
@@ -255,6 +262,7 @@ class Agent:
         consumer_cfg = ConsumerConfig(
             description=f"agent-{self.id}",
             deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
+            inactive_threshold=30,
         )
         psub = await self.js.pull_subscribe(
             stream=STREAM_AGENTS,
@@ -266,29 +274,46 @@ class Agent:
         while not self._shutdown_event.is_set():
             try:
                 msgs = await psub.fetch(1)
-                asyncio.gather(*[msg.ack() for msg in msgs])
-                for msg in msgs:
-                    try:
-                        event = PipelineAssignment.model_validate_json(msg.data)
-                    except ValidationError:
-                        logger.error(f"Invalid message: {msg.data}")
-                        continue
-                    try:
-                        assert event.agent_id == self.id
-                    except AssertionError:
-                        logger.error(
-                            f"Agent ID mismatch: {event.agent_id} != {self.id}"
-                        )
-                        continue
-                    valid_pipeline = PipelineJSON.model_validate(event.pipeline)
-                    logger.info(f"Validated pipeline: {valid_pipeline.id}")
-                    self.pipeline = Pipeline.from_pipeline(valid_pipeline)
-                    self.my_operator_ids = event.operators_assigned
-                    break
-
-                self.containers = await self.start_operators()
+                await asyncio.gather(*[msg.ack() for msg in msgs])
             except nats.errors.TimeoutError:
+                try:
+                    await psub.consumer_info()
+                except nats.js.errors.NotFoundError as e:
+                    logger.error(e)
                 continue
+
+            for msg in msgs:
+                try:
+                    event = PipelineAssignment.model_validate_json(msg.data)
+                except ValidationError as e:
+                    logger.error(f"Invalid message: {msg.data}, error: {e}")
+                    continue
+
+                try:
+                    assert event.agent_id == self.id
+                    logger.info(f"Agent ID verified: {event.agent_id}")
+                except AssertionError:
+                    logger.error(f"Agent ID mismatch: {event.agent_id} != {self.id}")
+                    continue
+
+                try:
+                    valid_pipeline = PipelineJSON.model_validate(event.pipeline)
+                    logger.info(f"Pipeline validated successfully: {valid_pipeline.id}")
+                except ValidationError as e:
+                    logger.error(f"Invalid pipeline: {event.pipeline}, error: {e}")
+                    continue
+
+                self.pipeline = Pipeline.from_pipeline(valid_pipeline)
+                self.my_operator_ids = event.operators_assigned
+                logger.info(f"Operators assigned: {self.my_operator_ids}")
+
+                try:
+                    logger.info("Starting operators...")
+                    self.containers = await self.start_operators()
+                    logger.info("Operators started successfully.")
+                except Exception as e:
+                    logger.error(f"Error starting operators: {e}")
+                    continue
         logger.info("Server loop exiting")
 
     async def setup_signal_handlers(self):

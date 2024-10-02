@@ -2,7 +2,8 @@ import asyncio
 import os
 import signal
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Coroutine, Generator
+from datetime import datetime
 from functools import wraps
 from typing import Any
 from uuid import UUID
@@ -14,22 +15,30 @@ import nats.js.errors
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
-from nats.js.api import ConsumerConfig, DeliverPolicy
+from nats.js.api import ConsumerConfig, DeliverPolicy, StreamConfig, StreamInfo
 from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
 from core.constants import (
+    BUCKET_METRICS,
+    BUCKET_METRICS_TTL,
     BUCKET_OPERATORS,
     BUCKET_OPERATORS_TTL,
     OPERATOR_ID_ENV_VAR,
+    STREAM_METRICS,
     STREAM_OPERATORS,
 )
 from core.logger import get_logger
 from core.models import CommBackend, OperatorJSON, PipelineJSON
+from core.models.messages import BytesMessage, OperatorTrackingMetadata
+from core.models.operators import OperatorMetrics, OperatorTiming
+from core.nats import create_bucket_if_doesnt_exist, create_or_update_stream
 from core.pipeline import Pipeline
 
 from .config import cfg
-from .messengers.base import BaseMessenger, BytesMessage
+from .messengers.base import (
+    BaseMessenger,
+)
 from .messengers.zmq import ZmqMessenger
 
 logger = get_logger("operator", "DEBUG")
@@ -51,7 +60,7 @@ def dependencies(
     return func
 
 
-async def receive_pipeline(msg: NATSMsg, js: JetStreamContext) -> Pipeline | None:
+async def receive_pipeline(msg: NATSMsg) -> Pipeline | None:
     await msg.ack()
 
     try:
@@ -72,8 +81,13 @@ class Operator(ABC):
         self.info: OperatorJSON | None = None
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
-        self.kv: KeyValue | None = None
+        self.operators_kv: KeyValue | None = None
         self.messenger_task: asyncio.Task | None = None
+        self.update_kv_task: asyncio.Task | None = None
+        self.metrics: OperatorMetrics = OperatorMetrics(
+            id=self.id, timing=OperatorTiming()
+        )
+        self.metrics_stream: StreamInfo | None = None
         self.run_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self._dependencies = []
@@ -98,6 +112,7 @@ class Operator(ABC):
         if not self.messenger:
             raise ValueError("Messenger not initialized")
         await self.messenger.start(self.pipeline)
+        self.update_kv_task = asyncio.create_task(self.update_kv())
         self.run_task = asyncio.create_task(self.run())
         await self._shutdown_event.wait()
         await self.shutdown()
@@ -115,6 +130,13 @@ class Operator(ABC):
         )
         logger.info("Connected to NATS...")
         self.js = self.nc.jetstream()
+        stream_cfg = StreamConfig(
+            name=STREAM_METRICS,
+            description="A stream for message metrics.",
+            subjects=[f"{STREAM_METRICS}.>"],
+        )
+        stream_cfg = StreamConfig(name=STREAM_METRICS, subjects=[f"{STREAM_METRICS}.>"])
+        self.metrics_stream = await create_or_update_stream(stream_cfg, self.js)
 
     async def initialize_pipeline(self):
         logger.info(
@@ -135,24 +157,34 @@ class Operator(ABC):
             msg = await psub.fetch(1)
         except nats.errors.TimeoutError:
             raise ValueError("No pipeline message received")
-        self.pipeline = await receive_pipeline(msg[0], self.js)
+        self.pipeline = await receive_pipeline(msg[0])
         if self.pipeline is None:
             raise ValueError("Pipeline not found")
         self.info = self.pipeline.get_operator(self.id)
         if self.info is None:
             raise ValueError(f"Operator {self.id} not found in pipeline")
 
+    async def update_kv(self):
+        while not self._shutdown_event.is_set():
+            try:
+                timing = OperatorTiming.model_validate(self.metrics.timing)
+                metrics = OperatorMetrics(id=self.id, timing=timing)
+            except ValidationError:
+                await asyncio.sleep(1)
+                continue
+            await self.metrics_kv.put(str(self.id), metrics.model_dump_json().encode())
+            await asyncio.sleep(1)
+
     async def setup_key_value_store(self):
         logger.info(f"Setting up Key-Value store for operator {self.id}...")
         if not self.js:
             raise ValueError("JetStream context not initialized")
-        try:
-            self.kv = await self.js.key_value(BUCKET_OPERATORS)
-        except nats.js.errors.BucketNotFoundError:
-            bucket_cfg = nats.js.api.KeyValueConfig(
-                bucket=BUCKET_OPERATORS, ttl=BUCKET_OPERATORS_TTL
-            )
-            self.kv = await self.js.create_key_value(config=bucket_cfg)
+        self.operators_kv = await create_bucket_if_doesnt_exist(
+            self.js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
+        )
+        self.metrics_kv = await create_bucket_if_doesnt_exist(
+            self.js, BUCKET_METRICS, BUCKET_METRICS_TTL
+        )
 
     async def initialize_messenger(self):
         # TODO: put this somewhere else
@@ -207,21 +239,95 @@ class Operator(ABC):
         if not self.messenger:
             raise ValueError("Messenger not initialized")
         has_input_op = True if len(self.messenger.input_ports) > 0 else False
+        loop_counter = 0
         while not self._shutdown_event.is_set():
+            coros: list[Coroutine] = []
+            msg = None
+            _tracking = None
+
             if has_input_op:
                 msg = await self.messenger.recv()
                 if not msg:
                     continue
-                await self.operate(msg)
-            else:
-                await self.operate(None)
+                _tracking = msg.header.tracking
 
-    async def operate(self, message: BytesMessage | None):
-        if self.messenger is None:
-            raise ValueError("Messenger not initialized")
-        processed_message = self.kernel(message)
-        if self.messenger.output_ports and processed_message:
-            await self.messenger.send(processed_message)
+            inject_tracking: bool = loop_counter % 100 == 0 and not has_input_op
+            timing = inject_tracking or _tracking is not None
+            before_kernel = datetime.now() if timing else None
+            processed_msg = self.kernel(msg)
+            after_kernel = datetime.now() if timing else None
+
+            if processed_msg:
+                processed_msg.header.tracking = _tracking
+                if timing:
+                    self._update_metrics(processed_msg, before_kernel, after_kernel)
+                if self.messenger.output_ports:
+                    await self.messenger.send(processed_msg)
+                else:
+                    coros.append(self._publish_metrics(processed_msg))
+
+            if not processed_msg and _tracking:
+                coros.append(
+                    self._update_and_publish_metrics(msg, before_kernel, after_kernel)
+                )
+
+            if timing:
+                self.metrics.timing.after_send = datetime.now()
+                self.metrics.timing.before_kernel = before_kernel
+                self.metrics.timing.after_kernel = after_kernel
+
+            if coros:
+                await asyncio.gather(*coros)
+
+            loop_counter += 1
+
+    async def _publish_metrics(self, msg: BytesMessage):
+        if not self.js:
+            logger.warning("JetStream context not initialized...")
+            return
+        if not msg or not msg.header.tracking:
+            logger.warning("Message or tracking data incomplete...")
+            return
+        await self.js.publish(
+            subject=f"{STREAM_METRICS}.operators",
+            payload=msg.header.model_dump_json().encode(),
+        )
+
+    def _update_metrics(
+        self,
+        msg: BytesMessage | None,
+        before_kernel: datetime | None,
+        after_kernel: datetime | None,
+    ) -> BytesMessage | None:
+        if not msg or not before_kernel or not after_kernel:
+            logger.warning("Message or tracking data incomplete...")
+            return
+
+        meta = OperatorTrackingMetadata(
+            id=self.id,
+            time_before_operate=before_kernel,
+            time_after_operate=after_kernel,
+        )
+        if msg.header.tracking is None:
+            msg.header.tracking = []
+        msg.header.tracking.append(meta)
+        return msg
+
+    async def _update_and_publish_metrics(
+        self,
+        msg: BytesMessage | None,
+        before_kernel: datetime | None,
+        after_kernel: datetime | None,
+    ):
+        if not self.js:
+            logger.warning("JetStream context not initialized...")
+            return
+
+        msg = self._update_metrics(msg, before_kernel, after_kernel)
+        if not msg:
+            return
+
+        await self._publish_metrics(msg)
 
     @abstractmethod
     def kernel(

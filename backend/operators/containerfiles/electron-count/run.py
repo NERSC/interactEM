@@ -5,7 +5,7 @@ import stempy.image as stim
 from pydantic import BaseModel, ValidationError
 
 from core.logger import get_logger
-from operators.messengers.base import BytesMessage, MessageHeader, MessageSubject
+from core.models.messages import BytesMessage, MessageHeader, MessageSubject
 from operators.operator import operator
 
 logger = get_logger("operator_main", "DEBUG")
