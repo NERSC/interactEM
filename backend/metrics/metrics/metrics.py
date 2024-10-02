@@ -280,11 +280,22 @@ def log_comparison(header: MessageHeader, pipeline: PipelineJSON):
     previous_node_id = None
     previous_metadata = None
     first_line = True
+    # TODO: do better
     for line in generate_network_text(pipeline_obj):
-        logger.info(line)
-
-        # Extract the node ID from the line
         node_id = UUID(line.split()[-1])
+        image = None
+        for idx, id in enumerate([op.id for op in pipeline.operators]):
+            if id == node_id:
+                image = pipeline.operators[idx].image
+                break
+        for idx, id in enumerate([op.id for op in pipeline.ports]):
+            if id == node_id:
+                op_id = pipeline.ports[idx].operator_id
+                for idx_op, id_op in enumerate([op.id for op in pipeline.operators]):
+                    if id_op == op_id:
+                        image = pipeline.operators[idx_op].image
+                        break
+        logger.info([line, image])
 
         # Print the tracking information for the node
         if node_id in tracking_dict:
