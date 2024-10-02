@@ -1,16 +1,15 @@
 [tool.poetry]
-name = "core"
+name = "metrics"
 version = "0.1.0"
 description = ""
 authors = ["Sam Welborn <swelborn@lbl.gov>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.10"
-pydantic = "^2.9"
-coloredlogs = "^15.0.1"
-networkx = "^3.3"
-nats-py = "^2.9.0"
+python = "^3.11"
+core = {path = "../core", develop = true}
+pydantic-settings = "^2.4.0"
+aiohttp = "^3.10.5"
 
 
 [build-system]

@@ -1,10 +1,9 @@
-import time
 
 import numpy as np
 
 from core.logger import get_logger
+from core.models.messages import BytesMessage, MessageHeader, MessageSubject
 
-from .messengers.base import BytesMessage, MessageHeader, MessageSubject
 from .operator import operator
 
 logger = get_logger("operators.examples", "DEBUG")
@@ -36,11 +35,9 @@ def process_hello_world(inputs: BytesMessage | None) -> BytesMessage:
     return inputs or BytesMessage(header=header, data=b"No input provided")
 
 
+arr = np.random.randint(0, 255, (100, 100), dtype=np.uint16)
 @operator
-def send_image_every_second(inputs: BytesMessage | None) -> BytesMessage:
-    time.sleep(1)
-    logger.info("Creating image...")
-    arr = np.random.randint(0, 255, (100, 100), dtype=np.uint16)
+def send_image(inputs: BytesMessage | None) -> BytesMessage:
     header = MessageHeader(subject=MessageSubject.BYTES, meta={})
     return BytesMessage(header=header, data=arr.tobytes())
 
@@ -48,7 +45,6 @@ def send_image_every_second(inputs: BytesMessage | None) -> BytesMessage:
 @operator
 def recv_image(inputs: BytesMessage | None) -> BytesMessage:
     if inputs:
-        arr = np.frombuffer(inputs.data, dtype=np.uint16).reshape(100, 100)
-        logger.info(f"Received image: {arr}")
+        _ = np.frombuffer(inputs.data, dtype=np.uint16).reshape(100, 100)
     header = MessageHeader(subject=MessageSubject.BYTES, meta={})
     return inputs or BytesMessage(header=header, data=b"No input provided")

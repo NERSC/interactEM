@@ -1,40 +1,10 @@
 from abc import ABC, abstractmethod
-from enum import Enum
-from typing import Any
 
 from nats.js import JetStreamContext
-from pydantic import BaseModel
 
 from core.models.base import OperatorID
+from core.models.messages import BytesMessage
 from core.models.pipeline import InputJSON, OutputJSON
-
-
-class MessageSubject(str, Enum):
-    BYTES = "bytes"
-    SHM = "shm"
-
-
-class MessageHeader(BaseModel):
-    subject: MessageSubject
-    meta: dict[str, Any] = {}
-
-
-class BaseMessage(BaseModel):
-    header: MessageHeader
-
-
-class BytesMessage(BaseMessage):
-    data: bytes
-
-
-class ShmMessage(BaseMessage):
-    shm_meta: dict[str, Any] = {}
-
-
-MESSAGE_SUBJECT_TO_MODEL: dict[MessageSubject, type[BaseMessage]] = {
-    MessageSubject.BYTES: BytesMessage,
-    MessageSubject.SHM: ShmMessage,
-}
 
 
 class BaseMessenger(ABC):

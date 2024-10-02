@@ -1,0 +1,122 @@
+from typing import Awaitable, Callable
+from core.constants import (
+    BUCKET_AGENTS,
+    BUCKET_AGENTS_TTL,
+    BUCKET_METRICS,
+    BUCKET_METRICS_TTL,
+    BUCKET_OPERATORS,
+    BUCKET_OPERATORS_TTL,
+    BUCKET_PIPELINES,
+    BUCKET_PIPELINES_TTL,
+)
+from core.models.agent import AgentVal
+from core.models.operators import OperatorMetrics, OperatorVal
+from core.models.ports import PortMetrics, PortVal
+from nats.js import JetStreamContext
+from nats.js.api import KeyValueConfig
+from nats.js.errors import BucketNotFoundError, KeyNotFoundError, NoKeysError
+from nats.js.kv import KeyValue
+from nats.aio.msg import Msg as NATSMsg
+from nats.js.api import StreamConfig, StreamInfo
+from nats.js.errors import BadRequestError
+from typing import TypeVar, Type
+from pydantic import BaseModel, ValidationError
+from nats.js.kv import KeyValue
+from nats.js.errors import KeyNotFoundError
+
+ValType = TypeVar("ValType", bound=BaseModel)
+
+from core.logger import get_logger
+
+logger = get_logger("core.nats", "DEBUG")
+
+
+async def create_bucket_if_doesnt_exist(
+    js: JetStreamContext, bucket_name: str, ttl: int
+) -> KeyValue:
+    try:
+        kv = await js.key_value(bucket_name)
+    except BucketNotFoundError:
+        bucket_cfg = KeyValueConfig(bucket=bucket_name, ttl=ttl)
+        kv = await js.create_key_value(config=bucket_cfg)
+    return kv
+
+async def get_agents_bucket(js: JetStreamContext) -> KeyValue:
+    return await create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL)
+
+
+async def get_operators_bucket(js: JetStreamContext) -> KeyValue:
+    return await create_bucket_if_doesnt_exist(
+        js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
+    )
+
+
+async def get_pipelines_bucket(js: JetStreamContext) -> KeyValue:
+    return await create_bucket_if_doesnt_exist(
+        js, BUCKET_PIPELINES, BUCKET_PIPELINES_TTL
+    )
+
+
+async def get_metrics_bucket(js: JetStreamContext) -> KeyValue:
+    return await create_bucket_if_doesnt_exist(js, BUCKET_METRICS, BUCKET_METRICS_TTL)
+
+
+async def get_keys(bucket: KeyValue) -> list[str]:
+    try:
+        keys = await bucket.keys()
+    except NoKeysError:
+        return []
+    return keys
+
+
+async def get_val(
+    bucket: KeyValue, key: str, pydantic_cls: Type[ValType]
+) -> ValType | None:
+    try:
+        entry = await bucket.get(key)
+        if not entry.value:
+            logger.warning(f"Key {key} has no value in bucket for {pydantic_cls}...")
+            return None
+        try:
+            return pydantic_cls.model_validate_json(entry.value)
+        except ValidationError:
+            logger.warning(
+                f"Key {key} has invalid value in bucket for {pydantic_cls}..."
+            )
+            return None
+    except KeyNotFoundError:
+        logger.warning(f"Key {key} not found in bucket for {pydantic_cls}...")
+        return None
+
+
+async def consume_messages(
+    psub: JetStreamContext.PullSubscription,
+    handler: Callable[[NATSMsg, JetStreamContext], Awaitable],
+    js: JetStreamContext,
+    num_msgs: int = 1,
+):
+    logger.info(f"Consuming messages on pull subscription {await psub.consumer_info()}")
+    while True:
+        msgs = await psub.fetch(num_msgs, timeout=None)
+        for msg in msgs:
+            await handler(msg, js)
+
+
+async def create_or_update_stream(
+    cfg: StreamConfig, js: JetStreamContext
+) -> StreamInfo:
+    updated = False
+    try:
+        stream_info = await js.add_stream(config=cfg)
+    except BadRequestError as e:
+        if e.err_code == 10058:  # Stream already exists
+            updated = True
+            stream_info = await js.update_stream(config=cfg)
+        else:
+            raise
+    finally:
+        if updated:
+            logger.info(f"Updated stream {cfg.name}. Description: {cfg.description}")
+        else:
+            logger.info(f"Created stream {cfg.name}. Description: {cfg.description}")
+        return stream_info
