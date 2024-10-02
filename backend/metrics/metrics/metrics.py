@@ -236,6 +236,7 @@ async def metrics_watch(
                 moving_averages[key] = PortMovingAverages(intervals, update_interval)
 
             moving_averages[key].add_metrics(current_time, metric)
+            # moving_averages[key].log_averages(key)
 
         # Match edges to port metrics
         for edge in pipeline.edges:
@@ -251,16 +252,17 @@ async def metrics_watch(
                     )
                     edge_metrics.append(edge_metric)
 
-        for edge_metric in edge_metrics:
-            edge_metric.log_metrics()
+        # for edge_metric in edge_metrics:
+        #     # edge_metric.log_metrics()
+        #     pass
 
         for fut in asyncio.as_completed(operator_futs):
             metric = await fut
             if not metric:
                 logger.warning("Operator metric not found...")
                 continue
-            logger.info(f"Operator Key: {metric.id}")
-            metric.timing.print_timing_info(logger)
+            # logger.info(f"Operator Key: {metric.id}")
+            # metric.timing.print_timing_info(logger)
 
         await asyncio.sleep(update_interval)
 
