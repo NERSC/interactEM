@@ -196,6 +196,11 @@ class Agent:
                     "Connection closed while trying to update key-value. Exiting loop."
                 )
                 break
+            except nats.js.errors.ServiceUnavailableError as e:
+                logger.error(
+                    f"JetStream service unavailable while trying to update key-value: {e}."
+                )
+                break
 
             try:
                 # this avoids waiting in this loop after the shutdown event is set
