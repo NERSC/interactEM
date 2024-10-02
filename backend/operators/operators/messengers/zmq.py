@@ -62,10 +62,6 @@ class ZmqMessenger(BaseMessenger):
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self.recv_queue: asyncio.Queue[BytesMessage] = asyncio.Queue()
 
-    def __del__(self):
-        # TODO: implement cleanup
-        pass
-
     @property
     def input_ports(self) -> list[InputJSON]:
         return list(self.input_infos.values())
