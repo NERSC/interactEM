@@ -89,10 +89,10 @@ class ZmqMessenger(BaseMessenger):
             for socket in self.input_sockets.values()
         ]
 
-        id_msgs = await asyncio.gather(*msg_coros)
         all_messages: list[BytesMessage] = []
 
-        for id, msg_parts in id_msgs:
+        for id_msg in asyncio.as_completed(msg_coros):
+            id, msg_parts = await id_msg
             if len(msg_parts) != 2:
                 logger.error(
                     "Received an unexpected number of message parts: %s", len(msg_parts)
