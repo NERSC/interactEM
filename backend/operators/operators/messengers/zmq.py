@@ -1,5 +1,5 @@
 import asyncio
-from collections.abc import Awaitable
+import multiprocessing
 from datetime import datetime
 from typing import cast
 from uuid import UUID
@@ -18,7 +18,7 @@ from core.constants import (
 )
 from core.logger import get_logger
 from core.models import PortJSON, PortType
-from core.models.base import IdType, OperatorID, PortID, Protocol
+from core.models.base import OperatorID, PortID, Protocol
 from core.models.messages import (
     BytesMessage,
     InputPortTrackingMetadata,
@@ -39,61 +39,75 @@ from .base import (
 
 logger = get_logger("messenger", "DEBUG")
 
-
-class ZmqMessenger(BaseMessenger):
-    def __init__(
+class ZmqInputPort:
+    async def __init__(
         self,
-        operator_id: OperatorID,
         js: JetStreamContext,
+        info: InputJSON,
+        parallelism: int,
+        shutdown_event: asyncio.Event,
+        upstream_port_ids: list[PortID],
     ):
-        self.input_infos: dict[PortID, InputJSON] = {}
-        self.input_sockets: dict[PortID, Socket] = {}
-        self.output_infos: dict[PortID, OutputJSON] = {}
-        self.output_sockets: dict[PortID, Socket] = {}
-        self.port_vals: dict[PortID, PortVal] = {}
-        # Upstream Port -> these ports
-        self.upstream_port_map: dict[PortID, list[PortID]] = {}
-        self._context: Context = Context.instance()
-        self._id: OperatorID = operator_id
-        self.js: JetStreamContext = js
-        self.update_kv_task: asyncio.Task | None = None
-        self._shutdown_event: asyncio.Event = asyncio.Event()
-        self.recv_queue: asyncio.Queue[BytesMessage] = asyncio.Queue()
+        self.id = info.id
+        self.info = info
+        self.parallelism = parallelism
+        self.js = js
+        self._shutdown_event = shutdown_event
+        self.processes: list[multiprocessing.Process] = []
+        self.metrics_queue: multiprocessing.Queue = multiprocessing.Queue()
+        self.operator_kv = await create_bucket_if_doesnt_exist(
+            self.js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
+        )
+        self.upstream_ports: list[PortID] = upstream_port_ids
+        self.watcher_task = asyncio.create_task(self.upstream_connection_watcher())
+        self.manager = multiprocessing.Manager()
+        self.val = PortVal(id=self.id, status=PortStatus.IDLE)
+        self.upstream_port_map: dict[PortID, list[ZMQAddress]] = {}
 
-    @property
-    def input_ports(self) -> list[InputJSON]:
-        return list(self.input_infos.values())
+    async def start_processes(self):
+        for parallel_idx in range(self.parallelism):
+            self.processes.append(
+                multiprocessing.Process(
+                    target=self.worker,
+                    args=(
+                        self.id,
+                        parallel_idx,
+                        self.metrics_queue,
+                        self.upstream_port_map,
+                    ),
+                    daemon=True,
+                )
+            )
+            self.processes[-1].start()
 
-    @property
-    def output_ports(self) -> list[OutputJSON]:
-        return list(self.output_infos.values())
+    async def start(self):
+        for process in self.processes:
+            process.join()
+            process.kill()
 
-    @property
-    def type(self):
-        return "zmq"
+        for upstream_port_id in self.upstream_ports:
+            self.upstream_port_map[
+                upstream_port_id
+            ] = await self.get_upstream_addresses(upstream_port_id)
 
-    async def recv(self) -> BytesMessage | None:
-        try:
-            return self.recv_queue.get_nowait()
-        except asyncio.QueueEmpty:
-            pass
+        await self.start_processes()
 
-        msg_coros: list[Awaitable[tuple[IdType, list[bytes]]]] = [
-            self._recv_and_update_metrics(socket)
-            for socket in self.input_sockets.values()
-        ]
+        upstream_task = asyncio.create_task(self.upstream_connection_watcher())
+        asyncio.gather(upstream_task)
 
-        all_messages: list[BytesMessage] = []
-
-        for id_msg in asyncio.as_completed(msg_coros):
-            id, msg_parts = await id_msg
+    @staticmethod
+    async def recv_loop(recv_socket: Socket, send_socket: Socket):
+        id = recv_socket.info.parent_id
+        while True:
+            msg_parts = await recv_socket.recv_multipart()
             if len(msg_parts) != 2:
                 logger.error(
                     "Received an unexpected number of message parts: %s", len(msg_parts)
                 )
                 return None
-
+            recv_socket.metrics.recv_count += 1
             _header, _data = msg_parts
+            recv_socket.metrics.recv_bytes += len(_header) + len(_data)
 
             if isinstance(_header, zmq.Message):
                 header = MessageHeader.model_validate_json(_header.bytes)
@@ -119,94 +133,96 @@ class ZmqMessenger(BaseMessenger):
                         id=id, time_after_header_validate=datetime.now()
                     )
                 )
-            all_messages.append(msg)
-
-        if not all_messages:
-            logger.warning("No messages were received from any socket.")
-            return None
-
-        tasks = [self.recv_queue.put(msg) for msg in all_messages[1:]]
-        await asyncio.gather(*tasks)
-        return all_messages[0]
-
-    async def _recv_and_update_metrics(
-        self, socket: Socket
-    ) -> tuple[IdType, list[bytes]]:
-        # TODO: handle timeout
-        msg_parts = await socket.recv_multipart()
-        socket.metrics.recv_count += 1
-        socket.metrics.recv_bytes += sum(len(part) for part in msg_parts)
-        return socket.info.parent_id, msg_parts
-
-    async def send(self, message: BytesMessage):
-        msg_futures = []
-        for socket in self.output_sockets.values():
-            if message.header.tracking is not None:
-                meta = OutputPortTrackingMetadata(
-                    id=socket.info.parent_id, time_before_send=datetime.now()
-                )
-                message.header.tracking.append(meta)
-            data = message.data
-            header = message.header.model_dump_json().encode()
-            msg_futures.append(self._send_and_update_metrics(socket, [header, data]))
-        await asyncio.gather(*msg_futures)
-
-    async def _send_and_update_metrics(self, socket: Socket, messages: list[bytes]):
-        await socket.send_multipart(messages)
-        socket.metrics.send_count += 1
-        socket.metrics.send_bytes += sum(len(part) for part in messages)
-
-    async def start(self, pipeline: Pipeline):
-        logger.info(f"Setting up operator {self._id}...")
-
-        self.operator_kv = await create_bucket_if_doesnt_exist(
-            self.js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
-        )
-
-        self.metrics_kv = await create_bucket_if_doesnt_exist(
-            self.js, BUCKET_METRICS, BUCKET_METRICS_TTL
-        )
-
-        try:
-            await asyncio.wait_for(
-                asyncio.gather(
-                    self.setup_outputs(pipeline), self.setup_inputs(pipeline)
-                ),
-                timeout=10,
+            send_socket.send_multipart(
+                [msg.header.model_dump_json().encode(), msg.data]
             )
-        except asyncio.TimeoutError as e:
-            logger.info(f"Failed to setup zmq messenger within timeout: {e}")
-            raise e
-        except Exception as e:
-            logger.error(f"Failed to setup zmq messenger: {e}")
-            raise e
 
-        self.update_kv_task = asyncio.create_task(self.update_kv())
-        self.watcher_task = asyncio.create_task(self.upstream_connection_watcher())
+    @staticmethod
+    async def update_metrics_task(
+        socket: Socket, metrics_queue: multiprocessing.Queue, parallel_idx: int
+    ):
+        while True:
+            metrics = socket.metrics.model_dump()
+            metrics_queue.put((parallel_idx, metrics))
+            await asyncio.sleep(1)
 
-    async def stop(self):
-        self._shutdown_event.set()
-        logger.info("Stopping zmq messenger...")
-        if self.update_kv_task:
-            await self.update_kv_task
+    @staticmethod
+    async def async_worker(
+        id: PortID,
+        parallel_idx: int,
+        metrics_queue: multiprocessing.Queue,
+        upstream_port_addresses: dict[PortID, list[ZMQAddress]],
+    ):
+        context = Context.instance()
+        sock_info = SocketInfo(type=zmq.PULL, bind=False, parent_id=id)
+        recv_socket = context.socket(info=sock_info)
+        send_socket = context.socket(
+            info=SocketInfo(type=zmq.PUSH, bind=False, parent_id=id)
+        )
+        send_socket_addr = ZMQAddress(
+            protocol=Protocol.ipc,
+            hostname="hello",
+        )
+        send_socket.update_address_map(
+            id,
+            [send_socket_addr],
+        )
 
-        if self.watcher_task:
-            await self.watcher_task
+        for upstream_port, addrs in upstream_port_addresses.items():
+            recv_socket.update_address_map(upstream_port, addrs)
+            recv_socket.bind_or_connect()
 
-        for socket in self.input_sockets.values():
-            socket.close()
-        for socket in self.output_sockets.values():
-            socket.close()
+        recv_task = asyncio.create_task(
+            ZmqInputPort.recv_loop(recv_socket, send_socket)
+        )
+        metrics_task = asyncio.create_task(
+            ZmqInputPort.update_metrics_task(recv_socket, metrics_queue, parallel_idx)
+        )
+        asyncio.gather(recv_task, metrics_task)
+
+    @staticmethod
+    def worker(
+        id: PortID,
+        parallel_idx: int,
+        metrics_queue: multiprocessing.Queue,
+        upstream_port_addresses: dict[PortID, list[ZMQAddress]],
+    ):
+        asyncio.run(
+            ZmqInputPort.async_worker(
+                id,
+                parallel_idx,
+                metrics_queue,
+                upstream_port_addresses,
+            )
+        )
+
+    async def get_upstream_addresses(self, upstream_port: PortID) -> list[ZMQAddress]:
+        while True:
+            try:
+                val = await self.operator_kv.get(str(upstream_port))
+                if not val.value:
+                    raise KeyNotFoundError
+                port_val = PortVal.model_validate_json(val.value)
+                uri = port_val.uri
+                if not uri:
+                    await asyncio.sleep(1)
+                    continue
+                addrs = uri.query.get("address", [])
+                addresses = [ZMQAddress.from_address(addr) for addr in addrs]
+                return addresses
+            except KeyNotFoundError:
+                await asyncio.sleep(1)
 
     async def upstream_connection_watcher(self):
-        upstream_ports = list(self.upstream_port_map.keys())
-        if len(upstream_ports) == 0:
+        if len(self.upstream_ports) == 0:
             return
-        logger.info(f"Starting upstream connection watcher, watching: {upstream_ports}")
+        logger.info(
+            f"Starting upstream connection watcher, watching: {self.upstream_ports}"
+        )
         watchers: dict[UUID, KeyValue.KeyWatcher] = {}
-        for key in upstream_ports:
-            watchers[key] = await self.operator_kv.watch(
-                key, ignore_deletes=False, include_history=False
+        for port_id in self.upstream_ports:
+            watchers[port_id] = await self.operator_kv.watch(
+                port_id, ignore_deletes=False, include_history=False
             )
 
         state: dict[UUID, bytes | None] = {}
@@ -220,7 +236,7 @@ class ZmqMessenger(BaseMessenger):
                 try:
                     msg = await task  # Await the result of the completed task
                 except NatsTimeoutError:
-                    pass
+                    continue
                 if not msg:
                     continue
                 key, val = UUID(msg.key), msg.value
@@ -259,6 +275,110 @@ class ZmqMessenger(BaseMessenger):
 
         logger.info("Upstream connection watcher shutting down")
 
+
+class ZmqMessenger(BaseMessenger):
+    def __init__(
+        self,
+        operator_id: OperatorID,
+        js: JetStreamContext,
+    ):
+        self.inputs: dict[PortID, ZmqInputPort] = {}
+        self.input_infos: dict[PortID, InputJSON] = {}
+        self.output_infos: dict[PortID, OutputJSON] = {}
+        self.output_sockets: dict[PortID, Socket] = {}
+        self.port_vals: dict[PortID, PortVal] = {}
+        # Upstream Port -> these ports
+
+        self._context: Context = Context.instance()
+
+        self._id: OperatorID = operator_id
+        self.js: JetStreamContext = js
+        self.update_kv_task: asyncio.Task | None = None
+        self._shutdown_event: asyncio.Event = asyncio.Event()
+        self.recv_queue: asyncio.Queue[BytesMessage] = asyncio.Queue()
+        self.recv_socket: Socket = self._context.socket(
+            info=SocketInfo(
+                type=zmq.PULL,
+                bind=True,
+                parent_id=operator_id,
+                address_map={
+                    self._id: [ZMQAddress(protocol=Protocol.ipc, hostname="hello")]
+                },
+            )
+        )
+        self.recv_socket.bind_or_connect()
+
+    @property
+    def input_ports(self) -> list[InputJSON]:
+        return list(self.input_infos.values())
+
+    @property
+    def output_ports(self) -> list[OutputJSON]:
+        return list(self.output_infos.values())
+
+    @property
+    def type(self):
+        return "zmq"
+
+    async def recv(self) -> BytesMessage | None:
+        try:
+            header, data = await self.recv_socket.recv_multipart()
+            header = MessageHeader.model_validate_json(header)
+            return BytesMessage(header=header, data=data)
+        except zmq.Again:
+            return None
+
+    async def send(self, message: BytesMessage):
+        msg_futures = []
+        for socket in self.output_sockets.values():
+            if message.header.tracking is not None:
+                meta = OutputPortTrackingMetadata(
+                    id=socket.info.parent_id, time_before_send=datetime.now()
+                )
+                message.header.tracking.append(meta)
+            data = message.data
+            header = message.header.model_dump_json().encode()
+            msg_futures.append(self._send_and_update_metrics(socket, [header, data]))
+        await asyncio.gather(*msg_futures)
+
+    async def _send_and_update_metrics(self, socket: Socket, messages: list[bytes]):
+        await socket.send_multipart(messages)
+        socket.metrics.send_count += 1
+        socket.metrics.send_bytes += sum(len(part) for part in messages)
+
+    async def start(self, pipeline: Pipeline):
+        logger.info(f"Setting up operator {self._id}...")
+        self.metrics_kv = await create_bucket_if_doesnt_exist(
+            self.js, BUCKET_METRICS, BUCKET_METRICS_TTL
+        )
+
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(
+                    self.setup_outputs(pipeline), self.setup_inputs(pipeline)
+                ),
+                timeout=10,
+            )
+        except asyncio.TimeoutError as e:
+            logger.info(f"Failed to setup zmq messenger within timeout: {e}")
+            raise e
+        except Exception as e:
+            logger.error(f"Failed to setup zmq messenger: {e}")
+            raise e
+
+        self.update_kv_task = asyncio.create_task(self.update_kv())
+
+    async def stop(self):
+        self._shutdown_event.set()
+        logger.info("Stopping zmq messenger...")
+        if self.update_kv_task:
+            await self.update_kv_task
+
+        for input in self.inputs.values():
+            input.shutdown()
+        for socket in self.output_sockets.values():
+            socket.close()
+
     async def update_kv(self):
         while not self._shutdown_event.is_set():
             fut = []
@@ -296,56 +416,28 @@ class ZmqMessenger(BaseMessenger):
             )
             sockets = self.output_sockets
         else:
-            socket_info = SocketInfo(
-                type=zmq.PULL,
-                bind=False,
-                parent_id=port_info.id,
+            logger.error(
+                "Input ports are not supported inside zmq messenger. They belong in ZmqInputPort."
             )
-            sockets = self.input_sockets
+            return
 
         socket = self._context.socket(info=socket_info)
         sockets[port_info.id] = socket
 
+
     async def setup_inputs(self, pipeline: Pipeline):
+
         for input in pipeline.get_operator_inputs(self._id).values():
-            self.input_infos[input.id] = input
+            upstream_port_ids = pipeline.get_predecessors(input.id)
+            self.inputs[input.id] = ZmqInputPort(
+                js=self.js,
+                info=input,
+                parallelism=1,
+                shutdown_event=self._shutdown_event,
+                upstream_port_ids=upstream_port_ids,
+            )
 
-        for info in self.input_infos.values():
-            self.add_socket(info)
 
-        for port_id in self.input_sockets.keys():
-            predecessors = pipeline.get_predecessors(port_id)
-            for pred in predecessors:
-                if self.upstream_port_map.get(pred) is None:
-                    self.upstream_port_map[pred] = []
-                self.upstream_port_map[pred].append(port_id)
-
-        for upstream_port, port_ids in self.upstream_port_map.items():
-            addrs = await self.get_upstream_addresses(upstream_port)
-            for port in port_ids:
-                self.input_sockets[port].update_address_map(upstream_port, addrs)
-                self.input_sockets[port].bind_or_connect()
-                self.port_vals[port] = PortVal(
-                    id=port,
-                    status=PortStatus.IDLE,
-                )
-
-    async def get_upstream_addresses(self, upstream_port: PortID) -> list[ZMQAddress]:
-        while True:
-            try:
-                val = await self.operator_kv.get(str(upstream_port))
-                if not val.value:
-                    raise KeyNotFoundError
-                port_val = PortVal.model_validate_json(val.value)
-                uri = port_val.uri
-                if not uri:
-                    await asyncio.sleep(1)
-                    continue
-                addrs = uri.query.get("address", [])
-                addresses = [ZMQAddress.from_address(addr) for addr in addrs]
-                return addresses
-            except KeyNotFoundError:
-                await asyncio.sleep(1)
 
     async def setup_outputs(self, pipeline: Pipeline):
         for output in pipeline.get_operator_outputs(self._id).values():
