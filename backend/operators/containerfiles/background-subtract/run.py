@@ -216,7 +216,8 @@ def subtract(inputs: BytesMessage | None) -> BytesMessage | None:
 
     experiment_centered = stio.SparseArray(centered, (1, 1), frame_shape)
     return BytesMessage(
-        header=inputs.header, data=experiment_centered.data[0][0].tobytes()
+        header=inputs.header,
+        data=experiment_centered.data[0][0].astype(np.uint32).tobytes(),
     )
 
 
