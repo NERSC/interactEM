@@ -270,7 +270,7 @@ Authorization: bearer <TOKEN>
   }
 }
 
-### DATA READ/COUNT/SAVE
+### DATA READ/COUNT/SUBTRACT/SAVE
 
 POST http://localhost:80/api/v1/pipelines
 Content-Type: application/json
@@ -302,6 +302,22 @@ Authorization: bearer put_the_access_token_here
       {
         "input_id": "10000008-1234-1234-1234-1000000890ab",
         "num_connections": 1,
+        "output_id": "87654321-4321-4321-4322-1234567890af"
+      },
+      {
+        "input_id": "87654321-4321-4321-4322-1234567890af",
+        "num_connections": 1,
+        "output_id": "12345678-1234-1234-1235-1432567890cd"
+      },
+      {
+        "input_id": "12345678-1234-1234-1235-1432567890cd",
+        "num_connections": 1,
+        "output_id": "87611121-4321-4321-4322-1234567890af"
+      },
+      {
+        "input_id": "87611121-4321-4321-4322-1234567890af",
+        "num_connections": 1,
+        
         "output_id": "87654321-4321-4321-4321-1234567890af"
       },
       {
@@ -393,6 +409,47 @@ Authorization: bearer put_the_access_token_here
         }
       },
       {
+        "id": "12345678-1234-1234-1235-1432567890cd",
+        "image": "interactem/background-subtract:latest",
+        "inputs": [
+          "87654321-4321-4321-4322-1234567890af"
+        ],
+        "outputs": [
+          "87611121-4321-4321-4322-1234567890af"
+        ],
+        "node_type": "operator",
+        "params": {
+          "hello": "world"
+        },
+        "machine_name": "perlmutter",
+        "mounts": [
+          {
+            "type": "bind",
+            "source": "~/Documents/gits/interactEM/backend/operators/operators/",
+            "target": "/app/operators/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "~/Documents/gits/interactEM/backend/core/core/",
+            "target": "/core/core/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "~/Documents/gits/interactEM/backend/operators/containerfiles/background-subtract/run.py",
+            "target": "/app/run.py",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "~/FOURD_241002_0852_20132_00714_offsets.emd",
+            "target": "/vacuum_scan/FOURD_241002_0852_20132_00714_offsets.emd",
+            "read_only": true
+          }
+        ]
+      },
+      {
         "id": "12345678-1234-1234-1234-1432567890cd",
         "image": "interactem/electron-count-save:latest",
         "inputs": [
@@ -459,6 +516,20 @@ Authorization: bearer put_the_access_token_here
         "operator_id": "12345678-1234-1234-1234-1432567890cd",
         "port_type": "input",
         "portkey": "in2"
+      },
+      {
+        "id": "87654321-4321-4321-4322-1234567890af",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1235-1432567890cd",
+        "port_type": "input",
+        "portkey": "in3"
+      },
+      {
+        "id": "87611121-4321-4321-4322-1234567890af",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1235-1432567890cd",
+        "port_type": "output",
+        "portkey": "out3"
       }
     ]
   }
