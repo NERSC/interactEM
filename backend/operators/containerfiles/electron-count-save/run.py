@@ -92,11 +92,9 @@ def save(inputs: BytesMessage | None) -> BytesMessage | None:
     frames_ds = cast(h5py.Dataset, group["frames"])
 
     arr = np.frombuffer(inputs.data, dtype=np.uint32)
-    flattened_frames = np.array(arr).ravel()
     position = (header.STEM_row_in_scan, header.STEM_x_position_in_row)
     flat_index = np.ravel_multi_index(position, scan_shape)
-    frames_ds[flat_index] = flattened_frames
-
+    frames_ds[flat_index] = arr
     return None
 
 
