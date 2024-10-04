@@ -7,6 +7,21 @@ from pydantic import BaseModel
 
 from .base import IdType, NodeType, OperatorID, PortID, PortType
 
+"""
+Pipelines are a DAG of Operators and Ports
+We have to have some way of saying that
+
+OperatorA -> OutputPortA -> InputPortB -> OperatorB
+
+and
+
+OperatorA -> OutputPortB -> InputPortC -> OperatorC
+
+In other words, we cannot have a direct connection between
+two operators because there needs to be some way of identifying
+a specific output port of an operator to a specific input port of another operator
+If we think of a better way to do this in the future, we can change it
+"""
 
 class PodmanMountType(str, Enum):
     bind = "bind"
@@ -34,17 +49,17 @@ class PodmanMount(BaseModel):
     target: str
     read_only: bool = True
 
-
+# Nodes are Operators/Ports
 class PipelineNodeJSON(BaseModel):
     id: IdType
     node_type: NodeType
 
-
+# Ports are Inputs/Outputs
 class PortJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.port
     port_type: PortType
-    operator_id: OperatorID
-    portkey: str
+    operator_id: OperatorID  # The operator this port belongs to
+    portkey: str  # Unused currently, but can be used for port-port compatibility
 
 
 class InputJSON(PortJSON):
@@ -57,15 +72,15 @@ class OutputJSON(PortJSON):
 
 class OperatorJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.operator
-    image: str
-    params: dict[str, Any] = {}
+    image: str  # Container image
+    params: dict[str, Any] = {}  # tunable parameters for the operator
     inputs: list[PortID] = []
     outputs: list[PortID] = []
-    machine_name: str | None = None
-    mounts: list[PodmanMount] = []
-    env: dict[str, str] = {}
-    command: str | list[str] = []
-    network_mode: NetworkMode | None = None
+    machine_name: str | None = None  # Name of the machine to run the operator on
+    mounts: list[PodmanMount] = []  # Container mounts
+    env: dict[str, str] = {}  # Environment variables to pass to the container
+    command: str | list[str] = []  # Command to pass to the container
+    network_mode: NetworkMode | None = None  # Network mode for the container
 
 
 class EdgeJSON(BaseModel):
