@@ -36,7 +36,7 @@ def count_image(inputs: BytesMessage | None) -> BytesMessage | None:
         logger.error("Invalid message")
         return None
     arr = np.frombuffer(inputs.data, dtype=np.uint16).reshape(576, 576)
-    sparse_array = stim.electron_count_frame(arr, background_threshold=100)
+    sparse_array = stim.electron_count_frame(arr, background_threshold=28.6217068096665)
     header = MessageHeader(subject=MessageSubject.BYTES, meta=header.model_dump())
     if first_time:
         print(sparse_array.dtype)
