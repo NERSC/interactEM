@@ -105,19 +105,26 @@ print(f"plane fit to COM0: {planeCOM0}")
 print(f"plane fit to COM1: {planeCOM1}")
 
 
-def generate_shifts(scan_shape, com2_filt, factor, planeCOM0, planeCOM1, method):
-    yy, xx = np.mgrid[0 : scan_shape[1], 0 : scan_shape[0]]
-    yy = yy.astype("<f4") / factor[1]
-    xx = xx.astype("<f4") / factor[0]
+def generate_shifts(scan_shape, com2_filt, planeCOM0, planeCOM1, method):
+    n_rows, n_cols = scan_shape
+    factor = (
+        n_rows / offsets_data.shape[2],
+        n_cols / offsets_data.shape[1],
+    )
+    factor_n_rows, factor_n_cols = factor
+    logger.debug(f"Factor calculated: {factor}")
+    rr, cc = np.mgrid[0:n_rows, 0:n_cols]
+    rr = rr.astype("<f4") / factor_n_rows
+    cc = cc.astype("<f4") / factor_n_cols
 
     if method == "interp":
-        com2_fit = np.zeros((2, *xx.shape))
+        com2_fit = np.zeros((2, *cc.shape))
         com2_fit[0, :, :] = ndimage.map_coordinates(
-            com2_filt[0, :, :], (yy.ravel(), xx.ravel()), mode="nearest"
-        ).reshape(xx.shape)
+            com2_filt[0, :, :], (rr.ravel(), cc.ravel()), mode="nearest"
+        ).reshape(cc.shape)
         com2_fit[1, :, :] = ndimage.map_coordinates(
-            com2_filt[1, :, :], (yy.ravel(), xx.ravel()), mode="nearest"
-        ).reshape(xx.shape)
+            com2_filt[1, :, :], (rr.ravel(), cc.ravel()), mode="nearest"
+        ).reshape(cc.shape)
 
         z0 = com2_fit[0, :, :]
         z1 = com2_fit[1, :, :]
@@ -125,12 +132,12 @@ def generate_shifts(scan_shape, com2_filt, factor, planeCOM0, planeCOM1, method)
         normal = planeCOM0[1]
         d = np.dot(-planeCOM0[0], normal)
         # calculate corresponding z
-        z0 = (-normal[0] * yy - normal[1] * xx - d) / normal[2]
+        z0 = (-normal[0] * rr - normal[1] * cc - d) / normal[2]
 
         normal = planeCOM1[1]
         d = np.dot(-planeCOM1[0], normal)
         # calculate corresponding z
-        z1 = (-normal[0] * yy - normal[1] * xx - d) / normal[2]
+        z1 = (-normal[0] * rr - normal[1] * cc - d) / normal[2]
     else:
         print("unknown method. Choose interp or plane.")
 
@@ -172,17 +179,11 @@ def subtract(inputs: BytesMessage | None) -> BytesMessage | None:
             f"New scan detected. Previous scan: {current_scan_num}, Current scan: {scan_num}"
         )
 
-        factor = (
-            scan_shape[0] / offsets_data.shape[1],
-            scan_shape[1] / offsets_data.shape[2],
-        )
-        logger.debug(f"Factor calculated: {factor}")
-
         method = "interp"
         logger.info(f"Generating shifts using method: {method}")
 
         row_shifts, column_shifts = generate_shifts(
-            scan_shape, offsets_data, factor, planeCOM0, planeCOM1, method
+            scan_shape, offsets_data, planeCOM0, planeCOM1, method
         )
         logger.debug("Shifts generated for new scan...")
 
@@ -190,30 +191,28 @@ def subtract(inputs: BytesMessage | None) -> BytesMessage | None:
 
     sparse_frame = np.frombuffer(inputs.data, dtype=np.uint32)
     position = (header.STEM_row_in_scan, header.STEM_x_position_in_row)
-    row_idx = position[0]
-    column_idx = position[1]
+    row_idx, col_idx = position
+    row_shift = row_shifts[row_idx, col_idx]  # type: ignore
+    column_shift = column_shifts[row_idx, col_idx]  # type: ignore
 
-    evx, evy = np.unravel_index(sparse_frame, frame_shape)
-
-    row_shift = row_shifts[row_idx, column_idx]  # type: ignore
-    column_shift = column_shifts[row_idx, column_idx]  # type: ignore
-
-    evx_centered = evx - column_shift
-    evy_centered = evy - row_shift
+    ev_columns, ev_rows = np.unravel_index(sparse_frame, frame_shape)
+    ev_rows_centered = ev_rows - row_shift
+    ev_columns_centered = ev_columns - column_shift
 
     keep = (
-        (evx_centered < frame_shape[0])
-        & (evx_centered >= 0)
-        & (evy_centered < frame_shape[1])
-        & (evy_centered >= 0)
+        (ev_rows_centered < frame_shape[0])
+        & (ev_rows_centered >= 0)
+        & (ev_columns_centered < frame_shape[1])
+        & (ev_columns_centered >= 0)
     )
 
-    evx_centered = evx_centered[keep]
-    evy_centered = evy_centered[keep]
+    ev_rows_centered = ev_rows_centered[keep]
+    ev_columns_centered = ev_columns_centered[keep]
 
     centered = np.empty((1, 1), dtype=object)
-    centered[0, 0] = np.ravel_multi_index((evx_centered, evy_centered), frame_shape)
-
+    centered[0, 0] = np.ravel_multi_index(
+        (ev_columns_centered, ev_rows_centered), frame_shape
+    )
     experiment_centered = stio.SparseArray(centered, (1, 1), frame_shape)
     return BytesMessage(
         header=inputs.header,
