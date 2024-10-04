@@ -44,12 +44,13 @@ def test_can_open(path: pathlib.Path):
         return False
     return True
 
+count_for_this_scan = 0
 
 @operator
 def save(inputs: BytesMessage | None) -> BytesMessage | None:
+    global count_for_this_scan
     if not inputs:
         return None
-
     try:
         header = FrameHeader(**inputs.header.meta)
     except ValidationError:
@@ -58,9 +59,11 @@ def save(inputs: BytesMessage | None) -> BytesMessage | None:
 
     scan_shape = (header.nSTEM_rows_m1, header.nSTEM_positions_per_row_m1)
     frame_shape = (576, 576)
-
     f = open_files.get(header.scan_number, None)
     if not f:
+        logger.info(f"Scan {header.scan_number - 1} has {count_for_this_scan} frames")
+        count_for_this_scan = 1
+        logger.info(f"Starting scan {header.scan_number}")
         keys_to_remove = list(open_files.keys())
         for k in keys_to_remove:
             open_files[k].close()
@@ -95,6 +98,7 @@ def save(inputs: BytesMessage | None) -> BytesMessage | None:
     position = (header.STEM_row_in_scan, header.STEM_x_position_in_row)
     flat_index = np.ravel_multi_index(position, scan_shape)
     frames_ds[flat_index] = arr
+    count_for_this_scan += 1
     return None
 
 
