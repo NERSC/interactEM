@@ -270,7 +270,7 @@ Authorization: bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3MjY4NTk3M
   }
 }
 
-###
+### FULL PIPELINE
 
 POST http://localhost:80/api/v1/pipelines
 Content-Type: application/json
@@ -320,6 +320,16 @@ Authorization: bearer put_the_access_token_here
         "input_id":  "87654321-4321-4321-4321-1234567890af",
         "num_connections": 1,
         "output_id":"12345678-1234-1234-1234-1432567890cd"
+      },
+      {
+        "input_id":  "12345678-1234-1234-1234-1234567890cd",
+        "num_connections": 1,
+        "output_id":"87654321-4321-4321-4323-1234567890af"
+      },
+      {
+        "input_id":  "87654321-4321-4321-4323-1234567890af",
+        "num_connections": 1,
+        "output_id":"87654321-4321-4321-4322-1234567890af"
       }
     ],
     "operators": [
@@ -474,8 +484,9 @@ Authorization: bearer put_the_access_token_here
         ],
         "node_type": "operator",
         "outputs": [
-          "87654123-4321-4321-4321-1000000890ab"
-          ],
+          "87654123-4321-4321-4321-1000000890ab",
+          "87654321-4321-4321-4323-1234567890af"
+        ],
         "params": {
           "hello": "world"
         },
@@ -538,6 +549,44 @@ Authorization: bearer put_the_access_token_here
             "read_only": false
           }
         ]
+      },
+      {
+        "id": "12345678-1234-1234-1235-1432567890cd",
+        "image": "interactem/background-subtract:latest",
+        "inputs": [
+          "87654321-4321-4321-4322-1234567890af"
+        ],
+        "node_type": "operator",
+        "params": {
+          "hello": "world"
+        },
+        "machine_name": "perlmutter",
+        "mounts": [
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/operators/operators/",
+            "target": "/app/operators/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/core/core/",
+            "target": "/core/core/",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/Documents/gits/interactEM/backend/operators/containerfiles/background-subtract/run.py",
+            "target": "/app/run.py",
+            "read_only": true
+          },
+          {
+            "type": "bind",
+            "source": "/Users/swelborn/FOURD_241002_0852_20132_00714_offsets.emd",
+            "target": "/vacuum_scan/FOURD_241002_0852_20132_00714_offsets.emd",
+            "read_only": true
+          }
+        ]
       }
     ],
     "ports": [
@@ -582,6 +631,20 @@ Authorization: bearer put_the_access_token_here
         "operator_id": "12345678-1234-1234-1234-1432567890cd",
         "port_type": "input",
         "portkey": "in3"
+      },
+      {
+        "id": "87654321-4321-4321-4323-1234567890af",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1234-1234567890cd",
+        "port_type": "output",
+        "portkey": "out4"
+      },
+      {
+        "id": "87654321-4321-4321-4322-1234567890af",
+        "node_type": "port",
+        "operator_id": "12345678-1234-1234-1235-1432567890cd",
+        "port_type": "input",
+        "portkey": "in4"
       }
     ]
   }
