@@ -247,11 +247,15 @@ class Operator(ABC):
 
             if has_input_op:
                 msg = await self.messenger.recv()
+                # try:
+
+                # except asyncio.CancelledError:
+                #     break
                 if not msg:
                     continue
                 _tracking = msg.header.tracking
 
-            inject_tracking: bool = loop_counter % 100 == 0 and not has_input_op
+            inject_tracking: bool = loop_counter % 10000 == 0 and not has_input_op
             timing = inject_tracking or _tracking is not None
             before_kernel = datetime.now() if timing else None
             processed_msg = self.kernel(msg)
@@ -278,6 +282,10 @@ class Operator(ABC):
 
             if coros:
                 await asyncio.gather(*coros)
+                # try:
+                #     await asyncio.gather(*coros)
+                # except asyncio.CancelledError:
+                #     break
 
             loop_counter += 1
 
