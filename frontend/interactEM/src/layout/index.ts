@@ -1,5 +1,5 @@
+import dagre from "@dagrejs/dagre"
 import { type Edge, type Node, Position } from "@xyflow/react"
-import dagre from '@dagrejs/dagre'
 
 import OperatorNode from "../components/operatornode"
 import type { OperatorNodeData } from "../pipeline"
