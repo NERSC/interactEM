@@ -92,6 +92,7 @@ class OperatorOutput(BaseModel):
 
 
 class OperatorParameter(BaseModel):
+    name: str # Name of the parameter
     label: str # Human readable name of the parameter
     description: str # Human readable description of the parameter
     type: str # Type of the parameter
@@ -100,9 +101,10 @@ class OperatorParameter(BaseModel):
 
 
 class Operator(BaseModel):
+    id: IdType
     label: str # Human readable name of the operator
     description: str # Human readable description of the operator
     image: str # Contain image for operator
     inputs: list[OperatorInput] # List of inputs
     outputs: list[OperatorOutput] # List of outputs
-    parameters: dict[str, OperatorParameter] # List of parameters
+    parameters: list[OperatorParameter] # List of parameters
