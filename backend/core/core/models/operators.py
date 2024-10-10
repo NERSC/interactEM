@@ -101,6 +101,7 @@ class OperatorParameter(BaseModel):
 
 
 class Operator(BaseModel):
+    id: IdType
     label: str # Human readable name of the operator
     description: str # Human readable description of the operator
     image: str # Contain image for operator
