@@ -30,7 +30,7 @@
       {
         "name": "in",
         "label": "The input",
-        "type": "frame",
+        "type": "partial frame",
         "description": "Partial frame"
       }
     ],
@@ -98,8 +98,8 @@
       {
         "name": "out",
         "label": "The output",
-        "type": "frame",
-        "description": "Full frame"
+        "type": "partial frame",
+        "description": "Partial frame"
       }
     ]
   }
