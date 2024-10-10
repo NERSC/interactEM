@@ -1,7 +1,6 @@
 import dagre from "@dagrejs/dagre"
 import { type Edge, type Node, Position } from "@xyflow/react"
 
-import OperatorNode from "../components/operatornode"
 import type { OperatorNodeData } from "../pipeline"
 
 const dagreGraph = new dagre.graphlib.Graph()
