@@ -10,6 +10,11 @@
     "enabled": true,
     "rules": {
       "recommended": true,
+      "correctness": {
+        "noUnusedImports": {
+          "level": "error"
+        }
+      },
       "suspicious": {
         "noExplicitAny": "off",
         "noArrayIndexKey": "off"
