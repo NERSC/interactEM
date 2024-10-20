@@ -1,6 +1,7 @@
 import asyncio
 import itertools
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import stempy.io as stio
@@ -46,7 +47,9 @@ send_count = 0
 
 
 @operator
-def save(inputs: BytesMessage | None) -> BytesMessage | None:
+def save(
+    inputs: BytesMessage | None, parameters: dict[str, Any]
+) -> BytesMessage | None:
     global reader, scan_positions_cycle, scan_num, send_count
     position = next(scan_positions_cycle)
     if position == 0:

@@ -1,6 +1,6 @@
 import asyncio
 import pathlib
-from typing import cast
+from typing import Any, cast
 
 import h5py
 import numpy as np
@@ -47,7 +47,9 @@ def test_can_open(path: pathlib.Path):
 count_for_this_scan = 0
 
 @operator
-def save(inputs: BytesMessage | None) -> BytesMessage | None:
+def save(
+    inputs: BytesMessage | None, parameters: dict[str, Any]
+) -> BytesMessage | None:
     global count_for_this_scan
     if not inputs:
         return None

@@ -1,4 +1,5 @@
 import asyncio
+from typing import Any
 
 import numpy as np
 import stempy.image as stim
@@ -21,14 +22,15 @@ class FrameHeader(BaseModel):
     modules: list[int]
 
 
-first_time = True
-
-
 @operator
-def count_image(inputs: BytesMessage | None) -> BytesMessage | None:
+def count_image(
+    inputs: BytesMessage | None, parameters: dict[str, Any]
+) -> BytesMessage | None:
     global first_time
     if not inputs:
         return None
+    background_threshold = float(parameters.get("background_threshold", 28.0))
+    xray_threshold = float(parameters.get("xray_threshold", 2000.0))
 
     try:
         header = FrameHeader(**inputs.header.meta)
@@ -36,12 +38,12 @@ def count_image(inputs: BytesMessage | None) -> BytesMessage | None:
         logger.error("Invalid message")
         return None
     arr = np.frombuffer(inputs.data, dtype=np.uint16).reshape(576, 576)
-    sparse_array = stim.electron_count_frame(arr, background_threshold=28.6217068096665)
+    sparse_array = stim.electron_count_frame(
+        arr,
+        background_threshold=background_threshold,
+        xray_threshold=xray_threshold,
+    )
     header = MessageHeader(subject=MessageSubject.BYTES, meta=header.model_dump())
-    if first_time:
-        print(sparse_array.dtype)
-        print(sparse_array.data)
-        first_time = False
     return BytesMessage(header=header, data=sparse_array.data[0][0].tobytes())
 
 
