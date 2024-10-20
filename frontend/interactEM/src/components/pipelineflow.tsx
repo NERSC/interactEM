@@ -150,7 +150,10 @@ export const PipelineFlow = () => {
     // no need to nullify ID if we are just moving/selecting node
     (changes) => {
       const hasMeaningfulChanges = changes.some(
-        (change) => change.type !== "position" && change.type !== "select",
+        (change) =>
+          change.type !== "position" &&
+          change.type !== "select" &&
+          change.type !== "dimensions",
       )
       if (hasMeaningfulChanges) {
         setCurrentPipelineId(null)
