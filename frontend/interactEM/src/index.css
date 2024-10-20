@@ -62,3 +62,46 @@ body,
   font-weight: 400;
   margin-bottom: 10px;
 }
+
+.operator {
+  padding: 10px;
+  background: #ffffff;
+  border: 1.5px solid #000000;
+  border-radius: 5px;
+  font-size: 16px;
+  color: #333;
+  cursor: grab;
+}
+
+.operator-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.operator-label {
+  text-align: center;
+}
+
+.operator-button-text {
+  margin-left: 4px;
+  font-size: 14px;
+}
+
+.operator-popover-content {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.parameter-item {
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #ccc;
+}
+
+.parameter-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}

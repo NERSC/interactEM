@@ -1,20 +1,35 @@
-import { Handle, type Node, type NodeProps, Position } from "@xyflow/react"
+import type { Node, NodeProps } from "@xyflow/react"
+import OperatorHeader from "./operatorheader"
+import ParametersButton from "./parametersbutton"
+import OperatorHandles from "./operatorhandles"
+import type { OperatorParameter } from "../operators"
+import { useRef } from "react"
 
-type OperatorNode = Node<
-  { label: string; image: string; inputs?: string[]; outputs?: string[] },
+export type OperatorNode = Node<
+  {
+    label: string
+    image: string
+    inputs?: string[]
+    outputs?: string[]
+    parameters?: OperatorParameter[]
+  },
   "operator"
 >
 
-const OperatorNode = ({ data }: NodeProps<OperatorNode>) => {
+const OperatorNode = ({ id, data }: NodeProps<OperatorNode>) => {
+  const nodeRef = useRef<HTMLDivElement>(null)
   return (
-    <div className="react-flow__node-default">
-      {data.label && <div>{data.label}</div>}
-      {data.inputs && (
-        <Handle type="target" position={Position.Left} id={data.inputs[0]} />
+    <div className="operator" ref={nodeRef}>
+      <OperatorHeader id={id} label={data.label} image={data.image} />
+
+      {data.parameters && (
+        <ParametersButton
+          operatorID={id}
+          parameters={data.parameters}
+          nodeRef={nodeRef}
+        />
       )}
-      {data.outputs && (
-        <Handle type="source" position={Position.Right} id={data.outputs[0]} />
-      )}
+      <OperatorHandles inputs={data.inputs} outputs={data.outputs} />
     </div>
   )
 }

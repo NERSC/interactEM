@@ -14,7 +14,7 @@
       {
         "name": "command",
         "label": "The command to run",
-        "type": "string",
+        "type": "int",
         "default": "0",
         "description": "A command",
         "required": true
@@ -97,6 +97,12 @@
     "outputs": [
       {
         "name": "out",
+        "label": "The output",
+        "type": "partial frame",
+        "description": "Partial frame"
+      },
+      {
+        "name": "out2",
         "label": "The output",
         "type": "partial frame",
         "description": "Partial frame"

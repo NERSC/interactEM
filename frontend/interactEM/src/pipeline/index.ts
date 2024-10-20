@@ -13,6 +13,7 @@ export interface OperatorJSON {
   label?: string
   inputs?: string[]
   outputs?: string[]
+  parameters?: Record<string, boolean | number | string>
 
   [x: string | number | symbol]: unknown
 }
@@ -51,6 +52,7 @@ export type OperatorNodeData = {
   image: string
   inputs?: string[]
   outputs?: string[]
+  parameters?: Record<string, boolean | number | string>
 }
 
 export const fromPipelineJSON = (pipelineJSON: PipelineJSON) => {
@@ -113,6 +115,7 @@ export const toJSON = (nodes: Node<OperatorNodeData>[], edges: Edge[]) => {
     const data = node.data
     const inputs = data.inputs
     const outputs = data.outputs
+    const parameters = data.parameters
 
     // Ports
     for (const portID of inputs ?? []) {
@@ -154,6 +157,7 @@ export const toJSON = (nodes: Node<OperatorNodeData>[], edges: Edge[]) => {
       image: node.data.image,
       inputs: inputs,
       outputs: outputs,
+      parameters: parameters,
     }
     operatorsJSON.push(op)
   }
