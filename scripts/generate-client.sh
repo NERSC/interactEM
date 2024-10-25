@@ -11,4 +11,4 @@ node frontend/interactEM/modify-openapi-operationids.js
 mv openapi.json frontend/interactEM/openapi.json
 cd frontend/interactEM
 npm run generate-client
-npx biome format --write ./src/client
+npx biome format --write ./src/generated/client
