@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query"
-import { runPipelineMutation } from "../client/@tanstack/react-query.gen"
+import { runPipelineMutation } from "../client/generated/@tanstack/react-query.gen"
 
 export const useRunPipeline = () => {
   return useMutation({

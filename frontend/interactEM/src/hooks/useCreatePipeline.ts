@@ -3,7 +3,7 @@ import {
   createPipelineMutation,
   readPipelineQueryKey,
   readPipelinesQueryKey,
-} from "../client/@tanstack/react-query.gen"
+} from "../client/generated/@tanstack/react-query.gen"
 
 export const useCreatePipeline = (
   setCurrentPipelineId: (id: string | null) => void,
