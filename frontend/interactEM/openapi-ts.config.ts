@@ -5,7 +5,7 @@ export default defineConfig({
   input: "openapi.json",
   output: {
     format: "biome",
-    path: "src/client",
+    path: "src/client/generated",
   },
   plugins: ["@tanstack/react-query"],
 })
