@@ -33,7 +33,7 @@ import { fromPipelineJSON } from "../pipeline"
 import Fab from "@mui/material/Fab"
 import NavigationIcon from "@mui/icons-material/Navigation"
 import AddIcon from "@mui/icons-material/Add"
-import { client } from "../client"
+import { client } from "../client/generated"
 import { useCreatePipeline } from "../hooks/useCreatePipeline"
 import { useRunPipeline } from "../hooks/useRunPipeline"
 
