@@ -1,13 +1,15 @@
-import { client } from "./index"
+import { client } from './index'
+
 
 client.setConfig({
-  baseURL: "http://localhost:80/",
+  baseURL: import.meta.env.VITE_REACT_APP_API_BASE_URL || 'http://localhost:80/',
 })
 
 client.instance.interceptors.request.use((config) => {
-  config.headers.set(
-    "Authorization",
-    "Bearer <TOKEN HERE>",
-  )
+  const token = import.meta.env.VITE_REACT_APP_API_TOKEN
+  
+  if (token) {
+    config.headers.set('Authorization', `Bearer ${token}`)
+  }
   return config
 })
