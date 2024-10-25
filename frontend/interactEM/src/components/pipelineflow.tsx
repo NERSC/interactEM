@@ -33,7 +33,6 @@ import { fromPipelineJSON } from "../pipeline"
 import Fab from "@mui/material/Fab"
 import NavigationIcon from "@mui/icons-material/Navigation"
 import AddIcon from "@mui/icons-material/Add"
-import { client } from "../client/generated"
 import { useCreatePipeline } from "../hooks/useCreatePipeline"
 import { useRunPipeline } from "../hooks/useRunPipeline"
 
@@ -41,15 +40,6 @@ export const edgeOptions = {
   type: "smoothstep",
   animated: true,
 }
-
-client.setConfig({
-  baseURL: "http://localhost:80/",
-})
-
-client.instance.interceptors.request.use((config) => {
-  config.headers.set("Authorization", "Bearer <token>")
-  return config
-})
 
 const generateID = () => uuidv4()
 
