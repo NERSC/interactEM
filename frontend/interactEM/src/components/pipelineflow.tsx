@@ -35,6 +35,7 @@ import NavigationIcon from "@mui/icons-material/Navigation"
 import AddIcon from "@mui/icons-material/Add"
 import { useCreatePipeline } from "../hooks/useCreatePipeline"
 import { useRunPipeline } from "../hooks/useRunPipeline"
+import type { PipelinePublic } from "../client"
 
 export const edgeOptions = {
   type: "smoothstep",
@@ -55,7 +56,9 @@ export const PipelineFlow = () => {
     null,
   )
 
-  const createPipeline = useCreatePipeline(setCurrentPipelineId)
+  const createPipeline = useCreatePipeline((pipeline: PipelinePublic) => {
+    setCurrentPipelineId(pipeline.id)
+  })
   const runPipeline = useRunPipeline()
 
   const handleConnect: OnConnect = useCallback((connection) => {
