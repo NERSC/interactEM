@@ -1,6 +1,6 @@
 import { type Edge, type Node, Position, type XYPosition } from "@xyflow/react"
 
-import { edgeOptions } from "../components/pipelineflow"
+import { edgeOptions } from "../components/PipelineFlow"
 
 const position: XYPosition = {
   x: 0,

@@ -2,7 +2,7 @@ import { ReactFlowProvider } from "@xyflow/react"
 import { DnDProvider } from "./dnd/dndcontext"
 
 import "@xyflow/react/dist/style.css"
-import { PipelineFlow } from "./components/pipelineflow"
+import { PipelineFlow } from "./components/PipelineFlow"
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools"
 import { NatsProvider } from "./nats/NatsContext"
