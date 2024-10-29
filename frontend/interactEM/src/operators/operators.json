@@ -14,7 +14,7 @@
       {
         "name": "command",
         "label": "The command to run",
-        "type": "int",
+        "type": "string",
         "default": "0",
         "description": "A command",
         "required": true
