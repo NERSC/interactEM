@@ -41,16 +41,6 @@
         "type": "frame",
         "description": "Full frame"
       }
-    ],
-    "parameters": [
-      {
-        "name": "hello",
-        "label": "The greeting",
-        "type": "string",
-        "default": "world",
-        "description": "A greeting",
-        "required": true
-      }
     ]
   },
   {
