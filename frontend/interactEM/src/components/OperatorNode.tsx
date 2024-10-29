@@ -1,7 +1,7 @@
 import type { Node, NodeProps } from "@xyflow/react"
 import OperatorHeader from "./OperatorHeader"
-import ParametersButton from "./ParametersButton"
 import OperatorHandles from "./OperatorHandles"
+import OperatorToolbar from "./OperatorToolbar"
 import type { OperatorParameter } from "../operators"
 import { useRef } from "react"
 
@@ -18,18 +18,17 @@ export type OperatorNode = Node<
 
 const OperatorNode = ({ id, data }: NodeProps<OperatorNode>) => {
   const nodeRef = useRef<HTMLDivElement>(null)
+
   return (
     <div className="operator" ref={nodeRef}>
-      <OperatorHeader id={id} label={data.label} image={data.image} />
-
-      {data.parameters && (
-        <ParametersButton
-          operatorID={id}
-          parameters={data.parameters}
-          nodeRef={nodeRef}
-        />
-      )}
+      <OperatorHeader label={data.label} />
       <OperatorHandles inputs={data.inputs} outputs={data.outputs} />
+      <OperatorToolbar
+        id={id}
+        image={data.image}
+        parameters={data.parameters}
+        nodeRef={nodeRef}
+      />
     </div>
   )
 }

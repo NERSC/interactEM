@@ -1,7 +1,8 @@
 // ParametersButton.tsx
+
 import type React from "react"
 import { useState } from "react"
-import { IconButton, Popover } from "@mui/material"
+import { IconButton, Modal, Box } from "@mui/material"
 import SettingsIcon from "@mui/icons-material/Settings"
 import ParameterUpdater from "./ParameterUpdater"
 import type { OperatorParameter } from "../operators"
@@ -17,56 +18,58 @@ const ParametersButton: React.FC<ParametersButtonProps> = ({
   parameters,
   nodeRef,
 }) => {
-  const [anchorPosition, setAnchorPosition] = useState<{
-    top: number
-    left: number
-  } | null>(null)
+  const [open, setOpen] = useState(false)
+  const [modalStyle, setModalStyle] = useState<React.CSSProperties>({})
 
-  const handleOpenPopover = (event: React.MouseEvent<HTMLElement>) => {
-    event.stopPropagation() // Prevent node drag when clicking the button
+  const handleOpenModal = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation()
 
     if (nodeRef.current) {
-      // Use getBoundingClientRect to get the position of the node
-      // and set the popover position
+      // Get the position of the node
       const rect = nodeRef.current.getBoundingClientRect()
-      setAnchorPosition({
-        top: rect.bottom + window.scrollY,
-        left: rect.left + rect.width / 2 + window.scrollX,
+      setModalStyle({
+        position: "absolute",
+        top: rect.bottom + window.scrollY + 10,
+        left: rect.left + window.scrollX + rect.width / 2,
+        transform: "translateX(-50%)",
       })
     }
+
+    setOpen(true)
   }
 
-  const handleClosePopover = () => {
-    setAnchorPosition(null)
+  const handleCloseModal = () => {
+    setOpen(false)
   }
-
-  const open = Boolean(anchorPosition)
 
   return (
     <>
-      <IconButton onClick={handleOpenPopover} size="small">
-        <SettingsIcon fontSize="small" />
-        <span className="operator-button-text">Parameters</span>
-      </IconButton>
-
-      <Popover
-        open={open}
-        onClose={handleClosePopover}
-        anchorReference="anchorPosition"
-        anchorPosition={anchorPosition || { top: 0, left: 0 }}
-        transformOrigin={{
-          vertical: "top",
-          horizontal: "center",
-        }}
+      <IconButton
+        onClick={handleOpenModal}
+        size="small"
+        aria-label="Parameters"
       >
-        <div className="operator-popover-content">
-          {parameters.map((param) => (
-            <div key={param.name} className="parameter-item">
-              <ParameterUpdater parameter={param} operatorID={operatorID} />
-            </div>
-          ))}
-        </div>
-      </Popover>
+        <SettingsIcon fontSize="small" />
+      </IconButton>
+      <Modal
+        open={open}
+        onClose={handleCloseModal}
+        sx={{ position: "absolute" }}
+      >
+        <Box
+          className="operator-modal-box"
+          style={modalStyle}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="operator-modal-content">
+            {parameters.map((param) => (
+              <div key={param.name} className="parameter-item">
+                <ParameterUpdater parameter={param} operatorID={operatorID} />
+              </div>
+            ))}
+          </div>
+        </Box>
+      </Modal>
     </>
   )
 }
