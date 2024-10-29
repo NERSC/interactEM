@@ -20,6 +20,7 @@ import {
   type JetStreamManager,
 } from "@nats-io/jetstream"
 import { Kvm } from "@nats-io/kv"
+import config from "../config"
 
 interface NatsContextType {
   natsConnection: NatsConnection | null
@@ -58,7 +59,7 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const setupNatsConnection = async () => {
       try {
-        const nc = await wsconnect({ servers: ["ws://localhost:9222"] })
+        const nc = await wsconnect({ servers: [config.NATS_SERVER_URL] })
         setNatsConnection(nc)
         setIsConnected(true)
 
