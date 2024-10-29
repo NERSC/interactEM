@@ -3,7 +3,7 @@ import type React from "react"
 import { useState } from "react"
 import { IconButton, Popover } from "@mui/material"
 import SettingsIcon from "@mui/icons-material/Settings"
-import ParameterUpdater from "./parameterupdater"
+import ParameterUpdater from "./ParameterUpdater"
 import type { OperatorParameter } from "../operators"
 
 interface ParametersButtonProps {

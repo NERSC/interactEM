@@ -1,7 +1,7 @@
 import type { Node, NodeProps } from "@xyflow/react"
-import OperatorHeader from "./operatorheader"
-import ParametersButton from "./parametersbutton"
-import OperatorHandles from "./operatorhandles"
+import OperatorHeader from "./OperatorHeader"
+import ParametersButton from "./ParametersButton"
+import OperatorHandles from "./OperatorHandles"
 import type { OperatorParameter } from "../operators"
 import { useRef } from "react"
 
