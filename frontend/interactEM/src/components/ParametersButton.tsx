@@ -4,7 +4,7 @@ import type React from "react"
 import { useState } from "react"
 import { IconButton, Modal, Box } from "@mui/material"
 import SettingsIcon from "@mui/icons-material/Settings"
-import ParameterUpdater from "./ParameterUpdater"
+import ParameterUpdater from "./parameterupdater"
 import type { OperatorParameter } from "../operators"
 
 interface ParametersButtonProps {
