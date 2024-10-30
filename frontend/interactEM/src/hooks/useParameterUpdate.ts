@@ -20,7 +20,7 @@ export const useParameterUpdate = (
     }
 
     try {
-      const subject = `${PARAMETERS_STREAM}.${operatorID}`
+      const subject = `${PARAMETERS_STREAM}.${operatorID}.${parameter.name}`
       const payload = jc.encode({ [parameter.name]: value })
       await jetStreamClient.publish(subject, payload)
     } catch (error) {
