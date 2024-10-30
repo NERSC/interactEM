@@ -1,6 +1,7 @@
 import asyncio
 from collections import defaultdict
 from pprint import pprint
+from typing import Any
 
 import msgpack
 import numpy as np
@@ -120,7 +121,7 @@ first_time = True
 
 @operator
 def assemble(
-    inputs: BytesMessage | None,
+    inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> BytesMessage | None:
     if inputs is None:
         return None

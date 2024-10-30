@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import signal
 from abc import ABC, abstractmethod
@@ -15,7 +16,12 @@ import nats.js.errors
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
-from nats.js.api import ConsumerConfig, DeliverPolicy, StreamConfig, StreamInfo
+from nats.js.api import (
+    ConsumerConfig,
+    DeliverPolicy,
+    StreamConfig,
+    StreamInfo,
+)
 from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
@@ -27,6 +33,8 @@ from core.constants import (
     OPERATOR_ID_ENV_VAR,
     STREAM_METRICS,
     STREAM_OPERATORS,
+    STREAM_PARAMETERS,
+    STREAM_PARAMETERS_UPDATE,
 )
 from core.logger import get_logger
 from core.models import CommBackend, OperatorJSON, PipelineJSON
@@ -84,6 +92,7 @@ class Operator(ABC):
         self.operators_kv: KeyValue | None = None
         self.messenger_task: asyncio.Task | None = None
         self.update_kv_task: asyncio.Task | None = None
+        self.parameters: dict[str, Any] = {}
         self.metrics: OperatorMetrics = OperatorMetrics(
             id=self.id, timing=OperatorTiming()
         )
@@ -114,6 +123,7 @@ class Operator(ABC):
         await self.messenger.start(self.pipeline)
         self.update_kv_task = asyncio.create_task(self.update_kv())
         self.run_task = asyncio.create_task(self.run())
+        self.consume_params_task = asyncio.create_task(self.consume_params())
         await self._shutdown_event.wait()
         await self.shutdown()
 
@@ -135,13 +145,45 @@ class Operator(ABC):
             description="A stream for message metrics.",
             subjects=[f"{STREAM_METRICS}.>"],
         )
-        stream_cfg = StreamConfig(name=STREAM_METRICS, subjects=[f"{STREAM_METRICS}.>"])
         self.metrics_stream = await create_or_update_stream(stream_cfg, self.js)
+
+        stream_cfg = StreamConfig(
+            name=STREAM_PARAMETERS,
+            description="A stream for operator parameters.",
+            subjects=[f"{STREAM_PARAMETERS}.>"],
+        )
+        self.params_stream = await create_or_update_stream(stream_cfg, self.js)
+
+        retries = 10
+        while retries > 0:
+            try:
+                self.params_psub = await self.js.pull_subscribe(
+                    stream=STREAM_PARAMETERS,
+                    subject=f"{STREAM_PARAMETERS}.{self.id}.>",
+                    config=ConsumerConfig(
+                        description=f"operator-{self.id}",
+                        # Use to get the last message for each parameter
+                        deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
+                    ),
+                )
+                break
+            # This happens when consumer is already attached to this stream
+            # Shouldn't happen in production (UIDs are unique), but happens if
+            # spawning test pipelines one after another quickly
+            except nats.js.errors.BadRequestError as e:
+                if e.code == 400 and e.err_code == 10100:
+                    logger.warning(f"Consumer name weirdness: {e}. Retrying...")
+                    retries -= 1
+                    await asyncio.sleep(1)
+                    if retries == 0:
+                        raise e
+                    continue
 
     async def initialize_pipeline(self):
         logger.info(
-            f"Subscribing to stream {STREAM_OPERATORS} for operator {self.id}..."
+            f"Subscribing to stream '{STREAM_OPERATORS}' for operator {self.id}..."
         )
+        # TODO: look at policies on this stream
         consumer_cfg = ConsumerConfig(
             description=f"operator-{self.id}",
             deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
@@ -160,9 +202,74 @@ class Operator(ABC):
         self.pipeline = await receive_pipeline(msg[0])
         if self.pipeline is None:
             raise ValueError("Pipeline not found")
+        await psub.unsubscribe()
         self.info = self.pipeline.get_operator(self.id)
+        self.parameters = {p.name: p.default for p in self.info.parameters}
+        logger.info(f"Operator {self.id} initialized with parameters {self.parameters}")
+        asyncio.create_task(self.publish_parameters())
         if self.info is None:
             raise ValueError(f"Operator {self.id} not found in pipeline")
+
+    async def publish_parameters(self):
+        if not self.js:
+            logger.warning("JetStream context not initialized...")
+            return
+        tasks = []
+        for name, val in self.parameters.items():
+            logger.info(
+                f"Publishing {name}, {val} on subject: {STREAM_PARAMETERS_UPDATE}.{self.id}.{name}"
+            )
+            tasks.append(
+                asyncio.create_task(
+                    self.js.publish(
+                        subject=f"{STREAM_PARAMETERS_UPDATE}.{self.id}.{name}",
+                        payload=str(val).encode(),
+                    )
+                )
+            )
+        logger.info(f"Published parameters for operator {self.id}...")
+        await asyncio.gather(*tasks)
+
+    async def consume_params(self):
+        while not self._shutdown_event.is_set():
+            try:
+                await self.params_psub.consumer_info()
+            except Exception as e:
+                logger.info(f"Consumer info error: {e}")
+            try:
+                msgs = await self.params_psub.fetch(20, timeout=1)
+            except nats.errors.TimeoutError:
+                continue
+
+            if not msgs:
+                continue
+
+            # Only use the last parameter from frontend
+            for msg in msgs:
+                if not msg.data:
+                    logger.warning(f"Received empty message for operator {self.id}")
+                    await msg.term()  # terminate sending this message
+                    continue
+
+                parameter_name = msg.subject.split(".")[-1]
+                if parameter_name not in self.parameters:
+                    logger.warning(
+                        f"Received message for unknown parameter {parameter_name}"
+                    )
+                    continue
+                try:
+                    # We want to update, not overwrite
+                    # TODO: we need some way of validating parameters and typing them
+                    self.parameters.update(json.loads(msg.data.decode()))
+                    logger.info(
+                        f"Updating {parameter_name} to {self.parameters[parameter_name]}..."
+                    )
+                    asyncio.create_task(msg.ack())
+                except json.JSONDecodeError as e:
+                    logger.error(f"Error decoding param update: {e}")
+                    await msg.term()
+                    pass
+            asyncio.create_task(self.publish_parameters())
 
     async def update_kv(self):
         while not self._shutdown_event.is_set():
@@ -199,16 +306,31 @@ class Operator(ABC):
 
     async def shutdown(self):
         logger.info(f"Shutting down operator {self.id}...")
+
         await self.execute_dependencies_teardown()
+
         if self.run_task:
             self.run_task.cancel()
             try:
                 await self.run_task
             except asyncio.CancelledError:
                 logger.info("Run task cancelled")
+
         if self.messenger:
             logger.info(f"Stopping messenger {self.messenger}...")
             await self.messenger.stop()
+
+        if self.consume_params_task:
+            self.consume_params_task.cancel()
+            try:
+                await self.consume_params_task
+            except asyncio.CancelledError:
+                logger.info("Consume paramaters task cancelled")
+
+        if self.params_psub:
+            await self.params_psub.unsubscribe()
+            logger.info("Unsubscribed from parameters stream")
+
         if self.nc:
             logger.info("Closing NATS connection...")
             await self.nc.close()
@@ -254,7 +376,7 @@ class Operator(ABC):
             inject_tracking: bool = loop_counter % 100 == 0 and not has_input_op
             timing = inject_tracking or _tracking is not None
             before_kernel = datetime.now() if timing else None
-            processed_msg = self.kernel(msg)
+            processed_msg = self.kernel(msg, self.parameters)
             after_kernel = datetime.now() if timing else None
 
             if processed_msg:
@@ -277,6 +399,7 @@ class Operator(ABC):
                 self.metrics.timing.after_kernel = after_kernel
 
             if coros:
+                # TODO: possibly create tasks instead
                 await asyncio.gather(*coros)
 
             loop_counter += 1
@@ -333,12 +456,14 @@ class Operator(ABC):
     def kernel(
         self,
         inputs: BytesMessage | None,
+        parameters: dict[str, Any],
     ) -> BytesMessage | None:
         pass
 
+Parameters = dict[str, Any]
 
 KernelFn = Callable[
-    [BytesMessage | None],
+    [BytesMessage | None, Parameters],
     BytesMessage | None,
 ]
 

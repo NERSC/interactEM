@@ -1,11 +1,11 @@
 from collections.abc import Sequence
 from enum import Enum
-from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
 
 from .base import IdType, NodeType, OperatorID, PortID, PortType
+from .operators import OperatorParameter
 
 """
 Pipelines are a DAG of Operators and Ports
@@ -73,7 +73,7 @@ class OutputJSON(PortJSON):
 class OperatorJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.operator
     image: str  # Container image
-    params: dict[str, Any] = {}  # tunable parameters for the operator
+    parameters: list[OperatorParameter]  # tunable parameters for the operator
     inputs: list[PortID] = []
     outputs: list[PortID] = []
     machine_name: str | None = None  # Name of the machine to run the operator on

@@ -4,6 +4,7 @@ services:
     ports:
       - "4222:4222"
       - "8222:8222" # Monitoring port.
+      - "9222:9222" # websocket
     command: >
       -c /etc/nats/nats.conf
     volumes:

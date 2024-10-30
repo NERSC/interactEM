@@ -3,6 +3,7 @@ import multiprocessing
 import signal
 import sys
 from enum import Enum
+from typing import Any
 
 import msgpack
 import zmq
@@ -176,7 +177,7 @@ first_time = True
 
 @operator
 def receive_from_zmq_processes_and_send(
-    inputs: BytesMessage | None,
+    inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> BytesMessage | None:
     global first_time
     msgs = socket.recv_multipart()

@@ -22,7 +22,9 @@ import { v4 as uuidv4 } from "uuid"
 import { operatorByID } from "../operators"
 import { type OperatorNodeData, type PipelineJSON, toJSON } from "../pipeline"
 import { OperatorMenu, type OperatorMenuItemDragData } from "./operatormenu"
-import OperatorNode from "./operatornode"
+import OperatorNode, {
+  type OperatorNode as OperatorNodeType,
+} from "./operatornode"
 
 import "@xyflow/react/dist/style.css"
 
@@ -124,7 +126,7 @@ export const PipelineFlow = () => {
 
       const position = screenToFlowPosition(screenPosition)
 
-      const newNode: OperatorNode = {
+      const newNode: OperatorNodeType = {
         id: generateID(),
         type: "operator",
         position,
@@ -133,6 +135,7 @@ export const PipelineFlow = () => {
           image: op.image,
           inputs: op.inputs?.map((_) => uuidv4()),
           outputs: op.outputs?.map((_) => uuidv4()),
+          parameters: op.parameters,
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
@@ -147,7 +150,10 @@ export const PipelineFlow = () => {
     // no need to nullify ID if we are just moving/selecting node
     (changes) => {
       const hasMeaningfulChanges = changes.some(
-        (change) => change.type !== "position" && change.type !== "select",
+        (change) =>
+          change.type !== "position" &&
+          change.type !== "select" &&
+          change.type !== "dimensions",
       )
       if (hasMeaningfulChanges) {
         setCurrentPipelineId(null)

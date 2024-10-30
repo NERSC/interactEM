@@ -11,6 +11,7 @@ export interface OperatorOutput {
 }
 
 export interface OperatorParameter {
+  name: string
   label: string
   description: string
   type: string
