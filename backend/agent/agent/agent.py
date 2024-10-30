@@ -274,7 +274,7 @@ class Agent:
         while not self._shutdown_event.is_set():
             try:
                 msgs = await psub.fetch(1)
-                await asyncio.gather(*[msg.ack() for msg in msgs])
+                [asyncio.create_task(msg.ack()) for msg in msgs]
             except nats.errors.TimeoutError:
                 try:
                     await psub.consumer_info()
@@ -346,6 +346,7 @@ class Agent:
         global_env = {k: str(v) for k, v in cfg.model_dump().items()}
         global_env["NATS_SERVER_URL"] = global_env["NATS_SERVER_URL_IN_CONTAINER"]
 
+        # TODO: look into creating tasks
         futures = []
         with PodmanClient(base_url=self._podman_service_uri) as client:
             for id, op_info in self.pipeline.operators.items():
@@ -383,7 +384,8 @@ class Agent:
                     )
                 else:
                     logger.error(f"Failed to start operator ID: {id} after retrying.")
-        asyncio.gather(*futures)
+        # TODO: maybe publish before starting the container
+        await asyncio.gather(*futures)
         return containers
 
 
