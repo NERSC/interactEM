@@ -19,7 +19,6 @@ from nats.js import JetStreamContext
 from nats.js.api import (
     ConsumerConfig,
     DeliverPolicy,
-    RetentionPolicy,
     StreamConfig,
     StreamInfo,
 )
@@ -37,6 +36,7 @@ from core.constants import (
     STREAM_METRICS,
     STREAM_OPERATORS,
     STREAM_PARAMETERS,
+    STREAM_PARAMETERS_UPDATE,
 )
 from core.logger import get_logger
 from core.models import CommBackend, OperatorJSON, PipelineJSON
@@ -153,25 +153,23 @@ class Operator(ABC):
             self.js, BUCKET_PARAMETERS, BUCKET_PARAMETERS_TTL
         )
 
-        # Here we use a work queue because we want to retain all updates from frontend
-        # until the operator is ready. The operator then acks all of the messages to remove
-        # them from the queue, and uses the last update to update its params.
         stream_cfg = StreamConfig(
             name=STREAM_PARAMETERS,
             description="A stream for operator parameters.",
             subjects=[f"{STREAM_PARAMETERS}.>"],
-            retention=RetentionPolicy.WORK_QUEUE,
         )
         self.params_stream = await create_or_update_stream(stream_cfg, self.js)
+
         retries = 10
         while retries > 0:
             try:
                 self.params_psub = await self.js.pull_subscribe(
                     stream=STREAM_PARAMETERS,
-                    subject=f"{STREAM_PARAMETERS}.{self.id}",
+                    subject=f"{STREAM_PARAMETERS}.{self.id}.>",
                     config=ConsumerConfig(
                         description=f"operator-{self.id}",
-                        deliver_policy=DeliverPolicy.ALL,
+                        # Use to get the last message for each parameter
+                        deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
                     ),
                 )
                 break
@@ -186,18 +184,10 @@ class Operator(ABC):
                     if retries == 0:
                         raise e
                     continue
-        try:
-            msgs = await self.params_psub.fetch(100, timeout=0.1)
-            [asyncio.create_task(msg.ack()) for msg in msgs]
-            last_msg = msgs[-1]
-            logger.info(f"Received last message, setting params: {last_msg.data}")
-            self.parameters = json.loads(last_msg.data.decode())
-        except nats.errors.TimeoutError:
-            pass
 
     async def initialize_pipeline(self):
         logger.info(
-            f"Subscribing to stream {STREAM_OPERATORS} for operator {self.id}..."
+            f"Subscribing to stream '{STREAM_OPERATORS}' for operator {self.id}..."
         )
         # TODO: look at policies on this stream
         consumer_cfg = ConsumerConfig(
@@ -222,9 +212,29 @@ class Operator(ABC):
         self.info = self.pipeline.get_operator(self.id)
         self.parameters = {p.name: p.default for p in self.info.parameters}
         logger.info(f"Operator {self.id} initialized with parameters {self.parameters}")
-        await self.params_kv.put(str(self.id), json.dumps(self.parameters).encode())
+        asyncio.create_task(self.publish_parameters())
         if self.info is None:
             raise ValueError(f"Operator {self.id} not found in pipeline")
+
+    async def publish_parameters(self):
+        if not self.js:
+            logger.warning("JetStream context not initialized...")
+            return
+        tasks = []
+        for name, val in self.parameters.items():
+            logger.info(
+                f"Publishing {name}, {val} on subject: {STREAM_PARAMETERS_UPDATE}.{self.id}.{name}"
+            )
+            tasks.append(
+                asyncio.create_task(
+                    self.js.publish(
+                        subject=f"{STREAM_PARAMETERS_UPDATE}.{self.id}.{name}",
+                        payload=str(val).encode(),
+                    )
+                )
+            )
+        logger.info(f"Published parameters for operator {self.id}...")
+        await asyncio.gather(*tasks)
 
     async def consume_params(self):
         while not self._shutdown_event.is_set():
@@ -240,26 +250,32 @@ class Operator(ABC):
             if not msgs:
                 continue
 
-            [asyncio.create_task(msg.ack()) for msg in msgs[:-1]]
-
             # Only use the last parameter from frontend
-            current_params = msgs[-1]
-            if not current_params.data:
-                logger.warning(f"Received empty message for operator {self.id}")
-                await current_params.term()  # terminate sending this message
-                continue
-            try:
-                # We want to update, not overwrite
-                # TODO: we need some way of validating parameters and typing them
-                self.parameters.update(json.loads(current_params.data.decode()))
-                logger.info(
-                    f"Updating parameters for operator {self.id} to {self.parameters}..."
-                )
-                asyncio.create_task(current_params.ack())
-            except json.JSONDecodeError as e:
-                logger.error(f"Error decoding param update: {e}")
-                await current_params.term()
-                pass
+            for msg in msgs:
+                if not msg.data:
+                    logger.warning(f"Received empty message for operator {self.id}")
+                    await msg.term()  # terminate sending this message
+                    continue
+
+                parameter_name = msg.subject.split(".")[-1]
+                if parameter_name not in self.parameters:
+                    logger.warning(
+                        f"Received message for unknown parameter {parameter_name}"
+                    )
+                    continue
+                try:
+                    # We want to update, not overwrite
+                    # TODO: we need some way of validating parameters and typing them
+                    self.parameters.update(json.loads(msg.data.decode()))
+                    logger.info(
+                        f"Updating {parameter_name} to {self.parameters[parameter_name]}..."
+                    )
+                    asyncio.create_task(msg.ack())
+                except json.JSONDecodeError as e:
+                    logger.error(f"Error decoding param update: {e}")
+                    await msg.term()
+                    pass
+            asyncio.create_task(self.publish_parameters())
 
     async def update_kv(self):
         while not self._shutdown_event.is_set():
@@ -270,7 +286,6 @@ class Operator(ABC):
                 await asyncio.sleep(1)
                 continue
             await self.metrics_kv.put(str(self.id), metrics.model_dump_json().encode())
-            await self.params_kv.put(str(self.id), json.dumps(self.parameters).encode())
             await asyncio.sleep(1)
 
     async def setup_key_value_store(self):

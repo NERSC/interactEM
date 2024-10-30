@@ -1,76 +1,77 @@
-import { useQuery } from "@tanstack/react-query"
-import { useNats } from "../nats/NatsContext"
+import { useState, useEffect, useMemo } from "react"
 import type { OperatorParameter } from "../operators"
-import { useBucket } from "./useBucket"
-import { useRef } from "react"
-import { PARAMETERS_BUCKET, PARAMETERS_QUERYKEY } from "../constants/nats"
-
-type OperatorParams = {
-  [paramName: string]: string
-}
+import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
+import { useConsumer } from "./useConsumer"
+import { useNats } from "../nats/NatsContext"
+import { NatsError } from "@nats-io/nats-core"
+import { PARAMETERS_STREAM, PARAMETERS_UPDATE_STREAM } from "../constants/nats"
 
 export const useParameterValue = (
   operatorID: string,
   parameter: OperatorParameter,
 ): string => {
   const { jc } = useNats()
-  const parametersBucket = useBucket(PARAMETERS_BUCKET)
+  const subject = `${PARAMETERS_UPDATE_STREAM}.${operatorID}.${parameter.name}`
 
-  const previousData = useRef<string>(parameter.default)
-  const dataChangedAtRef = useRef<number>(Date.now())
+  const config = useMemo(
+    () => ({
+      filter_subjects: [subject],
+      deliver_policy: DeliverPolicy.LastPerSubject,
+      ack_policy: AckPolicy.Explicit,
+      replay_policy: ReplayPolicy.Instant,
+    }),
+    [subject],
+  )
 
-  const fetchParameterValue = async () => {
-    if (parametersBucket) {
-      const entry = await parametersBucket.get(operatorID)
-      if (!entry) {
-        return parameter.default
-      }
-      const v = jc.decode(entry.value) as OperatorParams
-      if (parameter.name in v) {
-        const fetchedValue = v[parameter.name]
-        if (fetchedValue === previousData.current) {
-          return previousData.current
-        }
-        previousData.current = fetchedValue
-        dataChangedAtRef.current = Date.now()
-        return fetchedValue
-      }
-    }
-    return parameter.default
-  }
-
-  // Backoff interval for refetching the data.
-  // We want to refetch more frequently after a mutation.
-  // If a mutation hasn't happened, then we back off to avoid
-  // uneccessary network.
-  const refetchInterval = () => {
-    const now = Date.now()
-    const timeSinceLastChange = now - dataChangedAtRef.current
-
-    const minInterval = 1000
-    const maxInterval = 30000
-    const backoffDuration = 60000
-
-    const t = Math.min(timeSinceLastChange / backoffDuration, 1)
-    const interval = minInterval + t * (maxInterval - minInterval)
-
-    return interval
-  }
-
-  const { status, data: actualValue } = useQuery({
-    queryKey: [PARAMETERS_QUERYKEY, operatorID, parameter.name],
-    queryFn: fetchParameterValue,
-    enabled: parametersBucket != null,
-    initialData: parameter.default,
-    refetchInterval: refetchInterval,
-    refetchIntervalInBackground: true,
+  const consumer = useConsumer({
+    stream: `${PARAMETERS_STREAM}`,
+    config,
   })
 
-  // Reset data change timestamp when the data is fetched
-  // by query invalidation
-  if (status === "success") {
-    dataChangedAtRef.current = Date.now()
-  }
+  const [actualValue, setActualValue] = useState<string>(parameter.default)
+
+  useEffect(() => {
+    if (!consumer) {
+      return
+    }
+
+    const consumeMessages = async () => {
+      const messages = await consumer.consume()
+      let operatorParamValue = parameter.default
+      for await (const m of messages) {
+        operatorParamValue = jc.decode(m.data) as string
+        setActualValue(operatorParamValue)
+        m.ack()
+      }
+    }
+
+    consumeMessages()
+
+    return () => {
+      const deleteConsumer = async () => {
+        try {
+          const info = await consumer.info()
+          if (info.stream_name) {
+            await consumer.delete()
+          }
+        } catch (error: any) {
+          if (error instanceof NatsError) {
+            if (
+              error.code === "404" &&
+              error.message.includes("consumer not found")
+            ) {
+              return
+            }
+            console.error(`Failed to delete consumer: ${error.code}`)
+          } else {
+            console.error(`Failed to delete consumer: ${error.message}`)
+          }
+        }
+      }
+
+      deleteConsumer()
+    }
+  }, [consumer, jc, parameter])
 
   return actualValue
 }
