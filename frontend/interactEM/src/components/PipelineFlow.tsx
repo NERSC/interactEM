@@ -21,10 +21,10 @@ import { v4 as uuidv4 } from "uuid"
 
 import { operatorByID } from "../operators"
 import { type OperatorNodeData, type PipelineJSON, toJSON } from "../pipeline"
-import { OperatorMenu, type OperatorMenuItemDragData } from "./OperatorMenu"
+import { OperatorMenu, type OperatorMenuItemDragData } from "./operatormenu"
 import OperatorNode, {
   type OperatorNode as OperatorNodeType,
-} from "./OperatorNode"
+} from "./operatornode"
 
 import "@xyflow/react/dist/style.css"
 
