@@ -1,5 +1,5 @@
 import type React from "react"
-import { memo, useState } from "react"
+import { memo, useEffect, useState } from "react"
 import TextField from "@mui/material/TextField"
 import Button from "@mui/material/Button"
 import Typography from "@mui/material/Typography"
@@ -27,6 +27,12 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     isPending,
     isError,
   } = useParameterUpdate(operatorID, parameter)
+
+  useEffect(() => {
+    if (actualValue !== parameter.default) {
+      setInputValue(actualValue)
+    }
+  }, [actualValue, parameter.default])
 
   const validateInput = (value: string) => {
     switch (parameter.type) {
