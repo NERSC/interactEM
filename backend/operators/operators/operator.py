@@ -30,8 +30,6 @@ from core.constants import (
     BUCKET_METRICS_TTL,
     BUCKET_OPERATORS,
     BUCKET_OPERATORS_TTL,
-    BUCKET_PARAMETERS,
-    BUCKET_PARAMETERS_TTL,
     OPERATOR_ID_ENV_VAR,
     STREAM_METRICS,
     STREAM_OPERATORS,
@@ -148,10 +146,6 @@ class Operator(ABC):
             subjects=[f"{STREAM_METRICS}.>"],
         )
         self.metrics_stream = await create_or_update_stream(stream_cfg, self.js)
-
-        self.params_kv = await create_bucket_if_doesnt_exist(
-            self.js, BUCKET_PARAMETERS, BUCKET_PARAMETERS_TTL
-        )
 
         stream_cfg = StreamConfig(
             name=STREAM_PARAMETERS,
