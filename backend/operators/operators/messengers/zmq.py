@@ -132,6 +132,7 @@ class ZmqMessenger(BaseMessenger):
             return None
 
         tasks = [self.recv_queue.put(msg) for msg in all_messages[1:]]
+        # TODO: possibly create tasks instead
         await asyncio.gather(*tasks)
         return all_messages[0]
 
@@ -155,6 +156,7 @@ class ZmqMessenger(BaseMessenger):
             data = message.data
             header = message.header.model_dump_json().encode()
             msg_futures.append(self._send_and_update_metrics(socket, [header, data]))
+        # TODO: look into creating tasks
         await asyncio.gather(*msg_futures)
 
     async def _send_and_update_metrics(self, socket: Socket, messages: list[bytes]):
@@ -267,30 +269,29 @@ class ZmqMessenger(BaseMessenger):
 
     async def update_kv(self):
         while not self._shutdown_event.is_set():
-            fut = []
             for val in self.port_vals.values():
-                fut.append(
+                asyncio.create_task(
                     self.operator_kv.put(str(val.id), val.model_dump_json().encode())
                 )
             all_sockets = list(self.input_sockets.values()) + list(
                 self.output_sockets.values()
             )
             for socket in all_sockets:
-                fut.append(
+                asyncio.create_task(
                     self.metrics_kv.put(
                         f"{self._id}.{socket.info.parent_id}",
                         socket.metrics.model_dump_json().encode(),
                     )
                 )
-            await asyncio.gather(*fut)
             await asyncio.sleep(1)
         logger.info(f"Operator {self._id} shutting down, deleting KV...")
         logger.info("Removing ports from KV store...")
         logger.info(f"Deleting keys: {self.port_vals.keys()}")
-        fut = [
-            self.operator_kv.delete(str(port_id)) for port_id in self.port_vals.keys()
+        tasks = [
+            asyncio.create_task(self.operator_kv.delete(str(port_id)))
+            for port_id in self.port_vals.keys()
         ]
-        await asyncio.gather(*fut)
+        await asyncio.gather(*tasks)
         logger.info("KV store cleanup complete")
 
     def add_socket(self, port_info: PortJSON):

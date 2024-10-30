@@ -1,5 +1,6 @@
 import asyncio
 from pathlib import Path
+from typing import Any
 
 import ncempy
 import numpy as np
@@ -148,7 +149,9 @@ def generate_shifts(scan_shape, com2_filt, planeCOM0, planeCOM1, method):
 
 
 @operator
-def subtract(inputs: BytesMessage | None) -> BytesMessage | None:
+def subtract(
+    inputs: BytesMessage | None, parameters: dict[str, Any]
+) -> BytesMessage | None:
     global \
         current_scan_num, \
         current_camera_length, \
@@ -178,8 +181,11 @@ def subtract(inputs: BytesMessage | None) -> BytesMessage | None:
         logger.info(
             f"New scan detected. Previous scan: {current_scan_num}, Current scan: {scan_num}"
         )
+        method = parameters.get("method", "interp")
+        logger.info(f"Parameters: {parameters}")
+        if method not in ["interp", "plane"]:
+            method = "interp"
 
-        method = "interp"
         logger.info(f"Generating shifts using method: {method}")
 
         row_shifts, column_shifts = generate_shifts(
