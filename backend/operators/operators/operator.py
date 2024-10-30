@@ -188,7 +188,7 @@ class Operator(ABC):
                     continue
         try:
             msgs = await self.params_psub.fetch(100, timeout=0.1)
-            asyncio.gather(*[msg.ack() for msg in msgs])
+            [asyncio.create_task(msg.ack()) for msg in msgs]
             last_msg = msgs[-1]
             logger.info(f"Received last message, setting params: {last_msg.data}")
             self.parameters = json.loads(last_msg.data.decode())
@@ -240,14 +240,13 @@ class Operator(ABC):
             if not msgs:
                 continue
 
-            gather = asyncio.gather(*[msg.ack() for msg in msgs[:-1]])
+            [asyncio.create_task(msg.ack()) for msg in msgs[:-1]]
 
             # Only use the last parameter from frontend
             current_params = msgs[-1]
             if not current_params.data:
                 logger.warning(f"Received empty message for operator {self.id}")
                 await current_params.term()  # terminate sending this message
-                await gather
                 continue
             try:
                 # We want to update, not overwrite
@@ -256,7 +255,7 @@ class Operator(ABC):
                 logger.info(
                     f"Updating parameters for operator {self.id} to {self.parameters}..."
                 )
-                await current_params.ack()
+                asyncio.create_task(current_params.ack())
             except json.JSONDecodeError as e:
                 logger.error(f"Error decoding param update: {e}")
                 await current_params.term()
@@ -391,6 +390,7 @@ class Operator(ABC):
                 self.metrics.timing.after_kernel = after_kernel
 
             if coros:
+                # TODO: possibly create tasks instead
                 await asyncio.gather(*coros)
 
             loop_counter += 1
