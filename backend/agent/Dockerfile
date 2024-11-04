@@ -1,6 +1,6 @@
 FROM quay.io/podman/stable:latest
 
-ARG INSTALL_RPMS="git python3.12-pip curl"
+ARG INSTALL_RPMS="git"
 
 WORKDIR /app/
 
