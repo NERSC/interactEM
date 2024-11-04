@@ -6,7 +6,7 @@ authors = ["Sam Welborn <swelborn@lbl.gov>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.10"
 core = {path = "../core", develop = true}
 podman = "^5.0.0"
 podman-hpc = "^1.1.0"
