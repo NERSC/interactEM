@@ -23,6 +23,7 @@ a specific output port of an operator to a specific input port of another operat
 If we think of a better way to do this in the future, we can change it
 """
 
+
 class PodmanMountType(str, Enum):
     bind = "bind"
     volume = "volume"
@@ -49,10 +50,12 @@ class PodmanMount(BaseModel):
     target: str
     read_only: bool = True
 
+
 # Nodes are Operators/Ports
 class PipelineNodeJSON(BaseModel):
     id: IdType
     node_type: NodeType
+
 
 # Ports are Inputs/Outputs
 class PortJSON(PipelineNodeJSON):
@@ -73,7 +76,8 @@ class OutputJSON(PortJSON):
 class OperatorJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.operator
     image: str  # Container image
-    parameters: list[OperatorParameter]  # tunable parameters for the operator
+    # tunable parameters for the operator
+    parameters: list[OperatorParameter] | None = None
     inputs: list[PortID] = []
     outputs: list[PortID] = []
     machine_name: str | None = None  # Name of the machine to run the operator on

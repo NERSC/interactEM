@@ -17,7 +17,6 @@ from core.models.uri import ZMQAddress
 logger = get_logger("socket", "INFO")
 
 
-
 class SocketInfo(BaseModel):
     type: int  # zmq.SocketType
     address_map: dict[IdType, Sequence[ZMQAddress]] = {}
@@ -34,6 +33,7 @@ class SocketInfo(BaseModel):
                 "If bind is True, the address_map must contain only one entry."
             )
         return self
+
 
 class Socket(zmq.asyncio.Socket):
     metrics: PortMetrics
@@ -52,7 +52,6 @@ class Socket(zmq.asyncio.Socket):
         super().__init__(context, socket_type, io_loop, _from_socket, **kwargs)
         self.metrics = PortMetrics(id=info.parent_id)
         self.info = info
-
 
     def _configure(self):
         if self.info.options:

@@ -43,6 +43,8 @@ def process_hello_world(
 
 
 arr = np.random.randint(0, 255, (100, 100), dtype=np.uint16)
+
+
 @operator
 def send_image(inputs: BytesMessage | None, parameters: dict[str, Any]) -> BytesMessage:
     header = MessageHeader(subject=MessageSubject.BYTES, meta={})

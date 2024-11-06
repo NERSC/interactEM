@@ -44,7 +44,9 @@ def test_can_open(path: pathlib.Path):
         return False
     return True
 
+
 count_for_this_scan = 0
+
 
 @operator
 def save(
