@@ -37,9 +37,11 @@ from .config import cfg
 
 logger = get_logger("metrics", "DEBUG")
 
+
 class MetricType(str, Enum):
     THROUGHPUT = "throughput (Mbps)"
     MESSAGES = "msgs (msgs/s)"
+
 
 class EdgeMetric(BaseModel):
     input_id: IdType
@@ -142,7 +144,6 @@ class MovingAverage:
         }
         avg = metric_types[metric_type]()
         logger.info(f"  {direction} {interval} avg {metric_type.value}: {avg:.2f}")
-
 
 
 class PortMovingAverages:
@@ -266,6 +267,7 @@ async def metrics_watch(
 
         await asyncio.sleep(update_interval)
 
+
 def log_comparison(header: MessageHeader, pipeline: PipelineJSON):
     tracking = header.tracking
     if not tracking:
@@ -354,6 +356,7 @@ async def handle_metrics(msg: NATSMsg, js: JetStreamContext):
     # for port_id, metrics in data.items():
     #     port_metrics = PortMetrics.model_validate_json(metrics)
     #     logger.info(f"Received metrics for port {port_id}: {port_metrics}")
+
 
 async def main():
     intervals = [2, 5, 30]  # List of intervals in seconds

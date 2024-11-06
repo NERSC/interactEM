@@ -116,5 +116,59 @@
         "description": "Partial frame"
       }
     ]
+  },
+  {
+    "id": "12345678-0000-0002-0000-1234567890ac",
+    "image": "interactem/image-display:latest",
+    "label": "Image",
+    "description": "Display an image",
+    "inputs": [
+      {
+        "name": "in",
+        "label": "The input",
+        "type": "image",
+        "description": "This image to display"
+      }
+    ]
+  },
+  {
+    "id": "92345678-1234-1234-1234-1234567890ab",
+    "image": "interactem/random-image:latest",
+    "label": "Random Image",
+    "description": "Generates a random image",
+    "outputs": [
+      {
+        "name": "out",
+        "label": "The image",
+        "type": "image",
+        "description": "The image"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "width",
+        "label": "Image width",
+        "type": "int",
+        "default": "100",
+        "description": "The width of the image",
+        "required": true
+      },
+      {
+        "name": "height",
+        "label": "Image width",
+        "type": "int",
+        "default": "100",
+        "description": "The height of the image",
+        "required": true
+      },
+      {
+        "name": "internal",
+        "label": "Internal",
+        "type": "int",
+        "default": "2",
+        "description": "The internal at which to generate the image",
+        "required": true
+      }
+    ]
   }
 ]
