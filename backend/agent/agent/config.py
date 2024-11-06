@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     PODMAN_SERVICE_URI: str | None = None
     NATS_SERVER_URL: NatsDsn = Field(default="nats://localhost:4222")
     NATS_SERVER_URL_IN_CONTAINER: NatsDsn = Field(default="nats://nats1:4222")
-    AGENT_MACHINE_NAME: str = "perlmutter"
+    AGENT_MACHINE_NAME: str | None = None
 
 
 cfg = Settings()
