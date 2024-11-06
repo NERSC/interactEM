@@ -32,6 +32,5 @@ ENV PYTHONUNBUFFERED=1
 COPY ./operators/operators /app/operators/
 
 COPY ./operators/containerfiles/random-image/run.py /app/run.py
-COPY ./operators/containerfiles/random-image/image.jpeg /image.jpeg
 
 ENTRYPOINT [ "python", "/app/run.py" ]
