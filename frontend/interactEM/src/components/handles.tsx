@@ -1,12 +1,12 @@
 import type React from "react"
 import { Handle, Position } from "@xyflow/react"
 
-interface OperatorHandlesProps {
+interface HandlesProps {
   inputs?: string[]
   outputs?: string[]
 }
 
-const OperatorHandles: React.FC<OperatorHandlesProps> = ({
+const Handles: React.FC<HandlesProps> = ({
   inputs,
   outputs,
 }) => (
@@ -18,4 +18,4 @@ const OperatorHandles: React.FC<OperatorHandlesProps> = ({
   </>
 )
 
-export default OperatorHandles
+export default Handles
