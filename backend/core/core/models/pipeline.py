@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from enum import Enum
 from uuid import UUID
+from typing import Optional
 
 from pydantic import BaseModel
 
@@ -73,7 +74,8 @@ class OutputJSON(PortJSON):
 class OperatorJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.operator
     image: str  # Container image
-    parameters: list[OperatorParameter]  # tunable parameters for the operator
+    # tunable parameters for the operator
+    parameters: Optional[list[OperatorParameter]] = None
     inputs: list[PortID] = []
     outputs: list[PortID] = []
     machine_name: str | None = None  # Name of the machine to run the operator on
