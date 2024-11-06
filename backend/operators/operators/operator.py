@@ -204,7 +204,8 @@ class Operator(ABC):
             raise ValueError("Pipeline not found")
         await psub.unsubscribe()
         self.info = self.pipeline.get_operator(self.id)
-        self.parameters = {p.name: p.default for p in self.info.parameters}
+        if self.info.parameters is not None:
+            self.parameters = {p.name: p.default for p in self.info.parameters}
         logger.info(f"Operator {self.id} initialized with parameters {self.parameters}")
         asyncio.create_task(self.publish_parameters())
         if self.info is None:
