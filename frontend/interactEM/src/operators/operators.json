@@ -116,6 +116,21 @@
         "description": "Partial frame"
       }
     ]
+  },
+  {
+    "id": "12345678-0000-0002-0000-1234567890ac",
+    "image": "interactem/image-display:latest",
+    "label": "Image",
+    "description": "Display an image",
+    "inputs": [
+      {
+        "name": "in",
+        "label": "The input",
+        "type": "image",
+        "description": "This image to display"
+      }
+    ]
+  },
   {
     "id": "92345678-1234-1234-1234-1234567890ab",
     "image": "interactem/random-image:latest",
