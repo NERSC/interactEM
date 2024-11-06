@@ -1,14 +1,14 @@
 import asyncio
 import io
 import time
-from pathlib import Path
 from typing import Any
 
 import numpy as np
+from PIL import Image
+
 from core.logger import get_logger
 from core.models.messages import BytesMessage, MessageHeader, MessageSubject
 from operators.operator import operator
-from PIL import Image
 
 logger = get_logger("operator_main", "INFO")
 

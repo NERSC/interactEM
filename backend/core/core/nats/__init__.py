@@ -41,6 +41,7 @@ async def create_bucket_if_doesnt_exist(
         kv = await js.create_key_value(config=bucket_cfg)
     return kv
 
+
 async def get_agents_bucket(js: JetStreamContext) -> KeyValue:
     return await create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL)
 

@@ -50,6 +50,7 @@ async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignmen
         payload=assignment.model_dump_json().encode(),
     )
 
+
 async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
     pipeline_bucket = await get_pipelines_bucket(js)
     await pipeline_bucket.delete(str(pipeline_id))
@@ -180,7 +181,6 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     await asyncio.gather(
         *[publish_assignment(js, assignment) for assignment in assignments]
     )
-
 
     logger.info("Pipeline assigned to agents.")
     current_pipelines = await get_keys(await get_pipelines_bucket(js))

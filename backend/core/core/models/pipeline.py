@@ -1,7 +1,6 @@
 from collections.abc import Sequence
 from enum import Enum
 from uuid import UUID
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -23,6 +22,7 @@ two operators because there needs to be some way of identifying
 a specific output port of an operator to a specific input port of another operator
 If we think of a better way to do this in the future, we can change it
 """
+
 
 class PodmanMountType(str, Enum):
     bind = "bind"
@@ -50,10 +50,12 @@ class PodmanMount(BaseModel):
     target: str
     read_only: bool = True
 
+
 # Nodes are Operators/Ports
 class PipelineNodeJSON(BaseModel):
     id: IdType
     node_type: NodeType
+
 
 # Ports are Inputs/Outputs
 class PortJSON(PipelineNodeJSON):
@@ -75,7 +77,7 @@ class OperatorJSON(PipelineNodeJSON):
     node_type: NodeType = NodeType.operator
     image: str  # Container image
     # tunable parameters for the operator
-    parameters: Optional[list[OperatorParameter]] = None
+    parameters: list[OperatorParameter] | None = None
     inputs: list[PortID] = []
     outputs: list[PortID] = []
     machine_name: str | None = None  # Name of the machine to run the operator on
