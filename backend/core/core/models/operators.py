@@ -14,6 +14,7 @@ class OperatorStatus(str, Enum):
     IDLE = "idle"
     BUSY = "busy"
 
+
 class OperatorTiming(BaseModel):
     before_recv: datetime | None = None
     before_kernel: datetime | None = None
@@ -82,29 +83,29 @@ class OperatorVal(BaseModel):
 
 
 class OperatorInput(BaseModel):
-    label: str # Human readable name of the input
-    description: str # Human readable description of the input
+    label: str  # Human readable name of the input
+    description: str  # Human readable description of the input
 
 
 class OperatorOutput(BaseModel):
-    label: str # Human readable name of the output
-    description: str # Human readable description of the output
+    label: str  # Human readable name of the output
+    description: str  # Human readable description of the output
 
 
 class OperatorParameter(BaseModel):
-    name: str # Name of the parameter
-    label: str # Human readable name of the parameter
-    description: str # Human readable description of the parameter
-    type: str # Type of the parameter
-    default: str # Default value of the parameter
-    required: bool # If the parameter is required
+    name: str  # Name of the parameter
+    label: str  # Human readable name of the parameter
+    description: str  # Human readable description of the parameter
+    type: str  # Type of the parameter
+    default: str  # Default value of the parameter
+    required: bool  # If the parameter is required
 
 
 class Operator(BaseModel):
     id: IdType
-    label: str # Human readable name of the operator
-    description: str # Human readable description of the operator
-    image: str # Contain image for operator
-    inputs: list[OperatorInput] # List of inputs
-    outputs: list[OperatorOutput] # List of outputs
-    parameters: list[OperatorParameter] # List of parameters
+    label: str  # Human readable name of the operator
+    description: str  # Human readable description of the operator
+    image: str  # Contain image for operator
+    inputs: list[OperatorInput]  # List of inputs
+    outputs: list[OperatorOutput]  # List of outputs
+    parameters: list[OperatorParameter]  # List of parameters

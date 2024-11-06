@@ -1,15 +1,13 @@
 import asyncio
-from pathlib import Path
 from typing import Any
 
 from nats.js.api import StreamConfig
 
+from core.constants import STREAM_IMAGES
 from core.logger import get_logger
 from core.models.messages import BytesMessage
-from core.constants import STREAM_IMAGES
 from core.nats import create_or_update_stream
 from operators.operator import Operator
-
 
 logger = get_logger("operator_main", "INFO")
 
