@@ -15,7 +15,7 @@ import {
   applyNodeChanges,
   useReactFlow,
 } from "@xyflow/react"
-import { type DragEvent, useCallback, useRef, useState } from "react"
+import { type DragEvent, useCallback, useMemo, useRef, useState } from "react"
 
 import { v4 as uuidv4 } from "uuid"
 
@@ -212,7 +212,10 @@ export const PipelineFlow = () => {
   const multiSelectionKeyCode: KeyCode = "Shift"
   const selectionKeyCode: KeyCode = "Space"
 
-  const nodeTypes = { operator: OperatorNode, image: ImageNode }
+  const nodeTypes = useMemo(
+    () => ({ operator: OperatorNode, image: ImageNode }),
+    [],
+  )
 
   return (
     <div className="pipelineflow">
