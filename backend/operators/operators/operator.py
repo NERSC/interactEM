@@ -78,8 +78,46 @@ async def receive_pipeline(msg: NATSMsg) -> Pipeline | None:
         return None
     return Pipeline.from_pipeline(event)
 
+class RunnableKernel(ABC):
+    @abstractmethod
+    async def run_kernel(
+        self, inputs: BytesMessage | None, parameters: dict[str, Any]
+    ) -> BytesMessage | None:
+        pass
 
-class Operator(ABC):
+
+class AsyncOperatorInterface(RunnableKernel):
+    @abstractmethod
+    async def kernel(
+        self,
+        inputs: BytesMessage | None,
+        parameters: dict[str, Any],
+    ) -> BytesMessage | None:
+        pass
+
+    async def run_kernel(
+        self, inputs: BytesMessage | None, parameters: dict[str, Any]
+    ) -> BytesMessage | None:
+        return await self.kernel(inputs, parameters)
+
+
+class OperatorInterface(RunnableKernel):
+    @abstractmethod
+    def kernel(
+        self,
+        inputs: BytesMessage | None,
+        parameters: dict[str, Any],
+    ) -> BytesMessage | None:
+        pass
+
+    async def run_kernel(
+        self, inputs: BytesMessage | None, parameters: dict[str, Any]
+    ) -> BytesMessage | None:
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.kernel, inputs, parameters)
+
+
+class OperatorMixin(RunnableKernel):
     def __init__(self):
         self.id = UUID(OPERATOR_ID)
         if not self.id:
@@ -377,7 +415,7 @@ class Operator(ABC):
             inject_tracking: bool = loop_counter % 100 == 0 and not has_input_op
             timing = inject_tracking or _tracking is not None
             before_kernel = datetime.now() if timing else None
-            processed_msg = self.kernel(msg, self.parameters)
+            processed_msg = await self.run_kernel(msg, self.parameters)
             after_kernel = datetime.now() if timing else None
 
             if processed_msg:
@@ -453,13 +491,12 @@ class Operator(ABC):
 
         await self._publish_metrics(msg)
 
-    @abstractmethod
-    def kernel(
-        self,
-        inputs: BytesMessage | None,
-        parameters: dict[str, Any],
-    ) -> BytesMessage | None:
-        pass
+class Operator(OperatorMixin, OperatorInterface):
+    pass
+
+class AsyncOperator(OperatorMixin, AsyncOperatorInterface):
+    pass
+
 
 Parameters = dict[str, Any]
 
@@ -483,6 +520,36 @@ def operator(
             name = func.__name__
             class_name = f"{name.capitalize()}Operator"
             OpClass = type(class_name, (Operator,), {"kernel": kernel})
+
+            obj = OpClass()
+
+            if start:
+                asyncio.create_task(obj.start())
+
+            return obj
+
+        return wrapper
+
+    if func is not None:
+        return decorator(func)
+
+    return decorator
+
+
+def async_operator(
+    func: KernelFn | None = None,
+    start: bool = False,
+) -> Any:
+    def decorator(func: KernelFn) -> Callable[[], Operator]:
+        @wraps(func)
+        def wrapper():
+            @wraps(func)
+            async def kernel(_, *args, **kwargs):
+                return await func(*args, **kwargs)
+
+            name = func.__name__
+            class_name = f"{name.capitalize()}Operator"
+            OpClass = type(class_name, (AsyncOperator,), {"kernel": kernel})
 
             obj = OpClass()
 
