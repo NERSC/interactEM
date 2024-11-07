@@ -49,7 +49,8 @@ class PodmanMount(BaseModel):
     type: PodmanMountType
     source: str
     target: str
-    read_only: bool = True
+    # TODO: figure out a way to change this in frontend
+    read_only: bool = False
 
     def resolve(self) -> bool:
         src = pathlib.Path(self.source)
