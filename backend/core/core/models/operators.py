@@ -92,13 +92,22 @@ class OperatorOutput(BaseModel):
     description: str  # Human readable description of the output
 
 
+class ParameterType(str, Enum):
+    STRING = "str"
+    INTEGER = "int"
+    FLOAT = "float"
+    BOOLEAN = "bool"
+    MOUNT = "mount"
+
+
 class OperatorParameter(BaseModel):
     name: str  # Name of the parameter
     label: str  # Human readable name of the parameter
     description: str  # Human readable description of the parameter
-    type: str  # Type of the parameter
+    type: ParameterType  # Type of the parameter
     default: str  # Default value of the parameter
     required: bool  # If the parameter is required
+    value: str | None = None  # Value of the parameter
 
 
 class Operator(BaseModel):

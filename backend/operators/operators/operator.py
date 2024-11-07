@@ -228,6 +228,7 @@ class OperatorMixin(RunnableKernel):
         )
         if not self.js:
             raise ValueError("JetStream context not initialized")
+        # TODO: create the stream here
         psub = await self.js.pull_subscribe(
             stream=STREAM_OPERATORS,
             subject=f"{STREAM_OPERATORS}.{self.id}",
@@ -243,7 +244,9 @@ class OperatorMixin(RunnableKernel):
         await psub.unsubscribe()
         self.info = self.pipeline.get_operator(self.id)
         if self.info.parameters is not None:
-            self.parameters = {p.name: p.default for p in self.info.parameters}
+            self.parameters = {
+                p.name: p.value if p.value else p.default for p in self.info.parameters
+            }
         logger.info(f"Operator {self.id} initialized with parameters {self.parameters}")
         asyncio.create_task(self.publish_parameters())
         if self.info is None:
@@ -253,8 +256,19 @@ class OperatorMixin(RunnableKernel):
         if not self.js:
             logger.warning("JetStream context not initialized...")
             return
+        if not self.info:
+            logger.warning("Operator info not initialized...")
+            return
+        if not self.info.parameters:
+            logger.info("No parameters to publish...")
+            return
         tasks = []
         for name, val in self.parameters.items():
+            param = next((p for p in self.info.parameters if p.name == name), None)
+
+            # Agent will handle the mount parameter publishing
+            if param and param.type == "mount":
+                continue
             logger.info(
                 f"Publishing {name}, {val} on subject: {STREAM_PARAMETERS_UPDATE}.{self.id}.{name}"
             )
@@ -266,15 +280,26 @@ class OperatorMixin(RunnableKernel):
                     )
                 )
             )
-        logger.info(f"Published parameters for operator {self.id}...")
-        await asyncio.gather(*tasks)
+        logger.info(f"Publishing parameters for operator {self.id}...")
 
     async def consume_params(self):
+        if not self.js:
+            raise ValueError("JetStream context not initialized")
         while not self._shutdown_event.is_set():
             try:
                 await self.params_psub.consumer_info()
             except Exception as e:
-                logger.info(f"Consumer info error: {e}")
+                logger.error(f"Consumer info error: {e}")
+                logger.info("Initializing a new consumer...")
+                self.params_psub = await self.js.pull_subscribe(
+                    stream=STREAM_PARAMETERS,
+                    subject=f"{STREAM_PARAMETERS}.{self.id}.>",
+                    config=ConsumerConfig(
+                        description=f"operator-{self.id}",
+                        deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
+                    ),
+                )
+                continue
             try:
                 msgs = await self.params_psub.fetch(20, timeout=1)
             except nats.errors.TimeoutError:

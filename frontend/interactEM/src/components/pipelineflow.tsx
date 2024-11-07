@@ -25,9 +25,7 @@ import { OperatorMenu, type OperatorMenuItemDragData } from "./operatormenu"
 import OperatorNode, {
   type OperatorNode as OperatorNodeType,
 } from "./operatornode"
-import ImageNode, {
-  type ImageNode as ImageNodeType,
-} from "./imagenode"
+import ImageNode, { type ImageNode as ImageNodeType } from "./imagenode"
 
 import "@xyflow/react/dist/style.css"
 
@@ -129,7 +127,7 @@ export const PipelineFlow = () => {
 
       const position = screenToFlowPosition(screenPosition)
 
-      const nodeType =  op.label === "Image" ? "image" : "operator";
+      const nodeType = op.label === "Image" ? "image" : "operator"
 
       const newNode: OperatorNodeType | ImageNodeType = {
         id: generateID(),
@@ -140,7 +138,10 @@ export const PipelineFlow = () => {
           image: op.image,
           inputs: op.inputs?.map((_) => uuidv4()),
           outputs: op.outputs?.map((_) => uuidv4()),
-          parameters: op.parameters,
+          parameters: op.parameters?.map((param) => ({
+            ...param,
+            value: param.default,
+          })),
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
