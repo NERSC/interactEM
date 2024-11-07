@@ -7,12 +7,12 @@ from core.constants import STREAM_IMAGES
 from core.logger import get_logger
 from core.models.messages import BytesMessage
 from core.nats import create_or_update_stream
-from operators.operator import Operator
+from operators.operator import AsyncOperator
 
 logger = get_logger("operator_main", "INFO")
 
 
-class ImageDisplay(Operator):
+class ImageDisplay(AsyncOperator):
     def __init__(self):
         super().__init__()
 
@@ -39,7 +39,9 @@ class ImageDisplay(Operator):
             payload=image_data,
         )
 
-    def kernel(self, inputs: BytesMessage | None, parameters: dict[str, Any]) -> None:
+    async def kernel(
+        self, inputs: BytesMessage | None, parameters: dict[str, Any]
+    ) -> None:
         if not inputs:
             return
 
@@ -48,7 +50,7 @@ class ImageDisplay(Operator):
         logger.info(f"Received image data with length {len(image_data)}")
 
         # Publish the image to the frontend
-        asyncio.create_task(self._publish_image(image_data))
+        await self._publish_image(image_data)
 
 
 async def async_main():
