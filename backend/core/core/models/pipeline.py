@@ -1,11 +1,12 @@
+import pathlib
 from collections.abc import Sequence
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from .base import IdType, NodeType, OperatorID, PortID, PortType
-from .operators import OperatorParameter
+from .operators import OperatorParameter, ParameterType
 
 """
 Pipelines are a DAG of Operators and Ports
@@ -50,6 +51,15 @@ class PodmanMount(BaseModel):
     target: str
     read_only: bool = True
 
+    def resolve(self) -> bool:
+        src = pathlib.Path(self.source)
+        self.source = str(src)
+        target = pathlib.Path(self.target)
+        self.target = str(target)
+        if src.exists():
+            return True
+        return False
+
 
 # Nodes are Operators/Ports
 class PipelineNodeJSON(BaseModel):
@@ -85,6 +95,72 @@ class OperatorJSON(PipelineNodeJSON):
     env: dict[str, str] = {}  # Environment variables to pass to the container
     command: str | list[str] = []  # Command to pass to the container
     network_mode: NetworkMode | None = None  # Network mode for the container
+
+    def validate_mount_for_parameter(
+        self, parameter: OperatorParameter, value: str
+    ) -> bool:
+        if parameter.type != ParameterType.MOUNT:
+            return True  # Non-mount parameters don't need this validation
+
+        src = value if value is not None else parameter.default
+        # Validate that the source exists
+        if not src or not pathlib.Path(src).exists():
+            return False
+        return True
+
+    def update_mounts_for_parameter(self, parameter: OperatorParameter):
+        if parameter.type != ParameterType.MOUNT:
+            return
+
+        src = parameter.value if parameter.value is not None else parameter.default
+        target = f"/mnt/{parameter.name}"
+
+        self.mounts = [mount for mount in self.mounts if mount.target != target]
+
+        self.mounts.append(
+            PodmanMount(
+                type=PodmanMountType.bind,
+                source=src,
+                target=target,
+            )
+        )
+
+    @model_validator(mode="after")
+    def parameter_to_mount(self):
+        if self.parameters is None:
+            return self
+
+        for parameter in self.parameters:
+            if not parameter.type == ParameterType.MOUNT:
+                continue
+
+            if parameter.value:
+                src = parameter.value
+            else:
+                src = parameter.default
+
+            # Skip if the mount is already there
+            src_exists = src in [mount.source for mount in self.mounts]
+            target_exists = f"/mnt/{parameter.name}" in [
+                mount.target for mount in self.mounts
+            ]
+            if src_exists and target_exists:
+                continue
+
+            if target_exists:
+                self.mounts.pop(
+                    [mount.target for mount in self.mounts].index(
+                        f"/mnt/{parameter.name}"
+                    )
+                )
+            self.mounts.append(
+                PodmanMount(
+                    type=PodmanMountType.bind,
+                    source=src,
+                    target=f"/mnt/{parameter.name}",
+                )
+            )
+        return self
 
 
 class EdgeJSON(BaseModel):

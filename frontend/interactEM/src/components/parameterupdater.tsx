@@ -1,13 +1,39 @@
 import type React from "react"
 import { memo, useEffect, useState } from "react"
-import TextField from "@mui/material/TextField"
-import Button from "@mui/material/Button"
-import Typography from "@mui/material/Typography"
-import Box from "@mui/material/Box"
-import { Container, Switch, FormControlLabel } from "@mui/material"
+import {
+  TextField,
+  Button,
+  Typography,
+  Box,
+  Container,
+  Switch,
+  FormControlLabel,
+} from "@mui/material"
 import type { OperatorParameter } from "../operators"
 import { useParameterValue } from "../hooks/useParameterValue"
 import { useParameterUpdate } from "../hooks/useParameterUpdate"
+import { useReactFlow } from "@xyflow/react"
+import type { OperatorNode as OperatorNodeType } from "./operatornode"
+
+const compareValues = (
+  parameter: OperatorParameter,
+  value1: string,
+  value2: string,
+): boolean => {
+  switch (parameter.type) {
+    case "int":
+      return Number.parseInt(value1, 10) === Number.parseInt(value2, 10)
+    case "float":
+      return Number.parseFloat(value1) === Number.parseFloat(value2)
+    case "bool":
+      return value1 === value2
+    case "string":
+    case "mount":
+      return value1 === value2
+    default:
+      return false
+  }
+}
 
 type ParameterUpdaterProps = {
   parameter: OperatorParameter
@@ -18,21 +44,36 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   parameter,
   operatorID,
 }) => {
-  const actualValue = useParameterValue(operatorID, parameter)
-  const [inputValue, setInputValue] = useState(actualValue)
+  const { getNode, setNodes } = useReactFlow<OperatorNodeType>()
+  const { actualValue, hasReceivedMessage } = useParameterValue(
+    operatorID,
+    parameter.name,
+    parameter.default,
+  )
+  const [inputValue, setInputValue] = useState<string>(parameter.value || "")
   const [error, setError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [buttonDisabled, setButtonDisabled] = useState(false)
+  const [buttonColor, setButtonColor] = useState<
+    "primary" | "secondary" | "error"
+  >("primary")
+  const [buttonVisible, setButtonVisible] = useState(true)
+
+  const node = getNode(operatorID)
+  if (!node) {
+    throw new Error(`Node with id ${operatorID} not found`)
+  }
 
   const {
     mutate: updateParameter,
     isPending,
+    isSuccess,
     isError,
   } = useParameterUpdate(operatorID, parameter)
 
   useEffect(() => {
-    if (actualValue !== parameter.default) {
-      setInputValue(actualValue)
-    }
-  }, [actualValue, parameter.default])
+    setInputValue(parameter.value || "")
+  }, [parameter.value])
 
   const validateInput = (value: string) => {
     switch (parameter.type) {
@@ -44,6 +85,8 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
         return true
       case "bool":
         return value === "true" || value === "false"
+      case "mount":
+        return /^(\/|~\/)(?!.*(?:^|\/)\.\.(?:\/|$)).*$/.test(value)
       default:
         return false
     }
@@ -55,14 +98,42 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     e.preventDefault()
     const newValue = e.target.value
     setInputValue(newValue)
-    const isValid = validateInput(newValue)
-    setError(!isValid)
+    if (!validateInput(newValue)) {
+      setError(true)
+      setErrorMessage("Invalid value (type mismatch)")
+      setButtonVisible(false)
+      return
+    }
+    setButtonColor("primary")
+    setError(false)
   }
 
   const handleUpdateClick = async () => {
     if (error) {
       return
     }
+
+    setNodes((nodes) =>
+      nodes.map((node) => {
+        if (node.id === operatorID) {
+          const updatedParameters = node.data.parameters?.map((p) => {
+            if (p.name === parameter.name) {
+              return { ...p, value: inputValue }
+            }
+            return p
+          })
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              parameters: updatedParameters,
+            },
+          }
+        }
+        return node
+      }),
+    )
+
     updateParameter(inputValue)
   }
 
@@ -71,6 +142,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
       case "int":
       case "float":
       case "string":
+      case "mount":
         return (
           <TextField
             value={inputValue}
@@ -79,8 +151,8 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
             variant="outlined"
             onChange={handleInputChange}
             error={error}
-            helperText={error ? `Invalid ${parameter.type} value` : ""}
-            sx={{ width: "100px", flexGrow: 1 }}
+            helperText={error ? errorMessage : ""}
+            sx={{ flexGrow: 1 }}
           />
         )
       case "bool":
@@ -103,6 +175,37 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     }
   }
 
+  useEffect(() => {
+    if (error) {
+      setButtonVisible(false)
+      return
+    }
+    if (compareValues(parameter, actualValue, inputValue)) {
+      setButtonVisible(false)
+    } else {
+      setButtonVisible(true)
+    }
+  }, [parameter, actualValue, inputValue, error])
+
+  useEffect(() => {
+    // TODO: will this cause unecessary re-render?
+    if (isPending) {
+      setButtonDisabled(true)
+    } else if (isSuccess || isError) {
+      setError(false)
+      setButtonDisabled(false)
+    }
+    // TODO: we should make a ParameterErrorEvent type
+    if (isError || compareValues(parameter, actualValue, "ERROR")) {
+      setButtonColor("error")
+      if (parameter.type === "mount") {
+        setErrorMessage("Invalid mount. File/dir doesn't exist.")
+      }
+    } else {
+      setButtonColor("primary")
+    }
+  }, [parameter, actualValue, isPending, isSuccess, isError])
+
   return (
     <Container>
       <Typography sx={{ fontSize: 16, mb: 1 }}>{parameter.name}</Typography>
@@ -115,25 +218,18 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
         }}
       >
         {renderInputField()}
-        <TextField
-          type="text"
-          disabled
-          size="small"
-          label="Actual Value"
-          variant="outlined"
-          value={actualValue}
-          sx={{ width: "auto", flexGrow: 1 }}
-        />
-        <Button
-          type="submit"
-          variant="contained"
-          color="primary"
-          size="small"
-          onClick={handleUpdateClick}
-          disabled={isPending || error}
-        >
-          Update
-        </Button>
+        {buttonVisible && (
+          <Button
+            type="submit"
+            variant="contained"
+            color={buttonColor}
+            size="small"
+            onClick={handleUpdateClick}
+            disabled={buttonDisabled}
+          >
+            {hasReceivedMessage ? "Update" : "Set"}
+          </Button>
+        )}
       </Box>
       {isError && (
         <Typography color="error">Failed to update parameter</Typography>
