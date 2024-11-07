@@ -155,8 +155,8 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
 
     try:
         valid_pipeline = PipelineJSON(id=event.id, **event.data)
-    except ValidationError:
-        logger.error("Invalid pipeline...")
+    except ValidationError as e:
+        logger.error(f"Invalid pipeline: {e}")
         return
     logger.info(f"Validated pipeline: {valid_pipeline.id}")
     pipeline = Pipeline.from_pipeline(valid_pipeline)
