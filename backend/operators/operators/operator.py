@@ -276,7 +276,7 @@ class OperatorMixin(RunnableKernel):
                 asyncio.create_task(
                     self.js.publish(
                         subject=f"{STREAM_PARAMETERS_UPDATE}.{self.id}.{name}",
-                        payload=str(val).encode(),
+                        payload=json.dumps(val).encode(),
                     )
                 )
             )
