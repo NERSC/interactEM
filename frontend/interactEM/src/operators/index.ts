@@ -18,6 +18,7 @@ export interface OperatorParameter {
   default: string
   required: boolean
   value?: string
+  options?: string[]
 }
 
 export interface Operator {
