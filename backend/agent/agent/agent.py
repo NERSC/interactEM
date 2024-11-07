@@ -586,9 +586,7 @@ class Agent:
                         await update_parameter(self.js, operator, parameter)
                         continue
                     # Validate the new value before updating
-                    if not operator.validate_mount_for_parameter(
-                        parameter, new_val
-                    ):
+                    if not operator.validate_mount_for_parameter(parameter, new_val):
                         logger.error(
                             f"Invalid mount path for parameter '{parameter.name}': {new_val}"
                         )
