@@ -1,39 +1,9 @@
 [
   {
-    "id": "12345678-0000-0001-0000-1234567890ab",
-    "image": "interactem/detstream-state-server:latest",
-    "label": "State Server",
-    "description": "State Server for the Detstream pipeline"
-  },
-  {
-    "id": "12345678-0000-0000-0000-1234567890ab",
-    "image": "interactem/detstream-producer",
-    "label": "Producer",
-    "description": "Producer for the Detstream pipeline",
-    "parameters": [
-      {
-        "name": "command",
-        "label": "The command to run",
-        "type": "string",
-        "default": "0",
-        "description": "A command",
-        "required": true
-      }
-    ]
-  },
-  {
-    "id": "10000008-1234-1234-1234-1000000890ab",
-    "image": "interactem/detstream-assembler",
-    "label": "Assembler",
-    "description": "Assembler for the Detstream pipeline",
-    "inputs": [
-      {
-        "name": "in",
-        "label": "The input",
-        "type": "partial frame",
-        "description": "Partial frame"
-      }
-    ],
+    "id": "12345678-0001-0001-0000-1234567890ab",
+    "image": "interactem/data-replay",
+    "label": "Data Replayer",
+    "description": "Data replayer",
     "outputs": [
       {
         "name": "out",
@@ -41,11 +11,21 @@
         "type": "frame",
         "description": "Full frame"
       }
+    ],  
+    "parameters": [
+      {
+        "name": "raw_data_dir",
+        "label": "Raw data directory",
+        "type": "mount",
+        "default": "~/ncem_raw_data",
+        "description": "This is where the raw data files (*.data) are located",
+        "required": true
+      }
     ]
   },
   {
     "id": "12345678-1234-1234-1234-1234567890cd",
-    "image": "interactem/count-electrons:latest",
+    "image": "interactem/electron-count:latest",
     "label": "Electron Counter",
     "description": "Counts electrons in a frame",
     "inputs": [
@@ -84,6 +64,122 @@
     ]
   },
   {
+    "id": "10010008-1234-1234-1234-1000000890ab",
+    "image": "interactem/background-subtract",
+    "label": "Background Subtract",
+    "description": "Background subtraction",
+    "inputs": [
+      {
+        "name": "in",
+        "label": "The input",
+        "type": "partial frame",
+        "description": "Partial frame"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "label": "The output",
+        "type": "frame",
+        "description": "Full frame"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "offsets.emd",
+        "label": "Offsets EMD file",
+        "type": "mount",
+        "default": "~/FOURD_241002_0852_20132_00714_offsets.emd",
+        "description": "Offsets EMD file -- you should create one of these for data the day of an experiment",
+        "required": true
+      },
+      {
+        "name": "method",
+        "label": "Background subtr. method",
+        "type": "str-enum",
+        "default": "interp",
+        "description": "Method to use for background subtraction",
+        "options": ["plane", "interp"],
+        "required": true
+      }
+    ]
+  },
+  {
+    "id": "12345678-1234-1234-1234-1432567890ad",
+    "image": "interactem/sparse-frame-image-converter:latest",
+    "label": "Image Converter",
+    "description": "Converters a sparse frame to an image",
+    "inputs": [
+      {
+        "name": "in",
+        "label": "The input",
+        "type": "scan",
+        "description": "Sparse scan"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "label": "The output",
+        "type": "Image",
+        "description": "an image"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "average",
+        "label": "Number to average",
+        "type": "int",
+        "default": "50",
+        "description": "Number of frames to average before updating",
+        "required": true
+      },
+      {
+        "name": "skip",
+        "label": "Number to skip",
+        "type": "int",
+        "default": "1",
+        "description": "Skip this many frames before updating",
+        "required": true
+      },
+      {
+        "name": "contrast",
+        "label": "Image contrast",
+        "type": "float",
+        "default": "2.0",
+        "description": "Image contrast",
+        "required": true
+      },
+      {
+        "name": "brightness",
+        "label": "Image brightness",
+        "type": "float",
+        "default": "1.0",
+        "description": "Image brightness",
+        "required": true
+      },
+      {
+        "name": "operation",
+        "label": "Operation",
+        "type": "str-enum",
+        "default": "average",
+        "description": "Operation to perform",
+        "required": true,
+        "options": ["sum", "average"]
+      },
+      {
+        "name": "colormap",
+        "label": "Colormap",
+        "type": "str-enum",
+        "default": "viridis",
+        "description": "Colormap to use",
+        "required": true,
+        "options": ["viridis", "plasma", "inferno", "magma", "cividis"]
+      }
+    ]
+  },
+
+  {
     "id": "12345678-1234-1234-1234-1432567890cd",
     "image": "interactem/electron-count-save:latest",
     "label": "Electron Count Saver",
@@ -94,6 +190,69 @@
         "label": "The input",
         "type": "scan",
         "description": "Sparse scan"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "output_dir",
+        "label": "Output directory",
+        "type": "mount",
+        "default": "~/ncem_raw_data/counted_data/",
+        "description": "This is where the electron counted data is saved",
+        "required": true
+      },
+      {
+        "name": "suffix",
+        "label": "Filename suffix",
+        "type": "str-enum",
+        "default": "",
+        "description": "Suffix to add to the filename",
+        "required": true,
+        "options": ["", "_counted"] 
+      }
+    ]
+  },
+  {
+    "id": "12345678-0000-0001-0000-1234567890ab",
+    "image": "interactem/detstream-state-server:latest",
+    "label": "State Server",
+    "description": "State Server for the Detstream pipeline"
+  },
+  {
+    "id": "12345678-0000-0000-0000-1234567890ab",
+    "image": "interactem/detstream-producer",
+    "label": "Producer",
+    "description": "Producer for the Detstream pipeline",
+    "parameters": [
+      {
+        "name": "command",
+        "label": "The command to run",
+        "type": "str",
+        "default": "0",
+        "description": "A command",
+        "required": true
+      }
+    ]
+  },
+  {
+    "id": "10000008-1234-1234-1234-1000000890ab",
+    "image": "interactem/detstream-assembler",
+    "label": "Assembler",
+    "description": "Assembler for the Detstream pipeline",
+    "inputs": [
+      {
+        "name": "in",
+        "label": "The input",
+        "type": "partial frame",
+        "description": "Partial frame"
+      }
+    ],
+    "outputs": [
+      {
+        "name": "out",
+        "label": "The output",
+        "type": "frame",
+        "description": "Full frame"
       }
     ]
   },
