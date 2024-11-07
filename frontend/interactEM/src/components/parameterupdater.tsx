@@ -8,10 +8,10 @@ import {
   Container,
   Switch,
   FormControlLabel,
-  Select,         
-  MenuItem,       
-  FormControl,    
-  InputLabel      
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material"
 import type { OperatorParameter } from "../operators"
 import { useParameterValue } from "../hooks/useParameterValue"
@@ -55,7 +55,9 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     parameter.name,
     parameter.default,
   )
-  const [inputValue, setInputValue] = useState<string>(parameter.value || parameter.default || "")
+  const [inputValue, setInputValue] = useState<string>(
+    parameter.value || parameter.default || "",
+  )
   const [error, setError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
   const [buttonDisabled, setButtonDisabled] = useState(false)

@@ -21,7 +21,7 @@ const ImageNode = ({ id, data }: NodeProps<ImageNode>) => {
   const nodeRef = useRef<HTMLDivElement>(null)
   const imageData = useImage(id)
 
-  // TODO: the data containing the positions causes a re-render of the node. 
+  // TODO: the data containing the positions causes a re-render of the node.
 
   return (
     // TODO Should probably update the class

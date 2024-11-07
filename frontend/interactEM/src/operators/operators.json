@@ -11,7 +11,7 @@
         "type": "frame",
         "description": "Full frame"
       }
-    ],  
+    ],
     "parameters": [
       {
         "name": "raw_data_dir",
@@ -208,7 +208,7 @@
         "default": "",
         "description": "Suffix to add to the filename",
         "required": true,
-        "options": ["", "_counted"] 
+        "options": ["", "_counted"]
       }
     ]
   },
