@@ -51,6 +51,7 @@ count_for_this_scan = 0
 def save(
     inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> BytesMessage | None:
+    suffix = parameters.get("suffix", "")
     global count_for_this_scan
     if not inputs:
         return None
@@ -73,7 +74,9 @@ def save(
             test_can_open(WRITE_PATH / f"{k}.h5")
             del open_files[k]
 
-        f = h5py.File(WRITE_PATH / f"{header.scan_number}.h5", "a")
+        fpath = WRITE_PATH / (f"{header.scan_number}" + f"{suffix}" + ".h5")
+        logger.info(f"Opening file {fpath}")
+        f = h5py.File(fpath, "a")
         open_files[header.scan_number] = f
 
         if "electron_events" not in f:
