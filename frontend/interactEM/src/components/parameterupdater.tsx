@@ -8,6 +8,10 @@ import {
   Container,
   Switch,
   FormControlLabel,
+  Select,         
+  MenuItem,       
+  FormControl,    
+  InputLabel      
 } from "@mui/material"
 import type { OperatorParameter } from "../operators"
 import { useParameterValue } from "../hooks/useParameterValue"
@@ -27,7 +31,8 @@ const compareValues = (
       return Number.parseFloat(value1) === Number.parseFloat(value2)
     case "bool":
       return value1 === value2
-    case "string":
+    case "str":
+    case "str-enum":
     case "mount":
       return value1 === value2
     default:
@@ -50,7 +55,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     parameter.name,
     parameter.default,
   )
-  const [inputValue, setInputValue] = useState<string>(parameter.value || "")
+  const [inputValue, setInputValue] = useState<string>(parameter.value || parameter.default || "")
   const [error, setError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
   const [buttonDisabled, setButtonDisabled] = useState(false)
@@ -72,8 +77,8 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   } = useParameterUpdate(operatorID, parameter)
 
   useEffect(() => {
-    setInputValue(parameter.value || "")
-  }, [parameter.value])
+    setInputValue(parameter.value || parameter.default || "")
+  }, [parameter.value, parameter.default])
 
   const validateInput = (value: string) => {
     switch (parameter.type) {
@@ -81,7 +86,8 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
         return /^-?\d+$/.test(value)
       case "float":
         return /^-?\d+(\.\d+)?$/.test(value)
-      case "string":
+      case "str-enum":
+      case "str":
         return true
       case "bool":
         return value === "true" || value === "false"
@@ -141,7 +147,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     switch (parameter.type) {
       case "int":
       case "float":
-      case "string":
+      case "str":
       case "mount":
         return (
           <TextField
@@ -154,6 +160,27 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
             helperText={error ? errorMessage : ""}
             sx={{ flexGrow: 1 }}
           />
+        )
+      case "str-enum":
+        return (
+          <FormControl fullWidth size="small" sx={{ flexGrow: 1 }}>
+            <InputLabel id={`${parameter.name}-label`}>Set Point</InputLabel>
+            <Select
+              labelId={`${parameter.name}-label`}
+              value={inputValue}
+              label="Set Point"
+              onChange={(e) => {
+                const newValue = e.target.value as string
+                setInputValue(newValue)
+              }}
+            >
+              {parameter.options?.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         )
       case "bool":
         return (

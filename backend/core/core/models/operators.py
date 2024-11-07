@@ -98,6 +98,7 @@ class ParameterType(str, Enum):
     FLOAT = "float"
     BOOLEAN = "bool"
     MOUNT = "mount"
+    STR_ENUM = "str-enum"
 
 
 class OperatorParameter(BaseModel):
@@ -108,6 +109,7 @@ class OperatorParameter(BaseModel):
     default: str  # Default value of the parameter
     required: bool  # If the parameter is required
     value: str | None = None  # Value of the parameter
+    options: list[str] | None = None  # List of options for STR_ENUM
 
 
 class Operator(BaseModel):
