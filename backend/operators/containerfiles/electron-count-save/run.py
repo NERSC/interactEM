@@ -27,8 +27,7 @@ class FrameHeader(BaseModel):
 
 
 open_files: dict[int, h5py.File] = {}
-WRITE_PATH = pathlib.Path("/output")
-COPY_PATH = pathlib.Path("/copy-to")
+WRITE_PATH = pathlib.Path("/mnt/output_dir/")
 
 
 def test_can_open(path: pathlib.Path):
