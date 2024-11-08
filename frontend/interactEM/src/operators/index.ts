@@ -10,11 +10,20 @@ export interface OperatorOutput {
   description: string
 }
 
+export enum ParameterType {
+  STRING = "str",
+  INTEGER = "int",
+  FLOAT = "float",
+  BOOLEAN = "bool",
+  MOUNT = "mount",
+  STR_ENUM = "str-enum",
+}
+
 export interface OperatorParameter {
   name: string
   label: string
   description: string
-  type: string
+  type: ParameterType
   default: string
   required: boolean
   value?: string
