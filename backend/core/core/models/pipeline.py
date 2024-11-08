@@ -55,7 +55,7 @@ class PodmanMount(BaseModel):
 
     def resolve(self) -> bool:
         src = pathlib.Path(self.source)
-        self.source = str(src)
+        self.source = str(src.expanduser())
         target = pathlib.Path(self.target)
         self.target = str(target)
         if src.exists():
