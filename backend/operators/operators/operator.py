@@ -40,7 +40,7 @@ from core.constants import (
 from core.logger import get_logger
 from core.models import CommBackend, OperatorJSON, PipelineJSON
 from core.models.messages import BytesMessage, OperatorTrackingMetadata
-from core.models.operators import OperatorMetrics, OperatorTiming
+from core.models.operators import OperatorMetrics, OperatorTiming, ParameterType
 from core.nats import create_bucket_if_doesnt_exist, create_or_update_stream
 from core.pipeline import Pipeline
 
@@ -268,7 +268,7 @@ class OperatorMixin(RunnableKernel):
             param = next((p for p in self.info.parameters if p.name == name), None)
 
             # Agent will handle the mount parameter publishing
-            if param and param.type == "mount":
+            if param and param.type == ParameterType.MOUNT:
                 continue
             logger.info(
                 f"Publishing {name}, {val} on subject: {STREAM_PARAMETERS_UPDATE}.{self.id}.{name}"

@@ -13,7 +13,7 @@ import {
   FormControl,
   InputLabel,
 } from "@mui/material"
-import type { OperatorParameter } from "../operators"
+import { ParameterType, type OperatorParameter } from "../operators"
 import { useParameterValue } from "../hooks/useParameterValue"
 import { useParameterUpdate } from "../hooks/useParameterUpdate"
 import { useReactFlow } from "@xyflow/react"
@@ -25,15 +25,15 @@ const compareValues = (
   value2: string,
 ): boolean => {
   switch (parameter.type) {
-    case "int":
+    case ParameterType.INTEGER:
       return Number.parseInt(value1, 10) === Number.parseInt(value2, 10)
-    case "float":
+    case ParameterType.FLOAT:
       return Number.parseFloat(value1) === Number.parseFloat(value2)
-    case "bool":
+    case ParameterType.BOOLEAN:
       return value1 === value2
-    case "str":
-    case "str-enum":
-    case "mount":
+    case ParameterType.STRING:
+    case ParameterType.STR_ENUM:
+    case ParameterType.MOUNT:
       return value1 === value2
     default:
       return false
@@ -84,16 +84,16 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 
   const validateInput = (value: string) => {
     switch (parameter.type) {
-      case "int":
+      case ParameterType.INTEGER:
         return /^-?\d+$/.test(value)
-      case "float":
+      case ParameterType.FLOAT:
         return /^-?\d+(\.\d+)?$/.test(value)
-      case "str-enum":
-      case "str":
+      case ParameterType.STRING:
+      case ParameterType.STR_ENUM:
         return true
-      case "bool":
+      case ParameterType.BOOLEAN:
         return value === "true" || value === "false"
-      case "mount":
+      case ParameterType.MOUNT:
         return /^(\/|~\/)(?!.*(?:^|\/)\.\.(?:\/|$)).*$/.test(value)
       default:
         return false
@@ -147,10 +147,10 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 
   const renderInputField = () => {
     switch (parameter.type) {
-      case "int":
-      case "float":
-      case "str":
-      case "mount":
+      case ParameterType.INTEGER:
+      case ParameterType.FLOAT:
+      case ParameterType.STRING:
+      case ParameterType.MOUNT:
         return (
           <TextField
             value={inputValue}
@@ -163,7 +163,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
             sx={{ flexGrow: 1 }}
           />
         )
-      case "str-enum":
+      case ParameterType.STR_ENUM:
         return (
           <FormControl fullWidth size="small" sx={{ flexGrow: 1 }}>
             <InputLabel id={`${parameter.name}-label`}>Set Point</InputLabel>
@@ -184,7 +184,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
             </Select>
           </FormControl>
         )
-      case "bool":
+      case ParameterType.BOOLEAN:
         return (
           <FormControlLabel
             control={
@@ -227,7 +227,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     // TODO: we should make a ParameterErrorEvent type
     if (isError || compareValues(parameter, actualValue, "ERROR")) {
       setButtonColor("error")
-      if (parameter.type === "mount") {
+      if (parameter.type === ParameterType.MOUNT) {
         setErrorMessage("Invalid mount. File/dir doesn't exist.")
       }
     } else {
