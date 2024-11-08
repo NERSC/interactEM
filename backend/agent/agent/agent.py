@@ -18,7 +18,6 @@ from nats.js import JetStreamContext
 from nats.js.api import (
     ConsumerConfig,
     DeliverPolicy,
-    StreamConfig,
 )
 from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
@@ -42,6 +41,11 @@ from core.models.pipeline import (
 )
 from core.models.uri import URI, CommBackend, URILocation
 from core.nats import create_or_update_stream
+from core.nats.config import (
+    AGENTS_STREAM_CONFIG,
+    OPERATORS_STREAM_CONFIG,
+    PARAMETERS_STREAM_CONFIG,
+)
 from core.pipeline import Pipeline
 
 from .config import cfg
@@ -161,12 +165,9 @@ class Agent:
         )
         self.js = self.nc.jetstream()
 
-        stream_cfg = StreamConfig(
-            name=STREAM_PARAMETERS,
-            description="A stream for operator parameters.",
-            subjects=[f"{STREAM_PARAMETERS}.>"],
-        )
-        await create_or_update_stream(stream_cfg, self.js)
+        await create_or_update_stream(PARAMETERS_STREAM_CONFIG, self.js)
+        await create_or_update_stream(AGENTS_STREAM_CONFIG, self.js)
+        await create_or_update_stream(OPERATORS_STREAM_CONFIG, self.js)
 
         self.heartbeat_task = asyncio.create_task(self.heartbeat(self.js, self.id))
         self.server_task = asyncio.create_task(self.server_loop())
@@ -682,6 +683,7 @@ async def stop_and_remove_container(container: Container) -> None:
 def is_name_conflict_error(error: podman.errors.exceptions.APIError) -> bool:
     # TODO: check if we have a status code for this error
     error_message = str(error)
+    logger.error(f"Error Number: {error.errno}")
     return "container name" in error_message and "is already in use" in error_message
 
 
