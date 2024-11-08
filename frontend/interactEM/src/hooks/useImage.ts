@@ -5,14 +5,14 @@ import { IMAGES_STREAM } from "../constants/nats"
 import { useConsumer } from "./useConsumer"
 import { useStream } from "./useStream"
 
+const streamConfig = {
+  name: "images",
+  subjects: ["images.>"],
+  max_msgs_per_subject: 1,
+}
+
 export const useImage = (operatorID: string): Uint8Array | null => {
   const subject = `${IMAGES_STREAM}.${operatorID}`
-
-  const streamConfig = {
-    name: IMAGES_STREAM,
-    subjects: [`${IMAGES_STREAM}.>`],
-    max_msgs_per_subject: 1,
-  }
 
   const consumerConfig = useMemo(
     () => ({

@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from "react"
-import type { OperatorParameter } from "../operators"
 import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
 import { useConsumer } from "./useConsumer"
 import { useNats } from "../nats/NatsContext"
@@ -8,10 +7,11 @@ import { PARAMETERS_STREAM, PARAMETERS_UPDATE_STREAM } from "../constants/nats"
 
 export const useParameterValue = (
   operatorID: string,
-  parameter: OperatorParameter,
-): string => {
+  name: string,
+  defaultValue: string,
+): { actualValue: string; hasReceivedMessage: boolean } => {
   const { jc } = useNats()
-  const subject = `${PARAMETERS_UPDATE_STREAM}.${operatorID}.${parameter.name}`
+  const subject = `${PARAMETERS_UPDATE_STREAM}.${operatorID}.${name}`
 
   const config = useMemo(
     () => ({
@@ -28,7 +28,8 @@ export const useParameterValue = (
     config,
   })
 
-  const [actualValue, setActualValue] = useState<string>(parameter.default)
+  const [actualValue, setActualValue] = useState<string>(defaultValue)
+  const [hasReceivedMessage, setHasReceivedMessage] = useState<boolean>(false)
 
   useEffect(() => {
     if (!consumer) {
@@ -37,10 +38,11 @@ export const useParameterValue = (
 
     const consumeMessages = async () => {
       const messages = await consumer.consume()
-      let operatorParamValue = parameter.default
+      let operatorParamValue = defaultValue
       for await (const m of messages) {
         operatorParamValue = jc.decode(m.data) as string
         setActualValue(operatorParamValue)
+        setHasReceivedMessage(true)
         m.ack()
       }
     }
@@ -71,7 +73,7 @@ export const useParameterValue = (
 
       deleteConsumer()
     }
-  }, [consumer, jc, parameter])
+  }, [consumer, jc, defaultValue])
 
-  return actualValue
+  return { actualValue, hasReceivedMessage }
 }

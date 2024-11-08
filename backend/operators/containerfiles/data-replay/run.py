@@ -9,7 +9,7 @@ from pydantic import BaseModel, ValidationError
 
 from core.logger import get_logger
 from core.models.messages import BytesMessage, MessageHeader, MessageSubject
-from operators.operator import operator
+from operators.operator import DATA_DIRECTORY, operator
 
 logger = get_logger("operator_main", "DEBUG")
 
@@ -25,11 +25,10 @@ class FrameHeader(BaseModel):
 
 
 # Setup data paths
-path = Path("/raw_data")
+path = Path(f"{DATA_DIRECTORY}/raw_data_dir")
 scan_num = 684
 scan_name_path = Path(f"data_scan{scan_num:010}*.data")
-drive = path
-files = drive.glob(str(scan_name_path))
+files = path.glob(str(scan_name_path))
 iFiles = sorted(files)
 
 # Read the first frame to get the scan dimensions

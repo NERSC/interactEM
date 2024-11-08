@@ -8,11 +8,10 @@ import stempy.io as stio
 from numpy.linalg import svd
 from pydantic import BaseModel, ValidationError
 from scipy import ndimage
-from stempy.contrib import FileSuffix, get_scan_path
 
 from core.logger import get_logger
 from core.models.messages import BytesMessage
-from operators.operator import operator
+from operators.operator import DATA_DIRECTORY, operator
 
 logger = get_logger("vacuum_scan_subtract", "DEBUG")
 
@@ -57,15 +56,7 @@ keep_flyback: bool = False
 # Load the offsets for the vacuum scan subtraction
 vacuum_scan_id = 20132
 vacuum_scan_num = 714
-distiller_path = Path("/vacuum_scan")
-
-offsets_path, vacuum_scan_num, vacuum_scan_id = get_scan_path(
-    distiller_path,
-    scan_num=vacuum_scan_num,
-    scan_id=vacuum_scan_id,
-    version=1,
-    file_suffix=FileSuffix.OFFSETS,
-)
+offsets_path = Path(f"{DATA_DIRECTORY}/offsets.emd")
 
 offsets_data = ncempy.read(offsets_path)["data"]
 
