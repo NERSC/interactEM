@@ -61,9 +61,6 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   const [error, setError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
   const [buttonDisabled, setButtonDisabled] = useState(false)
-  const [buttonColor, setButtonColor] = useState<
-    "primary" | "secondary" | "error"
-  >("primary")
   const [buttonVisible, setButtonVisible] = useState(true)
 
   const node = getNode(operatorID)
@@ -112,7 +109,6 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
       setButtonVisible(false)
       return
     }
-    setButtonColor("primary")
     setError(false)
   }
 
@@ -226,13 +222,10 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     }
     // TODO: we should make a ParameterErrorEvent type
     if (isError || compareValues(parameter, actualValue, "ERROR")) {
-      setButtonColor("error")
       if (parameter.type === ParameterType.MOUNT) {
         setErrorMessage("Invalid mount. File/dir doesn't exist.")
       }
-    } else {
-      setButtonColor("primary")
-    }
+    } 
   }, [parameter, actualValue, isPending, isSuccess, isError])
 
   return (
@@ -251,7 +244,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
           <Button
             type="submit"
             variant="contained"
-            color={buttonColor}
+            color="primary"
             size="small"
             onClick={handleUpdateClick}
             disabled={buttonDisabled}
