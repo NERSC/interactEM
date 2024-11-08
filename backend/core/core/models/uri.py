@@ -15,7 +15,7 @@ from .base import (
     URILocation,
 )
 
-logger = get_logger("models.uri", "DEBUG")
+logger = get_logger()
 
 
 # TODO: could base64 encode this so that we don't clobber "/" and "?" and "=" and "&" in URI

@@ -38,7 +38,7 @@ from core.pipeline import OperatorJSON, Pipeline
 
 from .config import cfg
 
-logger = get_logger("orchestrator", "DEBUG")
+logger = get_logger()
 
 pipelines = {}
 

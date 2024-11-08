@@ -8,7 +8,7 @@ from core.nats import create_or_update_stream
 from core.nats.config import IMAGES_STREAM_CONFIG
 from operators.operator import AsyncOperator
 
-logger = get_logger("operator_main", "INFO")
+logger = get_logger()
 
 
 class ImageDisplay(AsyncOperator):

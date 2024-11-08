@@ -1,22 +1,34 @@
+import inspect
 import logging
 
 import coloredlogs
 
+from core.config import cfg
 
-def get_logger(name: str, level: str = "INFO") -> logging.Logger:
+
+def get_logger(level: str = cfg.LOG_LEVEL.value) -> logging.Logger:
     """
     Creates and returns a logger with pretty-printed, colored logs.
 
     Parameters:
-    - name: Name of the logger, typically __name__ when used within a module.
     - level: The logging level as a string (e.g., 'DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL').
 
     Returns:
     - A logging.Logger instance with colored output configured.
     """
+    # Determine the name of the module from which get_logger is called
+    frame = inspect.currentframe()
+    caller_frame = frame.f_back if frame else None
+    module_name = "__main__"
 
-    # Create a logger instance
-    logger = logging.getLogger(name)
+    if caller_frame:
+        # Get the module name from the caller's frame
+        module = inspect.getmodule(caller_frame)
+        if module and module.__name__ != "__main__":
+            module_name = module.__name__
+
+    # Create a logger instance with the module name
+    logger = logging.getLogger(module_name)
 
     # Set the logging level based on the provided level string
     numeric_level = getattr(logging, level.upper(), None)

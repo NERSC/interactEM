@@ -64,7 +64,7 @@ else:
     from podman_hpc_client import PodmanHpcClient as PodmanClient
 
 
-logger = get_logger("agent", "DEBUG")
+logger = get_logger()
 
 GLOBAL_ENV = {k: str(v) for k, v in cfg.model_dump().items()}
 GLOBAL_ENV["NATS_SERVER_URL"] = GLOBAL_ENV["NATS_SERVER_URL_IN_CONTAINER"]

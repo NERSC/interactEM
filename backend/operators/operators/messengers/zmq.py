@@ -38,7 +38,7 @@ from .base import (
     BaseMessenger,
 )
 
-logger = get_logger("messenger", "DEBUG")
+logger = get_logger()
 
 
 class ZmqMessenger(BaseMessenger):

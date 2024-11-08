@@ -14,7 +14,7 @@ from core.models.base import (
 from core.models.ports import PortMetrics
 from core.models.uri import ZMQAddress
 
-logger = get_logger("socket", "INFO")
+logger = get_logger()
 
 
 class SocketInfo(BaseModel):

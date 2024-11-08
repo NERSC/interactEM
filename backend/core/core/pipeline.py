@@ -15,7 +15,7 @@ from .models import (
     PortType,
 )
 
-logger = get_logger("pipeline")
+logger = get_logger()
 
 
 class Pipeline(nx.DiGraph):
