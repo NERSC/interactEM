@@ -19,8 +19,6 @@ from nats.js import JetStreamContext
 from nats.js.api import (
     ConsumerConfig,
     DeliverPolicy,
-    StreamConfig,
-    StreamInfo,
 )
 from nats.js.kv import KeyValue
 from pydantic import ValidationError
@@ -42,6 +40,11 @@ from core.models import CommBackend, OperatorJSON, PipelineJSON
 from core.models.messages import BytesMessage, OperatorTrackingMetadata
 from core.models.operators import OperatorMetrics, OperatorTiming, ParameterType
 from core.nats import create_bucket_if_doesnt_exist, create_or_update_stream
+from core.nats.config import (
+    METRICS_STREAM_CONFIG,
+    OPERATORS_STREAM_CONFIG,
+    PARAMETERS_STREAM_CONFIG,
+)
 from core.pipeline import Pipeline
 
 from .config import cfg
@@ -78,6 +81,7 @@ async def receive_pipeline(msg: NATSMsg) -> Pipeline | None:
         logger.error("Invalid message")
         return None
     return Pipeline.from_pipeline(event)
+
 
 class RunnableKernel(ABC):
     @abstractmethod
@@ -135,7 +139,6 @@ class OperatorMixin(RunnableKernel):
         self.metrics: OperatorMetrics = OperatorMetrics(
             id=self.id, timing=OperatorTiming()
         )
-        self.metrics_stream: StreamInfo | None = None
         self.run_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self._dependencies = []
@@ -179,19 +182,10 @@ class OperatorMixin(RunnableKernel):
         )
         logger.info("Connected to NATS...")
         self.js = self.nc.jetstream()
-        stream_cfg = StreamConfig(
-            name=STREAM_METRICS,
-            description="A stream for message metrics.",
-            subjects=[f"{STREAM_METRICS}.>"],
-        )
-        self.metrics_stream = await create_or_update_stream(stream_cfg, self.js)
 
-        stream_cfg = StreamConfig(
-            name=STREAM_PARAMETERS,
-            description="A stream for operator parameters.",
-            subjects=[f"{STREAM_PARAMETERS}.>"],
-        )
-        self.params_stream = await create_or_update_stream(stream_cfg, self.js)
+        await create_or_update_stream(METRICS_STREAM_CONFIG, self.js)
+        await create_or_update_stream(PARAMETERS_STREAM_CONFIG, self.js)
+        await create_or_update_stream(OPERATORS_STREAM_CONFIG, self.js)
 
         retries = 10
         while retries > 0:
@@ -517,12 +511,13 @@ class OperatorMixin(RunnableKernel):
 
         await self._publish_metrics(msg)
 
+
 class Operator(OperatorMixin, OperatorInterface):
     pass
 
+
 class AsyncOperator(OperatorMixin, AsyncOperatorInterface):
     pass
-
 
 
 Parameters = dict[str, Any]
