@@ -13,7 +13,7 @@ from core.logger import get_logger
 from core.models.messages import BytesMessage
 from operators.operator import DATA_DIRECTORY, operator
 
-logger = get_logger("vacuum_scan_subtract", "DEBUG")
+logger = get_logger()
 
 
 def planeFit(points):

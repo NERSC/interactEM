@@ -15,7 +15,7 @@ from core.models.messages import (
 )
 from operators.operator import operator
 
-logger = get_logger("detstream-aggregator", "DEBUG")
+logger = get_logger()
 
 
 class FourdCameraHeader(BaseModel):

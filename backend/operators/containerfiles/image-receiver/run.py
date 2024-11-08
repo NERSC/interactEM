@@ -5,7 +5,7 @@ from core.constants import OPERATOR_ID_ENV_VAR
 from core.logger import get_logger
 from operators.examples import recv_image
 
-logger = get_logger("operator_main", "DEBUG")
+logger = get_logger()
 
 OPERATOR_ID = os.getenv(OPERATOR_ID_ENV_VAR)
 

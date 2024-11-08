@@ -53,7 +53,7 @@ from .messengers.base import (
 )
 from .messengers.zmq import ZmqMessenger
 
-logger = get_logger("operator", "DEBUG")
+logger = get_logger()
 
 BACKEND_TO_MESSENGER: dict[CommBackend, type[BaseMessenger]] = {
     CommBackend.ZMQ: ZmqMessenger,

@@ -35,7 +35,7 @@ from core.pipeline import Pipeline
 
 from .config import cfg
 
-logger = get_logger("metrics", "DEBUG")
+logger = get_logger()
 
 
 class MetricType(str, Enum):

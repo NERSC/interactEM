@@ -10,7 +10,7 @@ from core.logger import get_logger
 from core.models.messages import BytesMessage, MessageHeader, MessageSubject
 from operators.operator import operator
 
-logger = get_logger("operator_main", "INFO")
+logger = get_logger()
 
 
 @operator
