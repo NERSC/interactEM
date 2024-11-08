@@ -11,7 +11,7 @@ from pydantic import BaseModel, ValidationError
 
 from core.logger import get_logger
 from core.models.messages import BytesMessage
-from operators.operator import operator
+from operators.operator import DATA_DIRECTORY, operator
 
 logger = get_logger("operator_main", "DEBUG")
 
@@ -27,7 +27,7 @@ class FrameHeader(BaseModel):
 
 
 open_files: dict[int, h5py.File] = {}
-WRITE_PATH = pathlib.Path("/mnt/output_dir/")
+WRITE_PATH = pathlib.Path(f"{DATA_DIRECTORY}/output_dir/")
 
 
 def test_can_open(path: pathlib.Path):

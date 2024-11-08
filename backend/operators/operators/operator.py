@@ -30,6 +30,7 @@ from core.constants import (
     BUCKET_METRICS_TTL,
     BUCKET_OPERATORS,
     BUCKET_OPERATORS_TTL,
+    MOUNT_DIR,
     OPERATOR_ID_ENV_VAR,
     STREAM_METRICS,
     STREAM_OPERATORS,
@@ -590,3 +591,6 @@ def async_operator(
         return decorator(func)
 
     return decorator
+
+
+DATA_DIRECTORY = MOUNT_DIR
