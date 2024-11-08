@@ -5,6 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, model_validator
 
+from ..constants import MOUNT_DIR
 from .base import IdType, NodeType, OperatorID, PortID, PortType
 from .operators import OperatorParameter, ParameterType
 
@@ -114,7 +115,7 @@ class OperatorJSON(PipelineNodeJSON):
             return
 
         src = parameter.value if parameter.value is not None else parameter.default
-        target = f"/mnt/{parameter.name}"
+        target = f"{MOUNT_DIR}/{parameter.name}"
 
         self.mounts = [mount for mount in self.mounts if mount.target != target]
 
@@ -142,7 +143,7 @@ class OperatorJSON(PipelineNodeJSON):
 
             # Skip if the mount is already there
             src_exists = src in [mount.source for mount in self.mounts]
-            target_exists = f"/mnt/{parameter.name}" in [
+            target_exists = f"{MOUNT_DIR}/{parameter.name}" in [
                 mount.target for mount in self.mounts
             ]
             if src_exists and target_exists:
@@ -151,14 +152,14 @@ class OperatorJSON(PipelineNodeJSON):
             if target_exists:
                 self.mounts.pop(
                     [mount.target for mount in self.mounts].index(
-                        f"/mnt/{parameter.name}"
+                        f"{MOUNT_DIR}/{parameter.name}"
                     )
                 )
             self.mounts.append(
                 PodmanMount(
                     type=PodmanMountType.bind,
                     source=src,
-                    target=f"/mnt/{parameter.name}",
+                    target=f"{MOUNT_DIR}/{parameter.name}",
                 )
             )
         return self

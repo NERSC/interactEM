@@ -11,7 +11,7 @@ from scipy import ndimage
 
 from core.logger import get_logger
 from core.models.messages import BytesMessage
-from operators.operator import operator
+from operators.operator import DATA_DIRECTORY, operator
 
 logger = get_logger("vacuum_scan_subtract", "DEBUG")
 
@@ -56,7 +56,7 @@ keep_flyback: bool = False
 # Load the offsets for the vacuum scan subtraction
 vacuum_scan_id = 20132
 vacuum_scan_num = 714
-offsets_path = Path("/mnt/offsets.emd")
+offsets_path = Path(f"{DATA_DIRECTORY}/offsets.emd")
 
 offsets_data = ncempy.read(offsets_path)["data"]
 
