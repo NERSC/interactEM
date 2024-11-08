@@ -28,7 +28,7 @@ ValType = TypeVar("ValType", bound=BaseModel)
 
 from core.logger import get_logger
 
-logger = get_logger("core.nats", "DEBUG")
+logger = get_logger()
 
 
 async def create_bucket_if_doesnt_exist(

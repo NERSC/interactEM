@@ -8,11 +8,9 @@ import networkx
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
-from nats.js.api import ConsumerConfig, DeliverPolicy
 from networkx.readwrite.text import generate_network_text
 from pydantic import BaseModel
 
-from core.constants import STREAM_METRICS
 from core.logger import get_logger
 from core.models.base import IdType
 from core.models.messages import (
@@ -31,11 +29,12 @@ from core.nats import (
     get_pipelines_bucket,
     get_val,
 )
+from core.nats.consumers import create_metrics_consumer
 from core.pipeline import Pipeline
 
 from .config import cfg
 
-logger = get_logger("metrics", "DEBUG")
+logger = get_logger()
 
 
 class MetricType(str, Enum):
@@ -367,12 +366,7 @@ async def main():
 
     logger.info("Metrics microservice is running...")
 
-    consumer_cfg = ConsumerConfig(
-        description=f"orchestrator-{id}", deliver_policy=DeliverPolicy.LAST_PER_SUBJECT
-    )
-    metrics_psub = await js.pull_subscribe(
-        subject=f"{STREAM_METRICS}.>", config=consumer_cfg
-    )
+    metrics_psub = await create_metrics_consumer(js)
 
     metrics_watch_task = asyncio.create_task(
         metrics_watch(js, intervals, update_interval)

@@ -15,11 +15,6 @@ import podman
 import podman.errors
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
-from nats.js.api import (
-    ConsumerConfig,
-    DeliverPolicy,
-    StreamConfig,
-)
 from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
 from pydantic import ValidationError
@@ -27,9 +22,7 @@ from pydantic import ValidationError
 from core.constants import (
     BUCKET_AGENTS,
     OPERATOR_ID_ENV_VAR,
-    STREAM_AGENTS,
     STREAM_OPERATORS,
-    STREAM_PARAMETERS,
     STREAM_PARAMETERS_UPDATE,
 )
 from core.logger import get_logger
@@ -42,6 +35,12 @@ from core.models.pipeline import (
 )
 from core.models.uri import URI, CommBackend, URILocation
 from core.nats import create_or_update_stream
+from core.nats.config import (
+    AGENTS_STREAM_CONFIG,
+    OPERATORS_STREAM_CONFIG,
+    PARAMETERS_STREAM_CONFIG,
+)
+from core.nats.consumers import create_agent_consumer, create_agent_parameter_consumer
 from core.pipeline import Pipeline
 
 from .config import cfg
@@ -60,7 +59,7 @@ else:
     from podman_hpc_client import PodmanHpcClient as PodmanClient
 
 
-logger = get_logger("agent", "DEBUG")
+logger = get_logger()
 
 GLOBAL_ENV = {k: str(v) for k, v in cfg.model_dump().items()}
 GLOBAL_ENV["NATS_SERVER_URL"] = GLOBAL_ENV["NATS_SERVER_URL_IN_CONTAINER"]
@@ -70,7 +69,6 @@ class Agent:
     def __init__(self):
         self.id = uuid.uuid4()
         self.pipeline: Pipeline | None = None
-        self.containers: dict[uuid.UUID, Container] = {}
 
         if PODMAN_SERVICE_URI:
             self._podman_service_uri = PODMAN_SERVICE_URI
@@ -150,14 +148,6 @@ class Agent:
 
             # Run the tasks concurrently
             await asyncio.gather(*tasks)
-            for container in containers:
-                # TODO: this should be a little bit more robust
-                # do we even need to store containers in the agent?
-                if not isinstance(container.name, str):
-                    continue
-                self.containers.pop(
-                    uuid.UUID(container.name.removeprefix("operator-")), None
-                )
 
     async def run(self):
         logger.info(f"Starting agent with configuration: {cfg.model_dump()}")
@@ -170,12 +160,9 @@ class Agent:
         )
         self.js = self.nc.jetstream()
 
-        stream_cfg = StreamConfig(
-            name=STREAM_PARAMETERS,
-            description="A stream for operator parameters.",
-            subjects=[f"{STREAM_PARAMETERS}.>"],
-        )
-        await create_or_update_stream(stream_cfg, self.js)
+        await create_or_update_stream(PARAMETERS_STREAM_CONFIG, self.js)
+        await create_or_update_stream(AGENTS_STREAM_CONFIG, self.js)
+        await create_or_update_stream(OPERATORS_STREAM_CONFIG, self.js)
 
         self.heartbeat_task = asyncio.create_task(self.heartbeat(self.js, self.id))
         self.server_task = asyncio.create_task(self.server_loop())
@@ -258,11 +245,6 @@ class Agent:
             await self.server_task
 
         if self.nc:
-            # TODO: not sure why, but this results in drain timeout.
-            # try:
-            #     await self.nc.drain()  # Drain and close NATS connection
-            # except nats.errors.FlushTimeoutError as err:
-            #     logger.warning(f'{err}')
             await self.nc.close()
 
         await self._cleanup_containers()
@@ -276,18 +258,7 @@ class Agent:
             logger.error("NATS connection not established. Exiting server loop.")
             return
 
-        # TODO: make this a util
-        consumer_cfg = ConsumerConfig(
-            description=f"agent-{self.id}",
-            deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
-            inactive_threshold=30,
-        )
-        psub = await self.js.pull_subscribe(
-            stream=STREAM_AGENTS,
-            subject=f"{STREAM_AGENTS}.{self.id}",
-            config=consumer_cfg,
-        )
-        logger.info(f"Subscribed to {STREAM_AGENTS}.{self.id}")
+        psub = await create_agent_consumer(self.js, self.id)
 
         while not self._shutdown_event.is_set():
             try:
@@ -327,7 +298,7 @@ class Agent:
 
                 try:
                     logger.info("Starting operators...")
-                    self.containers = await self.start_operators()
+                    await self.start_operators()
                 except Exception as e:
                     logger.error(f"Error starting operators: {e}")
                     # TODO: publish error notification to jetstream
@@ -539,15 +510,9 @@ class Agent:
         if not self.js:
             raise ValueError("No JetStream context")
 
-        subject = f"{STREAM_PARAMETERS}.{operator.id}.{parameter.name}"
         try:
-            psub = await self.js.pull_subscribe(
-                stream=STREAM_PARAMETERS,
-                subject=subject,
-                config=ConsumerConfig(
-                    deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
-                    description=f"agent-{self.id}-{operator.id}-{parameter.name}",
-                ),
+            psub = await create_agent_parameter_consumer(
+                self.js, self.id, operator, parameter
             )
         except Exception as e:
             logger.error(f"Error subscribing to parameter {parameter.name}: {e}")
@@ -694,7 +659,6 @@ async def stop_and_remove_container(container: Container) -> None:
 
 
 def is_name_conflict_error(error: podman.errors.exceptions.APIError) -> bool:
-    # TODO: check if we have a status code for this error
     error_message = str(error)
     return "container name" in error_message and "is already in use" in error_message
 
@@ -706,7 +670,4 @@ async def handle_name_conflict(client: PodmanClient, container_name: str) -> Non
     )
     conflicting_container = client.containers.get(container_name)
     await stop_and_remove_container(conflicting_container)
-    logger.info(
-        f"Conflicting container {conflicting_container.id} removed. "
-        f"Retrying creation..."
-    )
+    logger.info(f"Conflicting container {conflicting_container.id} removed. ")

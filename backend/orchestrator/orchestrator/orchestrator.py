@@ -8,7 +8,6 @@ import nats.js.errors
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
-from nats.js.api import ConsumerConfig, DeliverPolicy, StreamConfig
 from pydantic import ValidationError
 
 from core.constants import (
@@ -17,8 +16,6 @@ from core.constants import (
     BUCKET_PIPELINES,
     BUCKET_PIPELINES_TTL,
     STREAM_AGENTS,
-    STREAM_OPERATORS,
-    SUBJECT_PIPELINES_RUN,
 )
 from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
@@ -34,11 +31,13 @@ from core.nats import (
     get_pipelines_bucket,
     get_val,
 )
+from core.nats.config import AGENTS_STREAM_CONFIG, OPERATORS_STREAM_CONFIG
+from core.nats.consumers import create_orchestrator_pipeline_consumer
 from core.pipeline import OperatorJSON, Pipeline
 
 from .config import cfg
 
-logger = get_logger("orchestrator", "DEBUG")
+logger = get_logger()
 
 pipelines = {}
 
@@ -194,7 +193,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
 
 
 async def main():
-    id: str = str(uuid4())
+    id: UUID = uuid4()
     nc: NATSClient = await nats.connect(
         servers=[str(cfg.NATS_SERVER_URL)], name=f"orchestrator-{id}"
     )
@@ -202,12 +201,7 @@ async def main():
 
     logger.info("Orchestrator is running...")
 
-    consumer_cfg = ConsumerConfig(
-        description=f"orchestrator-{id}", deliver_policy=DeliverPolicy.LAST_PER_SUBJECT
-    )
-    pipeline_run_psub = await js.pull_subscribe(
-        subject=SUBJECT_PIPELINES_RUN, config=consumer_cfg
-    )
+    pipeline_run_psub = await create_orchestrator_pipeline_consumer(js, id)
 
     startup_tasks = []
     startup_tasks.append(
@@ -217,19 +211,8 @@ async def main():
         create_bucket_if_doesnt_exist(js, BUCKET_PIPELINES, BUCKET_PIPELINES_TTL),
     )
 
-    agent_stream_cfg = StreamConfig(
-        name=STREAM_AGENTS,
-        description="A stream for messages to the agents.",
-        subjects=[f"{STREAM_AGENTS}.>"],
-    )
-    startup_tasks.append(create_or_update_stream(agent_stream_cfg, js))
-
-    operators_stream_cfg = StreamConfig(
-        name=STREAM_OPERATORS,
-        description="A stream for messages for operators.",
-        subjects=[f"{STREAM_OPERATORS}.>"],
-    )
-    startup_tasks.append(create_or_update_stream(operators_stream_cfg, js))
+    startup_tasks.append(create_or_update_stream(AGENTS_STREAM_CONFIG, js))
+    startup_tasks.append(create_or_update_stream(OPERATORS_STREAM_CONFIG, js))
 
     await asyncio.gather(*startup_tasks)
 

@@ -7,7 +7,7 @@ from core.models.messages import BytesMessage, MessageHeader, MessageSubject
 
 from .operator import operator
 
-logger = get_logger("operators.examples", "DEBUG")
+logger = get_logger()
 
 
 @operator

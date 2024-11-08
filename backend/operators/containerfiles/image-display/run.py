@@ -1,15 +1,14 @@
 import asyncio
 from typing import Any
 
-from nats.js.api import StreamConfig
-
 from core.constants import STREAM_IMAGES
 from core.logger import get_logger
 from core.models.messages import BytesMessage
 from core.nats import create_or_update_stream
+from core.nats.config import IMAGES_STREAM_CONFIG
 from operators.operator import AsyncOperator
 
-logger = get_logger("operator_main", "INFO")
+logger = get_logger()
 
 
 class ImageDisplay(AsyncOperator):
@@ -23,13 +22,9 @@ class ImageDisplay(AsyncOperator):
     # the start method doesn't return.
     async def _ensure_stream(self):
         if not self.image_stream:
-            stream_cfg = StreamConfig(
-                name=STREAM_IMAGES,
-                description="A stream for images.",
-                subjects=[f"{STREAM_IMAGES}.>"],
-                max_msgs_per_subject=1,
+            self.image_stream = await create_or_update_stream(
+                IMAGES_STREAM_CONFIG, self.js
             )
-            self.image_stream = await create_or_update_stream(stream_cfg, self.js)
 
     async def _publish_image(self, image_data: bytes):
         await self._ensure_stream()
