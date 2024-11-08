@@ -70,7 +70,6 @@ class Agent:
     def __init__(self):
         self.id = uuid.uuid4()
         self.pipeline: Pipeline | None = None
-        self.containers: dict[uuid.UUID, Container] = {}
 
         if PODMAN_SERVICE_URI:
             self._podman_service_uri = PODMAN_SERVICE_URI
@@ -150,14 +149,6 @@ class Agent:
 
             # Run the tasks concurrently
             await asyncio.gather(*tasks)
-            for container in containers:
-                # TODO: this should be a little bit more robust
-                # do we even need to store containers in the agent?
-                if not isinstance(container.name, str):
-                    continue
-                self.containers.pop(
-                    uuid.UUID(container.name.removeprefix("operator-")), None
-                )
 
     async def run(self):
         logger.info(f"Starting agent with configuration: {cfg.model_dump()}")
@@ -327,7 +318,7 @@ class Agent:
 
                 try:
                     logger.info("Starting operators...")
-                    self.containers = await self.start_operators()
+                    await self.start_operators()
                 except Exception as e:
                     logger.error(f"Error starting operators: {e}")
                     # TODO: publish error notification to jetstream
