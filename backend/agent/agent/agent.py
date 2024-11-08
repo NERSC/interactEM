@@ -670,7 +670,4 @@ async def handle_name_conflict(client: PodmanClient, container_name: str) -> Non
     )
     conflicting_container = client.containers.get(container_name)
     await stop_and_remove_container(conflicting_container)
-    logger.info(
-        f"Conflicting container {conflicting_container.id} removed. "
-        f"Retrying creation..."
-    )
+    logger.info(f"Conflicting container {conflicting_container.id} removed. ")
