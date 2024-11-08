@@ -60,8 +60,6 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   )
   const [error, setError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
-  const [buttonDisabled, setButtonDisabled] = useState(false)
-  const [buttonVisible, setButtonVisible] = useState(true)
 
   const node = getNode(operatorID)
   if (!node) {
@@ -106,7 +104,6 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     if (!validateInput(newValue)) {
       setError(true)
       setErrorMessage("Invalid value (type mismatch)")
-      setButtonVisible(false)
       return
     }
     setError(false)
@@ -201,32 +198,17 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   }
 
   useEffect(() => {
-    if (error) {
-      setButtonVisible(false)
-      return
-    }
-    if (compareValues(parameter, actualValue, inputValue)) {
-      setButtonVisible(false)
-    } else {
-      setButtonVisible(true)
-    }
-  }, [parameter, actualValue, inputValue, error])
-
-  useEffect(() => {
-    // TODO: will this cause unecessary re-render?
-    if (isPending) {
-      setButtonDisabled(true)
-    } else if (isSuccess || isError) {
-      setError(false)
-      setButtonDisabled(false)
-    }
     // TODO: we should make a ParameterErrorEvent type
     if (isError || compareValues(parameter, actualValue, "ERROR")) {
       if (parameter.type === ParameterType.MOUNT) {
         setErrorMessage("Invalid mount. File/dir doesn't exist.")
       }
-    } 
-  }, [parameter, actualValue, isPending, isSuccess, isError])
+    }
+  }, [parameter, isError, actualValue])
+
+  const buttonVisible =
+    !error && !compareValues(parameter, actualValue, inputValue)
+  const buttonDisabled = isPending
 
   return (
     <Container>
