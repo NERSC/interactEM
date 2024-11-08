@@ -249,11 +249,6 @@ class Agent:
             await self.server_task
 
         if self.nc:
-            # TODO: not sure why, but this results in drain timeout.
-            # try:
-            #     await self.nc.drain()  # Drain and close NATS connection
-            # except nats.errors.FlushTimeoutError as err:
-            #     logger.warning(f'{err}')
             await self.nc.close()
 
         await self._cleanup_containers()
