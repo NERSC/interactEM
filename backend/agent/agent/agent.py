@@ -1,4 +1,5 @@
 import asyncio.subprocess
+import json
 import os
 import signal
 import tempfile
@@ -14,7 +15,11 @@ import podman
 import podman.errors
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
-from nats.js.api import ConsumerConfig, DeliverPolicy
+from nats.js.api import (
+    ConsumerConfig,
+    DeliverPolicy,
+    StreamConfig,
+)
 from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
 from pydantic import ValidationError
@@ -24,17 +29,19 @@ from core.constants import (
     OPERATOR_ID_ENV_VAR,
     STREAM_AGENTS,
     STREAM_OPERATORS,
+    STREAM_PARAMETERS,
+    STREAM_PARAMETERS_UPDATE,
 )
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
-from core.models.base import IdType
+from core.models.operators import OperatorParameter, ParameterType
 from core.models.pipeline import (
     OperatorJSON,
     PipelineAssignment,
     PipelineJSON,
-    PodmanMount,
 )
 from core.models.uri import URI, CommBackend, URILocation
+from core.nats import create_or_update_stream
 from core.pipeline import Pipeline
 
 from .config import cfg
@@ -54,6 +61,9 @@ else:
 
 
 logger = get_logger("agent", "DEBUG")
+
+GLOBAL_ENV = {k: str(v) for k, v in cfg.model_dump().items()}
+GLOBAL_ENV["NATS_SERVER_URL"] = GLOBAL_ENV["NATS_SERVER_URL_IN_CONTAINER"]
 
 
 class Agent:
@@ -87,6 +97,7 @@ class Agent:
         )
         self.heartbeat_task: asyncio.Task | None = None
         self.server_task: asyncio.Task | None = None
+        self.watch_tasks: dict[uuid.UUID, asyncio.Task] = {}
 
     async def _start_podman_service(self, create_process=False):
         self._podman_process = None
@@ -158,6 +169,13 @@ class Agent:
             servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{id}"
         )
         self.js = self.nc.jetstream()
+
+        stream_cfg = StreamConfig(
+            name=STREAM_PARAMETERS,
+            description="A stream for operator parameters.",
+            subjects=[f"{STREAM_PARAMETERS}.>"],
+        )
+        await create_or_update_stream(stream_cfg, self.js)
 
         self.heartbeat_task = asyncio.create_task(self.heartbeat(self.js, self.id))
         self.server_task = asyncio.create_task(self.server_loop())
@@ -310,9 +328,9 @@ class Agent:
                 try:
                     logger.info("Starting operators...")
                     self.containers = await self.start_operators()
-                    logger.info("Operators started successfully.")
                 except Exception as e:
                     logger.error(f"Error starting operators: {e}")
+                    # TODO: publish error notification to jetstream
                     continue
         logger.info("Server loop exiting")
 
@@ -330,89 +348,320 @@ class Agent:
 
     async def start_operators(self) -> dict[uuid.UUID, Container]:
         # Destroy any existing containers
-        await self._cleanup_containers()
+        await self.cancel_and_cleanup()
         containers = {}
         if not self.pipeline:
             logger.error("No pipeline configuration found...")
             return containers
-        try:
-            self.pipeline.to_json()
-        except ValidationError as e:
-            logger.error(f"No pipeline configuration found: {e}")
-            return containers
 
         logger.info("Starting operators...")
 
-        global_env = {k: str(v) for k, v in cfg.model_dump().items()}
-        global_env["NATS_SERVER_URL"] = global_env["NATS_SERVER_URL_IN_CONTAINER"]
-
-        # TODO: look into creating tasks
-        futures = []
         with PodmanClient(base_url=self._podman_service_uri) as client:
+            tasks = []
+
             for id, op_info in self.pipeline.operators.items():
                 if id not in self.my_operator_ids:
                     continue
-                logger.info(f"Starting operator {id} with image {op_info.image}")
-                this_container_env = global_env.copy()
-                this_container_env.update(op_info.env)
-                this_container_env.update({OPERATOR_ID_ENV_VAR: str(id)})
-                # TODO: could use async to create multiple at once
-                container = await create_container(
-                    self.id,
-                    client,
-                    id,
-                    op_info,
-                    this_container_env,
-                    op_info.mounts,
-                    op_info.command,
-                )
-                if container:
-                    container.start()
-                    logger.info(f"Container {container.name} started...")
-                    containers[id] = container
-                    if not self.js:
-                        logger.error(
-                            "No JetStream context. "
-                            "Did not publish pipeline information to {STREAM_OPERATORS}."
-                        )
-                        continue
-                    futures.append(
-                        self.js.publish(
-                            subject=f"{STREAM_OPERATORS}.{id}",
-                            payload=self.pipeline.to_json().model_dump_json().encode(),
-                        )
+
+                task = asyncio.create_task(
+                    self._start_operator(
+                        op_info,
+                        client,
                     )
+                )
+                tasks.append(task)
+
+            results: list[
+                tuple[OperatorJSON, Container] | BaseException
+            ] = await asyncio.gather(*tasks, return_exceptions=True)
+
+            for result in results:
+                if isinstance(result, BaseException):
+                    logger.error(f"Error starting operator: {result}")
                 else:
-                    logger.error(f"Failed to start operator ID: {id} after retrying.")
-        # TODO: maybe publish before starting the container
-        await asyncio.gather(*futures)
+                    operator, container = result
+                    containers[operator.id] = container
+                    self.watch_tasks[operator.id] = asyncio.create_task(
+                        self.container_task(operator, container)
+                    )
+
         return containers
+
+    async def _start_operator(
+        self, operator: OperatorJSON, client: PodmanClient
+    ) -> tuple[OperatorJSON, Container]:
+        logger.info(f"Starting operator {operator.id} with image {operator.image}")
+
+        if self.pipeline is None:
+            raise ValueError("No pipeline configuration found")
+
+        if operator.id not in self.pipeline.operators:
+            raise ValueError(f"Operator {operator.id} not found in pipeline")
+
+        env = GLOBAL_ENV.copy()
+        env.update(operator.env)
+        env.update({OPERATOR_ID_ENV_VAR: str(operator.id)})
+
+        container = await create_container(
+            self.id,
+            client,
+            operator,
+            env,
+        )
+        container.start()
+
+        if not self.js:
+            raise ValueError("No JetStream context")
+
+        # Publish pipeline to JetStream
+        try:
+            await self.js.publish(
+                subject=f"{STREAM_OPERATORS}.{operator.id}",
+                payload=self.pipeline.to_json().model_dump_json().encode(),
+            )
+            logger.info(f"Published pipeline for operator {operator.id}")
+            logger.debug(f"Pipeline: {self.pipeline.to_json().model_dump_json()}")
+        except Exception as e:
+            raise ValueError(
+                f"Failed to publish to JetStream for operator {operator.id}: {e}"
+            )
+
+        return operator, container
+
+    async def container_task(
+        self, operator: OperatorJSON, container: Container
+    ) -> None:
+        """
+        Manages the operator's container lifecycle and restarts it when mount parameters change.
+        """
+        if not self.js:
+            raise ValueError("No JetStream context")
+
+        restart_event = asyncio.Event()
+
+        changed_parameters: dict[str, OperatorParameter] = {}
+        parameter_tasks: list[asyncio.Task] = []
+
+        current_operator = operator
+        current_container = container
+
+        # Start parameter tasks for each mount parameter
+        if operator.parameters is not None:
+            for param in operator.parameters:
+                if param.type != ParameterType.MOUNT:
+                    continue
+                changed_parameters[param.name] = param
+                # Start a parameter task for each mount parameter
+                parameter_task = asyncio.create_task(
+                    self.parameter_task(
+                        current_operator, param, restart_event, changed_parameters
+                    )
+                )
+                parameter_tasks.append(parameter_task)
+
+        while not self._shutdown_event.is_set():
+            shutdown_task = asyncio.create_task(self._shutdown_event.wait())
+            restart_task = asyncio.create_task(restart_event.wait())
+
+            _, pending = await asyncio.wait(
+                [shutdown_task, restart_task],
+                return_when=asyncio.FIRST_COMPLETED,
+            )
+
+            for task in pending:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+
+            if self._shutdown_event.is_set():
+                break
+
+            # Check if the container is still running
+            try:
+                current_container.reload()
+            except podman.errors.exceptions.APIError as e:
+                logger.warning(f"Container {current_container.name} not found: {e}")
+                break
+            if current_container.status != "running":
+                logger.info(f"Container {current_container.name} is no longer running.")
+                await stop_and_remove_container(current_container)
+                break
+
+            if restart_event.is_set():
+                restart_event.clear()
+
+                # Restart the container with updated mounts
+                # No need to create a new operator; current_operator has updated mounts
+                # Re-resolve the mounts
+                resolved = True
+                for mount in current_operator.mounts:
+                    if not mount.resolve():
+                        logger.error(f"Mount source not found: {mount.source}")
+                        resolved = False
+                if not resolved:
+                    logger.error("Failed to resolve mounts")
+                    continue
+
+                await stop_and_remove_container(current_container)
+                with PodmanClient(base_url=self._podman_service_uri) as client:
+                    try:
+                        new_operator, new_container = await asyncio.create_task(
+                            self._start_operator(current_operator, client)
+                        )
+                        current_operator = new_operator
+                        current_container = new_container
+                    except Exception as e:
+                        logger.error(f"Error starting operator: {e}")
+                        continue
+
+                for param in changed_parameters.values():
+                    await update_parameter(self.js, current_operator, param)
+                changed_parameters.clear()
+
+        for task in parameter_tasks:
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                pass
+
+        logger.info(f"Exited container task loop for operator {operator.id}")
+
+    async def parameter_task(
+        self,
+        operator: OperatorJSON,
+        parameter: OperatorParameter,
+        restart_event: asyncio.Event,
+        changed_parameters: dict[str, OperatorParameter],
+    ):
+        if not self.js:
+            raise ValueError("No JetStream context")
+
+        subject = f"{STREAM_PARAMETERS}.{operator.id}.{parameter.name}"
+        try:
+            psub = await self.js.pull_subscribe(
+                stream=STREAM_PARAMETERS,
+                subject=subject,
+                config=ConsumerConfig(
+                    deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
+                    description=f"agent-{self.id}-{operator.id}-{parameter.name}",
+                ),
+            )
+        except Exception as e:
+            logger.error(f"Error subscribing to parameter {parameter.name}: {e}")
+            return
+
+        # Publish initial value
+        await update_parameter(self.js, operator, parameter)
+
+        # Create an invalid parameter to publish when the parameter is invalid
+        invalid_parameter = OperatorParameter(
+            name=parameter.name,
+            label=parameter.label,
+            description=parameter.description,
+            type=parameter.type,
+            default=parameter.default,
+            required=parameter.required,
+            value="ERROR",
+        )
+
+        while not self._shutdown_event.is_set():
+            try:
+                msgs = await psub.fetch(1, timeout=1)
+                if not msgs:
+                    continue
+                msg = msgs[0]
+                await msg.ack()
+                if not msg.data:
+                    logger.warning(
+                        f"Received empty message for parameter '{parameter.name}'"
+                    )
+                    continue
+                try:
+                    val = json.loads(msg.data.decode("utf-8"))
+                    new_val = val.get(parameter.name)
+                    if new_val == parameter.value:
+                        await update_parameter(self.js, operator, parameter)
+                        continue
+                    # Validate the new value before updating
+                    if not operator.validate_mount_for_parameter(parameter, new_val):
+                        logger.error(
+                            f"Invalid mount path for parameter '{parameter.name}': {new_val}"
+                        )
+                        await update_parameter(self.js, operator, invalid_parameter)
+                        continue
+
+                    parameter.value = new_val
+                    operator.update_mounts_for_parameter(parameter)
+                    changed_parameters[parameter.name] = parameter
+                    restart_event.set()
+                except json.JSONDecodeError as e:
+                    logger.error(
+                        f"Error decoding message for parameter '{parameter.name}': {e}"
+                    )
+                    continue
+            except nats.errors.TimeoutError:
+                continue
+            except Exception as e:
+                logger.error(
+                    f"Error fetching update for parameter '{parameter.name}': {e}"
+                )
+                continue
+
+        await psub.unsubscribe()
+
+    async def cancel_and_cleanup(self):
+        for operator_id, task in self.watch_tasks.items():
+            logger.info(
+                f"Cancelling existing container task for operator {operator_id}"
+            )
+            task.cancel()
+            try:
+                await task
+            except asyncio.CancelledError:
+                logger.info(f"Container task for operator {operator_id} cancelled.")
+        self.watch_tasks.clear()
+        await self._cleanup_containers()
+
+
+async def update_parameter(
+    js: JetStreamContext,
+    operator: OperatorJSON,
+    parameter: OperatorParameter,
+):
+    value = parameter.value if parameter.value is not None else parameter.default
+    subject = f"{STREAM_PARAMETERS_UPDATE}.{operator.id}.{parameter.name}"
+    payload = json.dumps(value).encode("utf-8")
+    asyncio.create_task(js.publish(subject=subject, payload=payload))
 
 
 async def create_container(
     agent_id: uuid.UUID,
     client: PodmanClient,
-    op_id: IdType,
-    op_info: OperatorJSON,
+    operator: OperatorJSON,
     env: dict[str, Any],
-    mounts: list[PodmanMount],
-    command: str | list[str],
     max_retries=1,
-) -> Container | None:
-    name = f"operator-{op_id}"
-    network_mode = op_info.network_mode or "host"
+) -> Container:
+    name = f"operator-{operator.id}"
+    network_mode = operator.network_mode or "host"
     for attempt in range(max_retries + 1):
+        # Expand users
+        # This should only be done at the agent (where data resides)
+        for mount in operator.mounts:
+            mount.resolve()
         try:
             return client.containers.create(
-                image=op_info.image,
+                image=operator.image,
                 environment=env,
                 name=name,
-                command=command,
+                command=operator.command,
                 detach=True,
                 network_mode=network_mode,
                 remove=True,
                 labels={"agent.id": str(agent_id)},
-                mounts=[mount.model_dump() for mount in mounts],
+                mounts=[mount.model_dump() for mount in operator.mounts],
             )
         except podman.errors.exceptions.APIError as e:
             # _cleanup_containers() doesn't work for dead containers
@@ -422,28 +671,30 @@ async def create_container(
                 if attempt < max_retries:
                     await handle_name_conflict(client, name)
                 else:
-                    logger.error(
-                        f"Maximum retries reached for {name}. "
-                        "Unable to create container."
-                    )
-                    return None
+                    raise e
             else:
-                logger.error(f"Error creating container: {e}")
-                return None
-    return None
+                raise e
+        except Exception as e:
+            raise e
+    raise RuntimeError(
+        f"Failed to create container {name} after {max_retries + 1} attempts"
+    )
 
 
 async def stop_and_remove_container(container: Container) -> None:
-    container.reload()
-    status = container.status
-    if status == "running":
-        logger.info(f"Stopping container {container.name}")
-        await asyncio.to_thread(container.stop)
-    logger.info(f"Removing container {container.name}")
-    await asyncio.to_thread(container.remove)
+    try:
+        container.reload()
+        if container.status == "running":
+            logger.info(f"Stopping container {container.name}")
+            await asyncio.to_thread(container.stop)
+        logger.info(f"Removing container {container.name}")
+        await asyncio.to_thread(container.remove)
+    except podman.errors.exceptions.APIError as e:
+        logger.warning(f"Error stopping/removing container {container.name}: {e}")
 
 
 def is_name_conflict_error(error: podman.errors.exceptions.APIError) -> bool:
+    # TODO: check if we have a status code for this error
     error_message = str(error)
     return "container name" in error_message and "is already in use" in error_message
 

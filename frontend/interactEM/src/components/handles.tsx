@@ -6,10 +6,7 @@ interface HandlesProps {
   outputs?: string[]
 }
 
-const Handles: React.FC<HandlesProps> = ({
-  inputs,
-  outputs,
-}) => (
+const Handles: React.FC<HandlesProps> = ({ inputs, outputs }) => (
   <>
     {inputs && <Handle type="target" position={Position.Left} id={inputs[0]} />}
     {outputs && (
