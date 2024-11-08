@@ -15,10 +15,6 @@ import podman
 import podman.errors
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
-from nats.js.api import (
-    ConsumerConfig,
-    DeliverPolicy,
-)
 from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
 from pydantic import ValidationError
@@ -26,9 +22,7 @@ from pydantic import ValidationError
 from core.constants import (
     BUCKET_AGENTS,
     OPERATOR_ID_ENV_VAR,
-    STREAM_AGENTS,
     STREAM_OPERATORS,
-    STREAM_PARAMETERS,
     STREAM_PARAMETERS_UPDATE,
 )
 from core.logger import get_logger
@@ -46,6 +40,7 @@ from core.nats.config import (
     OPERATORS_STREAM_CONFIG,
     PARAMETERS_STREAM_CONFIG,
 )
+from core.nats.consumers import create_agent_consumer, create_agent_parameter_consumer
 from core.pipeline import Pipeline
 
 from .config import cfg
@@ -263,18 +258,7 @@ class Agent:
             logger.error("NATS connection not established. Exiting server loop.")
             return
 
-        # TODO: make this a util
-        consumer_cfg = ConsumerConfig(
-            description=f"agent-{self.id}",
-            deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
-            inactive_threshold=30,
-        )
-        psub = await self.js.pull_subscribe(
-            stream=STREAM_AGENTS,
-            subject=f"{STREAM_AGENTS}.{self.id}",
-            config=consumer_cfg,
-        )
-        logger.info(f"Subscribed to {STREAM_AGENTS}.{self.id}")
+        psub = await create_agent_consumer(self.js, self.id)
 
         while not self._shutdown_event.is_set():
             try:
@@ -526,15 +510,9 @@ class Agent:
         if not self.js:
             raise ValueError("No JetStream context")
 
-        subject = f"{STREAM_PARAMETERS}.{operator.id}.{parameter.name}"
         try:
-            psub = await self.js.pull_subscribe(
-                stream=STREAM_PARAMETERS,
-                subject=subject,
-                config=ConsumerConfig(
-                    deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
-                    description=f"agent-{self.id}-{operator.id}-{parameter.name}",
-                ),
+            psub = await create_agent_parameter_consumer(
+                self.js, self.id, operator, parameter
             )
         except Exception as e:
             logger.error(f"Error subscribing to parameter {parameter.name}: {e}")
