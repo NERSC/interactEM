@@ -659,9 +659,7 @@ async def stop_and_remove_container(container: Container) -> None:
 
 
 def is_name_conflict_error(error: podman.errors.exceptions.APIError) -> bool:
-    # TODO: check if we have a status code for this error
     error_message = str(error)
-    logger.error(f"Error Number: {error.errno}")
     return "container name" in error_message and "is already in use" in error_message
 
 
