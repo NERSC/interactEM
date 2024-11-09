@@ -16,7 +16,7 @@ from app.models import (
 from core.events.pipelines import PipelineRunEvent
 from core.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger()
 router = APIRouter()
 
 
