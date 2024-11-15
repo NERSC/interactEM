@@ -6,8 +6,8 @@ import { useConsumer } from "./useConsumer"
 import { useStream } from "./useStream"
 
 const streamConfig = {
-  name: "images",
-  subjects: ["images.>"],
+  name: `${IMAGES_STREAM}`,
+  subjects: [`${IMAGES_STREAM}.>`],
   max_msgs_per_subject: 1,
 }
 
