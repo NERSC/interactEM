@@ -1,8 +1,12 @@
 import { useState, useEffect, useMemo } from "react"
-import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
+import {
+  AckPolicy,
+  DeliverPolicy,
+  JetStreamApiCodes,
+  JetStreamApiError,
+  ReplayPolicy,
+} from "@nats-io/jetstream"
 import { useConsumer } from "./useConsumer"
-import { useNats } from "../nats/NatsContext"
-import { NatsError } from "@nats-io/nats-core"
 import { PARAMETERS_STREAM, PARAMETERS_UPDATE_STREAM } from "../constants/nats"
 
 export const useParameterValue = (
@@ -10,7 +14,6 @@ export const useParameterValue = (
   name: string,
   defaultValue: string,
 ): { actualValue: string; hasReceivedMessage: boolean } => {
-  const { jc } = useNats()
   const subject = `${PARAMETERS_UPDATE_STREAM}.${operatorID}.${name}`
 
   const config = useMemo(
@@ -40,7 +43,7 @@ export const useParameterValue = (
       const messages = await consumer.consume()
       let operatorParamValue = defaultValue
       for await (const m of messages) {
-        operatorParamValue = jc.decode(m.data) as string
+        operatorParamValue = m.json<string>()
         setActualValue(operatorParamValue)
         setHasReceivedMessage(true)
         m.ack()
@@ -57,11 +60,8 @@ export const useParameterValue = (
             await consumer.delete()
           }
         } catch (error: any) {
-          if (error instanceof NatsError) {
-            if (
-              error.code === "404" &&
-              error.message.includes("consumer not found")
-            ) {
+          if (error instanceof JetStreamApiError) {
+            if (error.code === JetStreamApiCodes.ConsumerNotFound) {
               return
             }
             console.error(`Failed to delete consumer: ${error.code}`)
@@ -73,7 +73,7 @@ export const useParameterValue = (
 
       deleteConsumer()
     }
-  }, [consumer, jc, defaultValue])
+  }, [consumer, defaultValue])
 
   return { actualValue, hasReceivedMessage }
 }

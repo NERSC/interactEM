@@ -1,5 +1,10 @@
-import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
-import { NatsError } from "@nats-io/nats-core"
+import {
+  AckPolicy,
+  DeliverPolicy,
+  JetStreamApiCodes,
+  JetStreamApiError,
+  ReplayPolicy,
+} from "@nats-io/jetstream"
 import { useEffect, useMemo, useState } from "react"
 import { IMAGES_STREAM } from "../constants/nats"
 import { useConsumer } from "./useConsumer"
@@ -58,12 +63,13 @@ export const useImage = (operatorID: string): Uint8Array | null => {
             await consumer.delete()
           }
         } catch (error: any) {
-          if (error instanceof NatsError) {
-            if (
-              error.code === "404" &&
-              // TODO Lets hope the client improves!
-              error.message.includes("consumer not found")
-            ) {
+          if (error instanceof JetStreamApiError) {
+            if (error.code === JetStreamApiCodes.ConsumerNotFound) {
+              return
+            } else {
+              console.error(
+                `JetStream error during consumer deletion: ${error.message}`,
+              )
               return
             }
             console.error(`Failed to delete consumer: ${error.code}`)

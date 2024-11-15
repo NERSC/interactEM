@@ -11,7 +11,7 @@ export const useParameterUpdate = (
   operatorID: string,
   parameter: OperatorParameter,
 ): UseMutationResult<void, Error, string> => {
-  const { jetStreamClient, jc } = useNats()
+  const { jetStreamClient } = useNats()
   const queryClient = useQueryClient()
 
   const updateParameter = async (value: string): Promise<void> => {
@@ -21,7 +21,10 @@ export const useParameterUpdate = (
 
     try {
       const subject = `${PARAMETERS_STREAM}.${operatorID}.${parameter.name}`
-      const payload = jc.encode({ [parameter.name]: value })
+      const encoder = new TextEncoder()
+      const payload = encoder.encode(
+        JSON.stringify({ [parameter.name]: value }),
+      )
       await jetStreamClient.publish(subject, payload)
     } catch (error) {
       console.error("Failed to publish set point:", error)

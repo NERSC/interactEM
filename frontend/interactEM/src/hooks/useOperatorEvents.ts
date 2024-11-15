@@ -1,13 +1,17 @@
 import { useState, useEffect, useMemo } from "react"
-import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
-import { NatsError } from "@nats-io/nats-core"
+import {
+  AckPolicy,
+  DeliverPolicy,
+  JetStreamError,
+  ReplayPolicy,
+  JetStreamApiError,
+  JetStreamApiCodes,
+} from "@nats-io/jetstream"
 import { useConsumer } from "./useConsumer"
 import { OPERATORS_STREAM } from "../constants/nats"
 import type { OperatorErrorEvent, OperatorEvent } from "../types/events"
-import { useNats } from "../nats/NatsContext"
 
 export const useOperatorEvents = (operatorID: string) => {
-  const { jc } = useNats()
   const subject = `${OPERATORS_STREAM}.${operatorID}.events`
 
   const config = useMemo(
@@ -38,7 +42,7 @@ export const useOperatorEvents = (operatorID: string) => {
       const messages = await consumer.consume()
       for await (const m of messages) {
         try {
-          const eventData = jc.decode(m.data) as OperatorEvent    
+          const eventData = m.json<OperatorEvent>()
 
           if (eventData.type === "error") {
             const errorEvent = eventData as OperatorErrorEvent
@@ -60,29 +64,33 @@ export const useOperatorEvents = (operatorID: string) => {
 
     return () => {
       const deleteConsumer = async () => {
-        try {
-          const info = await consumer.info()
-          if (info.stream_name) {
+        if (consumer) {
+          try {
             await consumer.delete()
-          }
-        } catch (error: any) {
-          if (error instanceof NatsError) {
-            if (
-              error.code === "404" &&
-              error.message.includes("consumer not found")
-            ) {
-              return
+          } catch (error) {
+            if (error instanceof JetStreamApiError) {
+              if (error.code === JetStreamApiCodes.ConsumerNotFound) {
+                return
+              } else {
+                console.error(
+                  `JetStream error during consumer deletion: ${error.message}`,
+                )
+                return
+              }
+            } else if (error instanceof JetStreamError) {
+              console.error(
+                `JetStream error during consumer deletion: ${error.message}`,
+              )
+            } else {
+              console.error(`Failed to delete consumer: ${error}`)
             }
-            console.error(`Failed to delete consumer: ${error.code}`)
-          } else {
-            console.error(`Failed to delete consumer: ${error.message}`)
           }
         }
       }
 
       deleteConsumer()
     }
-  }, [consumer, jc])
+  }, [consumer])
 
   return { operatorErrorEvent, isError }
 }
