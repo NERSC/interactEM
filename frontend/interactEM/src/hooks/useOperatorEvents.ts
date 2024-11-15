@@ -1,15 +1,16 @@
-import { useState, useEffect, useMemo } from "react"
-import {
-  AckPolicy,
-  DeliverPolicy,
-  JetStreamError,
-  ReplayPolicy,
-  JetStreamApiError,
-  JetStreamApiCodes,
-} from "@nats-io/jetstream"
+import { useState, useMemo, useCallback } from "react"
+import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
 import { useConsumer } from "./useConsumer"
+import { useConsumeMessages } from "./useConsumeMessages"
 import { OPERATORS_STREAM } from "../constants/nats"
 import type { OperatorErrorEvent, OperatorEvent } from "../types/events"
+import type { JsMsg } from "@nats-io/jetstream"
+import { useStream } from "./useStream"
+
+const streamConfig = {
+  name: OPERATORS_STREAM,
+  subjects: [`${OPERATORS_STREAM}.>`],
+}
 
 export const useOperatorEvents = (operatorID: string) => {
   const subject = `${OPERATORS_STREAM}.${operatorID}.events`
@@ -24,6 +25,9 @@ export const useOperatorEvents = (operatorID: string) => {
     [subject],
   )
 
+  // ensure stream
+  useStream(streamConfig)
+
   const consumer = useConsumer({
     stream: OPERATORS_STREAM,
     config,
@@ -33,64 +37,23 @@ export const useOperatorEvents = (operatorID: string) => {
     useState<OperatorErrorEvent | null>(null)
   const [isError, setIsError] = useState<boolean>(false)
 
-  useEffect(() => {
-    if (!consumer) {
-      return
-    }
+  const handleMessage = useCallback(async (m: JsMsg) => {
+    try {
+      const eventData = m.json<OperatorEvent>()
 
-    const consumeMessages = async () => {
-      const messages = await consumer.consume()
-      for await (const m of messages) {
-        try {
-          const eventData = m.json<OperatorEvent>()
-
-          if (eventData.type === "error") {
-            const errorEvent = eventData as OperatorErrorEvent
-            setOperatorErrorEvent(errorEvent)
-            setIsError(true)
-          } else if (eventData.type === "running") {
-            setOperatorErrorEvent(null)
-            setIsError(false)
-          }
-        } catch (e) {
-          console.error("Failed to parse operator event data", e)
-        } finally {
-          m.ack()
-        }
+      if (eventData.type === "error") {
+        setOperatorErrorEvent(eventData as OperatorErrorEvent)
+        setIsError(true)
+      } else if (eventData.type === "running") {
+        setOperatorErrorEvent(null)
+        setIsError(false)
       }
+    } catch (e) {
+      console.error("Failed to parse operator event data", e)
     }
+  }, [])
 
-    consumeMessages()
-
-    return () => {
-      const deleteConsumer = async () => {
-        if (consumer) {
-          try {
-            await consumer.delete()
-          } catch (error) {
-            if (error instanceof JetStreamApiError) {
-              if (error.code === JetStreamApiCodes.ConsumerNotFound) {
-                return
-              } else {
-                console.error(
-                  `JetStream error during consumer deletion: ${error.message}`,
-                )
-                return
-              }
-            } else if (error instanceof JetStreamError) {
-              console.error(
-                `JetStream error during consumer deletion: ${error.message}`,
-              )
-            } else {
-              console.error(`Failed to delete consumer: ${error}`)
-            }
-          }
-        }
-      }
-
-      deleteConsumer()
-    }
-  }, [consumer])
+  useConsumeMessages({ consumer, handleMessage })
 
   return { operatorErrorEvent, isError }
 }

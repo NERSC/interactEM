@@ -1,13 +1,15 @@
-import { useState, useEffect, useMemo } from "react"
-import {
-  AckPolicy,
-  DeliverPolicy,
-  JetStreamApiCodes,
-  JetStreamApiError,
-  ReplayPolicy,
-} from "@nats-io/jetstream"
+import { useState, useMemo, useCallback } from "react"
+import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
 import { useConsumer } from "./useConsumer"
+import { useConsumeMessages } from "./useConsumeMessages"
 import { PARAMETERS_STREAM, PARAMETERS_UPDATE_STREAM } from "../constants/nats"
+import type { JsMsg } from "@nats-io/jetstream"
+import { useStream } from "./useStream"
+
+const streamConfig = {
+  name: PARAMETERS_STREAM,
+  subjects: [`${PARAMETERS_STREAM}.>`],
+}
 
 export const useParameterValue = (
   operatorID: string,
@@ -26,54 +28,24 @@ export const useParameterValue = (
     [subject],
   )
 
+  // ensure stream
+  useStream(streamConfig)
+
   const consumer = useConsumer({
-    stream: `${PARAMETERS_STREAM}`,
+    stream: PARAMETERS_STREAM,
     config,
   })
 
   const [actualValue, setActualValue] = useState<string>(defaultValue)
   const [hasReceivedMessage, setHasReceivedMessage] = useState<boolean>(false)
 
-  useEffect(() => {
-    if (!consumer) {
-      return
-    }
+  const handleMessage = useCallback(async (m: JsMsg) => {
+    const value = m.json<string>()
+    setActualValue(value)
+    setHasReceivedMessage(true)
+  }, [])
 
-    const consumeMessages = async () => {
-      const messages = await consumer.consume()
-      let operatorParamValue = defaultValue
-      for await (const m of messages) {
-        operatorParamValue = m.json<string>()
-        setActualValue(operatorParamValue)
-        setHasReceivedMessage(true)
-        m.ack()
-      }
-    }
-
-    consumeMessages()
-
-    return () => {
-      const deleteConsumer = async () => {
-        try {
-          const info = await consumer.info()
-          if (info.stream_name) {
-            await consumer.delete()
-          }
-        } catch (error: any) {
-          if (error instanceof JetStreamApiError) {
-            if (error.code === JetStreamApiCodes.ConsumerNotFound) {
-              return
-            }
-            console.error(`Failed to delete consumer: ${error.code}`)
-          } else {
-            console.error(`Failed to delete consumer: ${error.message}`)
-          }
-        }
-      }
-
-      deleteConsumer()
-    }
-  }, [consumer, defaultValue])
+  useConsumeMessages({ consumer, handleMessage })
 
   return { actualValue, hasReceivedMessage }
 }

@@ -1,17 +1,13 @@
-import {
-  AckPolicy,
-  DeliverPolicy,
-  JetStreamApiCodes,
-  JetStreamApiError,
-  ReplayPolicy,
-} from "@nats-io/jetstream"
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useState, useCallback } from "react"
+import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
 import { IMAGES_STREAM } from "../constants/nats"
 import { useConsumer } from "./useConsumer"
+import { useConsumeMessages } from "./useConsumeMessages"
+import type { JsMsg } from "@nats-io/jetstream"
 import { useStream } from "./useStream"
 
 const streamConfig = {
-  name: `${IMAGES_STREAM}`,
+  name: IMAGES_STREAM,
   subjects: [`${IMAGES_STREAM}.>`],
   max_msgs_per_subject: 1,
 }
@@ -29,7 +25,7 @@ export const useImage = (operatorID: string): Uint8Array | null => {
     [subject],
   )
 
-  // First ensure the stream
+  // ensure stream
   useStream(streamConfig)
 
   const consumer = useConsumer({
@@ -39,49 +35,11 @@ export const useImage = (operatorID: string): Uint8Array | null => {
 
   const [imageData, setImageData] = useState<Uint8Array | null>(null)
 
-  useEffect(() => {
-    if (!consumer) {
-      return
-    }
+  const handleMessage = useCallback(async (m: JsMsg) => {
+    setImageData(m.data)
+  }, [])
 
-    const consumeMessages = async () => {
-      const messages = await consumer.consume()
-      for await (const m of messages) {
-        const data = m.data
-        setImageData(data)
-        m.ack()
-      }
-    }
-
-    consumeMessages()
-
-    return () => {
-      const deleteConsumer = async () => {
-        try {
-          const info = await consumer.info()
-          if (info.stream_name) {
-            await consumer.delete()
-          }
-        } catch (error: any) {
-          if (error instanceof JetStreamApiError) {
-            if (error.code === JetStreamApiCodes.ConsumerNotFound) {
-              return
-            } else {
-              console.error(
-                `JetStream error during consumer deletion: ${error.message}`,
-              )
-              return
-            }
-            console.error(`Failed to delete consumer: ${error.code}`)
-          } else {
-            console.error(`Failed to delete consumer: ${error.message}`)
-          }
-        }
-      }
-
-      deleteConsumer()
-    }
-  }, [consumer])
+  useConsumeMessages({ consumer, handleMessage })
 
   return imageData
 }
