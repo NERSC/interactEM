@@ -30,6 +30,12 @@ from core.constants import (
     STREAM_OPERATORS,
     STREAM_PARAMETERS_UPDATE,
 )
+from core.events.operators import (
+    OperatorErrorEvent,
+    OperatorErrorType,
+    OperatorEvent,
+    OperatorRunningEvent,
+)
 from core.logger import get_logger
 from core.models import CommBackend, OperatorJSON, PipelineJSON
 from core.models.messages import BytesMessage, OperatorTrackingMetadata
@@ -400,6 +406,8 @@ class OperatorMixin(RunnableKernel):
             raise ValueError("Messenger not initialized")
         has_input_op = True if len(self.messenger.input_ports) > 0 else False
         loop_counter = 0
+        error_state = False
+        await self._publish_running()
         while not self._shutdown_event.is_set():
             coros: list[Coroutine] = []
             msg = None
@@ -414,7 +422,18 @@ class OperatorMixin(RunnableKernel):
             inject_tracking: bool = loop_counter % 100 == 0 and not has_input_op
             timing = inject_tracking or _tracking is not None
             before_kernel = datetime.now() if timing else None
-            processed_msg = await self.run_kernel(msg, self.parameters)
+            try:
+                processed_msg = await self.run_kernel(msg, self.parameters)
+            except Exception as e:
+                logger.error(f"Error in kernel: {e}")
+                if not error_state:
+                    error_state = True
+                    await self._publish_error(OperatorErrorType.PROCESSING, str(e))
+                await asyncio.sleep(1)
+                continue
+            if error_state and processed_msg:
+                error_state = False
+                coros.append(self._publish_running())
             after_kernel = datetime.now() if timing else None
 
             if processed_msg:
@@ -452,6 +471,25 @@ class OperatorMixin(RunnableKernel):
         await self.js.publish(
             subject=f"{STREAM_METRICS}.operators",
             payload=msg.header.model_dump_json().encode(),
+        )
+
+    async def _publish_error(self, type: OperatorErrorType, message: str | None = None):
+        event = OperatorErrorEvent(
+            error_type=type, operator_id=self.id, message=message
+        )
+        await self._publish_operator_event(event)
+
+    async def _publish_running(self):
+        event = OperatorRunningEvent(operator_id=self.id)
+        await self._publish_operator_event(event)
+
+    async def _publish_operator_event(self, event: OperatorEvent):
+        if not self.js:
+            logger.warning("JetStream context not initialized...")
+            return
+        await self.js.publish(
+            subject=f"{STREAM_OPERATORS}.{self.id}.events",
+            payload=event.model_dump_json().encode(),
         )
 
     def _update_metrics(

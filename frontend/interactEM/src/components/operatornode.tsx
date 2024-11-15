@@ -21,7 +21,7 @@ const OperatorNode = ({ id, data }: NodeProps<OperatorNode>) => {
 
   return (
     <div className="operator" ref={nodeRef}>
-      <OperatorHeader label={data.label} />
+      <OperatorHeader id={id} label={data.label} />
       <Handles inputs={data.inputs} outputs={data.outputs} />
       <OperatorToolbar
         id={id}

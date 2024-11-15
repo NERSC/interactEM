@@ -57,3 +57,16 @@ def recv_image(inputs: BytesMessage | None, parameters: dict[str, Any]) -> Bytes
         _ = np.frombuffer(inputs.data, dtype=np.uint16).reshape(100, 100)
     header = MessageHeader(subject=MessageSubject.BYTES, meta={})
     return inputs or BytesMessage(header=header, data=b"No input provided")
+
+@operator
+def error(inputs: BytesMessage | None, parameters: dict[str, Any]) -> BytesMessage:
+    raise_exception = np.random.choice([True, False])
+    # raise_exception = True
+    logger.info(f"Error state: { raise_exception }")
+    if raise_exception:
+        raise Exception("This is an error")
+    else:
+        return BytesMessage(
+            header=MessageHeader(subject=MessageSubject.BYTES, meta={}),
+            data=b"Hello, World!",
+        )
