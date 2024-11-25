@@ -419,6 +419,7 @@ class OperatorMixin(RunnableKernel):
                     continue
                 _tracking = msg.header.tracking
 
+            # TODO: we should make this configurable/optional from frontend
             inject_tracking: bool = loop_counter % 100 == 0 and not has_input_op
             timing = inject_tracking or _tracking is not None
             before_kernel = datetime.now() if timing else None
