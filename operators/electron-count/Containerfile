@@ -17,9 +17,9 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python
 RUN pip install scipy
 
 # Copy poetry.lock* in case it doesn't exist in the repo
-COPY ./operators/pyproject.toml ./operators/poetry.lock* /app/
+COPY ./backend/operators/pyproject.toml ./operators/poetry.lock* /app/
 
-COPY ./core/ /core/
+COPY ./backend/core/ /core/
 
 # Allow installing dev dependencies to run tests
 ARG INSTALL_DEV=false
@@ -27,8 +27,8 @@ RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root ; els
 
 ENV PYTHONUNBUFFERED=1
 
-COPY ./operators/operators /app/operators/
+COPY ./backend/operators/operators /app/operators/
 
-COPY ./operators/containerfiles/electron-count/run.py /app/run.py
+COPY ./operators/electron-count/run.py /app/run.py
 
 ENTRYPOINT [ "python", "/app/run.py" ]
