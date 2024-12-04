@@ -406,7 +406,7 @@ class OperatorMixin(RunnableKernel):
             raise ValueError("Messenger not initialized")
         has_input_op = True if len(self.messenger.input_ports) > 0 else False
         loop_counter = 0
-        error_state = False
+        error_count, max_retries, error_state = 0, 10, False
         await self._publish_running()
         while not self._shutdown_event.is_set():
             coros: list[Coroutine] = []
@@ -424,12 +424,18 @@ class OperatorMixin(RunnableKernel):
             before_kernel = datetime.now() if timing else None
             try:
                 processed_msg = await self.run_kernel(msg, self.parameters)
+                error_count = 0
             except Exception as e:
                 logger.error(f"Error in kernel: {e}")
                 if not error_state:
                     error_state = True
                     await self._publish_error(OperatorErrorType.PROCESSING, str(e))
-                await asyncio.sleep(1)
+
+                error_count += 1
+                if error_count >= max_retries:
+                    logger.error("Too many errors, shutting down...")
+                    self._shutdown_event.set()
+
                 continue
             if error_state and processed_msg:
                 error_state = False
