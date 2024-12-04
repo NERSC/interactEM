@@ -2,6 +2,7 @@ import type React from "react"
 import ErrorIcon from "@mui/icons-material/Error"
 import { useOperatorEvents } from "../hooks/useOperatorEvents"
 import { Tooltip } from "@mui/material"
+import { type OperatorErrorEvent, OperatorEventType } from "../types/events"
 
 interface OperatorHeaderProps {
   id: string
@@ -9,12 +10,16 @@ interface OperatorHeaderProps {
 }
 
 const OperatorHeader: React.FC<OperatorHeaderProps> = ({ id, label }) => {
-  const { operatorErrorEvent } = useOperatorEvents(id)
+  const { operatorEvent } = useOperatorEvents(id)
+
   return (
     <div className="operator-header">
       {label}
-      {operatorErrorEvent && (
-        <Tooltip title={operatorErrorEvent.message || "Error"} placement="top">
+      {operatorEvent?.type === OperatorEventType.ERROR && (
+        <Tooltip
+          title={(operatorEvent as OperatorErrorEvent).message || "Error"}
+          placement="top"
+        >
           <ErrorIcon className="operator-error-icon" />
         </Tooltip>
       )}

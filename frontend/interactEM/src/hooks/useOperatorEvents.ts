@@ -3,11 +3,7 @@ import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
 import { useConsumer } from "./useConsumer"
 import { useConsumeMessages } from "./useConsumeMessages"
 import { OPERATORS_STREAM } from "../constants/nats"
-import {
-  OperatorEventType,
-  type OperatorErrorEvent,
-  type OperatorEvent,
-} from "../types/events"
+import type { OperatorEvent } from "../types/events"
 import type { JsMsg } from "@nats-io/jetstream"
 import { useStream } from "./useStream"
 
@@ -37,18 +33,12 @@ export const useOperatorEvents = (operatorID: string) => {
     config,
   })
 
-  const [operatorErrorEvent, setOperatorErrorEvent] =
-    useState<OperatorErrorEvent | null>(null)
+  const [operatorEvent, setOperatorEvent] = useState<OperatorEvent | null>(null)
 
   const handleMessage = useCallback(async (m: JsMsg) => {
     try {
       const eventData = m.json<OperatorEvent>()
-
-      if (eventData.type === OperatorEventType.ERROR) {
-        setOperatorErrorEvent(eventData as OperatorErrorEvent)
-      } else if (eventData.type === OperatorEventType.RUNNING) {
-        setOperatorErrorEvent(null)
-      }
+      setOperatorEvent(eventData)
     } catch (e) {
       console.error("Failed to parse operator event data", e)
     }
@@ -56,5 +46,5 @@ export const useOperatorEvents = (operatorID: string) => {
 
   useConsumeMessages({ consumer, handleMessage })
 
-  return { operatorErrorEvent }
+  return { operatorEvent }
 }
