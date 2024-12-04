@@ -1,6 +1,5 @@
+import random
 from typing import Any
-
-import numpy as np
 
 from core.logger import get_logger
 from core.models.messages import BytesMessage, MessageHeader, MessageSubject
@@ -42,25 +41,9 @@ def process_hello_world(
     return inputs or BytesMessage(header=header, data=b"No input provided")
 
 
-arr = np.random.randint(0, 255, (100, 100), dtype=np.uint16)
-
-
-@operator
-def send_image(inputs: BytesMessage | None, parameters: dict[str, Any]) -> BytesMessage:
-    header = MessageHeader(subject=MessageSubject.BYTES, meta={})
-    return BytesMessage(header=header, data=arr.tobytes())
-
-
-@operator
-def recv_image(inputs: BytesMessage | None, parameters: dict[str, Any]) -> BytesMessage:
-    if inputs:
-        _ = np.frombuffer(inputs.data, dtype=np.uint16).reshape(100, 100)
-    header = MessageHeader(subject=MessageSubject.BYTES, meta={})
-    return inputs or BytesMessage(header=header, data=b"No input provided")
-
 @operator
 def error(inputs: BytesMessage | None, parameters: dict[str, Any]) -> BytesMessage:
-    raise_exception = np.random.choice([True, False])
+    raise_exception = random.choice([True, False])
     # raise_exception = True
     logger.info(f"Error state: { raise_exception }")
     if raise_exception:

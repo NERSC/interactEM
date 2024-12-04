@@ -1,0 +1,5 @@
+FROM interactem/operator
+
+RUN pip install numpy pillow matplotlib
+
+COPY ./run.py /app/run.py

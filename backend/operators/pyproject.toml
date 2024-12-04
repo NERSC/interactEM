@@ -10,7 +10,6 @@ python = "^3.10"
 core = {path = "../core", develop = true}
 pyzmq = "^26.1.0"
 networkx = "^3.3"
-numpy = "^1.26"
 pydantic-settings = "^2.4.0"
 aiohttp = "^3.10.5"
 

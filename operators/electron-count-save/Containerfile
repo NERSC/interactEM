@@ -1,0 +1,5 @@
+FROM interactem/operator
+
+RUN pip install stempy h5py
+
+COPY ./run.py /app/run.py
