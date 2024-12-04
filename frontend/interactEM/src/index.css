@@ -81,6 +81,11 @@ body,
   margin-bottom: 5px;
 }
 
+.operator-header .operator-error-icon {
+  color: red;
+  margin-left: 8px;
+}
+
 .operator-toolbar {
   display: flex;
   align-items: right; /* Invalid */

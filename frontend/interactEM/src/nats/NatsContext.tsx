@@ -1,18 +1,6 @@
 import type React from "react"
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-  useRef,
-} from "react"
-import {
-  type Codec,
-  JSONCodec,
-  type NatsConnection,
-  wsconnect,
-} from "@nats-io/nats-core"
+import { createContext, useContext, useEffect, useState, useRef } from "react"
+import { type NatsConnection, wsconnect } from "@nats-io/nats-core"
 import {
   jetstream,
   type JetStreamClient,
@@ -28,7 +16,6 @@ interface NatsContextType {
   jetStreamManager: JetStreamManager | null
   keyValueManager: Kvm | null
   isConnected: boolean
-  jc: Codec<unknown>
 }
 
 const NatsContext = createContext<NatsContextType | undefined>(undefined)
@@ -53,7 +40,6 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({
     useState<JetStreamManager | null>(null)
   const [keyValueManager, setKeyValueManager] = useState<Kvm | null>(null)
   const [isConnected, setIsConnected] = useState(false)
-  const jc = useMemo(() => JSONCodec(), [])
   const isInitialized = useRef(false)
 
   useEffect(() => {
@@ -97,7 +83,6 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({
         jetStreamManager,
         keyValueManager,
         isConnected,
-        jc,
       }}
     >
       {children}
