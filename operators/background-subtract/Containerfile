@@ -1,0 +1,8 @@
+FROM interactem/operator
+
+RUN pip install scipy ncempy stempy
+
+RUN mkdir -p /output
+RUN mkdir -p /vacuum_scan
+
+COPY ./run.py /app/run.py

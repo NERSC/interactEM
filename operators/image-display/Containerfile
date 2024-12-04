@@ -1,0 +1,3 @@
+FROM interactem/operator
+
+COPY ./run.py /app/run.py
