@@ -9,11 +9,11 @@ interface OperatorHeaderProps {
 }
 
 const OperatorHeader: React.FC<OperatorHeaderProps> = ({ id, label }) => {
-  const { operatorErrorEvent, isError } = useOperatorEvents(id)
+  const { operatorErrorEvent } = useOperatorEvents(id)
   return (
     <div className="operator-header">
       {label}
-      {isError && operatorErrorEvent && (
+      {operatorErrorEvent && (
         <Tooltip title={operatorErrorEvent.message || "Error"} placement="top">
           <ErrorIcon className="operator-error-icon" />
         </Tooltip>

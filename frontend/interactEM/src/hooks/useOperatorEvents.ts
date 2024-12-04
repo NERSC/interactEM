@@ -39,7 +39,6 @@ export const useOperatorEvents = (operatorID: string) => {
 
   const [operatorErrorEvent, setOperatorErrorEvent] =
     useState<OperatorErrorEvent | null>(null)
-  const [isError, setIsError] = useState<boolean>(false)
 
   const handleMessage = useCallback(async (m: JsMsg) => {
     try {
@@ -47,10 +46,8 @@ export const useOperatorEvents = (operatorID: string) => {
 
       if (eventData.type === OperatorEventType.ERROR) {
         setOperatorErrorEvent(eventData as OperatorErrorEvent)
-        setIsError(true)
       } else if (eventData.type === OperatorEventType.RUNNING) {
         setOperatorErrorEvent(null)
-        setIsError(false)
       }
     } catch (e) {
       console.error("Failed to parse operator event data", e)
@@ -59,5 +56,5 @@ export const useOperatorEvents = (operatorID: string) => {
 
   useConsumeMessages({ consumer, handleMessage })
 
-  return { operatorErrorEvent, isError }
+  return { operatorErrorEvent }
 }
