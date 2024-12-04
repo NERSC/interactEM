@@ -1,4 +1,8 @@
-export type OperatorEventType = "running" | "stopped" | "error"
+export enum OperatorEventType {
+  RUNNING = "running",
+  STOPPED = "stopped",
+  ERROR = "error",
+}
 
 export interface OperatorEvent {
   type: OperatorEventType
@@ -8,7 +12,7 @@ export interface OperatorEvent {
 export type OperatorErrorType = "processing"
 
 export interface OperatorErrorEvent extends OperatorEvent {
-  type: "error"
+  type: OperatorEventType.ERROR
   error_type: OperatorErrorType
   message: string
 }

@@ -3,7 +3,11 @@ import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
 import { useConsumer } from "./useConsumer"
 import { useConsumeMessages } from "./useConsumeMessages"
 import { OPERATORS_STREAM } from "../constants/nats"
-import type { OperatorErrorEvent, OperatorEvent } from "../types/events"
+import {
+  OperatorEventType,
+  type OperatorErrorEvent,
+  type OperatorEvent,
+} from "../types/events"
 import type { JsMsg } from "@nats-io/jetstream"
 import { useStream } from "./useStream"
 
@@ -41,10 +45,10 @@ export const useOperatorEvents = (operatorID: string) => {
     try {
       const eventData = m.json<OperatorEvent>()
 
-      if (eventData.type === "error") {
+      if (eventData.type === OperatorEventType.ERROR) {
         setOperatorErrorEvent(eventData as OperatorErrorEvent)
         setIsError(true)
-      } else if (eventData.type === "running") {
+      } else if (eventData.type === OperatorEventType.RUNNING) {
         setOperatorErrorEvent(null)
         setIsError(false)
       }
