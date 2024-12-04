@@ -34,6 +34,29 @@ services:
     depends_on:
       - nats2
 
+
+  # Checks for health of nats server before allowing others to start up
+  nats-healthcheck:
+    image: curlimages/curl
+    command: > # better command than sleep infinity because it exits more quickly
+      /bin/sh -c "trap 'exit' TERM; while true; do sleep 1; done"
+    depends_on:
+      nats1:
+        condition: service_started
+      nats2:
+        condition: service_started
+      nats3:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "--connect-timeout", "3", "http://nats1:8222/healthz?js-enabled-only=true"]
+      start_period: "3s"
+      interval: "14s"
+      timeout: "3s"
+      retries: "3"
+    networks:
+      - traefik-public
+
+    
   db:
     image: postgres:12
     restart: always
@@ -77,10 +100,10 @@ services:
       - traefik-public
       - default
     depends_on:
-      - db
-      - nats1
-      - nats2
-      - nats3
+      db:
+        condition: service_started
+      nats-healthcheck:
+        condition: service_healthy
     env_file:
       - .env
     environment:
@@ -137,11 +160,12 @@ services:
       - traefik-public
       - default
     depends_on:
-      - db
-      - nats1
-      - nats2
-      - nats3
-      - backend
+      db:
+        condition: service_started
+      nats-healthcheck:
+        condition: service_healthy
+      backend:
+        condition: service_started
     env_file:
       - .env
 
