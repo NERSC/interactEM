@@ -1,5 +1,5 @@
 ### Get an access token
-POST http://localhost:80/api/v1/login/access-token
+POST http://localhost:8080/api/v1/login/access-token
 Content-Type: application/x-www-form-urlencoded
 
 username=admin@example.com&password=changethis
