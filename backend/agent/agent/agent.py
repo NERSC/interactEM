@@ -6,6 +6,7 @@ import signal
 import tempfile
 import time
 import uuid
+from collections.abc import Coroutine
 from typing import Any
 
 import nats
@@ -102,6 +103,7 @@ class Agent:
         self.heartbeat_task: asyncio.Task | None = None
         self.server_task: asyncio.Task | None = None
         self.watch_tasks: dict[uuid.UUID, asyncio.Task] = {}
+        self.task_refs: set[asyncio.Task] = set()
 
     async def _start_podman_service(self, create_process=False):
         self._podman_process = None
@@ -170,8 +172,8 @@ class Agent:
         await create_or_update_stream(AGENTS_STREAM_CONFIG, self.js)
         await create_or_update_stream(OPERATORS_STREAM_CONFIG, self.js)
 
-        self.heartbeat_task = asyncio.create_task(self.heartbeat(self.js, self.id))
-        self.server_task = asyncio.create_task(self.server_loop())
+        self.heartbeat_task = self.create_task(self.heartbeat(self.js, self.id))
+        self.server_task = self.create_task(self.server_loop())
 
         await self._shutdown_event.wait()
         await self.shutdown()
@@ -269,7 +271,7 @@ class Agent:
         while not self._shutdown_event.is_set():
             try:
                 msgs = await psub.fetch(1)
-                [asyncio.create_task(msg.ack()) for msg in msgs]
+                [self.create_task(msg.ack()) for msg in msgs]
             except nats.errors.TimeoutError:
                 try:
                     await psub.consumer_info()
@@ -334,13 +336,13 @@ class Agent:
         logger.info("Starting operators...")
 
         with PodmanClient(base_url=self._podman_service_uri) as client:
-            tasks = []
+            tasks: list[asyncio.Task] = []
 
             for id, op_info in self.pipeline.operators.items():
                 if id not in self.my_operator_ids:
                     continue
 
-                task = asyncio.create_task(
+                task = self.create_task(
                     self._start_operator(
                         op_info,
                         client,
@@ -358,7 +360,7 @@ class Agent:
                 else:
                     operator, container = result
                     containers[operator.id] = container
-                    self.watch_tasks[operator.id] = asyncio.create_task(
+                    self.watch_tasks[operator.id] = self.create_task(
                         self.container_task(operator, container)
                     )
 
@@ -433,7 +435,7 @@ class Agent:
                     continue
                 changed_parameters[param.name] = param
                 # Start a parameter task for each mount parameter
-                parameter_task = asyncio.create_task(
+                parameter_task = self.create_task(
                     self.parameter_task(
                         current_operator, param, restart_event, changed_parameters
                     )
@@ -441,8 +443,8 @@ class Agent:
                 parameter_tasks.append(parameter_task)
 
         while not self._shutdown_event.is_set():
-            shutdown_task = asyncio.create_task(self._shutdown_event.wait())
-            restart_task = asyncio.create_task(restart_event.wait())
+            shutdown_task = self.create_task(self._shutdown_event.wait())
+            restart_task = self.create_task(restart_event.wait())
 
             _, pending = await asyncio.wait(
                 [shutdown_task, restart_task],
@@ -488,7 +490,7 @@ class Agent:
                 await stop_and_remove_container(current_container)
                 with PodmanClient(base_url=self._podman_service_uri) as client:
                     try:
-                        new_operator, new_container = await asyncio.create_task(
+                        new_operator, new_container = await self.create_task(
                             self._start_operator(current_operator, client)
                         )
                         current_operator = new_operator
@@ -600,6 +602,9 @@ class Agent:
         self.watch_tasks.clear()
         await self._cleanup_containers()
 
+    def create_task(self, coro: Coroutine) -> asyncio.Task:
+        return create_task_with_ref(self.task_refs, coro)
+
 
 async def update_parameter(
     js: JetStreamContext,
@@ -699,3 +704,9 @@ def get_operators_mount():
         source=str(op_dir),
         target="/interactem/operators/operators",
     )
+
+def create_task_with_ref(task_refs: set[asyncio.Task], coro: Coroutine) -> asyncio.Task:
+    task = asyncio.create_task(coro)
+    task_refs.add(task)
+    task.add_done_callback(task_refs.discard)  # Clean up after completion
+    return task
