@@ -26,6 +26,7 @@ from core.constants import (
     BUCKET_OPERATORS_TTL,
     MOUNT_DIR,
     OPERATOR_ID_ENV_VAR,
+    OPERATOR_TAG,
     STREAM_METRICS,
     STREAM_OPERATORS,
     STREAM_PARAMETERS_UPDATE,
@@ -574,6 +575,7 @@ def operator(
 
             return obj
 
+        setattr(wrapper, OPERATOR_TAG, True)
         return wrapper
 
     if func is not None:
@@ -604,6 +606,7 @@ def async_operator(
 
             return obj
 
+        setattr(wrapper, OPERATOR_TAG, True)
         return wrapper
 
     if func is not None:
