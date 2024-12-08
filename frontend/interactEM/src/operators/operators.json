@@ -335,5 +335,35 @@
     "image": "interactem/error:latest",
     "label": "Error test",
     "description": "Generates an error"
+  },
+  {
+    "id": "12345678-1234-1234-1234-1432567830cd",
+    "image": "interactem/pva-converter",
+    "label": "PVA Converter",
+    "description": "Consumes PVA and sends it to the next operator",
+    "outputs": [
+      {
+        "name": "out",
+        "label": "The output",
+        "type": "PvObject",
+        "description": "Sparse scan"
+      }
+    ],
+    "parameters": [
+      {
+        "name": "env_file",
+        "label": ".env file",
+        "type": "mount",
+        "default": "~/Documents/gits/interactEM/operators/pva-converter/.env",
+        "description": "Environment file for pvaPy Consumer",
+        "required": true
+      }
+    ]
+  },
+  {
+    "id": "12345678-1234-1234-1234-1432563830cd",
+    "image": "interactem/pvapy-ad-sim-server",
+    "label": "PVA Area Detector Server",
+    "description": "Generates PVAs"
   }
 ]
