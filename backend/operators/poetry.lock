@@ -513,6 +513,19 @@ files = [
 typing-extensions = {version = ">=4.1.0", markers = "python_version < \"3.11\""}
 
 [[package]]
+name = "nanobind-example"
+version = "0.0.1"
+description = "An example minimal project that compiles bindings using nanobind and scikit-build"
+optional = false
+python-versions = ">=3.8"
+files = []
+develop = true
+
+[package.source]
+type = "directory"
+url = "thallium"
+
+[[package]]
 name = "nats-py"
 version = "2.9.0"
 description = "NATS client for Python"
@@ -1075,4 +1088,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "eba9783ce77b7ae76a0e0fa5e2078ffe943a86a3e46eb495fe21d8e746cf323c"
+content-hash = "78277f2801f66ef208b1127b710491c61b397f1bce3b57fa0177d92300f66741"
