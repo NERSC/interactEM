@@ -1,0 +1,22 @@
+{
+	"name": "thallium",
+	"image": "interactem/operator-rdma:latest",
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"charliermarsh.ruff",
+				"ms-azuretools.vscode-docker",
+				"ms-python.black-formatter",
+				"ms-python.debugpy",
+				"ms-python.isort",
+				"ms-python.python",
+				"tamasfe.even-better-toml",
+				"ms-vscode.cpptools",
+				"ms-vscode.cmake-tools"
+			]
+		}
+	}
+}
