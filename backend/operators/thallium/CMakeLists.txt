@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.15...3.26)
 
 project(nanobind_example LANGUAGES CXX)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 if (NOT SKBUILD)
   message(WARNING "\
   This CMake file is meant to be executed using 'scikit-build'. Running
@@ -31,12 +33,18 @@ find_package(Python 3.8
   OPTIONAL_COMPONENTS Development.SABIModule)
 
 # Import nanobind through CMake's find_package mechanism
+execute_process(
+  COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
+  OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
 find_package(nanobind CONFIG REQUIRED)
+
+# Thallium
+find_package(thallium REQUIRED)
 
 # We are now ready to compile the actual extension module
 nanobind_add_module(
   # Name of the extension
-  nanobind_example_ext
+  _thallium
 
   # Target the stable ABI for Python 3.12+, which reduces
   # the number of binary wheels that must be built. This
@@ -52,8 +60,29 @@ nanobind_add_module(
   NB_STATIC
 
   # Source code goes here
-  src/nanobind_example_ext.cpp
+  src/bindings.cpp
+  src/QueueProvider.hpp
+  src/QueueClient.hpp
+)
+
+target_link_libraries(_thallium PRIVATE thallium)
+
+# Figured this out, and then found this discussion as a good ref:
+# https://github.com/wjakob/nanobind/discussions/537
+nanobind_add_stub(
+    thallium_stub
+    MODULE _thallium
+    OUTPUT __init__.pyi
+    MARKER_FILE py.typed
+    PYTHON_PATH $<TARGET_FILE_DIR:_thallium>
+    DEPENDS _thallium
 )
 
 # Install directive for scikit-build-core
-install(TARGETS nanobind_example_ext LIBRARY DESTINATION nanobind_example)
+install(TARGETS _thallium LIBRARY DESTINATION thallium)
+install(FILES
+  ${CMAKE_BINARY_DIR}/py.typed
+  ${CMAKE_BINARY_DIR}/__init__.pyi
+  DESTINATION thallium
+)
+
