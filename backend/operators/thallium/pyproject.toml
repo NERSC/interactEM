@@ -1,22 +1,19 @@
 [build-system]
-requires = ["scikit-build-core >=0.10", "nanobind >=1.3.2"]
+requires = ["scikit-build-core >=0.10", "nanobind >=1.3.2", "typing_extensions"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "nanobind-example"
+name = "thallium"
 version = "0.0.1"
-description = "An example minimal project that compiles bindings using nanobind and scikit-build"
+description = "Python bindings for mochi-thallium"
 readme = "README.md"
 requires-python = ">=3.8"
 authors = [
-    { name = "Wenzel Jakob", email = "wenzel.jakob@epfl.ch" },
-]
-classifiers = [
-    "License :: OSI Approved :: BSD License",
+    { name = "Sam Welborn", email = "swelborn@lbl.gov" },
 ]
 
 [project.urls]
-Homepage = "https://github.com/wjakob/nanobind_example"
+Homepage = "https://github.com/swelborn/interactEM"
 
 
 [tool.scikit-build]
