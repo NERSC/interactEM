@@ -5,6 +5,7 @@
 
 namespace nb = nanobind;
 namespace tl = thallium;
+using namespace nb::literals;
 
 class PyQueueClient
 {
@@ -56,12 +57,14 @@ private:
 NB_MODULE(_thallium, m)
 {
     nb::class_<PyQueueClient>(m, "QueueClient")
-        .def(nb::init<const std::string &, const std::string &, uint16_t>())
-        .def("push", &PyQueueClient::push)
-        .def("push_rdma", &PyQueueClient::push_rdma);
+        .def(nb::init<const std::string &, const std::string &, uint16_t>(),
+             "protocol"_a, "server_addr"_a, "provider_id"_a = 1)
+        .def("push", &PyQueueClient::push, "message"_a)
+        .def("push_rdma", &PyQueueClient::push_rdma, "message"_a);
 
     nb::class_<PyQueueProvider>(m, "QueueProvider")
-        .def(nb::init<const std::string &, uint16_t>())
+        .def(nb::init<const std::string &, uint16_t>(),
+             "protocol"_a, "provider_id"_a = 1)
         .def("pull", &PyQueueProvider::pull)
         .def("get_address", &PyQueueProvider::get_address)
         .def("wait_for_finalize", &PyQueueProvider::wait_for_finalize);
