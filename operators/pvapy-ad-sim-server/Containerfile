@@ -1,0 +1,9 @@
+FROM interactem/operator
+
+RUN pip install pvapy
+
+ENV EPICS_PVA_SERVER_PORT 11111
+
+COPY ./run.sh /app/run.sh
+
+ENTRYPOINT [ "/app/run.sh" ]

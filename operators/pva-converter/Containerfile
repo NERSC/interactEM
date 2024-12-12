@@ -1,0 +1,7 @@
+FROM interactem/operator
+
+RUN pip install pvapy
+
+EXPOSE 11111
+
+COPY ./run.py /app/run.py

@@ -1,0 +1,11 @@
+#!/bin/bash
+
+DET_SIZE_X=2560
+DET_SIZE_Y=2160
+FRAMES_PER_SECOND=1
+DATA_TYPE=uint8
+PV_NAME=pvapy:image
+REPORT_TIME=30000
+CACHE_SIZE=100
+
+pvapy-ad-sim-server -cn $PV_NAME -nx $DET_SIZE_X -ny $DET_SIZE_Y -dt $DATA_TYPE --disable-curses -rt $REPORT_TIME -fps $FRAMES_PER_SECOND -cs $CACHE_SIZE
