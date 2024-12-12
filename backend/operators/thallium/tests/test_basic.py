@@ -12,8 +12,19 @@ def test_queue_provider():
     ), f"Address '{address}' does not match the expected format 'na+sm://XXX-YYY'"
 
     qclient = thallium.QueueClient("na+sm", address, 1)
-    qclient.push("Hello")
-    assert qprov.pull() == "Hello"
 
-    qclient.push_rdma("Hello2")
-    assert qprov.pull() == "Hello2"
+    # Test push with header and data
+    header = "text|5"
+    data = bytearray(b"Hello")
+    qclient.push(header, data)
+    msg: thallium.Message = qprov.pull()
+    assert msg.header == header
+    assert bytearray(msg.data) == data
+
+    # Test push_rdma with header and data
+    header = "text|6"
+    data = bytearray(b"Hello2")
+    qclient.push_rdma(header, data)
+    msg = qprov.pull()
+    assert msg.header == header
+    assert bytearray(msg.data) == data
