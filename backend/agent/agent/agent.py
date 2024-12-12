@@ -36,7 +36,10 @@ from core.models.pipeline import (
     PipelineJSON,
 )
 from core.models.uri import URI, CommBackend, URILocation
-from core.nats import create_or_update_stream
+from core.nats import (
+    create_or_update_stream,
+    get_agents_bucket,
+)
 from core.nats.config import (
     AGENTS_STREAM_CONFIG,
     OPERATORS_STREAM_CONFIG,
@@ -182,7 +185,7 @@ class Agent:
         tries = 10
         while tries > 0:
             try:
-                bucket = await js.key_value(BUCKET_AGENTS)
+                bucket = await get_agents_bucket(js)
             except BucketNotFoundError:
                 await asyncio.sleep(0.2)
                 tries -= 1
