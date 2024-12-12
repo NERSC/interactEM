@@ -33,20 +33,27 @@ cfg = Settings(OPERATOR_ID=os.getenv(OPERATOR_ID_ENV_VAR))
 
 
 async def run_operator(module_name: str):
+    # Import user-created module (e.g. "run.py")
     module = importlib.import_module(module_name)
 
     # Find the first function that returns an instance of Operator
     operator_function = None
     for attr_name in dir(module):
         attr = getattr(module, attr_name)
+
+        # Skip non-functions
+        # TODO: could look at module Classes, for cases e.g. ImageDisplay
         if not inspect.isfunction(attr):
             continue
 
+        # Operator functions will have a __wrapped__ key in the function
+        # dictionary
         is_wrapped = attr.__dict__.get("__wrapped__", False)
 
         if is_wrapped is False:
             continue
 
+        # look at the function's code object
         if OPERATOR_CLASS_NAME in str(attr.__code__.co_consts):
             operator_function = attr
             break
