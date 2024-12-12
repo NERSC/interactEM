@@ -9,8 +9,6 @@ services:
       -c /etc/nats/nats.conf
     volumes:
       - "./nats-conf/nats1.conf:/etc/nats/nats.conf"
-    networks:
-      - traefik-public
 
   nats2:
     image: nats:latest
@@ -18,8 +16,6 @@ services:
       -c /etc/nats/nats.conf
     volumes:
       - "./nats-conf/nats2.conf:/etc/nats/nats.conf"
-    networks:
-      - traefik-public
     depends_on:
       - nats1
 
@@ -29,11 +25,30 @@ services:
       -c /etc/nats/nats.conf
     volumes:
       - "./nats-conf/nats3.conf:/etc/nats/nats.conf"
-    networks:
-      - traefik-public
     depends_on:
       - nats2
 
+
+  # Checks for health of nats server before allowing others to start up
+  nats-healthcheck:
+    image: curlimages/curl
+    command: > # better command than sleep infinity because it exits more quickly
+      /bin/sh -c "trap 'exit' TERM; while true; do sleep 1; done"
+    depends_on:
+      nats1:
+        condition: service_started
+      nats2:
+        condition: service_started
+      nats3:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "--connect-timeout", "3", "http://nats1:8222/healthz?js-enabled-only=true"]
+      start_period: "3s"
+      interval: "14s"
+      timeout: "3s"
+      retries: "3"
+
+    
   db:
     image: postgres:12
     restart: always
@@ -47,40 +62,16 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_DB=${POSTGRES_DB?Variable not set}
 
-  adminer:
-    image: adminer
-    restart: always
-    networks:
-      - traefik-public
-      - default
-    depends_on:
-      - db
-    environment:
-      - ADMINER_DESIGN=pepa-linha-dark
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=traefik-public
-      - traefik.constraint-label=traefik-public
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-http.rule=Host(`adminer.${DOMAIN?Variable not set}`)
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-http.entrypoints=http
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-http.middlewares=https-redirect
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.rule=Host(`adminer.${DOMAIN?Variable not set}`)
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.entrypoints=https
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.tls=true
-      - traefik.http.routers.${STACK_NAME?Variable not set}-adminer-https.tls.certresolver=le
-      - traefik.http.services.${STACK_NAME?Variable not set}-adminer.loadbalancer.server.port=8080
-
   backend:
     image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
     restart: always
-    networks:
-      - traefik-public
-      - default
     depends_on:
-      - db
-      - nats1
-      - nats2
-      - nats3
+      db:
+        condition: service_started
+      nats-healthcheck:
+        condition: service_healthy
+    ports:
+      - "8080:80"
     env_file:
       - .env
     environment:
@@ -106,42 +97,17 @@ services:
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
     platform: linux/amd64 # Patch for M1 Mac
-    labels:
-      - traefik.enable=true
-      - traefik.docker.network=traefik-public
-      - traefik.constraint-label=traefik-public
-
-      - traefik.http.services.${STACK_NAME?Variable not set}-backend.loadbalancer.server.port=80
-
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.rule=(Host(`${DOMAIN?Variable not set}`) || Host(`www.${DOMAIN?Variable not set}`)) && (PathPrefix(`/api`) || PathPrefix(`/docs`) || PathPrefix(`/redoc`))
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.entrypoints=http
-
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.rule=(Host(`${DOMAIN?Variable not set}`) || Host(`www.${DOMAIN?Variable not set}`)) && (PathPrefix(`/api`) || PathPrefix(`/docs`) || PathPrefix(`/redoc`))
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.entrypoints=https
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.tls=true
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.tls.certresolver=le
-
-      # Define Traefik Middleware to handle domain with and without "www" to redirect to only one
-      - traefik.http.middlewares.${STACK_NAME?Variable not set}-www-redirect.redirectregex.regex=^http(s)?://www.(${DOMAIN?Variable not set})/(.*)
-      # Redirect a domain with www to non-www
-      - traefik.http.middlewares.${STACK_NAME?Variable not set}-www-redirect.redirectregex.replacement=http$${1}://${DOMAIN?Variable not set}/$${3}
-
-      # Enable www redirection for HTTP and HTTPS
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-http.middlewares=https-redirect,${STACK_NAME?Variable not set}-www-redirect
-      - traefik.http.routers.${STACK_NAME?Variable not set}-backend-https.middlewares=${STACK_NAME?Variable not set}-www-redirect
 
   orchestrator:
     image: '${DOCKER_IMAGE_ORCHESTRATOR?Variable not set}:${TAG-latest}'
     restart: always
-    networks:
-      - traefik-public
-      - default
     depends_on:
-      - db
-      - nats1
-      - nats2
-      - nats3
-      - backend
+      db:
+        condition: service_started
+      nats-healthcheck:
+        condition: service_healthy
+      backend:
+        condition: service_started
     env_file:
       - .env
 
@@ -151,77 +117,14 @@ services:
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
-  agent:
-    image: '${DOCKER_IMAGE_AGENT?Variable not set}:${TAG-latest}'
-    restart: always
-    networks:
-      - traefik-public
-      - default
-    depends_on:
-      - nats1
-      - nats2
-      - nats3
-    env_file:
-      - .env
-
-    build: 
-      context: ./backend/
-      dockerfile: ./backend/agent/Dockerfile
-      args:
-        INSTALL_DEV: ${INSTALL_DEV-false}
-
-  operator:
-    image: '${DOCKER_IMAGE_OPERATOR?Variable not set}:${TAG-latest}'
-    restart: always
-    networks:
-      - traefik-public
-      - default
-    depends_on:
-      - nats1
-      - nats2
-      - nats3
-    env_file:
-      - .env
-
-    build: 
-      context: ./backend/
-      dockerfile: ./backend/operators/Dockerfile
-      args:
-        INSTALL_DEV: ${INSTALL_DEV-false}
-
   # frontend:
   #   image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
   #   restart: always
-  #   networks:
-  #     - traefik-public
-  #     - default
   #   build:
   #     context: ./frontend
   #     args:
   #       - VITE_API_URL=https://${DOMAIN?Variable not set}
   #       - NODE_ENV=production
-  #   labels:
-  #     - traefik.enable=true
-  #     - traefik.docker.network=traefik-public
-  #     - traefik.constraint-label=traefik-public
-
-  #     - traefik.http.services.${STACK_NAME?Variable not set}-frontend.loadbalancer.server.port=80
-
-  #     - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.rule=Host(`${DOMAIN?Variable not set}`) || Host(`www.${DOMAIN?Variable not set}`)
-  #     - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.entrypoints=http
-
-  #     - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.rule=Host(`${DOMAIN?Variable not set}`) || Host(`www.${DOMAIN?Variable not set}`)
-  #     - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.entrypoints=https
-  #     - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.tls=true
-  #     - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.tls.certresolver=le
-
-  #     # Enable www redirection for HTTP and HTTPS
-  #     - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-https.middlewares=${STACK_NAME?Variable not set}-www-redirect
-  #     - traefik.http.routers.${STACK_NAME?Variable not set}-frontend-http.middlewares=https-redirect,${STACK_NAME?Variable not set}-www-redirect
+  
 volumes:
   app-db-data:
-
-networks:
-  traefik-public:
-    # Allow setting it to false for testing
-    external: true

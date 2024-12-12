@@ -31,7 +31,11 @@ from core.nats import (
     get_pipelines_bucket,
     get_val,
 )
-from core.nats.config import AGENTS_STREAM_CONFIG, OPERATORS_STREAM_CONFIG
+from core.nats.config import (
+    AGENTS_STREAM_CONFIG,
+    OPERATORS_STREAM_CONFIG,
+    PIPELINES_STREAM_CONFIG,
+)
 from core.nats.consumers import create_orchestrator_pipeline_consumer
 from core.pipeline import OperatorJSON, Pipeline
 
@@ -201,8 +205,6 @@ async def main():
 
     logger.info("Orchestrator is running...")
 
-    pipeline_run_psub = await create_orchestrator_pipeline_consumer(js, id)
-
     startup_tasks = []
     startup_tasks.append(
         create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL),
@@ -213,8 +215,11 @@ async def main():
 
     startup_tasks.append(create_or_update_stream(AGENTS_STREAM_CONFIG, js))
     startup_tasks.append(create_or_update_stream(OPERATORS_STREAM_CONFIG, js))
+    startup_tasks.append(create_or_update_stream(PIPELINES_STREAM_CONFIG, js))
 
     await asyncio.gather(*startup_tasks)
+
+    pipeline_run_psub = await create_orchestrator_pipeline_consumer(js, id)
 
     asyncio.create_task(continuous_update_kv(js))
 
