@@ -5,6 +5,7 @@ import signal
 import tempfile
 import time
 import uuid
+from collections.abc import Coroutine
 from typing import Any
 
 import nats
@@ -25,6 +26,7 @@ from core.constants import (
     STREAM_OPERATORS,
     STREAM_PARAMETERS_UPDATE,
 )
+from core.constants.mounts import CORE_MOUNT, OPERATORS_MOUNT
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
 from core.models.operators import OperatorParameter, ParameterType
@@ -34,7 +36,10 @@ from core.models.pipeline import (
     PipelineJSON,
 )
 from core.models.uri import URI, CommBackend, URILocation
-from core.nats import create_or_update_stream
+from core.nats import (
+    create_or_update_stream,
+    get_agents_bucket,
+)
 from core.nats.config import (
     AGENTS_STREAM_CONFIG,
     OPERATORS_STREAM_CONFIG,
@@ -96,6 +101,7 @@ class Agent:
         self.heartbeat_task: asyncio.Task | None = None
         self.server_task: asyncio.Task | None = None
         self.watch_tasks: dict[uuid.UUID, asyncio.Task] = {}
+        self.task_refs: set[asyncio.Task] = set()
 
     async def _start_podman_service(self, create_process=False):
         self._podman_process = None
@@ -164,8 +170,8 @@ class Agent:
         await create_or_update_stream(AGENTS_STREAM_CONFIG, self.js)
         await create_or_update_stream(OPERATORS_STREAM_CONFIG, self.js)
 
-        self.heartbeat_task = asyncio.create_task(self.heartbeat(self.js, self.id))
-        self.server_task = asyncio.create_task(self.server_loop())
+        self.heartbeat_task = self.create_task(self.heartbeat(self.js, self.id))
+        self.server_task = self.create_task(self.server_loop())
 
         await self._shutdown_event.wait()
         await self.shutdown()
@@ -179,7 +185,7 @@ class Agent:
         tries = 10
         while tries > 0:
             try:
-                bucket = await js.key_value(BUCKET_AGENTS)
+                bucket = await get_agents_bucket(js)
             except BucketNotFoundError:
                 await asyncio.sleep(0.2)
                 tries -= 1
@@ -263,7 +269,7 @@ class Agent:
         while not self._shutdown_event.is_set():
             try:
                 msgs = await psub.fetch(1)
-                [asyncio.create_task(msg.ack()) for msg in msgs]
+                [self.create_task(msg.ack()) for msg in msgs]
             except nats.errors.TimeoutError:
                 try:
                     await psub.consumer_info()
@@ -328,13 +334,13 @@ class Agent:
         logger.info("Starting operators...")
 
         with PodmanClient(base_url=self._podman_service_uri) as client:
-            tasks = []
+            tasks: list[asyncio.Task] = []
 
             for id, op_info in self.pipeline.operators.items():
                 if id not in self.my_operator_ids:
                     continue
 
-                task = asyncio.create_task(
+                task = self.create_task(
                     self._start_operator(
                         op_info,
                         client,
@@ -352,7 +358,7 @@ class Agent:
                 else:
                     operator, container = result
                     containers[operator.id] = container
-                    self.watch_tasks[operator.id] = asyncio.create_task(
+                    self.watch_tasks[operator.id] = self.create_task(
                         self.container_task(operator, container)
                     )
 
@@ -372,6 +378,10 @@ class Agent:
         env = GLOBAL_ENV.copy()
         env.update(operator.env)
         env.update({OPERATOR_ID_ENV_VAR: str(operator.id)})
+
+        if cfg.MOUNT_LOCAL_REPO:
+            operator.mounts.append(CORE_MOUNT)
+            operator.mounts.append(OPERATORS_MOUNT)
 
         container = await create_container(
             self.id,
@@ -423,7 +433,7 @@ class Agent:
                     continue
                 changed_parameters[param.name] = param
                 # Start a parameter task for each mount parameter
-                parameter_task = asyncio.create_task(
+                parameter_task = self.create_task(
                     self.parameter_task(
                         current_operator, param, restart_event, changed_parameters
                     )
@@ -431,8 +441,8 @@ class Agent:
                 parameter_tasks.append(parameter_task)
 
         while not self._shutdown_event.is_set():
-            shutdown_task = asyncio.create_task(self._shutdown_event.wait())
-            restart_task = asyncio.create_task(restart_event.wait())
+            shutdown_task = self.create_task(self._shutdown_event.wait())
+            restart_task = self.create_task(restart_event.wait())
 
             _, pending = await asyncio.wait(
                 [shutdown_task, restart_task],
@@ -478,7 +488,7 @@ class Agent:
                 await stop_and_remove_container(current_container)
                 with PodmanClient(base_url=self._podman_service_uri) as client:
                     try:
-                        new_operator, new_container = await asyncio.create_task(
+                        new_operator, new_container = await self.create_task(
                             self._start_operator(current_operator, client)
                         )
                         current_operator = new_operator
@@ -590,6 +600,9 @@ class Agent:
         self.watch_tasks.clear()
         await self._cleanup_containers()
 
+    def create_task(self, coro: Coroutine) -> asyncio.Task:
+        return create_task_with_ref(self.task_refs, coro)
+
 
 async def update_parameter(
     js: JetStreamContext,
@@ -671,3 +684,10 @@ async def handle_name_conflict(client: PodmanClient, container_name: str) -> Non
     conflicting_container = client.containers.get(container_name)
     await stop_and_remove_container(conflicting_container)
     logger.info(f"Conflicting container {conflicting_container.id} removed. ")
+
+
+def create_task_with_ref(task_refs: set[asyncio.Task], coro: Coroutine) -> asyncio.Task:
+    task = asyncio.create_task(coro)
+    task_refs.add(task)
+    task.add_done_callback(task_refs.discard)  # Clean up after completion
+    return task

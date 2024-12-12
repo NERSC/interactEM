@@ -21,6 +21,20 @@ export const useConsumeMessages = ({
 
   // I pass in callbacks be safe
 
+  // TODO: still getting this error, thought i fixed it:
+
+  // Error consuming messages: InvalidOperationError: ordered consumer doesn't support concurrent consume
+  //   at PullConsumerImpl.consume (chunk-64MGA3Q7.js?v=f913c564:1502:35)
+  //   at consumeMessages (useConsumeMessages.ts:36:41)
+  //   at useConsumeMessages.ts:47:5
+  //   at commitHookEffectListMount (chunk-XQLYTHWV.js?v=f913c564:16915:34)
+  //   at commitPassiveMountOnFiber (chunk-XQLYTHWV.js?v=f913c564:18156:19)
+  //   at commitPassiveMountEffects_complete (chunk-XQLYTHWV.js?v=f913c564:18129:17)
+  //   at commitPassiveMountEffects_begin (chunk-XQLYTHWV.js?v=f913c564:18119:15)
+  //   at commitPassiveMountEffects (chunk-XQLYTHWV.js?v=f913c564:18109:11)
+  //   at flushPassiveEffectsImpl (chunk-XQLYTHWV.js?v=f913c564:19490:11)
+  //   at flushPassiveEffects (chunk-XQLYTHWV.js?v=f913c564:19447:22)
+
   const handleMessageRef = useRef(handleMessage)
   useEffect(() => {
     handleMessageRef.current = handleMessage
