@@ -3,7 +3,6 @@
 
 #include <thallium.hpp>
 #include <string>
-#include <thallium/serialization/stl/string.hpp>
 #include <vector>
 
 namespace tl = thallium;
@@ -36,12 +35,12 @@ public:
         }
     }
 
-    void push(const std::string &message)
+    void push(const std::string &header, const std::vector<uint8_t> &data)
     {
         try
         {
-            int rc = m_push.on(m_ph)(message);
-            std::cout << "Message pushed: " << message << ". RC: " << rc << std::endl;
+            int rc = m_push.on(m_ph)(header, data);
+            std::cout << "Message pushed: " << header << ". RC: " << rc << std::endl;
         }
         catch (const tl::margo_exception &ex)
         {
@@ -55,17 +54,19 @@ public:
         }
     }
 
-    void push_rdma(const std::string &message)
+    void push_rdma(const std::string &header, const std::vector<uint8_t> &data)
     {
         try
         {
-            std::vector<std::pair<void *, std::size_t>> segments(1);
-            segments[0].first = (void *)message.data();
-            segments[0].second = message.size();
+            std::vector<std::pair<void *, std::size_t>> segments(2);
+            segments[0].first = (void *)header.data();
+            segments[0].second = header.size();
+            segments[1].first = (void *)data.data();
+            segments[1].second = data.size();
             tl::bulk bulk = m_engine.expose(segments, tl::bulk_mode::read_only);
 
-            m_push_rdma.on(m_ph)(bulk);
-            std::cout << "Message pushed via RDMA: " << message << std::endl;
+            m_push_rdma.on(m_ph)(bulk, header.size());
+            std::cout << "Message pushed via RDMA: " << header << std::endl;
         }
         catch (const tl::margo_exception &ex)
         {
