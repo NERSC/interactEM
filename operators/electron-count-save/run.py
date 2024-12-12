@@ -1,4 +1,3 @@
-import asyncio
 import pathlib
 from typing import Any, cast
 
@@ -106,22 +105,3 @@ def save(
     frames_ds[flat_index] = arr
     count_for_this_scan += 1
     return None
-
-
-async def async_main():
-    op = save()
-    await op.start()
-
-
-def main():
-    # Run the async main function using asyncio.run
-    try:
-        asyncio.run(async_main())
-    except KeyboardInterrupt:
-        logger.info("Shutting down operator...")
-    finally:
-        print("Application terminated.")
-
-
-if __name__ == "__main__":
-    main()
