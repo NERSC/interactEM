@@ -8,7 +8,11 @@ from pathlib import Path
 from pydantic import ConfigDict, model_validator
 from pydantic_settings import BaseSettings
 
-from core.constants import OPERATOR_ID_ENV_VAR, OPERATOR_RUN_LOCATION, OPERATOR_TAG
+from core.constants import (
+    OPERATOR_CLASS_NAME,
+    OPERATOR_ID_ENV_VAR,
+    OPERATOR_RUN_LOCATION,
+)
 from core.logger import get_logger
 
 logger = get_logger()
@@ -31,11 +35,19 @@ cfg = Settings(OPERATOR_ID=os.getenv(OPERATOR_ID_ENV_VAR))
 async def run_operator(module_name: str):
     module = importlib.import_module(module_name)
 
-    # Find the first decorated operator
+    # Find the first function that returns an instance of Operator
     operator_function = None
     for attr_name in dir(module):
         attr = getattr(module, attr_name)
-        if inspect.isfunction(attr) and getattr(attr, OPERATOR_TAG, False):
+        if not inspect.isfunction(attr):
+            continue
+
+        is_wrapped = attr.__dict__.get("__wrapped__", False)
+
+        if is_wrapped is False:
+            continue
+
+        if OPERATOR_CLASS_NAME in str(attr.__code__.co_consts):
             operator_function = attr
             break
 

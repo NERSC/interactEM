@@ -25,8 +25,8 @@ from core.constants import (
     BUCKET_OPERATORS,
     BUCKET_OPERATORS_TTL,
     MOUNT_DIR,
+    OPERATOR_CLASS_NAME,
     OPERATOR_ID_ENV_VAR,
-    OPERATOR_TAG,
     STREAM_METRICS,
     STREAM_OPERATORS,
     STREAM_PARAMETERS_UPDATE,
@@ -575,7 +575,6 @@ def operator(
 
             return obj
 
-        setattr(wrapper, OPERATOR_TAG, True)
         return wrapper
 
     if func is not None:
@@ -596,7 +595,7 @@ def async_operator(
                 return await func(*args, **kwargs)
 
             name = func.__name__
-            class_name = f"{name.capitalize()}Operator"
+            class_name = f"{name.capitalize()}{OPERATOR_CLASS_NAME}"
             OpClass = type(class_name, (AsyncOperator,), {"kernel": kernel})
 
             obj = OpClass()
@@ -606,7 +605,6 @@ def async_operator(
 
             return obj
 
-        setattr(wrapper, OPERATOR_TAG, True)
         return wrapper
 
     if func is not None:
