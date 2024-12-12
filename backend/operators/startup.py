@@ -5,8 +5,8 @@ import os
 import sys
 from pathlib import Path
 
-from pydantic import ConfigDict, model_validator
-from pydantic_settings import BaseSettings
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from core.constants import (
     OPERATOR_CLASS_NAME,
@@ -19,7 +19,7 @@ logger = get_logger()
 
 
 class Settings(BaseSettings):
-    model_config: ConfigDict = ConfigDict(extra="ignore")
+    model_config: SettingsConfigDict = SettingsConfigDict(extra="ignore")
     OPERATOR_ID: str | None = None
 
     @model_validator(mode="after")
