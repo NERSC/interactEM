@@ -1,7 +1,6 @@
 import asyncio.subprocess
 import json
 import os
-import pathlib
 import signal
 import tempfile
 import time
@@ -27,6 +26,7 @@ from core.constants import (
     STREAM_OPERATORS,
     STREAM_PARAMETERS_UPDATE,
 )
+from core.constants.mounts import CORE_MOUNT, OPERATORS_MOUNT
 from core.logger import get_logger
 from core.models.agent import AgentStatus, AgentVal
 from core.models.operators import OperatorParameter, ParameterType
@@ -34,8 +34,6 @@ from core.models.pipeline import (
     OperatorJSON,
     PipelineAssignment,
     PipelineJSON,
-    PodmanMount,
-    PodmanMountType,
 )
 from core.models.uri import URI, CommBackend, URILocation
 from core.nats import create_or_update_stream
@@ -67,9 +65,6 @@ logger = get_logger()
 
 GLOBAL_ENV = {k: str(v) for k, v in cfg.model_dump().items()}
 GLOBAL_ENV["NATS_SERVER_URL"] = GLOBAL_ENV["NATS_SERVER_URL_IN_CONTAINER"]
-
-HERE = pathlib.Path(__file__).resolve()
-BACKEND_DIR = HERE.parent.parent.parent
 
 
 class Agent:
@@ -382,8 +377,8 @@ class Agent:
         env.update({OPERATOR_ID_ENV_VAR: str(operator.id)})
 
         if cfg.MOUNT_LOCAL_REPO:
-            operator.mounts.append(get_core_mount())
-            operator.mounts.append(get_operators_mount())
+            operator.mounts.append(CORE_MOUNT)
+            operator.mounts.append(OPERATORS_MOUNT)
 
         container = await create_container(
             self.id,
@@ -687,23 +682,6 @@ async def handle_name_conflict(client: PodmanClient, container_name: str) -> Non
     await stop_and_remove_container(conflicting_container)
     logger.info(f"Conflicting container {conflicting_container.id} removed. ")
 
-
-def get_core_mount():
-    core_dir = (BACKEND_DIR / "core" / "core").resolve()
-    return PodmanMount(
-        type=PodmanMountType.bind,
-        source=str(core_dir),
-        target="/interactem/core/core",
-    )
-
-
-def get_operators_mount():
-    op_dir = (BACKEND_DIR / "operators" / "operators").resolve()
-    return PodmanMount(
-        type=PodmanMountType.bind,
-        source=str(op_dir),
-        target="/interactem/operators/operators",
-    )
 
 def create_task_with_ref(task_refs: set[asyncio.Task], coro: Coroutine) -> asyncio.Task:
     task = asyncio.create_task(coro)
