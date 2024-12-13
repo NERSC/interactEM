@@ -8,10 +8,8 @@ https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08
 
 - **Interactive Web Frontend**: Create data pipelines with a React-based frontend.
 - **Containerized Operators**: Uses container technology to ensure consistent execution environments.
-- **Data Streaming**: Operators connect and data flows and send messages with point-to-point communication. data in real-time for analysis and processing.
-
+- **Data Streaming**: Operators connect and data flows between them over network with point-to-point communication.
 
 ## License
 
 This project is licensed under the BSD-3 License - see the [LICENSE](LICENSE) file for details.
-
