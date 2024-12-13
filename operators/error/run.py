@@ -1,31 +1,22 @@
-import asyncio
-import os
+import random
+from typing import Any
 
-from core.constants import OPERATOR_ID_ENV_VAR
 from core.logger import get_logger
-from operators.examples import error
+from core.models.messages import BytesMessage, MessageHeader, MessageSubject
+from operators.operator import operator
 
 logger = get_logger()
 
-OPERATOR_ID = os.getenv(OPERATOR_ID_ENV_VAR)
 
-
-async def async_main():
-    if OPERATOR_ID is None:
-        logger.error("No operator ID provided")
-        return
-    operator = error()
-    await operator.start()
-
-
-def main():
-    try:
-        asyncio.run(async_main())
-    except KeyboardInterrupt:
-        logger.info("Shutting down operator...")
-    finally:
-        print("Application terminated.")
-
-
-if __name__ == "__main__":
-    main()
+@operator
+def error(inputs: BytesMessage | None, parameters: dict[str, Any]) -> BytesMessage:
+    raise_exception = random.choice([True, False])
+    # raise_exception = True
+    logger.info(f"Error state: { raise_exception }")
+    if raise_exception:
+        raise Exception("This is an error")
+    else:
+        return BytesMessage(
+            header=MessageHeader(subject=MessageSubject.BYTES, meta={}),
+            data=b"Hello, World!",
+        )

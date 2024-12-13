@@ -1,3 +1,5 @@
 FROM interactem/operator
 
 COPY ./run.py /app/run.py
+
+ENTRYPOINT [ "python", "/app/run.py" ]

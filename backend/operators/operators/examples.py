@@ -1,4 +1,3 @@
-import random
 from typing import Any
 
 from core.logger import get_logger
@@ -41,15 +40,3 @@ def process_hello_world(
     return inputs or BytesMessage(header=header, data=b"No input provided")
 
 
-@operator
-def error(inputs: BytesMessage | None, parameters: dict[str, Any]) -> BytesMessage:
-    raise_exception = random.choice([True, False])
-    # raise_exception = True
-    logger.info(f"Error state: { raise_exception }")
-    if raise_exception:
-        raise Exception("This is an error")
-    else:
-        return BytesMessage(
-            header=MessageHeader(subject=MessageSubject.BYTES, meta={}),
-            data=b"Hello, World!",
-        )

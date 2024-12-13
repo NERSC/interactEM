@@ -1,4 +1,3 @@
-import asyncio
 import io
 from typing import Any
 
@@ -127,18 +126,3 @@ def image_converter(
     accumulated_dense = None
 
     return BytesMessage(header=header, data=byte_array.getvalue())
-
-
-# Async main function
-async def async_main():
-    op = image_converter()
-    await op.start()
-
-
-def main():
-    # Run the async main function using asyncio.run
-    asyncio.run(async_main())
-
-
-if __name__ == "__main__":
-    main()

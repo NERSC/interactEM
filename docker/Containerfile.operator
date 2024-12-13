@@ -9,4 +9,6 @@ COPY ./operators/pyproject.toml ./operators/poetry.lock* ./
 COPY ./operators/operators/ ./operators/
 RUN poetry install --only main
 
-ENTRYPOINT [ "python", "/app/run.py" ]
+COPY ./operators/startup.py /app/startup.py
+
+ENTRYPOINT [ "python", "/app/startup.py" ]

@@ -25,6 +25,7 @@ from core.constants import (
     BUCKET_OPERATORS,
     BUCKET_OPERATORS_TTL,
     MOUNT_DIR,
+    OPERATOR_CLASS_NAME,
     OPERATOR_ID_ENV_VAR,
     STREAM_METRICS,
     STREAM_OPERATORS,
@@ -594,7 +595,7 @@ def async_operator(
                 return await func(*args, **kwargs)
 
             name = func.__name__
-            class_name = f"{name.capitalize()}Operator"
+            class_name = f"{name.capitalize()}{OPERATOR_CLASS_NAME}"
             OpClass = type(class_name, (AsyncOperator,), {"kernel": kernel})
 
             obj = OpClass()

@@ -1,4 +1,3 @@
-import asyncio
 import io
 import time
 from typing import Any
@@ -31,19 +30,3 @@ def random_image(
     header = MessageHeader(subject=MessageSubject.BYTES, meta={})
 
     return BytesMessage(header=header, data=byte_array.getvalue())
-
-
-# TODO we should work out how to avoid duplicating the main entry point
-# in every operator module.
-async def async_main():
-    op = random_image()
-    await op.start()
-
-
-def main():
-    # Run the async main function using asyncio.run
-    asyncio.run(async_main())
-
-
-if __name__ == "__main__":
-    main()
