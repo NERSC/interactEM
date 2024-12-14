@@ -14,6 +14,7 @@ RUN mkdir -p /opt/spack-environment && \
     &&   echo '  - spdlog' \
     &&   echo '  - fmt' \
     &&   echo '  - tclap' \
+    &&   echo '  - capnproto' \
     &&   echo '  concretizer:' \
     &&   echo '    unify: true' \
     &&   echo '    reuse: true' \

@@ -1,5 +1,5 @@
 #include <nanobind/stl/string.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/ndarray.h>
 #include <thallium.hpp>
 #include "QueueProvider.hpp"
 #include "QueueClient.hpp"
@@ -14,12 +14,7 @@ public:
     PyQueueClient(const std::string &protocol, const std::string &server_addr, uint16_t provider_id = 1)
         : engine(protocol, THALLIUM_CLIENT_MODE), client(engine, server_addr, provider_id) {}
 
-    void push(const std::string &header, const std::vector<uint8_t> &data)
-    {
-        client.push(header, data);
-    }
-
-    void push_rdma(const std::string &header, const std::vector<uint8_t> &data)
+    void push_rdma(const std::string &header, nb::ndarray<nb::numpy> data)
     {
         client.push_rdma(header, data);
     }
@@ -35,7 +30,7 @@ public:
     PyQueueProvider(const std::string &protocol, uint16_t provider_id = 1)
         : engine(protocol, THALLIUM_SERVER_MODE), provider(engine, provider_id) {}
 
-    Message pull()
+    PyMessage pull()
     {
         return provider.pull();
     }
@@ -57,16 +52,16 @@ private:
 
 NB_MODULE(_thallium, m)
 {
-    nb::class_<Message>(m, "Message")
-        .def(nb::init<const std::string &, const std::vector<uint8_t> &>(),
+    nb::class_<PyMessage>(m, "Message")
+        .def(nb::init<const std::string &, const nb::ndarray<nb::numpy> &>(),
              "header"_a, "data"_a)
-        .def_rw("header", &Message::header)
-        .def_rw("data", &Message::data);
+        .def_rw("header", &PyMessage::header)
+        .def_rw("data", &PyMessage::data);
 
     nb::class_<PyQueueClient>(m, "QueueClient")
         .def(nb::init<const std::string &, const std::string &, uint16_t>(),
              "protocol"_a, "server_addr"_a, "provider_id"_a = 1)
-        .def("push", &PyQueueClient::push, "header"_a, "data"_a)
+        // .def("push", &PyQueueClient::push, "header"_a, "data"_a)
         .def("push_rdma", &PyQueueClient::push_rdma, "header"_a, "data"_a);
 
     nb::class_<PyQueueProvider>(m, "QueueProvider")
