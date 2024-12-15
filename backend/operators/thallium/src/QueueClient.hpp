@@ -36,7 +36,8 @@ public:
     try {
       print_ndarray_info(data);
       auto [serialized_bytes, ndarray_data] =
-          serialization::CapnProtoSerializer::serialize(header, data);
+          serialization::Serializer::serialize(
+              serialization::SerializationType::FlatBuffers, header, data);
 
       // Prepare segments to send
       std::vector<std::pair<void *, std::size_t>> rdma_segments;

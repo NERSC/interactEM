@@ -1,0 +1,20 @@
+namespace MyNamespace;
+
+table DLTensor {
+    device_type: int;
+    device_id: int;
+    ndim: int;
+    dtype_bits: byte;
+    dtype_code: byte;
+    dtype_lanes: ushort;
+    shape: [long]; // List of int64
+    strides: [long]; // List of int64
+    byte_offset: long;
+}
+
+table DLTensorMessage {
+    header: string;
+    tensor: DLTensor;
+}
+
+root_type DLTensorMessage;

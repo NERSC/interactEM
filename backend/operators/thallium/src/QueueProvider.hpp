@@ -66,8 +66,9 @@ public:
 
     try {
       auto [message_header, ndarray_data] =
-          serialization::CapnProtoSerializer::deserialize(header_buffer,
-                                                          data_buffer);
+          serialization::Serializer::deserialize(
+              serialization::SerializationType::FlatBuffers, header_buffer,
+              data_buffer);
       print_ndarray_info(ndarray_data);
 
       // Push the message into the queue
