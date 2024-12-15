@@ -52,7 +52,6 @@ NB_MODULE(_thallium, m) {
   nb::class_<PyQueueClient>(m, "QueueClient")
       .def(nb::init<const std::string &, const std::string &, uint16_t>(),
            "protocol"_a, "server_addr"_a, "provider_id"_a = 1)
-      // .def("push", &PyQueueClient::push, "header"_a, "data"_a)
       .def("push_rdma", &PyQueueClient::push_rdma, "header"_a, "data"_a);
 
   nb::class_<PyQueueProvider>(m, "QueueProvider")
