@@ -128,7 +128,7 @@ private:
     // Create DLTensor
     auto flat_shape = builder.CreateVector(shape);
     auto flat_strides = builder.CreateVector(strides);
-    auto tensor = MyNamespace::CreateDLTensor(
+    auto tensor = ThalliumQueue::Schemas::CreateDLTensor(
         builder, data.device_type(), data.device_id(),
         static_cast<int32_t>(data.ndim()),
         static_cast<int8_t>(data.dtype().bits),
@@ -138,7 +138,7 @@ private:
     );
 
     // Create DLTensorMessage
-    auto message = MyNamespace::CreateDLTensorMessage(
+    auto message = ThalliumQueue::Schemas::CreateDLTensorMessage(
         builder, builder.CreateString(header), tensor);
     builder.Finish(message);
 
@@ -152,7 +152,8 @@ private:
   deserializeFlatBuffers(const std::vector<char> &header_buffer,
                          std::vector<char> &data_buffer) {
     // Deserialize FlatBuffers
-    auto message = MyNamespace::GetDLTensorMessage(header_buffer.data());
+    auto message =
+        ThalliumQueue::Schemas::GetDLTensorMessage(header_buffer.data());
     std::string header = message->header()->str();
 
     auto tensor = message->tensor();
