@@ -9,7 +9,7 @@ execute_process(
 if(CAPNP_COMPILE_RESULT EQUAL 0)
     message(STATUS "Cap'n Proto compilation succeeded.")
 else()
-    message(ERROR "Cap'n Proto compilation failed.")
+    message(FATAL_ERROR "Cap'n Proto compilation failed.")
 endif()
 
 # Generate FlatBuffers
@@ -33,5 +33,10 @@ build_flatbuffers(
     ""                          # No binary schemas directory
     ""                          # No copy text schemas
 )
+
+# Check if the target was created successfully
+if(NOT TARGET ${THALLIUM_FBS_SCHEMAS_TARGET})
+    message(FATAL_ERROR "Failed to create target '${THALLIUM_FBS_SCHEMAS_TARGET}'. FlatBuffers generation may have failed.")
+endif()
 
 set_property(TARGET ${THALLIUM_FBS_SCHEMAS_TARGET} APPEND PROPERTY SOURCES ${THALLIUM_FBS_SCHEMAS})
