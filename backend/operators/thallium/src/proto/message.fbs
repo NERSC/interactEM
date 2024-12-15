@@ -1,4 +1,4 @@
-namespace MyNamespace;
+namespace ThalliumQueue.Schemas;
 
 table DLTensor {
     device_type: int;
