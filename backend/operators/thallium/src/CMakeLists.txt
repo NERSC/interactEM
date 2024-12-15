@@ -1,5 +1,7 @@
 # Bindings
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 # Create the extension module
 nanobind_add_module(
   # Name of the extension
@@ -20,9 +22,6 @@ nanobind_add_module(
 
   # Source code goes here
   bindings.cpp
-  QueueProvider.hpp
-  QueueClient.hpp
-  proto/message.capnp.c++
 )
 
 # Make a dep for generated schemas
