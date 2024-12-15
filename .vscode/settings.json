@@ -2,4 +2,5 @@
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "modifications",
     "editor.defaultFormatter": "charliermarsh.ruff",
+    "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: llvm }",
   }

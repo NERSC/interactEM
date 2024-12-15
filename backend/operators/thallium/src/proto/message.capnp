@@ -13,6 +13,6 @@ struct DLTensor {
 }
 
 struct DLTensorMessage {
-    header @0 :Text;
-    tensor @1 :DLTensor;
+  header @0 :Text;
+  tensor @1 :DLTensor;
 }
