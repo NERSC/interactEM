@@ -15,6 +15,7 @@ RUN mkdir -p /opt/spack-environment && \
     &&   echo '  - fmt' \
     &&   echo '  - tclap' \
     &&   echo '  - capnproto' \
+    &&   echo '  - flatbuffers' \
     &&   echo '  concretizer:' \
     &&   echo '    unify: true' \
     &&   echo '    reuse: true' \

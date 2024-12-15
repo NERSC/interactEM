@@ -41,12 +41,11 @@ find_package(nanobind CONFIG REQUIRED)
 # Thallium
 find_package(thallium REQUIRED)
 
-# CapnProto
+# Serialization
 find_package(CapnProto REQUIRED)
-add_subdirectory(${CMAKE_SOURCE_DIR}/src/proto)
+find_package(FlatBuffers REQUIRED)
 
-# Flatbuffers
-find_package(flatbuffers REQUIRED)
+add_subdirectory(${CMAKE_SOURCE_DIR}/src/proto)
 
 # Generate bindings
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)

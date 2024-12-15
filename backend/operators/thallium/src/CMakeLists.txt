@@ -25,6 +25,9 @@ nanobind_add_module(
   proto/message.capnp.c++
 )
 
+# Make a dep for generated schemas
+add_dependencies(_thallium ${THALLIUM_FBS_SCHEMAS_TARGET})
+
 target_link_libraries(_thallium PRIVATE thallium CapnProto::capnp)
 
 # Figured this out, and then found this discussion as a good ref:
@@ -46,4 +49,3 @@ install(FILES
   ${CMAKE_BINARY_DIR}/src/__init__.pyi
   DESTINATION thallium
 )
-
