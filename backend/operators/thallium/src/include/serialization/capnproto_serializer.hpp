@@ -2,7 +2,7 @@
 #define SERIALIZER_HPP
 
 #include "../proto/message.capnp.h"
-#include "../proto/message_generated.h" // Include the generated FlatBuffers header
+#include "gen/message_generated.h"
 #include <capnp/message.h>
 #include <capnp/serialize.h>
 #include <flatbuffers/flatbuffers.h>
