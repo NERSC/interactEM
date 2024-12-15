@@ -2,5 +2,10 @@
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "modifications",
     "editor.defaultFormatter": "charliermarsh.ruff",
+    "[cpp]": {
+      "editor.defaultFormatter": "ms-vscode.cpptools",
+      "editor.formatOnSave": true
+    },
     "C_Cpp.clang_format_fallbackStyle": "{ BasedOnStyle: llvm }",
+    "C_Cpp.formatting": "clangFormat",
   }
