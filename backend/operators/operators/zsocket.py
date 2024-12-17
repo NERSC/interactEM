@@ -19,6 +19,7 @@ logger = get_logger()
 
 class SocketInfo(BaseModel):
     type: int  # zmq.SocketType
+    subjects: list[bytes] | None = None
     address_map: dict[IdType, Sequence[ZMQAddress]] = {}
     parent_id: PortID
     bind: bool
@@ -32,6 +33,12 @@ class SocketInfo(BaseModel):
             raise ValueError(
                 "If bind is True, the address_map must contain only one entry."
             )
+        return self
+
+    @model_validator(mode="after")
+    def check_has_subject(self):
+        if self.type == zmq.PUB and self.subjects is None:
+            raise ValueError("SocketInfo must have a subject if type == zmq.PUB.")
         return self
 
 
@@ -107,6 +114,16 @@ class Socket(zmq.asyncio.Socket):
             for addr in addr_group:
                 self.connect(addr.to_connect_address())
                 logger.info(f"Connected to {addr.to_connect_address()}")
+
+                if self.info.type == zmq.SUB and self.info.subjects is None:
+                    logger.info("Subscribing to all subjects")
+                    self.setsockopt(zmq.SUBSCRIBE, b"")
+
+                if self.info.type == zmq.SUB and self.info.subjects is not None:
+                    logger.info(f"Subscribing to: {self.info.subjects}")
+                    for subject in self.info.subjects:
+                        self.setsockopt(zmq.SUBSCRIBE, subject)
+
             self.info.connected_to.append(id_type)
 
     def reconnect(self, id: IdType, new_addresses: Sequence[ZMQAddress]):
