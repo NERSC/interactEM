@@ -1,4 +1,5 @@
-FROM interactem/interactem
+ARG TAG=latest
+FROM interactem/interactem:$TAG
 
 # --- Install interactem operators deps ---
 WORKDIR /interactem/operators
