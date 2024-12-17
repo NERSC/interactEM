@@ -92,13 +92,15 @@ class ZmqMessenger(BaseMessenger):
         all_messages: list[BytesMessage] = []
 
         for id, msg_parts in id_msgs:
-            if len(msg_parts) != 2:
+            if len(msg_parts) == 2:
+                _header, _data = msg_parts
+            elif len(msg_parts) == 3:
+                _, _header, _data = msg_parts
+            else:
                 logger.error(
                     "Received an unexpected number of message parts: %s", len(msg_parts)
                 )
                 return None
-
-            _header, _data = msg_parts
 
             if isinstance(_header, zmq.Message):
                 header = MessageHeader.model_validate_json(_header.bytes)
@@ -153,9 +155,17 @@ class ZmqMessenger(BaseMessenger):
                     id=socket.info.parent_id, time_before_send=datetime.now()
                 )
                 message.header.tracking.append(meta)
+
             data = message.data
             header = message.header.model_dump_json().encode()
-            msg_futures.append(self._send_and_update_metrics(socket, [header, data]))
+            things_to_send = [header, data]
+
+            if socket.info.type == zmq.PUB:
+                # TODO: handle multiple subjects (if needed)
+                subject = socket.info.subjects[0]
+                things_to_send.insert(0, subject)
+
+            msg_futures.append(self._send_and_update_metrics(socket, things_to_send))
         # TODO: look into creating tasks
         await asyncio.gather(*msg_futures)
 
@@ -297,14 +307,16 @@ class ZmqMessenger(BaseMessenger):
     def add_socket(self, port_info: PortJSON):
         if port_info.port_type == PortType.output:
             socket_info = SocketInfo(
-                type=zmq.PUSH,
+                type=zmq.PUB,
+                subjects=[b"data"],
                 bind=True,
                 parent_id=port_info.id,
             )
             sockets = self.output_sockets
         else:
             socket_info = SocketInfo(
-                type=zmq.PULL,
+                type=zmq.SUB,
+                subjects=[b"data"],
                 bind=False,
                 parent_id=port_info.id,
             )
