@@ -1,9 +1,10 @@
-FROM interactem/interactem
+FROM interactem/interactem:latest
 
 # --- Install interactem operators deps ---
 WORKDIR /interactem/operators
 RUN touch README.md
 COPY ./operators/pyproject.toml ./operators/poetry.lock* ./
+RUN poetry install --no-root
 
 # --- Install interactem operators ---
 COPY ./operators/operators/ ./operators/
