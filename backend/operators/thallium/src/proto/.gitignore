@@ -1,0 +1,3 @@
+*.capnp.h
+*.capnp.c++
+message_generated.h
