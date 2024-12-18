@@ -12,4 +12,4 @@ https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08
 
 ## License
 
-This project is licensed under the BSD-3 License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the LBNL BSD-3 License - see the [LICENSE](LICENSE) file for details.
