@@ -13,6 +13,7 @@
 
 namespace nb = nanobind;
 
+namespace interactEM {
 namespace serialization {
 
 enum class SerializationType { CapnProto, FlatBuffers };
@@ -184,5 +185,6 @@ private:
 };
 
 } // namespace serialization
+} // namespace interactEM
 
 #endif // SERIALIZER_HPP

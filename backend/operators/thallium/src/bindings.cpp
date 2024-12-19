@@ -10,6 +10,7 @@ namespace nb = nanobind;
 namespace tl = thallium;
 using namespace nb::literals;
 
+namespace interactEM {
 class PyQueueClient {
 public:
   PyQueueClient(const std::string &protocol, const std::string &server_addr,
@@ -61,3 +62,4 @@ NB_MODULE(_thallium, m) {
       .def("get_address", &PyQueueProvider::get_address)
       .def("wait_for_finalize", &PyQueueProvider::wait_for_finalize);
 }
+} // namespace interactEM

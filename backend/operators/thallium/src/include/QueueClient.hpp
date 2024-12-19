@@ -11,6 +11,8 @@
 #include "ndarray_info.hpp"
 #include "serialization/capnproto_serializer.hpp"
 
+namespace interactEM {
+
 namespace tl = thallium;
 namespace nb = nanobind;
 
@@ -89,5 +91,7 @@ public:
     }
   }
 };
+
+} // namespace interactEM
 
 #endif // QUEUE_CLIENT_HPP
