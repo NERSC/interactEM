@@ -36,10 +36,7 @@ from core.models.pipeline import (
     PipelineJSON,
 )
 from core.models.uri import URI, CommBackend, URILocation
-from core.nats import (
-    create_or_update_stream,
-    get_agents_bucket,
-)
+from core.nats import create_or_update_stream, get_agents_bucket, nc
 from core.nats.config import (
     AGENTS_STREAM_CONFIG,
     OPERATORS_STREAM_CONFIG,
@@ -161,9 +158,7 @@ class Agent:
             *[self.setup_signal_handlers(), self._start_podman_service()]
         )
 
-        self.nc = await nats.connect(
-            servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{id}"
-        )
+        self.nc = await nc(servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{id}")
         self.js = self.nc.jetstream()
 
         await create_or_update_stream(PARAMETERS_STREAM_CONFIG, self.js)

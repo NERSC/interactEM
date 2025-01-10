@@ -41,7 +41,7 @@ from core.logger import get_logger
 from core.models import CommBackend, OperatorJSON, PipelineJSON
 from core.models.messages import BytesMessage, OperatorTrackingMetadata
 from core.models.operators import OperatorMetrics, OperatorTiming, ParameterType
-from core.nats import create_bucket_if_doesnt_exist, create_or_update_stream
+from core.nats import create_bucket_if_doesnt_exist, create_or_update_stream, nc
 from core.nats.config import (
     METRICS_STREAM_CONFIG,
     OPERATORS_STREAM_CONFIG,
@@ -183,7 +183,7 @@ class OperatorMixin(RunnableKernel):
 
     async def connect_to_nats(self):
         logger.info(f"Connecting to NATS at {cfg.NATS_SERVER_URL}...")
-        self.nc = await nats.connect(
+        self.nc = await nc(
             servers=[str(cfg.NATS_SERVER_URL)], name=f"operator-{self.id}"
         )
         logger.info("Connected to NATS...")
