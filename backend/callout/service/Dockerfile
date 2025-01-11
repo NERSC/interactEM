@@ -21,6 +21,7 @@ COPY main.go .
 RUN go build -v -o /usr/local/bin/app ./...
 
 WORKDIR /
+RUN touch .env
 # Command to run the application
 CMD ["app"]
 

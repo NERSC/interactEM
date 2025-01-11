@@ -127,6 +127,23 @@ services:
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
+
+  callout:
+    image: '${DOCKER_IMAGE_CALLOUT?Variable not set}:${TAG-latest}'
+    restart: always
+    depends_on:
+      db:
+        condition: service_started
+      nats-healthcheck:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - "./backend/callout/service/.env:/.env"
+      - "./nats-conf/out_nkey/:/nats-conf/"
+    build: 
+      context: ./backend/callout/service/
+
   # frontend:
   #   image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
   #   restart: always
