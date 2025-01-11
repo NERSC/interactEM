@@ -78,11 +78,12 @@ cp "$XDG_DATA_HOME/nats/nsc/keys/keys/A/${APP_ACCOUNT_SK:1:2}/${APP_ACCOUNT_SK}.
 # copy the encryption key to the output directory
 cp "$XDG_DATA_HOME/nats/nsc/keys/keys/X/${CALLOUT_ACCOUNT_XKEY:1:2}/${CALLOUT_ACCOUNT_XKEY}.nk" $OUTDIR/callout_account_xkey.nk
 
-mkdir -p $THIS_DIR/out
-cp $OUTDIR/callout_account.nk $THIS_DIR/out/callout_account.nk
-cp $OUTDIR/app_account.nk $THIS_DIR/out/app_account.nk
-cp $OUTDIR/callout_user.creds $THIS_DIR/out/callout_user.creds
-cp $OUTDIR/frontend_user.creds $THIS_DIR/out/frontend_user.creds
-cp $OUTDIR/backend_user.creds $THIS_DIR/out/backend_user.creds
-cp $OUTDIR/auth.conf $THIS_DIR/out/auth.conf
-cp $OUTDIR/callout_account_xkey.nk $THIS_DIR/out/callout_account_xkey.nk
+mkdir -p $THIS_DIR/out_jwt
+CP_DIR=$THIS_DIR/out_jwt
+cp $OUTDIR/callout_account.nk $CP_DIR/callout_account.nk
+cp $OUTDIR/app_account.nk $CP_DIR/app_account.nk
+cp $OUTDIR/callout_user.creds $CP_DIR/callout_user.creds
+cp $OUTDIR/frontend_user.creds $CP_DIR/frontend_user.creds
+cp $OUTDIR/backend_user.creds $CP_DIR/backend_user.creds
+cp $OUTDIR/auth.conf $CP_DIR/auth.conf
+cp $OUTDIR/callout_account_xkey.nk $CP_DIR/callout_account_xkey.nk
