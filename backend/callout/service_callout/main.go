@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -20,14 +22,14 @@ import (
 )
 
 type Config struct {
-	VERIFY_URL                 string `validate:"omitempty,url"`
-	AUTH_ISSUER_PRIVATE_KEY    string `validate:"required"`
-	AUTH_ISSUER_ENCRYPTION_KEY string `validate:"required"`
-	AUTH_USER_NKEY_FILEPATH    string `validate:"required"`
-	SERVER_URL                 string `validate:"required,url"`
-	TOKEN_EXPIRATION_TIME_S    int    `validate:"required"`
-	JWT_SECRET_KEY             string `validate:"required"`
-	JWT_ALGORITHM              string `validate:"required"`
+	VERIFY_URL                string `validate:"omitempty,url"`
+	CALLOUT_ACCOUNT_NKEY_FILE string `validate:"required"`
+	CALLOUT_ACCOUNT_XKEY_FILE string `validate:"required"`
+	AUTH_USER_CREDS_FILE      string `validate:"required"`
+	SERVER_URL                string `validate:"required,url"`
+	TOKEN_EXPIRATION_TIME_S   int    `validate:"required"`
+	JWT_SECRET_KEY            string `validate:"required"`
+	JWT_ALGORITHM             string `validate:"required"`
 }
 
 func main() {
@@ -40,11 +42,11 @@ func main() {
 	}
 
 	cfg := Config{
-		VERIFY_URL:                 os.Getenv("VERIFY_URL"),
-		AUTH_ISSUER_PRIVATE_KEY:    os.Getenv("AUTH_ISSUER_PRIVATE_KEY"),
-		AUTH_ISSUER_ENCRYPTION_KEY: os.Getenv("AUTH_ISSUER_ENCRYPTION_KEY"),
-		AUTH_USER_NKEY_FILEPATH:    os.Getenv("AUTH_USER_NKEY_FILEPATH"),
-		SERVER_URL:                 os.Getenv("SERVER_URL"),
+		VERIFY_URL:                os.Getenv("VERIFY_URL"),
+		CALLOUT_ACCOUNT_NKEY_FILE: os.Getenv("CALLOUT_ACCOUNT_NKEY_FILE"),
+		CALLOUT_ACCOUNT_XKEY_FILE: os.Getenv("CALLOUT_ACCOUNT_XKEY_FILE"),
+		AUTH_USER_CREDS_FILE:      os.Getenv("AUTH_USER_CREDS_FILE"),
+		SERVER_URL:                os.Getenv("SERVER_URL"),
 		TOKEN_EXPIRATION_TIME_S: func() int {
 			val, err := strconv.Atoi(os.Getenv("TOKEN_EXPIRATION_TIME_S"))
 			if err != nil {
@@ -64,11 +66,11 @@ func main() {
 	}
 	logger.Noticef("config validated")
 
-	issuer_kp, err := nkeys.FromSeed([]byte(cfg.AUTH_ISSUER_PRIVATE_KEY))
+	issuerKP, err := loadAndParseKeys(cfg.CALLOUT_ACCOUNT_NKEY_FILE)
 	if err != nil {
 		panic(fmt.Errorf("error creating issuer key pair: %v", err))
 	}
-	encryption_kp, err := nkeys.FromSeed([]byte(cfg.AUTH_ISSUER_ENCRYPTION_KEY))
+	encryptionKP, err := loadAndParseKeys(cfg.CALLOUT_ACCOUNT_XKEY_FILE)
 	if err != nil {
 		panic(fmt.Errorf("error creating encryption key pair: %v", err))
 	}
@@ -76,7 +78,8 @@ func main() {
 	// Function that creates the users
 	authorizer := func(req *natsjwt.AuthorizationRequest) (string, error) {
 		logger.Noticef("received request!")
-		parsedToken, err := VerifyTokenLocally(req.ConnectOptions.Token,
+		logger.Noticef("req.ConnectOptions: %v", req.ConnectOptions)
+		parsedToken, err := VerifyTokenLocally(req.ConnectOptions.Name,
 			cfg.JWT_SECRET_KEY,
 			cfg.JWT_ALGORITHM,
 		)
@@ -122,29 +125,26 @@ func main() {
 
 		// Set jwt expiration to 2 minutes after distiller expiration
 		uc.Expires = exp + 120
-		return uc.Encode(issuer_kp)
+		return uc.Encode(issuerKP)
 	}
 
-	// Get connect opt from the seed file
-	opt, err := nats.NkeyOptionFromSeed(cfg.AUTH_USER_NKEY_FILEPATH)
+	// connect the service with the creds
+	opts, err := getConnectionOptions(cfg.AUTH_USER_CREDS_FILE)
 	if err != nil {
-		panic(fmt.Errorf("error creating nkey option: %v", err))
+		panic(fmt.Errorf("error loading creds: %w", err))
 	}
-	logger.Noticef("nkey option created from seed file")
-
-	// Connect using the auth user's credentials
-	nc, err := nats.Connect(cfg.SERVER_URL, opt)
+	nc, err := nats.Connect("nats://localhost:4222", opts...)
 	if err != nil {
-		panic(fmt.Errorf("error connecting to server: %v", err))
+		panic(fmt.Errorf("error connecting: %w", err))
 	}
-	logger.Noticef("connected to server at: %s", cfg.SERVER_URL)
 	defer nc.Close()
+	logger.Noticef("connected to server at: %s", cfg.SERVER_URL)
 
 	// Start the microservice
 	_, err = callout.AuthorizationService(nc,
 		callout.Authorizer(authorizer),
-		callout.ResponseSignerKey(issuer_kp),
-		callout.EncryptionKey(encryption_kp))
+		callout.ResponseSignerKey(issuerKP),
+		callout.EncryptionKey(encryptionKP))
 
 	if err != nil {
 		logger.Errorf("error with service: %v", err)
@@ -192,4 +192,30 @@ func VerifyToken(token string, verificationUrl string) error {
 	}
 
 	return nil
+}
+
+func loadAndParseKeys(fp string) (nkeys.KeyPair, error) {
+	if fp == "" {
+		return nil, errors.New("key file required")
+	}
+	seed, err := os.ReadFile(fp)
+	if err != nil {
+		return nil, fmt.Errorf("error reading key file: %w", err)
+	}
+	// Check for either "SA" or "SXA" prefix
+	if !bytes.HasPrefix(seed, []byte{'S', 'A'}) && !bytes.HasPrefix(seed, []byte{'S', 'X', 'A'}) {
+		return nil, fmt.Errorf("key must be an account private key or encryption key")
+	}
+	kp, err := nkeys.FromSeed(seed)
+	if err != nil {
+		return nil, fmt.Errorf("error parsing key: %w", err)
+	}
+	return kp, nil
+}
+
+func getConnectionOptions(fp string) ([]nats.Option, error) {
+	if fp == "" {
+		return nil, errors.New("creds file required")
+	}
+	return []nats.Option{nats.UserCredentials(fp)}, nil
 }
