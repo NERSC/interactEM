@@ -44,9 +44,13 @@ class Settings(BaseSettings):
 
     def validate_nkeys(self) -> "Settings":
         if not self.NKEYS_SEED_FILE and not self.NKEYS_SEED_STR:
-            raise ValueError("Either NKEYS_SEED or NKEYS_SEED_STR must be provided")
+            raise ValueError(
+                "Either NKEYS_SEED_FILE or NKEYS_SEED_STR must be provided"
+            )
         if self.NKEYS_SEED_FILE and self.NKEYS_SEED_STR:
-            raise ValueError("Only one of NKEYS_SEED or NKEYS_SEED_STR must be provided")
+            raise ValueError(
+                "Only one of NKEYS_SEED_FILE or NKEYS_SEED_STR must be provided"
+            )
 
         # We only use NKEYS_SEED_STR in the rest of code
         if self.NKEYS_SEED_FILE:
