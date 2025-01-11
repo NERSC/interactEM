@@ -134,9 +134,9 @@ func main() {
 	if err != nil {
 		panic(fmt.Errorf("error loading creds: %w", err))
 	}
-	nc, err := nats.Connect("nats://localhost:4222", opts...)
+	nc, err := nats.Connect(cfg.SERVER_URL, opts...)
 	if err != nil {
-		panic(fmt.Errorf("error connecting: %w", err))
+		panic(fmt.Errorf("error connecting to %s: %w", cfg.SERVER_URL, err))
 	}
 	defer nc.Close()
 	logger.Noticef("connected to server at: %s", cfg.SERVER_URL)
