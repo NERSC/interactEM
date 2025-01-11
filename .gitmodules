@@ -4,6 +4,6 @@
 [submodule "helm/spin-helm"]
 	path = helm/spin-helm
 	url = https://github.com/NERSC/spin-helm.git
-[submodule "backend/callout/service_callout/callout"]
-	path = backend/callout/service_callout/callout
+[submodule "backend/callout/service/callout"]
+	path = backend/callout/service/callout
 	url = https://github.com/aricart/callout.go.git
