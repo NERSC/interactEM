@@ -79,8 +79,7 @@ func main() {
 	// Function that creates the users
 	authorizer := func(req *natsjwt.AuthorizationRequest) (string, error) {
 		logger.Noticef("received request!")
-		logger.Noticef("req.ConnectOptions: %v", req.ConnectOptions)
-		parsedToken, err := VerifyTokenLocally(req.ConnectOptions.Name,
+		parsedToken, err := VerifyTokenLocally(req.ConnectOptions.Token,
 			cfg.JWT_SECRET_KEY,
 			cfg.JWT_ALGORITHM,
 		)
