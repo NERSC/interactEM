@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"syscall"
 	"time"
@@ -22,14 +23,14 @@ import (
 )
 
 type Config struct {
-	VERIFY_URL                string `validate:"omitempty,url"`
-	CALLOUT_ACCOUNT_NKEY_FILE string `validate:"required"`
-	CALLOUT_ACCOUNT_XKEY_FILE string `validate:"required"`
-	AUTH_USER_CREDS_FILE      string `validate:"required"`
-	SERVER_URL                string `validate:"required,url"`
-	TOKEN_EXPIRATION_TIME_S   int    `validate:"required"`
-	JWT_SECRET_KEY            string `validate:"required"`
-	JWT_ALGORITHM             string `validate:"required"`
+	VERIFY_URL                   string `validate:"omitempty,url"`
+	CALLOUT_ACCOUNT_NKEY_FILE    string `validate:"required"`
+	CALLOUT_ACCOUNT_XKEY_FILE    string `validate:"required"`
+	AUTH_USER_CREDS_OR_NKEY_FILE string `validate:"required,filepath"`
+	SERVER_URL                   string `validate:"required,url"`
+	TOKEN_EXPIRATION_TIME_S      int    `validate:"required"`
+	JWT_SECRET_KEY               string `validate:"required"`
+	JWT_ALGORITHM                string `validate:"required"`
 }
 
 func main() {
@@ -42,11 +43,11 @@ func main() {
 	}
 
 	cfg := Config{
-		VERIFY_URL:                os.Getenv("VERIFY_URL"),
-		CALLOUT_ACCOUNT_NKEY_FILE: os.Getenv("CALLOUT_ACCOUNT_NKEY_FILE"),
-		CALLOUT_ACCOUNT_XKEY_FILE: os.Getenv("CALLOUT_ACCOUNT_XKEY_FILE"),
-		AUTH_USER_CREDS_FILE:      os.Getenv("AUTH_USER_CREDS_FILE"),
-		SERVER_URL:                os.Getenv("SERVER_URL"),
+		VERIFY_URL:                   os.Getenv("VERIFY_URL"),
+		CALLOUT_ACCOUNT_NKEY_FILE:    os.Getenv("CALLOUT_ACCOUNT_NKEY_FILE"),
+		CALLOUT_ACCOUNT_XKEY_FILE:    os.Getenv("CALLOUT_ACCOUNT_XKEY_FILE"),
+		AUTH_USER_CREDS_OR_NKEY_FILE: os.Getenv("AUTH_USER_CREDS_OR_NKEY_FILE"),
+		SERVER_URL:                   os.Getenv("SERVER_URL"),
 		TOKEN_EXPIRATION_TIME_S: func() int {
 			val, err := strconv.Atoi(os.Getenv("TOKEN_EXPIRATION_TIME_S"))
 			if err != nil {
@@ -129,7 +130,8 @@ func main() {
 	}
 
 	// connect the service with the creds
-	opts, err := getConnectionOptions(cfg.AUTH_USER_CREDS_FILE)
+
+	opts, err := getConnectionOptions(cfg.AUTH_USER_CREDS_OR_NKEY_FILE)
 	if err != nil {
 		panic(fmt.Errorf("error loading creds: %w", err))
 	}
@@ -215,7 +217,17 @@ func loadAndParseKeys(fp string) (nkeys.KeyPair, error) {
 
 func getConnectionOptions(fp string) ([]nats.Option, error) {
 	if fp == "" {
-		return nil, errors.New("creds file required")
+		return nil, errors.New("creds/nk file required")
 	}
-	return []nats.Option{nats.UserCredentials(fp)}, nil
+	if filepath.Ext(fp) == ".creds" {
+		return []nats.Option{nats.UserCredentials(fp)}, nil
+	} else if filepath.Ext(fp) == ".nk" {
+		opt, err := nats.NkeyOptionFromSeed(fp)
+		if err != nil {
+			return nil, fmt.Errorf("error creating nkey option: %w", err)
+		}
+		return []nats.Option{opt}, nil
+	} else {
+		return nil, errors.New("creds/nk file must have .creds or .nk extension")
+	}
 }
