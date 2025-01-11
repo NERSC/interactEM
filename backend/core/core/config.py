@@ -52,7 +52,9 @@ class Settings(BaseSettings):
         if self.NKEYS_SEED_FILE:
             if not self.NKEYS_SEED_FILE.is_file():
                 raise ValueError(f"File not found: {self.NKEYS_SEED_FILE}")
-            self.NKEYS_SEED_STR = self.NKEYS_SEED_FILE.read_text()
+
+            with open(self.NKEYS_SEED_FILE) as f:
+                self.NKEYS_SEED_STR = f.readline().strip()
 
         if not self.NKEYS_SEED_STR:
             raise ValueError("NKEYS_SEED_STR must not be empty")
