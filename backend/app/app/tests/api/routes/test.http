@@ -4,6 +4,11 @@ Content-Type: application/x-www-form-urlencoded
 
 username=admin@example.com&password=changethis
 
+### Get an access token from external account
+POST http://localhost:8080/api/v1/login/external-token
+Content-Type: application/json
+Authorization: bearer <TOKEN>
+
 ###
 
 POST http://localhost:80/api/v1/pipelines

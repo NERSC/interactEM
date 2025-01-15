@@ -1,4 +1,6 @@
-from datetime import timedelta
+import logging
+import secrets
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,17 +8,32 @@ from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app import crud
-from app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
+from app.api.deps import (
+    CurrentUser,
+    SessionDep,
+    get_current_active_superuser,
+    verify_external_token,
+)
 from app.core import security
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.models import Message, NewPassword, Token, UserPublic
+from app.models import (
+    ExternalTokenPayload,
+    Message,
+    NewPassword,
+    Token,
+    UserCreate,
+    UserPublic,
+)
 from app.utils import (
     generate_password_reset_token,
     generate_reset_password_email,
     send_email,
     verify_password_reset_token,
 )
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -39,6 +56,58 @@ def login_access_token(
     return Token(
         access_token=security.create_access_token(
             user.id, expires_delta=access_token_expires
+        )
+    )
+
+
+@router.post("/login/external-token")
+async def login_with_external_token(
+    session: SessionDep,
+    external_user: Annotated[ExternalTokenPayload, Depends(verify_external_token)],
+) -> Token:
+    """
+    Login with an external token (e.g., distiller)
+    """
+    logger.info("Received login request from external user")
+    email = f"{external_user.username}@external.com"
+
+    user = crud.get_user_by_email(session=session, email=email)
+
+    if not user:
+        logger.info("Creating external user in db...")
+        # password doesn't matter
+        random_password = secrets.token_urlsafe(16)[:32]
+
+        user_create = UserCreate(
+            email=email,
+            password=random_password,
+            is_superuser=False,
+            is_external=True,
+        )
+
+        try:
+            user = crud.create_user(session=session, user_create=user_create)
+        except Exception:
+            raise HTTPException(
+                status_code=400, detail="Could not create user in second server"
+            )
+        logger.info("External user created in db.")
+
+    logger.info(f"External user `{external_user.username}` logged in.")
+
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Inactive user")
+
+    now = datetime.now(timezone.utc)
+    exp_datetime = datetime.fromtimestamp(external_user.exp, tz=timezone.utc)
+    access_token_expires = exp_datetime - now
+
+    logger.info(
+        f"Token will expire at: {exp_datetime.strftime('%Y-%m-%d %I:%M:%S %p %Z')}"
+    )
+    return Token(
+        access_token=security.create_access_token(
+            external_user.username, expires_delta=access_token_expires
         )
     )
 

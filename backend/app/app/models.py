@@ -75,6 +75,10 @@ class Token(SQLModel):
 class TokenPayload(SQLModel):
     sub: str | None = None
 
+class ExternalTokenPayload(SQLModel):
+    username: str
+    exp: int
+
 
 class NewPassword(SQLModel):
     token: str
