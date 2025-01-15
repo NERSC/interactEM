@@ -40,8 +40,9 @@ def read_users(session: SessionDep, skip: int = 0, limit: int = 100) -> Any:
 
     statement = select(User).offset(skip).limit(limit)
     users = session.exec(statement).all()
+    users_public = [UserPublic.model_validate(user) for user in users]
 
-    return UsersPublic(data=users, count=count)
+    return UsersPublic(data=users_public, count=count)
 
 
 @router.post(
