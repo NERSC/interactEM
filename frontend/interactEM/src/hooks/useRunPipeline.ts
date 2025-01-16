@@ -1,9 +1,9 @@
 import { useMutation } from "@tanstack/react-query"
-import { runPipelineMutation } from "../client"
+import { pipelinesRunPipelineMutation } from "../client"
 
 export const useRunPipeline = () => {
   return useMutation({
-    ...runPipelineMutation(),
+    ...pipelinesRunPipelineMutation(),
     onError: (error) => {
       console.error("Error running pipeline:", error)
     },
