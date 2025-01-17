@@ -2,4 +2,17 @@
     "editor.formatOnSave": true,
     "editor.formatOnSaveMode": "modifications",
     "editor.defaultFormatter": "charliermarsh.ruff",
+    "python.envFile": "",
+    "[go]": {
+      "editor.insertSpaces": true,
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": {
+        "source.organizeImports": "always",
+        "source.fixAll": "always"
+      },
+      "editor.defaultFormatter": "golang.go",
+    },
+    "[typescript]": {
+      "editor.defaultFormatter": "biomejs.biome"
+    }
   }
