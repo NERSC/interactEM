@@ -1,4 +1,4 @@
-FROM localhost/interactem/interactem:latest
+FROM interactem/interactem:latest
 
 # --- Install interactem operators deps ---
 WORKDIR /interactem/operators

@@ -5,13 +5,13 @@ ROOT_DIR=$(git rev-parse --show-toplevel)
 TAG=$(git rev-parse --short=6 HEAD)
 ORG=${1:-interactem}
 
-podman build --platform=linux/amd64,linux/arm64 -t interactem/interactem:$TAG -t interactem/interactem:latest -f $SCRIPT_DIR/Containerfile.base $ROOT_DIR/backend
+docker build --platform=linux/amd64,linux/arm64 -t interactem/interactem:$TAG -t interactem/interactem:latest -f $SCRIPT_DIR/Containerfile.base $ROOT_DIR/backend
 if [ $? -ne 0 ]; then
     echo "Failed to build interactem/interactem"
     exit 1
 fi
 
-podman build --platform=linux/amd64,linux/arm64 -t $ORG/operator:$TAG -f $SCRIPT_DIR/Containerfile.operator $ROOT_DIR/backend
+docker build --platform=linux/amd64,linux/arm64 -t $ORG/operator:$TAG -f $SCRIPT_DIR/Containerfile.operator $ROOT_DIR/backend
 if [ $? -ne 0 ]; then
     echo "Failed to build interactem/operator"
     exit 1
