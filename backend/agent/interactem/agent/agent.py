@@ -20,6 +20,7 @@ from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
 from pydantic import ValidationError
 
+from interactem.core.config import cfg as core_cfg
 from interactem.core.constants import (
     BUCKET_AGENTS,
     OPERATOR_ID_ENV_VAR,
@@ -376,6 +377,7 @@ class Agent:
         env = GLOBAL_ENV.copy()
         env.update(operator.env)
         env.update({OPERATOR_ID_ENV_VAR: str(operator.id)})
+        env.update({"NKEYS_SEED_STR": core_cfg.NKEYS_SEED_STR})
 
         if cfg.MOUNT_LOCAL_REPO:
             operator.mounts.append(CORE_MOUNT)
