@@ -3,12 +3,11 @@ from typing import Any
 
 import matplotlib.cm as cm
 import numpy as np
-from PIL import Image, ImageEnhance
-from pydantic import BaseModel, ValidationError
-
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
 from interactem.operators.operator import operator
+from PIL import Image, ImageEnhance
+from pydantic import BaseModel, ValidationError
 
 logger = get_logger()
 

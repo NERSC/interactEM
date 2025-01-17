@@ -40,7 +40,11 @@ from interactem.core.events.operators import (
 from interactem.core.logger import get_logger
 from interactem.core.models import CommBackend, OperatorJSON, PipelineJSON
 from interactem.core.models.messages import BytesMessage, OperatorTrackingMetadata
-from interactem.core.models.operators import OperatorMetrics, OperatorTiming, ParameterType
+from interactem.core.models.operators import (
+    OperatorMetrics,
+    OperatorTiming,
+    ParameterType,
+)
 from interactem.core.nats import create_bucket_if_doesnt_exist, create_or_update_stream
 from interactem.core.nats.config import (
     METRICS_STREAM_CONFIG,

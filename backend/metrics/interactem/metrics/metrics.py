@@ -19,7 +19,9 @@ from interactem.core.models.messages import (
     OperatorTrackingMetadata,
     OutputPortTrackingMetadata,
 )
-from interactem.core.models.operators import OperatorMetrics  # Import the OperatorMetrics model
+from interactem.core.models.operators import (
+    OperatorMetrics,  # Import the OperatorMetrics model
+)
 from interactem.core.models.pipeline import PipelineJSON
 from interactem.core.models.ports import PortMetrics
 from interactem.core.nats import (

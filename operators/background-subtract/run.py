@@ -5,13 +5,12 @@ from typing import Any
 import ncempy
 import numpy as np
 import stempy.io as stio
-from numpy.linalg import svd
-from pydantic import BaseModel, ValidationError
-from scipy import ndimage
-
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
 from interactem.operators.operator import DATA_DIRECTORY, operator
+from numpy.linalg import svd
+from pydantic import BaseModel, ValidationError
+from scipy import ndimage
 
 logger = get_logger()
 

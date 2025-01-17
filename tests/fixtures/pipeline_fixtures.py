@@ -1,5 +1,4 @@
 import pytest
-
 from interactem.core.fixtures import (
     EDGE_0,
     EDGE_1,

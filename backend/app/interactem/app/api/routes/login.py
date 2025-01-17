@@ -6,7 +6,11 @@ from fastapi.responses import HTMLResponse
 from fastapi.security import OAuth2PasswordRequestForm
 
 from interactem.app import crud
-from interactem.app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
+from interactem.app.api.deps import (
+    CurrentUser,
+    SessionDep,
+    get_current_active_superuser,
+)
 from interactem.app.core import security
 from interactem.app.core.config import settings
 from interactem.app.core.security import get_password_hash

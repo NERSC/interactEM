@@ -5,8 +5,6 @@ from typing import Any
 
 import msgpack
 import numpy as np
-from pydantic import BaseModel
-
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import (
     BytesMessage,
@@ -14,6 +12,7 @@ from interactem.core.models.messages import (
     MessageSubject,
 )
 from interactem.operators.operator import operator
+from pydantic import BaseModel
 
 logger = get_logger()
 

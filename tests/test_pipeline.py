@@ -1,7 +1,6 @@
 from uuid import UUID
 
 import pytest
-
 from interactem.core.models import (
     URI,
     CommBackend,

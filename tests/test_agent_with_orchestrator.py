@@ -2,7 +2,6 @@ import time
 
 import pytest
 from interactem.agent import Agent
-
 from interactem.core.models import PipelineMessage
 from interactem.core.pipeline import Pipeline
 

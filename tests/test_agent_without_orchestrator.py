@@ -1,5 +1,4 @@
 import pytest
-
 from interactem.core.agent import Agent
 from interactem.core.models.pipeline import PipelineJSON
 from interactem.core.pipeline import Pipeline

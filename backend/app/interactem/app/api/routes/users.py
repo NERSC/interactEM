@@ -5,7 +5,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import col, delete, func, select
 
 from interactem.app import crud
-from interactem.app.api.deps import CurrentUser, SessionDep, get_current_active_superuser
+from interactem.app.api.deps import (
+    CurrentUser,
+    SessionDep,
+    get_current_active_superuser,
+)
 from interactem.app.core.config import settings
 from interactem.app.core.security import get_password_hash, verify_password
 from interactem.app.models import (
