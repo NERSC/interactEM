@@ -1,0 +1,6 @@
+{
+  "id": "93345668-1234-1234-1234-1234567890ab",
+  "image": "ghcr.io/nersc/interactem/error:latest",
+  "label": "Error test",
+  "description": "Generates an error"
+}

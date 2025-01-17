@@ -1,0 +1,24 @@
+{
+  "id": "12345678-1234-1234-1234-1432567830cd",
+  "image": "ghcr.io/nersc/interactem/pva-converter",
+  "label": "PVA Converter",
+  "description": "Consumes PVA and sends it to the next operator",
+  "outputs": [
+    {
+      "name": "out",
+      "label": "The output",
+      "type": "PvObject",
+      "description": "Sparse scan"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "env_file",
+      "label": ".env file",
+      "type": "mount",
+      "default": "~/Documents/gits/interactEM/operators/pva-converter/.env",
+      "description": "Environment file for pvaPy Consumer",
+      "required": true
+    }
+  ]
+}

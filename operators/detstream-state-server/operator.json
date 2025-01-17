@@ -1,0 +1,6 @@
+{
+  "id": "12345678-0000-0001-0000-1234567890ab",
+  "image": "ghcr.io/nersc/interactem/detstream-state-server:latest",
+  "label": "State Server",
+  "description": "State Server for the Detstream pipeline"
+}

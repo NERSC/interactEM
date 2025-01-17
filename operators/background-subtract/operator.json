@@ -1,0 +1,41 @@
+{
+  "id": "10010008-1234-1234-1234-1000000890ab",
+  "image": "ghcr.io/nersc/interactem/background-subtract",
+  "label": "Background Subtract",
+  "description": "Background subtraction",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "partial frame",
+      "description": "Partial frame"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "out",
+      "label": "The output",
+      "type": "frame",
+      "description": "Full frame"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "offsets.emd",
+      "label": "Offsets EMD file",
+      "type": "mount",
+      "default": "~/FOURD_241002_0852_20132_00714_offsets.emd",
+      "description": "Offsets EMD file -- you should create one of these for data the day of an experiment",
+      "required": true
+    },
+    {
+      "name": "method",
+      "label": "Background subtr. method",
+      "type": "str-enum",
+      "default": "interp",
+      "description": "Method to use for background subtraction",
+      "options": ["plane", "interp"],
+      "required": true
+    }
+  ]
+}

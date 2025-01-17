@@ -1,0 +1,14 @@
+{
+  "id": "12345678-0000-0002-0000-1234567890ac",
+  "image": "ghcr.io/nersc/interactem/image-display:latest",
+  "label": "Image",
+  "description": "Display an image",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "image",
+      "description": "This image to display"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+{
+  "id": "12345678-1234-1234-1234-1432567890cd",
+  "image": "ghcr.io/nersc/interactem/electron-count-save:latest",
+  "label": "Electron Count Saver",
+  "description": "Saves electron count to a file",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "scan",
+      "description": "Sparse scan"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "output_dir",
+      "label": "Output directory",
+      "type": "mount",
+      "default": "~/ncem_raw_data/counted_data/",
+      "description": "This is where the electron counted data is saved",
+      "required": true
+    },
+    {
+      "name": "suffix",
+      "label": "Filename suffix",
+      "type": "str-enum",
+      "default": "",
+      "description": "Suffix to add to the filename",
+      "required": true,
+      "options": ["", "_counted"]
+    }
+  ]
+}

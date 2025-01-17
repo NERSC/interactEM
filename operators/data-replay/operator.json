@@ -1,0 +1,24 @@
+{
+  "id": "12345678-0001-0001-0000-1234567890ab",
+  "image": "ghcr.io/nersc/interactem/data-replay",
+  "label": "Data Replayer",
+  "description": "Data replayer",
+  "outputs": [
+    {
+      "name": "out",
+      "label": "The output",
+      "type": "frame",
+      "description": "Full frame"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "raw_data_dir",
+      "label": "Raw data directory",
+      "type": "mount",
+      "default": "~/ncem_raw_data",
+      "description": "This is where the raw data files (*.data) are located",
+      "required": true
+    }
+  ]
+}

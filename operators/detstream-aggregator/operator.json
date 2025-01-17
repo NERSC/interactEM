@@ -1,0 +1,20 @@
+{
+  "id": "12345678-1234-1234-1234-1234567890ab",
+  "image": "ghcr.io/nersc/interactem/detstream-aggregator",
+  "label": "Aggregator",
+  "description": "Aggregator for the Detstream pipeline",
+  "outputs": [
+    {
+      "name": "out",
+      "label": "The output",
+      "type": "partial frame",
+      "description": "Partial frame"
+    },
+    {
+      "name": "out2",
+      "label": "The output",
+      "type": "partial frame",
+      "description": "Partial frame"
+    }
+  ]
+}
