@@ -45,7 +45,11 @@ from interactem.core.models.operators import (
     OperatorTiming,
     ParameterType,
 )
-from interactem.core.nats import create_bucket_if_doesnt_exist, create_or_update_stream
+from interactem.core.nats import (
+    create_bucket_if_doesnt_exist,
+    create_or_update_stream,
+    nc,
+)
 from interactem.core.nats.config import (
     METRICS_STREAM_CONFIG,
     OPERATORS_STREAM_CONFIG,
@@ -187,7 +191,7 @@ class OperatorMixin(RunnableKernel):
 
     async def connect_to_nats(self):
         logger.info(f"Connecting to NATS at {cfg.NATS_SERVER_URL}...")
-        self.nc = await nats.connect(
+        self.nc = await nc(
             servers=[str(cfg.NATS_SERVER_URL)], name=f"operator-{self.id}"
         )
         logger.info("Connected to NATS...")
