@@ -51,7 +51,7 @@ for dir in "$SCRIPT_DIR"/*; do
             echo "Found Containerfile for $op_name"
             echo "Building image for $op_name"
             # Start the build in background and collect its PID
-            podman build -t "interactem/$op_name" -f "$containerfile" "$dir" &
+            podman build -t "ghcr.io/nersc/interactem/$op_name" -f "$containerfile" "$dir" &
             pids+=($!)
         else
             echo "No Containerfile in $dir, skipping"
