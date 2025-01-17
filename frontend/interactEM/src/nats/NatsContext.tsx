@@ -9,6 +9,8 @@ import {
 } from "@nats-io/jetstream"
 import { Kvm } from "@nats-io/kv"
 import config from "../config"
+import { client } from "../client"
+import { getTokenFromClient } from "../client/utils"
 
 interface NatsContextType {
   natsConnection: NatsConnection | null
@@ -19,6 +21,15 @@ interface NatsContextType {
 }
 
 const NatsContext = createContext<NatsContextType | undefined>(undefined)
+
+const getConnectionId = () => {
+  let id = sessionStorage.getItem("interactEM-connection-id")
+  if (!id) {
+    id = `interactEM-${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
+    sessionStorage.setItem("interactEM-connection-id", id)
+  }
+  return id
+}
 
 export const useNats = (): NatsContextType => {
   const context = useContext(NatsContext)
@@ -45,7 +56,16 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     const setupNatsConnection = async () => {
       try {
-        const nc = await wsconnect({ servers: [config.NATS_SERVER_URL] })
+        const token = await getTokenFromClient(client)
+        if (!token) {
+          console.error("Failed to get token from client")
+          return
+        }
+        const nc = await wsconnect({
+          servers: [config.NATS_SERVER_URL],
+          name: getConnectionId(),
+          token: token,
+        })
         setNatsConnection(nc)
         setIsConnected(true)
 
