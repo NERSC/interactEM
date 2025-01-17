@@ -1,10 +1,10 @@
 import time
 
 import pytest
-from agent.agent import Agent
+from interactem.agent import Agent
 
-from core.models import PipelineMessage
-from core.pipeline import Pipeline
+from interactem.core.models import PipelineMessage
+from interactem.core.pipeline import Pipeline
 
 
 @pytest.fixture(scope="module")

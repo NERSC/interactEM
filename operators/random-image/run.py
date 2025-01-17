@@ -5,9 +5,9 @@ from typing import Any
 import numpy as np
 from PIL import Image
 
-from core.logger import get_logger
-from core.models.messages import BytesMessage, MessageHeader, MessageSubject
-from operators.operator import operator
+from interactem.core.logger import get_logger
+from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
+from interactem.operators.operator import operator
 
 logger = get_logger()
 

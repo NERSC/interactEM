@@ -8,12 +8,12 @@ from pathlib import Path
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-from core.constants import (
+from interactem.core.constants import (
     OPERATOR_CLASS_NAME,
     OPERATOR_ID_ENV_VAR,
     OPERATOR_RUN_LOCATION,
 )
-from core.logger import get_logger
+from interactem.core.logger import get_logger
 
 logger = get_logger()
 

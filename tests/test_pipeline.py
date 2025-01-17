@@ -2,7 +2,7 @@ from uuid import UUID
 
 import pytest
 
-from core.models import (
+from interactem.core.models import (
     URI,
     CommBackend,
     EdgeJSON,
@@ -13,8 +13,8 @@ from core.models import (
     URILocation,
     URIUpdateMessage,
 )
-from core.models.uri import ZMQAddress
-from core.pipeline import Pipeline
+from interactem.core.models.uri import ZMQAddress
+from interactem.core.pipeline import Pipeline
 
 
 # Test to ensure pipeline creation from JSON is correct

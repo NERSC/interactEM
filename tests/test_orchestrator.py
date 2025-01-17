@@ -4,7 +4,7 @@ from uuid import UUID
 
 from zmglue.orchestrator import Orchestrator
 
-from core.models import (
+from interactem.core.models import (
     CommBackend,
     PipelineJSON,
     PipelineMessage,
@@ -13,7 +13,7 @@ from core.models import (
     URILocation,
     URIUpdateMessage,
 )
-from core.pipeline import Pipeline
+from interactem.core.pipeline import Pipeline
 
 
 def test_handle_pipeline_request(orchestrator: Orchestrator, pipeline: PipelineJSON):

@@ -1,6 +1,6 @@
 import pytest
 
-from core.fixtures import (
+from interactem.core.fixtures import (
     EDGE_0,
     EDGE_1,
     EDGE_2,
@@ -23,8 +23,8 @@ from core.fixtures import (
     OPERATOR_2_PORT_0,
     PIPELINE,
 )
-from core.models import EdgeJSON, OperatorJSON, PipelineJSON, PortJSON
-from core.models.base import OperatorID, PortID
+from interactem.core.models import EdgeJSON, OperatorJSON, PipelineJSON, PortJSON
+from interactem.core.models.base import OperatorID, PortID
 
 
 @pytest.fixture(scope="module")

@@ -13,7 +13,7 @@ package-mode = false
 # Define the Python versions compatible with your project.
 # Adjust the versions according to your project's requirements.
 [tool.poetry.dependencies]
-python = "^3.11" 
+python = "^3.11"
 app = { path = "backend/app", develop = true }
 core = { path = "backend/core", develop = true }
 operators = { path = "backend/operators", develop = true }
@@ -50,7 +50,7 @@ filterwarnings = ["ignore::DeprecationWarning"]
 
 [tool.ruff]
 target-version = "py310"
-exclude = ["backend/app/app/alembic/**", "backend/agent/thirdparty/**", "conftest.py"]
+exclude = ["backend/app/interactem/app/alembic/**", "backend/agent/thirdparty/**", "conftest.py"]
 
 [tool.ruff.lint]
 exclude = ["**/__init__.py"]

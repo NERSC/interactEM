@@ -20,6 +20,8 @@ RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root ; els
 
 ENV PYTHONPATH=/app
 
+ENV MODULE_NAME=interactem.app.main
+
 COPY ./app/scripts/ /app/
 
 COPY ./app/alembic.ini /app/
@@ -28,4 +30,4 @@ COPY ./app/prestart.sh /app/
 
 COPY ./app/tests-start.sh /app/
 
-COPY ./app/app /app/app
+COPY ./app/interactem /app/interactem

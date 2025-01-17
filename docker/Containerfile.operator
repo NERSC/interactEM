@@ -1,4 +1,4 @@
-FROM interactem/interactem:latest
+FROM localhost/interactem/interactem:latest
 
 # --- Install interactem operators deps ---
 WORKDIR /interactem/operators
@@ -7,9 +7,11 @@ COPY ./operators/pyproject.toml ./operators/poetry.lock* ./
 RUN poetry install --no-root
 
 # --- Install interactem operators ---
-COPY ./operators/operators/ ./operators/
+COPY ./operators/interactem/ ./interactem
 RUN poetry install --only main
 
 COPY ./operators/startup.py /app/startup.py
+
+ENV PYTHONPATH=/interactem/operators
 
 ENTRYPOINT [ "python", "/app/startup.py" ]

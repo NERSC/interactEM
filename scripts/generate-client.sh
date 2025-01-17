@@ -5,7 +5,7 @@ set -x
 
 cd backend
 # activate backend/app environment using poetry shell command before running
-python -c "import app.main; import json; print(json.dumps(app.main.app.openapi()))" > ../openapi.json
+python -c "import interactem.app.main; import json; print(json.dumps(interactem.app.main.app.openapi()))" > ../openapi.json
 cd ..
 node frontend/interactEM/modify-openapi-operationids.js
 mv openapi.json frontend/interactEM/openapi.json
