@@ -2,7 +2,9 @@
   "name": "interactem",
   "version": "0.0.1",
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/interactem.umd.cjs",
   "module": "./dist/interactem.js",
   "exports": {
@@ -37,7 +39,8 @@
   },
   "peerDependencies": {
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "zod": "^3.24.1"
   },
   "license": "MIT",
   "devDependencies": {

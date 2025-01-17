@@ -7,5 +7,5 @@ export default defineConfig({
     format: "biome",
     path: "src/client/generated",
   },
-  plugins: [...defaultPlugins, "@tanstack/react-query"],
+  plugins: [...defaultPlugins, "@tanstack/react-query", "zod"],
 })
