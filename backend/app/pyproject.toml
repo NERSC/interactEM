@@ -27,7 +27,7 @@ bcrypt = "4.0.1"
 pydantic-settings = "^2.2.1"
 sentry-sdk = {extras = ["fastapi"], version = "^1.40.6"}
 pyjwt = "^2.8.0"
-core = {path = "../core", develop = true}
+interactem-core = {path = "../core"}
 aiohttp = "^3.10.5"
 
 [tool.poetry.group.dev.dependencies]
