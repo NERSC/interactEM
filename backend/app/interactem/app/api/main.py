@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
-from interactem.app.api.routes import login, pipelines, users, utils, operators
-
+from interactem.app.api.routes import login, operators, pipelines, users, utils
 
 api_router = APIRouter()
 api_router.include_router(login.router, tags=["login"])

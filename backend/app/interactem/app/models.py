@@ -1,7 +1,7 @@
 import uuid
 from typing import Any
 
-from pydantic import EmailStr, BaseModel
+from pydantic import BaseModel, EmailStr
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
 from interactem.core.models.operators import Operator

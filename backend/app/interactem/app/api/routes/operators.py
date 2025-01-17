@@ -1,10 +1,7 @@
-import uuid
-from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
-from interactem.app.api.deps import CurrentUser, SessionDep
-
+from interactem.app.api.deps import CurrentUser
 from interactem.app.models import Operators
 from interactem.app.operators import fetch_operators
 from interactem.core.logger import get_logger
