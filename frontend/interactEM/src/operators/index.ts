@@ -1,13 +1,11 @@
-import operatorsJSON from "./operators.json"
-
 export interface OperatorInput {
-  label: string
-  description: string
+  label: string;
+  description: string;
 }
 
 export interface OperatorOutput {
-  label: string
-  description: string
+  label: string;
+  description: string;
 }
 
 export enum ParameterType {
@@ -40,7 +38,3 @@ export interface Operator {
   parameters?: OperatorParameter[]
 }
 
-export const operators = () => operatorsJSON as Operator[]
-
-export const operatorByID = (id: string) =>
-  operators().find((op) => op.id === id)
