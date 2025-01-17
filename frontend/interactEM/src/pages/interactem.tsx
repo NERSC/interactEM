@@ -6,7 +6,6 @@ import { NatsProvider } from "../nats/NatsContext"
 import { client } from "../client"
 import clientConfig from "../config"
 
-
 import "../index.css"
 import "@xyflow/react/dist/style.css"
 

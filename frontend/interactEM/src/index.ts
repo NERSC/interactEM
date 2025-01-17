@@ -1,5 +1,5 @@
-export {loginWithExternalToken} from "./auth/externalAuth";
+export { loginWithExternalToken } from "./auth/externalAuth"
 
-import InteractEM from "./pages/interactem";
+import InteractEM from "./pages/interactem"
 
-export { InteractEM };
+export { InteractEM }
