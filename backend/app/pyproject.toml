@@ -29,6 +29,7 @@ sentry-sdk = {extras = ["fastapi"], version = "^1.40.6"}
 pyjwt = "^2.8.0"
 interactem-core = {path = "../core"}
 aiohttp = "^3.10.5"
+jsonpath-ng = "^1.7.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
