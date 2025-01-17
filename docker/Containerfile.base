@@ -13,12 +13,12 @@ ENV POETRY_CACHE_DIR=/opt/.cache
 
 RUN pip install "poetry==${POETRY_VERSION}"
 
-# --- Install interactem core deps --- 
+# --- Install interactem core deps ---
 WORKDIR /interactem/core
 RUN touch README.md
 COPY ./core/pyproject.toml ./core/poetry.lock* ./
 RUN poetry install --no-root
 
 # --- Install interactem core ---
-COPY ./core/core/ ./core/
+COPY ./core/interactem/ ./interactem
 RUN poetry install --only main

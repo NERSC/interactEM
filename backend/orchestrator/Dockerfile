@@ -6,7 +6,7 @@ RUN apt-get update && \
     apt-get install -y curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
-    rm -rf /var/cache/apt/archives/* 
+    rm -rf /var/cache/apt/archives/*
 
 # Install Poetry
 RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python && \
@@ -19,7 +19,7 @@ COPY ./orchestrator/pyproject.toml ./orchestrator/poetry.lock* /app/
 
 COPY ./core/ /core/
 
-COPY ./orchestrator/orchestrator /app/
+COPY ./orchestrator/ /app/
 
 # Allow installing dev dependencies to run tests
 ARG INSTALL_DEV=false

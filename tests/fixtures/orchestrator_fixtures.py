@@ -1,5 +1,5 @@
 import pytest
-from orchestrator.orchestrator import Orchestrator
+from interactem.orchestrator import Orchestrator
 
 
 @pytest.fixture(scope="module")
