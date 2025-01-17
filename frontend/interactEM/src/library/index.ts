@@ -1,1 +1,0 @@
-export { InteractEM } from "./app"

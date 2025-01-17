@@ -18,7 +18,7 @@ export default defineConfig({
   ],
   build: {
     lib: {
-      entry: resolve(__dirname, "src/library/index.ts"),
+      entry: resolve(__dirname, "src/index.ts"),
       name: "InteractEM",
       fileName: "interactem",
     },
