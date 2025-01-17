@@ -37,8 +37,7 @@ function is_included {
     return 1  # Not found
 }
 
-declare -a pids
-i=0
+pids=()
 for dir in "$SCRIPT_DIR"/*; do
     if [ -d "$dir" ]; then
         op_name=$(basename "$dir")
@@ -53,8 +52,7 @@ for dir in "$SCRIPT_DIR"/*; do
             echo "Building image for $op_name"
             # Start the build in background and collect its PID
             podman build -t "interactem/$op_name" -f "$containerfile" "$dir" &
-            pids[$i]=$!
-            ((i++))
+            pids+=($!)
         else
             echo "No Containerfile in $dir, skipping"
         fi
