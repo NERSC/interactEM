@@ -4,14 +4,13 @@ from typing import Any
 
 import numpy as np
 import pvaccess as pva
+from interactem.core.logger import get_logger
+from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
+from interactem.operators.operator import dependencies, operator
 from pvaccess import PvObject as PvaPvObject
 from pvapy.hpc.dataConsumer import DataConsumer
 from pydantic import BaseModel, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
-
-from core.logger import get_logger
-from core.models.messages import BytesMessage, MessageHeader, MessageSubject
-from operators.operator import dependencies, operator
 
 logger = get_logger(level="DEBUG")
 

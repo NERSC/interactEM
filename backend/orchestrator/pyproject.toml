@@ -1,14 +1,15 @@
 [tool.poetry]
-name = "orchestrator"
+name = "interactem-orchestrator"
 version = "0.1.0"
 description = ""
 authors = ["Sam Welborn <swelborn@lbl.gov>"]
 readme = "README.md"
+packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
 requests = "^2.32.3"
-core = {path = "../core", develop = true}
+interactem-core = {path = "../core", develop = true}
 pydantic-settings = "^2.4"
 aiohttp = "^3.10.5"
 

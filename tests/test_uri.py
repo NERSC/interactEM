@@ -1,8 +1,7 @@
 from uuid import UUID, uuid4
 
 import pytest
-
-from core.models import URI, CommBackend, Protocol, URILocation, ZMQAddress
+from interactem.core.models import URI, CommBackend, Protocol, URILocation, ZMQAddress
 
 
 @pytest.fixture

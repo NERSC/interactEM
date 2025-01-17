@@ -1,8 +1,7 @@
 import pytest
-
-from core.agent import Agent
-from core.models.pipeline import PipelineJSON
-from core.pipeline import Pipeline
+from interactem.core.agent import Agent
+from interactem.core.models.pipeline import PipelineJSON
+from interactem.core.pipeline import Pipeline
 
 
 @pytest.fixture

@@ -1,8 +1,9 @@
 [tool.poetry]
-name = "app"
+name = "interactem-app"
 version = "0.1.0"
 description = ""
 authors = ["Admin <admin@example.com>"]
+packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"

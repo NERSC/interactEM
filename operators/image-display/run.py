@@ -1,12 +1,12 @@
 import asyncio
 from typing import Any
 
-from core.constants import STREAM_IMAGES
-from core.logger import get_logger
-from core.models.messages import BytesMessage
-from core.nats import create_or_update_stream
-from core.nats.config import IMAGES_STREAM_CONFIG
-from operators.operator import AsyncOperator
+from interactem.core.constants import STREAM_IMAGES
+from interactem.core.logger import get_logger
+from interactem.core.models.messages import BytesMessage
+from interactem.core.nats import create_or_update_stream
+from interactem.core.nats.config import IMAGES_STREAM_CONFIG
+from interactem.operators.operator import AsyncOperator
 
 logger = get_logger()
 

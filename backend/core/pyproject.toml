@@ -1,9 +1,10 @@
 [tool.poetry]
-name = "core"
+name = "interactem-core"
 version = "0.1.0"
 description = ""
 authors = ["Sam Welborn <swelborn@lbl.gov>"]
 readme = "README.md"
+packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"

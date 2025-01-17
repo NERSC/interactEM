@@ -1,13 +1,14 @@
 [tool.poetry]
-name = "operators"
+name = "interactem-operators"
 version = "0.1.0"
 description = ""
 authors = ["Sam Welborn <swelborn@lbl.gov>"]
 readme = "README.md"
+packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-core = {path = "../core", develop = true}
+interactem-core = {path = "../core", develop = true}
 pyzmq = "^26.1.0"
 networkx = "^3.3"
 pydantic-settings = "^2.4.0"

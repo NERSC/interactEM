@@ -293,6 +293,25 @@ files = [
 all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2)"]
 
 [[package]]
+name = "interactem-core"
+version = "0.1.0"
+description = ""
+optional = false
+python-versions = "^3.10"
+files = []
+develop = true
+
+[package.dependencies]
+coloredlogs = "^15.0.1"
+nats-py = "^2.9.0"
+networkx = "^3.3"
+pydantic = "^2.9"
+
+[package.source]
+type = "directory"
+url = "../core"
+
+[[package]]
 name = "nats-py"
 version = "2.9.0"
 description = "NATS client for Python"
@@ -775,4 +794,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "6f274536e6e8d726acb644d60d55995233bb406def4edc1bf3319c190dd239e7"
+content-hash = "4c2bea1bac59ccfeb161b3b8aacf0e5e218fca7f836bd4732a5ddb5923c3941e"

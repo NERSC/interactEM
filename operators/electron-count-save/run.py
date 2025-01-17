@@ -6,11 +6,10 @@ import numpy as np
 import stempy
 import stempy.image as stim
 import stempy.io
+from interactem.core.logger import get_logger
+from interactem.core.models.messages import BytesMessage
+from interactem.operators.operator import DATA_DIRECTORY, operator
 from pydantic import BaseModel, ValidationError
-
-from core.logger import get_logger
-from core.models.messages import BytesMessage
-from operators.operator import DATA_DIRECTORY, operator
 
 logger = get_logger()
 
