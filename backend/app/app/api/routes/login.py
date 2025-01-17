@@ -107,7 +107,7 @@ async def login_with_external_token(
     )
     return Token(
         access_token=security.create_access_token(
-            external_user.username, expires_delta=access_token_expires
+            user.id, expires_delta=access_token_expires
         )
     )
 
