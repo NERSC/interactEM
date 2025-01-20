@@ -14,7 +14,7 @@ export default defineConfig({
       rollupTypes: true,
       tsconfigPath: resolve(__dirname, "tsconfig.json"),
     }),
-    visualizer({ open: true, filename: "bundle-visualization.html" }),
+    visualizer({ open: false, filename: "bundle-visualization.html" }),
   ],
   build: {
     lib: {
