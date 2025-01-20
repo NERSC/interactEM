@@ -23,11 +23,15 @@ export default defineConfig({
       fileName: "interactem",
     },
     rollupOptions: {
-      external: ["react", "react-dom"],
+      // this is critical for react-query. TODO: figure out why...
+      // https://github.com/TanStack/query/issues/7927
+      // potentially explore https://www.npmjs.com/package/@tanstack/config
+      external: ["react", "react-dom", "@tanstack/react-query"],
       output: {
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
+          // unsure if we need tanstack global...
         },
       },
       treeshake: true,

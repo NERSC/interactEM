@@ -1,5 +1,11 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import InteractEM from "./pages/interactem"
 
+const queryClient = new QueryClient()
 export default function App() {
-  return <InteractEM />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <InteractEM />
+    </QueryClientProvider>
+  )
 }

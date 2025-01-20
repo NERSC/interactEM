@@ -1,4 +1,4 @@
-export { loginWithExternalToken } from "./auth/externalAuth"
+export { interactemQueryClient, loginInteractem } from "./auth/api"
 
 import InteractEM from "./pages/interactem"
 
