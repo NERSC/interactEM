@@ -69,14 +69,3 @@ async def fetch_operators() -> list[Operator]:
         ops = await asyncio.gather(*fetch_operator_tasks)
 
         return [Operator(**op) for op in ops if op]
-
-
-async def main():
-    operators = await fetch_operators()
-    print(operators)
-
-
-if __name__ == "__main__":
-    import asyncio
-
-    asyncio.run(main())
