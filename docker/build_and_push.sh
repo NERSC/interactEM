@@ -11,4 +11,5 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-docker push $ORG/operator:$TAG
+docker push $ORG/operator:$TAG 
+docker push $ORG/operator:latest
