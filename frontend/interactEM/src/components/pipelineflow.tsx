@@ -19,7 +19,6 @@ import { type DragEvent, useCallback, useMemo, useRef, useState } from "react"
 
 import { v4 as uuidv4 } from "uuid"
 
-import { operatorByID } from "../operators"
 import { type OperatorNodeData, type PipelineJSON, toJSON } from "../pipeline"
 import { OperatorMenu, type OperatorMenuItemDragData } from "./operatormenu"
 import OperatorNode, {
@@ -31,13 +30,13 @@ import "@xyflow/react/dist/style.css"
 
 import { useDnD } from "../dnd/dndcontext"
 import { layoutElements } from "../layout"
-import { operators } from "../operators"
 import { fromPipelineJSON } from "../pipeline"
 import Fab from "@mui/material/Fab"
 import NavigationIcon from "@mui/icons-material/Navigation"
 import AddIcon from "@mui/icons-material/Add"
 import { useCreatePipeline } from "../hooks/useCreatePipeline"
 import { useRunPipeline } from "../hooks/useRunPipeline"
+import useOperators from "../hooks/useOperators"
 import type { PipelinePublic } from "../client"
 
 export const edgeOptions = {
@@ -54,6 +53,10 @@ export const PipelineFlow = () => {
   const [pipelineJSONLoaded, setPipelineJSONLoaded] = useState(false)
   const { screenToFlowPosition } = useReactFlow()
   const [operatorDropData] = useDnD<OperatorMenuItemDragData>()
+  const { operators, error } = useOperators()
+  if (error) {
+    console.error("Error loading operators:", error)
+  }
 
   const [currentPipelineId, setCurrentPipelineId] = useState<string | null>(
     null,
@@ -114,7 +117,8 @@ export const PipelineFlow = () => {
 
       const { operatorID, offsetX, offsetY } = operatorDropData
 
-      const op = operatorByID(operatorID)
+      const op = operators?.find((op) => op.id === operatorID)
+
       if (op === undefined) {
         throw Error("Operator type not found: {operatorID}")
       }
@@ -149,7 +153,7 @@ export const PipelineFlow = () => {
 
       setNodes((nds) => nds.concat(newNode))
     },
-    [screenToFlowPosition, operatorDropData, handlePipelineJSONDrop],
+    [screenToFlowPosition, operatorDropData, handlePipelineJSONDrop, operators],
   )
 
   const handleNodesChange: OnNodesChange<Node<OperatorNodeData>> = useCallback(
@@ -206,7 +210,7 @@ export const PipelineFlow = () => {
     })
   }
 
-  const availableOperators = operators()
+  const availableOperators = operators ?? []
 
   const deleteKeyCode: KeyCode = "Delete"
   const multiSelectionKeyCode: KeyCode = "Shift"

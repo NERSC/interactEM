@@ -1,0 +1,40 @@
+{
+  "id": "12345678-1234-1234-1234-1234567890cd",
+  "image": "ghcr.io/nersc/interactem/electron-count:latest",
+  "label": "Electron Counter",
+  "description": "Counts electrons in a frame",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "frame",
+      "description": "Full frame"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "out",
+      "label": "The output",
+      "type": "scan",
+      "description": "Sparse scan"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "xray_threshold",
+      "label": "X-ray threshold",
+      "type": "float",
+      "default": "2000.0",
+      "description": "Removal of X-rays above this threshold",
+      "required": true
+    },
+    {
+      "name": "background_threshold",
+      "label": "Background threshold",
+      "type": "float",
+      "default": "28.0",
+      "description": "Removal of background below this threshold",
+      "required": true
+    }
+  ]
+}

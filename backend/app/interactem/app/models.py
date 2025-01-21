@@ -1,8 +1,10 @@
 import uuid
 from typing import Any
 
-from pydantic import EmailStr
+from pydantic import BaseModel, EmailStr
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
+
+from interactem.core.models.operators import Operator
 
 
 # Shared properties
@@ -105,3 +107,6 @@ class PipelinePublic(PipelineBase):
 class PipelinesPublic(SQLModel):
     data: list[PipelinePublic]
     count: int
+
+class Operators(BaseModel):
+    data: list[Operator]

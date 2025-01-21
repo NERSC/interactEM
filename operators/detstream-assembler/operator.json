@@ -1,0 +1,22 @@
+{
+  "id": "10000008-1234-1234-1234-1000000890ab",
+  "image": "ghcr.io/nersc/interactem/detstream-assembler",
+  "label": "Assembler",
+  "description": "Assembler for the Detstream pipeline",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "partial frame",
+      "description": "Partial frame"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "out",
+      "label": "The output",
+      "type": "frame",
+      "description": "Full frame"
+    }
+  ]
+}

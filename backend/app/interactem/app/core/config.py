@@ -121,5 +121,12 @@ class Settings(BaseSettings):
     # NATS
     NATS_SERVER_URL: NatsDsn = Field(default="nats://nats1:4222")
 
+    # Container Registry
+    CONTAINER_REGISTRY_URL: HttpUrl = Field(default="https://ghcr.io")
+    GITHUB_USERNAME: str
+    GITHUB_TOKEN: str
+    CONTAINER_REGISTRY_NAMESPACE: str = "nersc"
+    OPERATOR_CONTAINER_PREFIX: str = "interactem"
+
 
 settings = Settings()  # type: ignore

@@ -22,6 +22,49 @@ export type NewPassword = {
   new_password: string
 }
 
+export type Operator = {
+  id: string
+  label: string
+  description: string
+  image: string
+  inputs: Array<OperatorInput>
+  outputs: Array<OperatorOutput>
+  parameters: Array<OperatorParameter>
+}
+
+export type OperatorInput = {
+  label: string
+  description: string
+}
+
+export type OperatorOutput = {
+  label: string
+  description: string
+}
+
+export type OperatorParameter = {
+  name: string
+  label: string
+  description: string
+  type: ParameterType
+  default: string
+  required: boolean
+  value?: string | null
+  options?: Array<string> | null
+}
+
+export type Operators = {
+  data: Array<Operator>
+}
+
+export type ParameterType =
+  | "str"
+  | "int"
+  | "float"
+  | "bool"
+  | "mount"
+  | "str-enum"
+
 export type PipelineCreate = {
   data: {
     [key: string]: unknown
@@ -278,3 +321,7 @@ export type RunPipelineData = {
 export type RunPipelineResponse = PipelinePublic
 
 export type RunPipelineError = HTTPValidationError
+
+export type ReadOperatorsResponse = Operators
+
+export type ReadOperatorsError = unknown

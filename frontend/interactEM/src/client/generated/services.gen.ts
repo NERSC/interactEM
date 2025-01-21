@@ -67,6 +67,8 @@ import type {
   RunPipelineData,
   RunPipelineError,
   RunPipelineResponse,
+  ReadOperatorsError,
+  ReadOperatorsResponse,
 } from "./types.gen"
 
 export const client = createClient(createConfig())
@@ -432,5 +434,22 @@ export const runPipeline = <ThrowOnError extends boolean = false>(
   >({
     ...options,
     url: "/api/v1/pipelines/{id}/run",
+  })
+}
+
+/**
+ * Read Operators
+ * Retrieve available operators.
+ */
+export const readOperators = <ThrowOnError extends boolean = false>(
+  options?: Options<unknown, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    ReadOperatorsResponse,
+    ReadOperatorsError,
+    ThrowOnError
+  >({
+    ...options,
+    url: "/api/v1/operators/",
   })
 }

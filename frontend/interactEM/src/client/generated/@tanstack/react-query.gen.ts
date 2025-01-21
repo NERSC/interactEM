@@ -78,6 +78,7 @@ import {
   readPipeline,
   deletePipeline,
   runPipeline,
+  readOperators,
 } from "../services.gen"
 
 type QueryKey<TOptions extends Options> = [
@@ -122,10 +123,11 @@ export const loginAccessTokenOptions = (
   options: Options<LoginAccessTokenData>,
 ) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await loginAccessToken({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -160,10 +162,11 @@ export const testTokenQueryKey = (options?: Options) => [
 
 export const testTokenOptions = (options?: Options) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await testToken({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -198,10 +201,11 @@ export const recoverPasswordOptions = (
   options: Options<RecoverPasswordData>,
 ) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await recoverPassword({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -236,10 +240,11 @@ export const resetPasswordQueryKey = (options: Options<ResetPasswordData>) => [
 
 export const resetPasswordOptions = (options: Options<ResetPasswordData>) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await resetPassword({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -276,10 +281,11 @@ export const recoverPasswordHtmlContentOptions = (
   options: Options<RecoverPasswordHtmlContentData>,
 ) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await recoverPasswordHtmlContent({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -314,10 +320,11 @@ export const readUsersQueryKey = (options?: Options<ReadUsersData>) => [
 
 export const readUsersOptions = (options?: Options<ReadUsersData>) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await readUsers({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -332,10 +339,11 @@ export const createUserQueryKey = (options: Options<CreateUserData>) => [
 
 export const createUserOptions = (options: Options<CreateUserData>) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await createUser({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -370,10 +378,11 @@ export const readUserMeQueryKey = (options?: Options) => [
 
 export const readUserMeOptions = (options?: Options) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await readUserMe({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -446,10 +455,11 @@ export const registerUserQueryKey = (options: Options<RegisterUserData>) => [
 
 export const registerUserOptions = (options: Options<RegisterUserData>) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await registerUser({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -484,10 +494,11 @@ export const readUserByIdQueryKey = (options: Options<ReadUserByIdData>) => [
 
 export const readUserByIdOptions = (options: Options<ReadUserByIdData>) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await readUserById({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -542,10 +553,11 @@ export const testEmailQueryKey = (options: Options<TestEmailData>) => [
 
 export const testEmailOptions = (options: Options<TestEmailData>) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await testEmail({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -580,10 +592,11 @@ export const readPipelinesQueryKey = (options?: Options<ReadPipelinesData>) => [
 
 export const readPipelinesOptions = (options?: Options<ReadPipelinesData>) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await readPipelines({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -598,10 +611,11 @@ export const createPipelineQueryKey = (
 
 export const createPipelineOptions = (options: Options<CreatePipelineData>) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await createPipeline({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -636,10 +650,11 @@ export const readPipelineQueryKey = (options: Options<ReadPipelineData>) => [
 
 export const readPipelineOptions = (options: Options<ReadPipelineData>) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await readPipeline({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -674,10 +689,11 @@ export const runPipelineQueryKey = (options: Options<RunPipelineData>) => [
 
 export const runPipelineOptions = (options: Options<RunPipelineData>) => {
   return queryOptions({
-    queryFn: async ({ queryKey }) => {
+    queryFn: async ({ queryKey, signal }) => {
       const { data } = await runPipeline({
         ...options,
         ...queryKey[0],
+        signal,
         throwOnError: true,
       })
       return data
@@ -704,4 +720,23 @@ export const runPipelineMutation = (
     },
   }
   return mutationOptions
+}
+
+export const readOperatorsQueryKey = (options?: Options) => [
+  createQueryKey("readOperators", options),
+]
+
+export const readOperatorsOptions = (options?: Options) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await readOperators({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: readOperatorsQueryKey(options),
+  })
 }

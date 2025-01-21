@@ -99,6 +99,169 @@ export const NewPasswordSchema = {
   title: "NewPassword",
 } as const
 
+export const OperatorSchema = {
+  properties: {
+    id: {
+      type: "string",
+      format: "uuid",
+      title: "Id",
+    },
+    label: {
+      type: "string",
+      title: "Label",
+    },
+    description: {
+      type: "string",
+      title: "Description",
+    },
+    image: {
+      type: "string",
+      title: "Image",
+    },
+    inputs: {
+      items: {
+        $ref: "#/components/schemas/OperatorInput",
+      },
+      type: "array",
+      title: "Inputs",
+    },
+    outputs: {
+      items: {
+        $ref: "#/components/schemas/OperatorOutput",
+      },
+      type: "array",
+      title: "Outputs",
+    },
+    parameters: {
+      items: {
+        $ref: "#/components/schemas/OperatorParameter",
+      },
+      type: "array",
+      title: "Parameters",
+    },
+  },
+  type: "object",
+  required: [
+    "id",
+    "label",
+    "description",
+    "image",
+    "inputs",
+    "outputs",
+    "parameters",
+  ],
+  title: "Operator",
+} as const
+
+export const OperatorInputSchema = {
+  properties: {
+    label: {
+      type: "string",
+      title: "Label",
+    },
+    description: {
+      type: "string",
+      title: "Description",
+    },
+  },
+  type: "object",
+  required: ["label", "description"],
+  title: "OperatorInput",
+} as const
+
+export const OperatorOutputSchema = {
+  properties: {
+    label: {
+      type: "string",
+      title: "Label",
+    },
+    description: {
+      type: "string",
+      title: "Description",
+    },
+  },
+  type: "object",
+  required: ["label", "description"],
+  title: "OperatorOutput",
+} as const
+
+export const OperatorParameterSchema = {
+  properties: {
+    name: {
+      type: "string",
+      title: "Name",
+    },
+    label: {
+      type: "string",
+      title: "Label",
+    },
+    description: {
+      type: "string",
+      title: "Description",
+    },
+    type: {
+      $ref: "#/components/schemas/ParameterType",
+    },
+    default: {
+      type: "string",
+      title: "Default",
+    },
+    required: {
+      type: "boolean",
+      title: "Required",
+    },
+    value: {
+      anyOf: [
+        {
+          type: "string",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Value",
+    },
+    options: {
+      anyOf: [
+        {
+          items: {
+            type: "string",
+          },
+          type: "array",
+        },
+        {
+          type: "null",
+        },
+      ],
+      title: "Options",
+    },
+  },
+  type: "object",
+  required: ["name", "label", "description", "type", "default", "required"],
+  title: "OperatorParameter",
+} as const
+
+export const OperatorsSchema = {
+  properties: {
+    data: {
+      items: {
+        $ref: "#/components/schemas/Operator",
+      },
+      type: "array",
+      title: "Data",
+    },
+  },
+  type: "object",
+  required: ["data"],
+  title: "Operators",
+} as const
+
+export const ParameterTypeSchema = {
+  type: "string",
+  enum: ["str", "int", "float", "bool", "mount", "str-enum"],
+  title: "ParameterType",
+} as const
+
 export const PipelineCreateSchema = {
   properties: {
     data: {

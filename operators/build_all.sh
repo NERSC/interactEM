@@ -37,8 +37,7 @@ function is_included {
     return 1  # Not found
 }
 
-declare -a pids
-i=0
+pids=()
 for dir in "$SCRIPT_DIR"/*; do
     if [ -d "$dir" ]; then
         op_name=$(basename "$dir")
@@ -51,10 +50,10 @@ for dir in "$SCRIPT_DIR"/*; do
         if [ -f "$containerfile" ]; then
             echo "Found Containerfile for $op_name"
             echo "Building image for $op_name"
+            operator_json=$(jq -c . $dir/operator.json)
             # Start the build in background and collect its PID
-            podman build -t "interactem/$op_name" -f "$containerfile" "$dir" &
-            pids[$i]=$!
-            ((i++))
+            podman build -t "ghcr.io/nersc/interactem/$op_name" -f "$containerfile" --label "interactem.operator.spec"="$operator_json"  "$dir" &
+            pids+=($!)
         else
             echo "No Containerfile in $dir, skipping"
         fi
