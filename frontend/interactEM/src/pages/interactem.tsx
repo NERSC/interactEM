@@ -29,14 +29,14 @@ export default function InteractEM({
     authMode === "external" ? ExternalAuthProvider : InternalAuthProvider
 
   return (
-    <NatsProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <NatsProvider>
         <ReactFlowProvider>
           <DnDProvider>
             <PipelineFlow />
           </DnDProvider>
         </ReactFlowProvider>
-      </AuthProvider>
-    </NatsProvider>
+      </NatsProvider>
+    </AuthProvider>
   )
 }
