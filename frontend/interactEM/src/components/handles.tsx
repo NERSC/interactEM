@@ -1,5 +1,5 @@
-import type React from "react"
 import { Handle, Position } from "@xyflow/react"
+import type React from "react"
 
 interface HandlesProps {
   inputs?: string[]

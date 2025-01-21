@@ -1,11 +1,11 @@
 // ParametersButton.tsx
 
+import SettingsIcon from "@mui/icons-material/Settings"
+import { Box, IconButton, Modal } from "@mui/material"
 import type React from "react"
 import { useState } from "react"
-import { IconButton, Modal, Box } from "@mui/material"
-import SettingsIcon from "@mui/icons-material/Settings"
-import ParameterUpdater from "./parameterupdater"
 import type { OperatorParameter } from "../operators"
+import ParameterUpdater from "./parameterupdater"
 
 interface ParametersButtonProps {
   operatorID: string

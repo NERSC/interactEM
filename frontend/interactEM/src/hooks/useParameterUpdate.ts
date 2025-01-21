@@ -1,11 +1,11 @@
 import {
-  useMutation,
   type UseMutationResult,
+  useMutation,
   useQueryClient,
 } from "@tanstack/react-query"
+import { PARAMETERS_QUERYKEY, PARAMETERS_STREAM } from "../constants/nats"
 import { useNats } from "../nats/NatsContext"
 import type { OperatorParameter } from "../operators"
-import { PARAMETERS_QUERYKEY, PARAMETERS_STREAM } from "../constants/nats"
 
 export const useParameterUpdate = (
   operatorID: string,

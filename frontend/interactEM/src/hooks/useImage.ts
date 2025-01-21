@@ -1,9 +1,9 @@
-import { useMemo, useState, useCallback } from "react"
 import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
-import { IMAGES_STREAM } from "../constants/nats"
-import { useConsumer } from "./useConsumer"
-import { useConsumeMessages } from "./useConsumeMessages"
 import type { JsMsg } from "@nats-io/jetstream"
+import { useCallback, useMemo, useState } from "react"
+import { IMAGES_STREAM } from "../constants/nats"
+import { useConsumeMessages } from "./useConsumeMessages"
+import { useConsumer } from "./useConsumer"
 import { useStream } from "./useStream"
 
 const streamConfig = {

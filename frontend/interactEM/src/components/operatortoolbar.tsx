@@ -1,6 +1,6 @@
-import type React from "react"
-import { IconButton, Tooltip } from "@mui/material"
 import InfoIcon from "@mui/icons-material/Info"
+import { IconButton, Tooltip } from "@mui/material"
+import type React from "react"
 import type { OperatorParameter } from "../operators"
 import ParametersButton from "./parametersbutton"
 

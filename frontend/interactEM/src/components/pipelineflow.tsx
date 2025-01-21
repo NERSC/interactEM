@@ -21,24 +21,24 @@ import { v4 as uuidv4 } from "uuid"
 
 import { operatorByID } from "../operators"
 import { type OperatorNodeData, type PipelineJSON, toJSON } from "../pipeline"
+import ImageNode, { type ImageNode as ImageNodeType } from "./imagenode"
 import { OperatorMenu, type OperatorMenuItemDragData } from "./operatormenu"
 import OperatorNode, {
   type OperatorNode as OperatorNodeType,
 } from "./operatornode"
-import ImageNode, { type ImageNode as ImageNodeType } from "./imagenode"
 
 import "@xyflow/react/dist/style.css"
 
+import AddIcon from "@mui/icons-material/Add"
+import NavigationIcon from "@mui/icons-material/Navigation"
+import Fab from "@mui/material/Fab"
+import type { PipelinePublic } from "../client"
 import { useDnD } from "../dnd/dndcontext"
+import { useCreatePipeline } from "../hooks/useCreatePipeline"
+import { useRunPipeline } from "../hooks/useRunPipeline"
 import { layoutElements } from "../layout"
 import { operators } from "../operators"
 import { fromPipelineJSON } from "../pipeline"
-import Fab from "@mui/material/Fab"
-import NavigationIcon from "@mui/icons-material/Navigation"
-import AddIcon from "@mui/icons-material/Add"
-import { useCreatePipeline } from "../hooks/useCreatePipeline"
-import { useRunPipeline } from "../hooks/useRunPipeline"
-import type { PipelinePublic } from "../client"
 
 export const edgeOptions = {
   type: "smoothstep",

@@ -1,9 +1,9 @@
-import { useState, useMemo, useCallback } from "react"
 import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
-import { useConsumer } from "./useConsumer"
-import { useConsumeMessages } from "./useConsumeMessages"
-import { PARAMETERS_STREAM, PARAMETERS_UPDATE_STREAM } from "../constants/nats"
 import type { JsMsg } from "@nats-io/jetstream"
+import { useCallback, useMemo, useState } from "react"
+import { PARAMETERS_STREAM, PARAMETERS_UPDATE_STREAM } from "../constants/nats"
+import { useConsumeMessages } from "./useConsumeMessages"
+import { useConsumer } from "./useConsumer"
 import { useStream } from "./useStream"
 
 const streamConfig = {
