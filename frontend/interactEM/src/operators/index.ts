@@ -1,11 +1,11 @@
 export interface OperatorInput {
-  label: string;
-  description: string;
+  label: string
+  description: string
 }
 
 export interface OperatorOutput {
-  label: string;
-  description: string;
+  label: string
+  description: string
 }
 
 export enum ParameterType {
@@ -37,4 +37,3 @@ export interface Operator {
   outputs?: OperatorOutput[]
   parameters?: OperatorParameter[]
 }
-

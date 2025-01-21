@@ -153,7 +153,7 @@ export const PipelineFlow = () => {
 
       setNodes((nds) => nds.concat(newNode))
     },
-    [screenToFlowPosition, operatorDropData, handlePipelineJSONDrop],
+    [screenToFlowPosition, operatorDropData, handlePipelineJSONDrop, operators],
   )
 
   const handleNodesChange: OnNodesChange<Node<OperatorNodeData>> = useCallback(

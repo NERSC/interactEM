@@ -1,36 +1,32 @@
-import { useEffect, useState } from "react";
-import { Operator } from "../operators";
+import { useEffect, useState } from "react"
+import type { Operator } from "../operators"
 
-import {
-  readOperators,
-  ReadOperatorsError,
-  ReadOperatorsResponse,
-} from "../client";
+import { readOperators, type ReadOperatorsError } from "../client"
 
 const useOperators = () => {
-  const [operators, setOperators] = useState<Operator[] | null>(null);
-  const [error, setError] = useState<ReadOperatorsError | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [operators, setOperators] = useState<Operator[] | null>(null)
+  const [error, setError] = useState<ReadOperatorsError | null>(null)
+  const [loading, setLoading] = useState<boolean>(false)
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
+      setLoading(true)
       try {
-        const response = await readOperators();
+        const response = await readOperators()
         if (response.data) {
-          setOperators((response.data.data as Operator[]) ?? null);
+          setOperators((response.data.data as Operator[]) ?? null)
         }
       } catch (err) {
-        setError(err as ReadOperatorsError);
+        setError(err as ReadOperatorsError)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
-    };
+    }
 
-    fetchData();
-  }, []);
+    fetchData()
+  }, [])
 
-  return { operators, error, loading };
-};
+  return { operators, error, loading }
+}
 
-export default useOperators;
+export default useOperators
