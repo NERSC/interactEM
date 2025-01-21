@@ -5,6 +5,9 @@ from httpx import AsyncClient
 from jsonpath_ng import parse
 
 GITHUB_API_URL = "https://api.github.com"
+MANIFEST_MIME_TYPE = "application/vnd.oci.image.manifest.v1+json"
+GITHUB_API_MIME_TYPE = "application/vnd.github.v3+json"
+BLOB_MIME_TYPE = "application/vnd.docker.distribution.manifest.v2+json"
 
 
 class ContainerRegistry:
@@ -50,7 +53,7 @@ class ContainerRegistry:
         url = f"{GITHUB_API_URL}/orgs/{org}/packages"
         params = {"package_type": "container"}
         headers = {
-            "Accept": "application/vnd.github.v3+json",
+            "Accept": GITHUB_API_MIME_TYPE,
             "Authorization": f"Bearer {self._password}",
         }
         r = await self._client.get(url, headers=headers, params=params)
@@ -77,9 +80,7 @@ class ContainerRegistry:
 
     async def manifest(self, image: str, tag: str) -> dict[str, Any]:
         headers = await self._headers()
-        headers["Accept"] = "application/vnd.oci.image.manifest.v1+json"
-
-        print(headers)
+        headers["Accept"] = MANIFEST_MIME_TYPE
 
         r = await self._client.get(f"v2/{image}/manifests/{tag}", headers=headers)
         r.raise_for_status()
@@ -88,7 +89,7 @@ class ContainerRegistry:
 
     async def blob(self, image: str, digest: str) -> dict[str, Any]:
         headers = await self._headers()
-        headers["Accept"] = "application/vnd.docker.distribution.manifest.v2+json"
+        headers["Accept"] = BLOB_MIME_TYPE
         r = await self._client.get(
             f"v2/{image}/blobs/{digest}", headers=headers, follow_redirects=True
         )
