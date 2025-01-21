@@ -1,0 +1,16 @@
+{
+  "id": "12345678-0000-0000-0000-1234567890ab",
+  "image": "ghcr.io/nersc/interactem/detstream-producer",
+  "label": "Producer",
+  "description": "Producer for the Detstream pipeline",
+  "parameters": [
+    {
+      "name": "command",
+      "label": "The command to run",
+      "type": "str",
+      "default": "0",
+      "description": "A command",
+      "required": true
+    }
+  ]
+}

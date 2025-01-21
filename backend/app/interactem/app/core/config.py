@@ -125,5 +125,12 @@ class Settings(BaseSettings):
     EXTERNAL_SECRET_KEY: str
     EXTERNAL_ALGORITHM: str
 
+    # Container Registry
+    CONTAINER_REGISTRY_URL: HttpUrl = Field(default="https://ghcr.io")
+    GITHUB_USERNAME: str
+    GITHUB_TOKEN: str
+    CONTAINER_REGISTRY_NAMESPACE: str = "nersc"
+    OPERATOR_CONTAINER_PREFIX: str = "interactem"
+
 
 settings = Settings()  # type: ignore

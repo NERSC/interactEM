@@ -1,0 +1,6 @@
+{
+  "id": "12345678-1234-1234-1234-1432563830cd",
+  "image": "ghcr.io/nersc/interactem/pvapy-ad-sim-server",
+  "label": "PVA Area Detector Server",
+  "description": "Generates PVAs"
+}

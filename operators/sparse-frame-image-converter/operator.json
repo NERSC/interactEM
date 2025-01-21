@@ -1,0 +1,74 @@
+{
+  "id": "12345678-1234-1234-1234-1432567890ad",
+  "image": "ghcr.io/nersc/interactem/sparse-frame-image-converter:latest",
+  "label": "Image Converter",
+  "description": "Converters a sparse frame to an image",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "scan",
+      "description": "Sparse scan"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "out",
+      "label": "The output",
+      "type": "Image",
+      "description": "an image"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "average",
+      "label": "Number to average",
+      "type": "int",
+      "default": "50",
+      "description": "Number of frames to average before updating",
+      "required": true
+    },
+    {
+      "name": "skip",
+      "label": "Number to skip",
+      "type": "int",
+      "default": "1",
+      "description": "Skip this many frames before updating",
+      "required": true
+    },
+    {
+      "name": "contrast",
+      "label": "Image contrast",
+      "type": "float",
+      "default": "2.0",
+      "description": "Image contrast",
+      "required": true
+    },
+    {
+      "name": "brightness",
+      "label": "Image brightness",
+      "type": "float",
+      "default": "1.0",
+      "description": "Image brightness",
+      "required": true
+    },
+    {
+      "name": "operation",
+      "label": "Operation",
+      "type": "str-enum",
+      "default": "average",
+      "description": "Operation to perform",
+      "required": true,
+      "options": ["sum", "average"]
+    },
+    {
+      "name": "colormap",
+      "label": "Colormap",
+      "type": "str-enum",
+      "default": "viridis",
+      "description": "Colormap to use",
+      "required": true,
+      "options": ["viridis", "plasma", "inferno", "magma", "cividis"]
+    }
+  ]
+}
