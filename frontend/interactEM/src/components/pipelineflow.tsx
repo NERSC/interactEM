@@ -28,20 +28,14 @@ import OperatorNode, {
 
 import "@xyflow/react/dist/style.css"
 
-import AddIcon from "@mui/icons-material/Add"
-import AddIcon from "@mui/icons-material/Add"
+import AddIcon from "@mui/icons-material/Add";
 import NavigationIcon from "@mui/icons-material/Navigation"
-import NavigationIcon from "@mui/icons-material/Navigation"
-import Fab from "@mui/material/Fab"
-import Fab from "@mui/material/Fab"
-import type { PipelinePublic } from "../client"
+import Fab from "@mui/material/Fab";
 import type { PipelinePublic } from "../client"
 import { useDnD } from "../dnd/dndcontext"
-import { useCreatePipeline } from "../hooks/useCreatePipeline"
-import { useCreatePipeline } from "../hooks/useCreatePipeline"
+import { useCreatePipeline } from "../hooks/useCreatePipeline";
 import useOperators from "../hooks/useOperators"
-import { useRunPipeline } from "../hooks/useRunPipeline"
-import { useRunPipeline } from "../hooks/useRunPipeline"
+import { useRunPipeline } from "../hooks/useRunPipeline";
 import { layoutElements } from "../layout"
 import { fromPipelineJSON } from "../pipeline"
 
