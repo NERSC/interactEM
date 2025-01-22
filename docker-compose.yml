@@ -95,6 +95,8 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
       - NKEYS_SEED_FILE=/app_user.nk
+      - GITHUB_USERNAME=${GITHUB_USERNAME?Variable not set}
+      - GITHUB_TOKEN=${GITHUB_TOKEN?Variable not set}
     volumes:
       - "./nats-conf/out_nkey/app_user.nk:/app_user.nk"
 
