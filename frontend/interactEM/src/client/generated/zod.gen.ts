@@ -32,6 +32,83 @@ export const zNewPassword = z.object({
   new_password: z.string().min(8).max(40),
 })
 
+export const zOperator = z.object({
+  id: z.string().uuid(),
+  label: z.string(),
+  description: z.string(),
+  image: z.string(),
+  inputs: z
+    .array(
+      z.object({
+        label: z.string(),
+        description: z.string(),
+      }),
+    )
+    .optional(),
+  outputs: z
+    .union([
+      z.array(
+        z.object({
+          label: z.string(),
+          description: z.string(),
+        }),
+      ),
+      z.null(),
+    ])
+    .optional(),
+  parameters: z
+    .union([
+      z.array(
+        z.object({
+          name: z.string(),
+          label: z.string(),
+          description: z.string(),
+          type: z.enum(["str", "int", "float", "bool", "mount", "str-enum"]),
+          default: z.string(),
+          required: z.boolean(),
+          value: z.union([z.string(), z.null()]).optional(),
+          options: z.union([z.array(z.string()), z.null()]).optional(),
+        }),
+      ),
+      z.null(),
+    ])
+    .optional(),
+})
+
+export const zOperatorInput = z.object({
+  label: z.string(),
+  description: z.string(),
+})
+
+export const zOperatorOutput = z.object({
+  label: z.string(),
+  description: z.string(),
+})
+
+export const zOperatorParameter = z.object({
+  name: z.string(),
+  label: z.string(),
+  description: z.string(),
+  type: z.enum(["str", "int", "float", "bool", "mount", "str-enum"]),
+  default: z.string(),
+  required: z.boolean(),
+  value: z.union([z.string(), z.null()]).optional(),
+  options: z.union([z.array(z.string()), z.null()]).optional(),
+})
+
+export const zOperators = z.object({
+  data: z.array(zOperator),
+})
+
+export const zParameterType = z.enum([
+  "str",
+  "int",
+  "float",
+  "bool",
+  "mount",
+  "str-enum",
+])
+
 export const zPipelineCreate = z.object({
   data: z.object({}),
 })
@@ -150,3 +227,5 @@ export const zPipelinesDeletePipelineResponse = zMessage
 export const zPipelinesReadPipelineResponse = zPipelinePublic
 
 export const zPipelinesRunPipelineResponse = zPipelinePublic
+
+export const zOperatorsReadOperatorsResponse = zOperators

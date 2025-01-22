@@ -23,6 +23,8 @@ import type {
   LoginResetPasswordResponse,
   LoginTestTokenData,
   LoginTestTokenResponse,
+  OperatorsReadOperatorsData,
+  OperatorsReadOperatorsResponse,
   PipelinesCreatePipelineData,
   PipelinesCreatePipelineError,
   PipelinesCreatePipelineResponse,
@@ -589,6 +591,29 @@ export const pipelinesRunPipeline = <ThrowOnError extends boolean = false>(
       },
     ],
     url: "/api/v1/pipelines/{id}/run",
+    ...options,
+  })
+}
+
+/**
+ * Read Operators
+ * Retrieve available operators.
+ */
+export const operatorsReadOperators = <ThrowOnError extends boolean = false>(
+  options?: Options<OperatorsReadOperatorsData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).get<
+    OperatorsReadOperatorsResponse,
+    unknown,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/operators/",
     ...options,
   })
 }

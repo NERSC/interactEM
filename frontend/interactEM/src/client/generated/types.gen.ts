@@ -22,6 +22,49 @@ export type NewPassword = {
   new_password: string
 }
 
+export type Operator = {
+  id: string
+  label: string
+  description: string
+  image: string
+  inputs?: Array<OperatorInput>
+  outputs?: Array<OperatorOutput> | null
+  parameters?: Array<OperatorParameter> | null
+}
+
+export type OperatorInput = {
+  label: string
+  description: string
+}
+
+export type OperatorOutput = {
+  label: string
+  description: string
+}
+
+export type OperatorParameter = {
+  name: string
+  label: string
+  description: string
+  type: ParameterType
+  default: string
+  required: boolean
+  value?: string | null
+  options?: Array<string> | null
+}
+
+export type Operators = {
+  data: Array<Operator>
+}
+
+export type ParameterType =
+  | "str"
+  | "int"
+  | "float"
+  | "bool"
+  | "mount"
+  | "str-enum"
+
 export type PipelineCreate = {
   data: {
     [key: string]: unknown
@@ -678,3 +721,20 @@ export type PipelinesRunPipelineResponses = {
 
 export type PipelinesRunPipelineResponse =
   PipelinesRunPipelineResponses[keyof PipelinesRunPipelineResponses]
+
+export type OperatorsReadOperatorsData = {
+  body?: never
+  path?: never
+  query?: never
+  url: "/api/v1/operators/"
+}
+
+export type OperatorsReadOperatorsResponses = {
+  /**
+   * Successful Response
+   */
+  200: Operators
+}
+
+export type OperatorsReadOperatorsResponse =
+  OperatorsReadOperatorsResponses[keyof OperatorsReadOperatorsResponses]

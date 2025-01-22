@@ -15,6 +15,7 @@ import {
   loginRecoverPasswordHtmlContent,
   loginResetPassword,
   loginTestToken,
+  operatorsReadOperators,
   pipelinesCreatePipeline,
   pipelinesDeletePipeline,
   pipelinesReadPipeline,
@@ -49,6 +50,7 @@ import type {
   LoginResetPasswordResponse,
   LoginTestTokenData,
   LoginTestTokenResponse,
+  OperatorsReadOperatorsData,
   PipelinesCreatePipelineData,
   PipelinesCreatePipelineError,
   PipelinesCreatePipelineResponse,
@@ -794,4 +796,25 @@ export const pipelinesRunPipelineMutation = (
     },
   }
   return mutationOptions
+}
+
+export const operatorsReadOperatorsQueryKey = (
+  options?: Options<OperatorsReadOperatorsData>,
+) => [createQueryKey("operatorsReadOperators", options)]
+
+export const operatorsReadOperatorsOptions = (
+  options?: Options<OperatorsReadOperatorsData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await operatorsReadOperators({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: operatorsReadOperatorsQueryKey(options),
+  })
 }

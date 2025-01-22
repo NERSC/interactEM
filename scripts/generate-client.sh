@@ -10,4 +10,9 @@ python -c "import interactem.app.main; import json; print(json.dumps(interactem.
 mv openapi.json frontend/interactEM/openapi.json
 cd frontend/interactEM
 npm run generate-client
-npx biome format --write ./src/client/
+npx biome check \
+    --formatter-enabled=true \
+    --linter-enabled=true \
+    --organize-imports-enabled=true \
+    --write \
+    ./src/client/ ./openapi.json
