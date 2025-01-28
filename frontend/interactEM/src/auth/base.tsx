@@ -1,4 +1,4 @@
-import { createContext, useContext } from "react"
+import { type ReactNode, createContext, useContext } from "react"
 
 // Both internal/external auth implement this
 export type AuthState = {
@@ -6,6 +6,11 @@ export type AuthState = {
   isAuthenticated: boolean
   isLoading: boolean
   error: Error | null
+}
+
+export type AuthProviderProps = {
+  children: ReactNode
+  apiBaseUrl?: string
 }
 
 export const AuthContext = createContext<AuthState | undefined>(undefined)

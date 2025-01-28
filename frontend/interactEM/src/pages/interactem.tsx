@@ -1,9 +1,8 @@
 import { ReactFlowProvider } from "@xyflow/react"
 import ExternalAuthProvider from "../auth/externalprovider"
 import InternalAuthProvider from "../auth/internalprovider"
-import { client } from "../client"
 import { PipelineFlow } from "../components/pipelineflow"
-import clientConfig from "../config"
+import config from "../config"
 import { DnDProvider } from "../dnd/dndcontext"
 import { useQueryClientContext } from "../hooks/useQueryClientContext"
 import { NatsProvider } from "../nats/NatsContext"
@@ -11,16 +10,16 @@ import { NatsProvider } from "../nats/NatsContext"
 import "../index.css"
 import "@xyflow/react/dist/style.css"
 
-client.setConfig({
-  baseURL: clientConfig.API_BASE_URL,
-})
-
 interface InteractEMProps {
   authMode?: "external" | "internal"
+  apiBaseURL?: string
+  natsServers?: string | string[]
 }
 
 export default function InteractEM({
   authMode = "external",
+  apiBaseURL = config.API_BASE_URL,
+  natsServers = config.NATS_SERVER_URL,
 }: InteractEMProps = {}) {
   // Check if we can successfully use the query client
   useQueryClientContext()
@@ -29,8 +28,8 @@ export default function InteractEM({
     authMode === "external" ? ExternalAuthProvider : InternalAuthProvider
 
   return (
-    <AuthProvider>
-      <NatsProvider>
+    <AuthProvider apiBaseUrl={apiBaseURL}>
+      <NatsProvider natsServers={natsServers}>
         <ReactFlowProvider>
           <DnDProvider>
             <PipelineFlow />

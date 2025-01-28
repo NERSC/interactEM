@@ -13,7 +13,6 @@ import {
 import type React from "react"
 import { createContext, useContext, useEffect, useRef, useState } from "react"
 import { useAuth } from "../auth/base"
-import config from "../config"
 
 type NatsContextType = {
   natsConnection: NatsConnection | null
@@ -48,8 +47,14 @@ export const useNats = (): NatsContextType => {
   return context
 }
 
-export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({
+export type NatsProviderProps = {
+  children: React.ReactNode
+  natsServers: string | string[]
+}
+
+export const NatsProvider: React.FC<NatsProviderProps> = ({
   children,
+  natsServers,
 }) => {
   const [state, setState] = useState<NatsContextType>({
     natsConnection: null,
@@ -93,8 +98,9 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({
     }
     async function connect() {
       try {
+        const servers = Array.isArray(natsServers) ? natsServers : [natsServers]
         const nc = await wsconnect({
-          servers: [config.NATS_SERVER_URL],
+          servers: servers,
           name: getConnectionId(),
           authenticator: tokenAuthenticator(() => {
             console.log(
@@ -163,7 +169,7 @@ export const NatsProvider: React.FC<{ children: React.ReactNode }> = ({
         isConnected: false,
       })
     }
-  }, [isAuthenticated, natsConnection])
+  }, [isAuthenticated, natsConnection, natsServers])
 
   if (!isAuthenticated) {
     return null

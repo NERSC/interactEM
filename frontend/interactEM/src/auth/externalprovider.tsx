@@ -3,16 +3,17 @@ import { CircularProgress } from "@mui/material"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { client, loginLoginWithExternalToken } from "../client"
 import { AUTH_QUERY_KEYS } from "../constants/tanstack"
-import { AuthContext, type AuthState } from "./base"
-
-const authClient = createClient({
-  baseURL: "http://localhost:8080/",
-})
+import { AuthContext, type AuthProviderProps, type AuthState } from "./base"
 
 export default function ExternalAuthProvider({
   children,
-}: { children: React.ReactNode }) {
+  apiBaseUrl,
+}: AuthProviderProps) {
   const queryClient = useQueryClient()
+
+  const authClient = createClient({
+    baseURL: apiBaseUrl,
+  })
 
   const {
     data: token,
@@ -63,6 +64,7 @@ export default function ExternalAuthProvider({
   if (isSuccess) {
     client.setConfig({
       auth: token.access_token,
+      baseURL: apiBaseUrl,
     })
   }
 

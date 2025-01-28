@@ -1,27 +1,22 @@
-// TODO: Implement internal auth:
-
-import { useQuery } from "@tanstack/react-query"
-import { AUTH_QUERY_KEYS } from "../constants/tanstack"
-import { AuthContext, type AuthState } from "./base"
+import { client } from "../client"
+import config from "../config"
+import { AuthContext, type AuthProviderProps, type AuthState } from "./base"
 
 export default function InternalAuthProvider({
   children,
-}: { children: React.ReactNode }) {
-  const {
-    data: token,
-    isSuccess,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: AUTH_QUERY_KEYS.internalToken,
-  })
-
+  apiBaseUrl,
+}: AuthProviderProps) {
   const value: AuthState = {
-    token: token?.access_token ?? null,
-    isAuthenticated: isSuccess,
-    isLoading,
-    error: error instanceof Error ? error : null,
+    token: config.INTERACTEM_ADMIN_TOKEN,
+    isAuthenticated: true,
+    isLoading: false,
+    error: null,
   }
+
+  client.setConfig({
+    baseURL: apiBaseUrl,
+    auth: config.INTERACTEM_ADMIN_TOKEN,
+  })
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
