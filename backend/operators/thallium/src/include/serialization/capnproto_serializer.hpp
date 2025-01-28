@@ -135,7 +135,8 @@ private:
         static_cast<int8_t>(data.dtype().bits),
         static_cast<int8_t>(data.dtype().code),
         static_cast<int16_t>(data.dtype().lanes), flat_shape, flat_strides,
-        0 // Assuming byte offset is 0 for now
+        0 // This alignment doesn't matter for numpy, some discussion here:
+          // https://github.com/data-apis/array-api/discussions/779
     );
 
     // Create DLTensorMessage
