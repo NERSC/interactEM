@@ -103,10 +103,6 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
           servers: servers,
           name: getConnectionId(),
           authenticator: tokenAuthenticator(() => {
-            console.log(
-              "Running tokenAuthenticator with token:",
-              tokenRef.current,
-            )
             const currentToken = tokenRef.current
             if (!currentToken) {
               throw new Error("No token available")
@@ -133,8 +129,6 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
         // 6. reconnect
         ;(async () => {
           for await (const status of nc.status()) {
-            console.log("NATS status:", status.type)
-
             switch (status.type) {
               case "reconnect":
                 setState((prev) => ({ ...prev, isConnected: true }))
