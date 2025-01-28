@@ -1,17 +1,3 @@
-# Generate CapnProto
-set(CAPNP_PROTO_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-execute_process(
-  COMMAND capnp compile -oc++ "${CAPNP_PROTO_DIR}/message.capnp"
-  WORKING_DIRECTORY "${CAPNP_PROTO_DIR}"
-  RESULT_VARIABLE CAPNP_COMPILE_RESULT
-)
-
-if(CAPNP_COMPILE_RESULT EQUAL 0)
-    message(STATUS "Cap'n Proto compilation succeeded.")
-else()
-    message(FATAL_ERROR "Cap'n Proto compilation failed.")
-endif()
-
 # Generate FlatBuffers
 # See this project for an example:
 # https://github.com/ogmacorp/OgmaNeo/blob/3edd6b3e9ff044ab7a924d1871c92b8762390379/CMakeLists.txt#L154

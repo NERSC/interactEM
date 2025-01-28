@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "ndarray_info.hpp"
-#include "serialization/capnproto_serializer.hpp"
+#include "serialization/serializer.hpp"
 
 namespace interactEM {
 
@@ -48,8 +48,7 @@ public:
     try {
       // print_ndarray_info(data);
       auto [serialized_bytes, ndarray_data] =
-          serialization::Serializer::serialize(
-              serialization::SerializationType::FlatBuffers, header, data);
+          serialization::Serializer::serialize(header, data);
 
       // Prepare segments to send
       std::vector<std::pair<void *, std::size_t>> rdma_segments;

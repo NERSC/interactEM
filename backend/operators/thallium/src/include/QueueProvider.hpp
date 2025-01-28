@@ -13,7 +13,7 @@
 #include <thallium/serialization/stl/vector.hpp>
 
 #include "ndarray_info.hpp"
-#include "serialization/capnproto_serializer.hpp"
+#include "serialization/serializer.hpp"
 
 namespace interactEM {
 namespace tl = thallium;
@@ -105,9 +105,7 @@ public:
 
     try {
       auto [message_header, ndarray_data] =
-          serialization::Serializer::deserialize(
-              serialization::SerializationType::FlatBuffers, *header_buffer,
-              *data_buffer);
+          serialization::Serializer::deserialize(*header_buffer, *data_buffer);
 
       // Push the message into the queue
       {

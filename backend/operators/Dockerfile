@@ -14,7 +14,6 @@ RUN mkdir -p /opt/spack-environment && \
     &&   echo '  - spdlog' \
     &&   echo '  - fmt' \
     &&   echo '  - tclap' \
-    &&   echo '  - capnproto' \
     &&   echo '  - flatbuffers' \
     &&   echo '  concretizer:' \
     &&   echo '    unify: true' \
