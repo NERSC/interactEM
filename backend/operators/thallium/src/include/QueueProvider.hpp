@@ -1,9 +1,11 @@
-#ifndef QUEUE_PROVIDER_HPP
-#define QUEUE_PROVIDER_HPP
+#ifndef INCLUDE_QUEUE_PROVIDER_H
+#define INCLUDE_QUEUE_PROVIDER_H
 
 #include <capnp/serialize.h>
+#include <memory>
 #include <nanobind/nanobind.h>
 #include <nanobind/ndarray.h>
+#include <vector>
 
 #include <deque>
 #include <thallium.hpp>
@@ -17,32 +19,66 @@ namespace interactEM {
 namespace tl = thallium;
 namespace nb = nanobind;
 
+typedef std::vector<char> buffer_t;
+typedef std::unique_ptr<buffer_t> buffer_ptr_t;
+
 struct PyMessage {
   std::string header;
   nb::ndarray<nb::numpy> data;
+
+  // Constructor for creating message without buffer
+  PyMessage(std::string h, nb::ndarray<nb::numpy> d)
+      : header(std::move(h)), data(std::move(d)) {}
+
+  // Constructor for creating message with buffer
+  PyMessage(std::string h, nb::ndarray<nb::numpy> d, buffer_ptr_t &&db)
+      : header(std::move(h)), data(std::move(d)), buffer(std::move(db)) {}
+
+  PyMessage(PyMessage &&other) noexcept
+      : header(std::move(other.header)), data(std::move(other.data)),
+        buffer(std::move(other.buffer)) {}
+
+  PyMessage(const PyMessage &) = delete;
+  PyMessage &operator=(const PyMessage &) = delete;
+
+private:
+  buffer_ptr_t buffer;
 };
 
 class QueueProvider : public tl::provider<QueueProvider> {
 private:
-  std::deque<PyMessage> queue;
+  std::deque<std::unique_ptr<PyMessage>> queue;
   tl::mutex mtx;
   tl::condition_variable cv;
+  tl::remote_procedure m_push_rdma;
+  std::unique_ptr<tl::engine> m_engine;
 
-public:
-  QueueProvider(tl::engine &engine, uint16_t provider_id = 1)
-      : tl::provider<QueueProvider>(engine, provider_id) {
-    define("push_rdma", &QueueProvider::push_rdma);
+  QueueProvider(std::unique_ptr<tl::engine> engine, uint16_t provider_id = 1)
+      : tl::provider<QueueProvider>(*engine, provider_id),
+        m_push_rdma(define("push_rdma", &QueueProvider::push_rdma)) {
+    get_engine().push_finalize_callback(this, [p = this]() { delete p; });
   }
 
+public:
   ~QueueProvider() {
-    std::cout << "Debug: QueueProvider destructor called." << std::endl;
+    m_push_rdma.deregister();
+    get_engine().pop_finalize_callback(this);
+  }
+
+  static std::unique_ptr<QueueProvider>
+  create(std::unique_ptr<tl::engine> engine, uint16_t provider_id = 1) {
+    return std::unique_ptr<QueueProvider>(
+        new QueueProvider(std::move(engine), provider_id));
+  }
+
+  static std::unique_ptr<QueueProvider> create(margo_instance_id mid,
+                                               uint16_t provider_id = 1) {
+    return create(std::make_unique<tl::engine>(mid, false), provider_id);
   }
 
   void push_rdma(const tl::request &req, tl::bulk &remote_bulk,
                  std::size_t header_size) {
     tl::endpoint ep = req.get_endpoint();
-    std::cout << "Debug: Received request from endpoint: " << ep.get_addr()
-              << std::endl;
 
     // Get the size of the bulk data
     std::size_t bulk_size = remote_bulk.size();
@@ -50,13 +86,15 @@ public:
     size_t data_offset = header_size;
 
     // Allocate buffers for header/data and expose them for RDMA
-    std::vector<char> header_buffer(header_size);
-    std::vector<char> data_buffer(data_size);
+    auto header_buffer = std::make_unique<std::vector<char>>(header_size);
+    auto data_buffer = std::make_unique<std::vector<char>>(data_size);
+
     std::vector<std::pair<void *, std::size_t>> local_segments(2);
-    local_segments[0].first = header_buffer.data();
-    local_segments[0].second = header_buffer.size();
-    local_segments[1].first = data_buffer.data();
-    local_segments[1].second = data_buffer.size();
+    local_segments[0].first = header_buffer->data();
+    local_segments[0].second = header_buffer->size();
+    local_segments[1].first = data_buffer->data();
+    local_segments[1].second = data_buffer->size();
+
     tl::bulk local_bulk =
         get_engine().expose(local_segments, tl::bulk_mode::write_only);
 
@@ -68,39 +106,38 @@ public:
     try {
       auto [message_header, ndarray_data] =
           serialization::Serializer::deserialize(
-              serialization::SerializationType::FlatBuffers, header_buffer,
-              data_buffer);
-      print_ndarray_info(ndarray_data);
+              serialization::SerializationType::FlatBuffers, *header_buffer,
+              *data_buffer);
 
       // Push the message into the queue
       {
         std::lock_guard<tl::mutex> lock(mtx);
-        PyMessage msg;
-        msg.header = message_header;
-        msg.data = ndarray_data;
-        queue.push_back(msg);
-        std::cout << "Debug: Pushed message to queue." << std::endl;
+        queue.emplace_back(new PyMessage(std::move(message_header),
+                                         std::move(ndarray_data),
+                                         std::move(data_buffer)));
       }
 
       cv.notify_one();
       req.respond();
+
+      // TODO: handle other exceptions
     } catch (const kj::Exception &e) {
       std::cerr << "Error during message deserialization: "
                 << e.getDescription().cStr() << std::endl;
-      req.respond(); // Respond to the request even on error
+      req.respond();
       return;
     }
-
-    std::cout << "Debug: Successfully processed the push_rdma request."
-              << std::endl;
   }
-  PyMessage pull() {
+
+  std::unique_ptr<PyMessage> pull() {
     std::unique_lock<tl::mutex> lock(mtx);
+    // TODO: add timeout to this
     cv.wait(lock, [this] { return !queue.empty(); });
-    PyMessage msg = queue.front();
+    auto msg = std::move(queue.front());
     queue.pop_front();
     return msg;
   }
 };
+
 } // namespace interactEM
-#endif // QUEUE_PROVIDER_HPP
+#endif /* INCLUDE_QUEUE_PROVIDER_H */
