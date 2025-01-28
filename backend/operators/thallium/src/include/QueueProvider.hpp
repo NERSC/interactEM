@@ -50,18 +50,18 @@ private:
   std::deque<std::unique_ptr<PyMessage>> queue;
   tl::mutex mtx;
   tl::condition_variable cv;
-  tl::remote_procedure m_push_rdma;
+  tl::remote_procedure m_pull_rdma;
   std::unique_ptr<tl::engine> m_engine;
 
   QueueProvider(std::unique_ptr<tl::engine> engine, uint16_t provider_id = 1)
       : tl::provider<QueueProvider>(*engine, provider_id),
-        m_push_rdma(define("push_rdma", &QueueProvider::push_rdma)) {
+        m_pull_rdma(define("push_rdma", &QueueProvider::pull_rdma)) {
     get_engine().push_finalize_callback(this, [p = this]() { delete p; });
   }
 
 public:
   ~QueueProvider() {
-    m_push_rdma.deregister();
+    m_pull_rdma.deregister();
     get_engine().pop_finalize_callback(this);
   }
 
@@ -76,7 +76,7 @@ public:
     return create(std::make_unique<tl::engine>(mid, false), provider_id);
   }
 
-  void push_rdma(const tl::request &req, tl::bulk &remote_bulk,
+  void pull_rdma(const tl::request &req, tl::bulk &remote_bulk,
                  std::size_t header_size) {
     tl::endpoint ep = req.get_endpoint();
 
