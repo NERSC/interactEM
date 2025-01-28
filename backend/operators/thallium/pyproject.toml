@@ -13,7 +13,7 @@ authors = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/swelborn/interactEM"
+Homepage = "https://github.com/NERSC/interactEM"
 
 
 [tool.scikit-build]
