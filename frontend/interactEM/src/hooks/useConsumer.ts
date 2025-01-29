@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from "react"
-import { useNats } from "../nats/NatsContext"
-import type { ConsumerConfig, Consumer } from "@nats-io/jetstream"
+import type { Consumer, ConsumerConfig } from "@nats-io/jetstream"
 import {
-  JetStreamApiError,
   JetStreamApiCodes,
+  JetStreamApiError,
   JetStreamError,
 } from "@nats-io/jetstream"
+import { useEffect, useRef, useState } from "react"
+import { useNats } from "../nats/NatsContext"
 
 interface UseConsumerOptions {
   stream: string

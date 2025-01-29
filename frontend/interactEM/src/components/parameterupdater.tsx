@@ -1,22 +1,22 @@
+import {
+  Box,
+  Button,
+  Container,
+  FormControl,
+  FormControlLabel,
+  InputLabel,
+  MenuItem,
+  Select,
+  Switch,
+  TextField,
+  Typography,
+} from "@mui/material"
+import { useReactFlow } from "@xyflow/react"
 import type React from "react"
 import { memo, useEffect, useState } from "react"
-import {
-  TextField,
-  Button,
-  Typography,
-  Box,
-  Container,
-  Switch,
-  FormControlLabel,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-} from "@mui/material"
-import { ParameterType, type OperatorParameter } from "../operators"
-import { useParameterValue } from "../hooks/useParameterValue"
 import { useParameterUpdate } from "../hooks/useParameterUpdate"
-import { useReactFlow } from "@xyflow/react"
+import { useParameterValue } from "../hooks/useParameterValue"
+import { type OperatorParameter, ParameterType } from "../operators"
 import type { OperatorNode as OperatorNodeType } from "./operatornode"
 
 const compareValues = (

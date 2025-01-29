@@ -1,16 +1,13 @@
 {
   "openapi": "3.1.0",
-  "info": {
-    "title": "interactEM",
-    "version": "0.1.0"
-  },
+  "info": { "title": "interactEM", "version": "0.1.0" },
   "paths": {
     "/api/v1/login/access-token": {
       "post": {
         "tags": ["login"],
         "summary": "Login Access Token",
         "description": "OAuth2 compatible token login, get an access token for future requests",
-        "operationId": "login_access_token",
+        "operationId": "login-login_access_token",
         "requestBody": {
           "content": {
             "application/x-www-form-urlencoded": {
@@ -26,9 +23,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Token"
-                }
+                "schema": { "$ref": "#/components/schemas/Token" }
               }
             }
           },
@@ -36,13 +31,30 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
         }
+      }
+    },
+    "/api/v1/login/external-token": {
+      "post": {
+        "tags": ["login"],
+        "summary": "Login With External Token",
+        "description": "Login with an external token (e.g., distiller)",
+        "operationId": "login-login_with_external_token",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Token" }
+              }
+            }
+          }
+        },
+        "security": [{ "HTTPBearer": [] }]
       }
     },
     "/api/v1/login/test-token": {
@@ -50,24 +62,18 @@
         "tags": ["login"],
         "summary": "Test Token",
         "description": "Test access token",
-        "operationId": "test_token",
+        "operationId": "login-test_token",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPublic"
-                }
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
               }
             }
           }
         },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
+        "security": [{ "OAuth2PasswordBearer": [] }]
       }
     },
     "/api/v1/password-recovery/{email}": {
@@ -75,16 +81,13 @@
         "tags": ["login"],
         "summary": "Recover Password",
         "description": "Password Recovery",
-        "operationId": "recover_password",
+        "operationId": "login-recover_password",
         "parameters": [
           {
             "name": "email",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Email"
-            }
+            "schema": { "type": "string", "title": "Email" }
           }
         ],
         "responses": {
@@ -92,9 +95,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Message"
-                }
+                "schema": { "$ref": "#/components/schemas/Message" }
               }
             }
           },
@@ -102,9 +103,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -116,13 +115,11 @@
         "tags": ["login"],
         "summary": "Reset Password",
         "description": "Reset password",
-        "operationId": "reset_password",
+        "operationId": "login-reset_password",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/NewPassword"
-              }
+              "schema": { "$ref": "#/components/schemas/NewPassword" }
             }
           },
           "required": true
@@ -132,9 +129,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Message"
-                }
+                "schema": { "$ref": "#/components/schemas/Message" }
               }
             }
           },
@@ -142,9 +137,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -156,41 +149,26 @@
         "tags": ["login"],
         "summary": "Recover Password Html Content",
         "description": "HTML Content for Password Recovery",
-        "operationId": "recover_password_html_content",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "login-recover_password_html_content",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "email",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Email"
-            }
+            "schema": { "type": "string", "title": "Email" }
           }
         ],
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "text/html": {
-                "schema": {
-                  "type": "string"
-                }
-              }
-            }
+            "content": { "text/html": { "schema": { "type": "string" } } }
           },
           "422": {
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -202,32 +180,20 @@
         "tags": ["users"],
         "summary": "Read Users",
         "description": "Retrieve users.",
-        "operationId": "read_users",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "users-read_users",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "skip",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Skip"
-            }
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
           },
           {
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 100,
-              "title": "Limit"
-            }
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
           }
         ],
         "responses": {
@@ -235,9 +201,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UsersPublic"
-                }
+                "schema": { "$ref": "#/components/schemas/UsersPublic" }
               }
             }
           },
@@ -245,9 +209,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -257,19 +219,13 @@
         "tags": ["users"],
         "summary": "Create User",
         "description": "Create new user.",
-        "operationId": "create_user",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "users-create_user",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserCreate"
-              }
+              "schema": { "$ref": "#/components/schemas/UserCreate" }
             }
           }
         },
@@ -278,9 +234,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPublic"
-                }
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
               }
             }
           },
@@ -288,9 +242,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -302,59 +254,45 @@
         "tags": ["users"],
         "summary": "Read User Me",
         "description": "Get current user.",
-        "operationId": "read_user_me",
+        "operationId": "users-read_user_me",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPublic"
-                }
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
               }
             }
           }
         },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
+        "security": [{ "OAuth2PasswordBearer": [] }]
       },
       "delete": {
         "tags": ["users"],
         "summary": "Delete User Me",
         "description": "Delete own user.",
-        "operationId": "delete_user_me",
+        "operationId": "users-delete_user_me",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Message"
-                }
+                "schema": { "$ref": "#/components/schemas/Message" }
               }
             }
           }
         },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
+        "security": [{ "OAuth2PasswordBearer": [] }]
       },
       "patch": {
         "tags": ["users"],
         "summary": "Update User Me",
         "description": "Update own user.",
-        "operationId": "update_user_me",
+        "operationId": "users-update_user_me",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserUpdateMe"
-              }
+              "schema": { "$ref": "#/components/schemas/UserUpdateMe" }
             }
           },
           "required": true
@@ -364,9 +302,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPublic"
-                }
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
               }
             }
           },
@@ -374,18 +310,12 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
         },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
+        "security": [{ "OAuth2PasswordBearer": [] }]
       }
     },
     "/api/v1/users/me/password": {
@@ -393,13 +323,11 @@
         "tags": ["users"],
         "summary": "Update Password Me",
         "description": "Update own password.",
-        "operationId": "update_password_me",
+        "operationId": "users-update_password_me",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdatePassword"
-              }
+              "schema": { "$ref": "#/components/schemas/UpdatePassword" }
             }
           },
           "required": true
@@ -409,9 +337,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Message"
-                }
+                "schema": { "$ref": "#/components/schemas/Message" }
               }
             }
           },
@@ -419,18 +345,12 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
         },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
+        "security": [{ "OAuth2PasswordBearer": [] }]
       }
     },
     "/api/v1/users/signup": {
@@ -438,13 +358,11 @@
         "tags": ["users"],
         "summary": "Register User",
         "description": "Create new user without the need to be logged in.",
-        "operationId": "register_user",
+        "operationId": "users-register_user",
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserRegister"
-              }
+              "schema": { "$ref": "#/components/schemas/UserRegister" }
             }
           },
           "required": true
@@ -454,9 +372,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPublic"
-                }
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
               }
             }
           },
@@ -464,9 +380,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -478,22 +392,14 @@
         "tags": ["users"],
         "summary": "Read User By Id",
         "description": "Get a specific user by id.",
-        "operationId": "read_user_by_id",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "users-read_user_by_id",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "user_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "User Id"
-            }
+            "schema": { "type": "string", "format": "uuid", "title": "User Id" }
           }
         ],
         "responses": {
@@ -501,9 +407,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPublic"
-                }
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
               }
             }
           },
@@ -511,9 +415,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -523,31 +425,21 @@
         "tags": ["users"],
         "summary": "Update User",
         "description": "Update a user.",
-        "operationId": "update_user",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "users-update_user",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "user_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "User Id"
-            }
+            "schema": { "type": "string", "format": "uuid", "title": "User Id" }
           }
         ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserUpdate"
-              }
+              "schema": { "$ref": "#/components/schemas/UserUpdate" }
             }
           }
         },
@@ -556,9 +448,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserPublic"
-                }
+                "schema": { "$ref": "#/components/schemas/UserPublic" }
               }
             }
           },
@@ -566,9 +456,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -578,22 +466,14 @@
         "tags": ["users"],
         "summary": "Delete User",
         "description": "Delete a user.",
-        "operationId": "delete_user",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "users-delete_user",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "user_id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "User Id"
-            }
+            "schema": { "type": "string", "format": "uuid", "title": "User Id" }
           }
         ],
         "responses": {
@@ -601,9 +481,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Message"
-                }
+                "schema": { "$ref": "#/components/schemas/Message" }
               }
             }
           },
@@ -611,9 +489,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -625,12 +501,8 @@
         "tags": ["utils"],
         "summary": "Test Email",
         "description": "Test emails.",
-        "operationId": "test_email",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "utils-test_email",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "email_to",
@@ -648,9 +520,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Message"
-                }
+                "schema": { "$ref": "#/components/schemas/Message" }
               }
             }
           },
@@ -658,9 +528,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -672,32 +540,20 @@
         "tags": ["pipelines"],
         "summary": "Read Pipelines",
         "description": "Retrieve pipelines.",
-        "operationId": "read_pipelines",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "pipelines-read_pipelines",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "skip",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 0,
-              "title": "Skip"
-            }
+            "schema": { "type": "integer", "default": 0, "title": "Skip" }
           },
           {
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 100,
-              "title": "Limit"
-            }
+            "schema": { "type": "integer", "default": 100, "title": "Limit" }
           }
         ],
         "responses": {
@@ -705,9 +561,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PipelinesPublic"
-                }
+                "schema": { "$ref": "#/components/schemas/PipelinesPublic" }
               }
             }
           },
@@ -715,9 +569,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -727,19 +579,13 @@
         "tags": ["pipelines"],
         "summary": "Create Pipeline",
         "description": "Create new pipeline.",
-        "operationId": "create_pipeline",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "pipelines-create_pipeline",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PipelineCreate"
-              }
+              "schema": { "$ref": "#/components/schemas/PipelineCreate" }
             }
           }
         },
@@ -748,9 +594,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PipelinePublic"
-                }
+                "schema": { "$ref": "#/components/schemas/PipelinePublic" }
               }
             }
           },
@@ -758,9 +602,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -772,22 +614,14 @@
         "tags": ["pipelines"],
         "summary": "Read Pipeline",
         "description": "Get pipeline by ID.",
-        "operationId": "read_pipeline",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "pipelines-read_pipeline",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Id"
-            }
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
           }
         ],
         "responses": {
@@ -795,9 +629,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PipelinePublic"
-                }
+                "schema": { "$ref": "#/components/schemas/PipelinePublic" }
               }
             }
           },
@@ -805,9 +637,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -817,22 +647,14 @@
         "tags": ["pipelines"],
         "summary": "Delete Pipeline",
         "description": "Delete an pipeline.",
-        "operationId": "delete_pipeline",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "pipelines-delete_pipeline",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Id"
-            }
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
           }
         ],
         "responses": {
@@ -840,9 +662,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Message"
-                }
+                "schema": { "$ref": "#/components/schemas/Message" }
               }
             }
           },
@@ -850,9 +670,7 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
@@ -864,22 +682,14 @@
         "tags": ["pipelines"],
         "summary": "Run Pipeline",
         "description": "Run a pipeline.",
-        "operationId": "run_pipeline",
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ],
+        "operationId": "pipelines-run_pipeline",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "title": "Id"
-            }
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
           }
         ],
         "responses": {
@@ -887,9 +697,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PipelinePublic"
-                }
+                "schema": { "$ref": "#/components/schemas/PipelinePublic" }
               }
             }
           },
@@ -897,13 +705,30 @@
             "description": "Validation Error",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
               }
             }
           }
         }
+      }
+    },
+    "/api/v1/operators/": {
+      "get": {
+        "tags": ["operators"],
+        "summary": "Read Operators",
+        "description": "Retrieve available operators.",
+        "operationId": "operators-read_operators",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Operators" }
+              }
+            }
+          }
+        },
+        "security": [{ "OAuth2PasswordBearer": [] }]
       }
     }
   },
@@ -913,49 +738,20 @@
         "properties": {
           "grant_type": {
             "anyOf": [
-              {
-                "type": "string",
-                "pattern": "password"
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "pattern": "password" },
+              { "type": "null" }
             ],
             "title": "Grant Type"
           },
-          "username": {
-            "type": "string",
-            "title": "Username"
-          },
-          "password": {
-            "type": "string",
-            "title": "Password"
-          },
-          "scope": {
-            "type": "string",
-            "title": "Scope",
-            "default": ""
-          },
+          "username": { "type": "string", "title": "Username" },
+          "password": { "type": "string", "title": "Password" },
+          "scope": { "type": "string", "title": "Scope", "default": "" },
           "client_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Client Id"
           },
           "client_secret": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Client Secret"
           }
         },
@@ -966,9 +762,7 @@
       "HTTPValidationError": {
         "properties": {
           "detail": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
+            "items": { "$ref": "#/components/schemas/ValidationError" },
             "type": "array",
             "title": "Detail"
           }
@@ -977,22 +771,14 @@
         "title": "HTTPValidationError"
       },
       "Message": {
-        "properties": {
-          "message": {
-            "type": "string",
-            "title": "Message"
-          }
-        },
+        "properties": { "message": { "type": "string", "title": "Message" } },
         "type": "object",
         "required": ["message"],
         "title": "Message"
       },
       "NewPassword": {
         "properties": {
-          "token": {
-            "type": "string",
-            "title": "Token"
-          },
+          "token": { "type": "string", "title": "Token" },
           "new_password": {
             "type": "string",
             "maxLength": 40,
@@ -1004,33 +790,123 @@
         "required": ["token", "new_password"],
         "title": "NewPassword"
       },
-      "PipelineCreate": {
+      "Operator": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "label": { "type": "string", "title": "Label" },
+          "description": { "type": "string", "title": "Description" },
+          "image": { "type": "string", "title": "Image" },
+          "inputs": {
+            "items": { "$ref": "#/components/schemas/OperatorInput" },
+            "type": "array",
+            "title": "Inputs"
+          },
+          "outputs": {
+            "anyOf": [
+              {
+                "items": { "$ref": "#/components/schemas/OperatorOutput" },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Outputs"
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "items": { "$ref": "#/components/schemas/OperatorParameter" },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Parameters"
+          }
+        },
+        "type": "object",
+        "required": ["id", "label", "description", "image"],
+        "title": "Operator"
+      },
+      "OperatorInput": {
+        "properties": {
+          "label": { "type": "string", "title": "Label" },
+          "description": { "type": "string", "title": "Description" }
+        },
+        "type": "object",
+        "required": ["label", "description"],
+        "title": "OperatorInput"
+      },
+      "OperatorOutput": {
+        "properties": {
+          "label": { "type": "string", "title": "Label" },
+          "description": { "type": "string", "title": "Description" }
+        },
+        "type": "object",
+        "required": ["label", "description"],
+        "title": "OperatorOutput"
+      },
+      "OperatorParameter": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "label": { "type": "string", "title": "Label" },
+          "description": { "type": "string", "title": "Description" },
+          "type": { "$ref": "#/components/schemas/ParameterType" },
+          "default": { "type": "string", "title": "Default" },
+          "required": { "type": "boolean", "title": "Required" },
+          "value": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Value"
+          },
+          "options": {
+            "anyOf": [
+              { "items": { "type": "string" }, "type": "array" },
+              { "type": "null" }
+            ],
+            "title": "Options"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "description",
+          "type",
+          "default",
+          "required"
+        ],
+        "title": "OperatorParameter"
+      },
+      "Operators": {
         "properties": {
           "data": {
-            "type": "object",
+            "items": { "$ref": "#/components/schemas/Operator" },
+            "type": "array",
             "title": "Data"
           }
         },
+        "type": "object",
+        "required": ["data"],
+        "title": "Operators"
+      },
+      "ParameterType": {
+        "type": "string",
+        "enum": ["str", "int", "float", "bool", "mount", "str-enum"],
+        "title": "ParameterType"
+      },
+      "PipelineCreate": {
+        "properties": { "data": { "type": "object", "title": "Data" } },
         "type": "object",
         "required": ["data"],
         "title": "PipelineCreate"
       },
       "PipelinePublic": {
         "properties": {
-          "data": {
-            "type": "object",
-            "title": "Data"
-          },
+          "data": { "type": "object", "title": "Data" },
           "running": {
             "type": "boolean",
             "title": "Running",
             "default": false
           },
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          },
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
           "owner_id": {
             "type": "string",
             "format": "uuid",
@@ -1044,16 +920,11 @@
       "PipelinesPublic": {
         "properties": {
           "data": {
-            "items": {
-              "$ref": "#/components/schemas/PipelinePublic"
-            },
+            "items": { "$ref": "#/components/schemas/PipelinePublic" },
             "type": "array",
             "title": "Data"
           },
-          "count": {
-            "type": "integer",
-            "title": "Count"
-          }
+          "count": { "type": "integer", "title": "Count" }
         },
         "type": "object",
         "required": ["data", "count"],
@@ -1061,10 +932,7 @@
       },
       "Token": {
         "properties": {
-          "access_token": {
-            "type": "string",
-            "title": "Access Token"
-          },
+          "access_token": { "type": "string", "title": "Access Token" },
           "token_type": {
             "type": "string",
             "title": "Token Type",
@@ -1112,15 +980,15 @@
             "title": "Is Superuser",
             "default": false
           },
+          "is_external": {
+            "type": "boolean",
+            "title": "Is External",
+            "default": false
+          },
           "full_name": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
             ],
             "title": "Full Name"
           },
@@ -1153,23 +1021,19 @@
             "title": "Is Superuser",
             "default": false
           },
+          "is_external": {
+            "type": "boolean",
+            "title": "Is External",
+            "default": false
+          },
           "full_name": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
             ],
             "title": "Full Name"
           },
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "title": "Id"
-          }
+          "id": { "type": "string", "format": "uuid", "title": "Id" }
         },
         "type": "object",
         "required": ["email", "id"],
@@ -1191,13 +1055,8 @@
           },
           "full_name": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
             ],
             "title": "Full Name"
           }
@@ -1210,14 +1069,8 @@
         "properties": {
           "email": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255,
-                "format": "email"
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "maxLength": 255, "format": "email" },
+              { "type": "null" }
             ],
             "title": "Email"
           },
@@ -1231,28 +1084,22 @@
             "title": "Is Superuser",
             "default": false
           },
+          "is_external": {
+            "type": "boolean",
+            "title": "Is External",
+            "default": false
+          },
           "full_name": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
             ],
             "title": "Full Name"
           },
           "password": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 40,
-                "minLength": 8
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "maxLength": 40, "minLength": 8 },
+              { "type": "null" }
             ],
             "title": "Password"
           }
@@ -1264,26 +1111,15 @@
         "properties": {
           "full_name": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "maxLength": 255 },
+              { "type": "null" }
             ],
             "title": "Full Name"
           },
           "email": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255,
-                "format": "email"
-              },
-              {
-                "type": "null"
-              }
+              { "type": "string", "maxLength": 255, "format": "email" },
+              { "type": "null" }
             ],
             "title": "Email"
           }
@@ -1294,16 +1130,11 @@
       "UsersPublic": {
         "properties": {
           "data": {
-            "items": {
-              "$ref": "#/components/schemas/UserPublic"
-            },
+            "items": { "$ref": "#/components/schemas/UserPublic" },
             "type": "array",
             "title": "Data"
           },
-          "count": {
-            "type": "integer",
-            "title": "Count"
-          }
+          "count": { "type": "integer", "title": "Count" }
         },
         "type": "object",
         "required": ["data", "count"],
@@ -1312,27 +1143,12 @@
       "ValidationError": {
         "properties": {
           "loc": {
-            "items": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "integer"
-                }
-              ]
-            },
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
             "type": "array",
             "title": "Location"
           },
-          "msg": {
-            "type": "string",
-            "title": "Message"
-          },
-          "type": {
-            "type": "string",
-            "title": "Error Type"
-          }
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" }
         },
         "type": "object",
         "required": ["loc", "msg", "type"],
@@ -1340,13 +1156,11 @@
       }
     },
     "securitySchemes": {
+      "HTTPBearer": { "type": "http", "scheme": "bearer" },
       "OAuth2PasswordBearer": {
         "type": "oauth2",
         "flows": {
-          "password": {
-            "scopes": {},
-            "tokenUrl": "/api/v1/login/access-token"
-          }
+          "password": { "scopes": {}, "tokenUrl": "/api/v1/login/access-token" }
         }
       }
     }

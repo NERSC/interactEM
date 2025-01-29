@@ -3,7 +3,6 @@ from collections import deque
 from enum import Enum
 from uuid import UUID
 
-import nats
 import networkx
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
@@ -30,6 +29,7 @@ from interactem.core.nats import (
     get_metrics_bucket,
     get_pipelines_bucket,
     get_val,
+    nc,
 )
 from interactem.core.nats.consumers import create_metrics_consumer
 from interactem.core.pipeline import Pipeline
@@ -363,8 +363,10 @@ async def main():
     intervals = [2, 5, 30]  # List of intervals in seconds
     update_interval = 1  # Time difference between entries in seconds
 
-    nc: NATSClient = await nats.connect(servers=[str(cfg.NATS_SERVER_URL)])
-    js: JetStreamContext = nc.jetstream()
+    nats_client: NATSClient = await nc(
+        servers=[str(cfg.NATS_SERVER_URL)], name="metrics"
+    )
+    js: JetStreamContext = nats_client.jetstream()
 
     logger.info("Metrics microservice is running...")
 

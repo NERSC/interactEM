@@ -9,6 +9,7 @@ services:
       -c /etc/nats/nats.conf
     volumes:
       - "./nats-conf/nats1.conf:/etc/nats/nats.conf"
+      - "./nats-conf/out_nkey/auth.conf:/etc/nats/auth.conf"
 
   nats2:
     image: nats:latest
@@ -16,6 +17,7 @@ services:
       -c /etc/nats/nats.conf
     volumes:
       - "./nats-conf/nats2.conf:/etc/nats/nats.conf"
+      - "./nats-conf/out_nkey/auth.conf:/etc/nats/auth.conf"
     depends_on:
       - nats1
 
@@ -25,6 +27,7 @@ services:
       -c /etc/nats/nats.conf
     volumes:
       - "./nats-conf/nats3.conf:/etc/nats/nats.conf"
+      - "./nats-conf/out_nkey/auth.conf:/etc/nats/auth.conf"
     depends_on:
       - nats2
 
@@ -91,6 +94,11 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
+      - NKEYS_SEED_FILE=/app_user.nk
+      - GITHUB_USERNAME=${GITHUB_USERNAME?Variable not set}
+      - GITHUB_TOKEN=${GITHUB_TOKEN?Variable not set}
+    volumes:
+      - "./nats-conf/out_nkey/app_user.nk:/app_user.nk"
 
     build:
       context: ./backend/app
@@ -110,12 +118,33 @@ services:
         condition: service_started
     env_file:
       - .env
+    environment: 
+      - NKEYS_SEED_FILE=/app_user.nk
+    volumes:
+      - "./nats-conf/out_nkey/app_user.nk:/app_user.nk"
 
     build:
       context: ./backend/
       dockerfile: ./backend/orchestrator/Dockerfile
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
+
+
+  callout:
+    image: '${DOCKER_IMAGE_CALLOUT?Variable not set}:${TAG-latest}'
+    restart: always
+    depends_on:
+      db:
+        condition: service_started
+      nats-healthcheck:
+        condition: service_healthy
+    env_file:
+      - .env
+    volumes:
+      - "./backend/callout/service/.env:/.env"
+      - "./nats-conf/out_nkey/:/nats-conf/"
+    build: 
+      context: ./backend/callout/service/
 
   # frontend:
   #   image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'

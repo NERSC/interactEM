@@ -1,9 +1,9 @@
 import type { Node, NodeProps } from "@xyflow/react"
-import OperatorHeader from "./operatorheader"
-import Handles from "./handles"
-import OperatorToolbar from "./operatortoolbar"
-import type { OperatorParameter } from "../operators"
 import { useRef } from "react"
+import type { OperatorParameter } from "../operators"
+import Handles from "./handles"
+import OperatorHeader from "./operatorheader"
+import OperatorToolbar from "./operatortoolbar"
 
 export type OperatorNode = Node<
   {

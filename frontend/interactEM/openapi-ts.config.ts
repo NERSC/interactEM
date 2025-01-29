@@ -1,4 +1,4 @@
-import { defineConfig } from "@hey-api/openapi-ts"
+import { defaultPlugins, defineConfig } from "@hey-api/openapi-ts"
 
 export default defineConfig({
   client: "@hey-api/client-axios",
@@ -7,5 +7,5 @@ export default defineConfig({
     format: "biome",
     path: "src/client/generated",
   },
-  plugins: ["@tanstack/react-query"],
+  plugins: [...defaultPlugins, "@tanstack/react-query", "zod"],
 })

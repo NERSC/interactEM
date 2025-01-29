@@ -1,4 +1,7 @@
 from typing import Awaitable, Callable
+
+import nats
+
 from interactem.core.constants import (
     BUCKET_AGENTS,
     BUCKET_AGENTS_TTL,
@@ -17,6 +20,7 @@ from nats.js.api import KeyValueConfig
 from nats.js.errors import BucketNotFoundError, KeyNotFoundError, NoKeysError
 from nats.js.kv import KeyValue
 from nats.aio.msg import Msg as NATSMsg
+from nats.aio.client import Client as NATSClient
 from nats.js.api import StreamConfig, StreamInfo
 from nats.js.errors import BadRequestError
 from typing import TypeVar, Type
@@ -24,11 +28,24 @@ from pydantic import BaseModel, ValidationError
 from nats.js.kv import KeyValue
 from nats.js.errors import KeyNotFoundError
 
-ValType = TypeVar("ValType", bound=BaseModel)
-
 from interactem.core.logger import get_logger
+from interactem.core.config import cfg
 
+ValType = TypeVar("ValType", bound=BaseModel)
 logger = get_logger()
+
+
+async def nc(servers: list[str], name: str) -> NATSClient:
+    options_map = {
+        cfg.NATS_MODE.NKEYS: {
+            "nkeys_seed_str": cfg.NKEYS_SEED_STR,
+        },
+        cfg.NATS_MODE.CREDS: {
+            "user_credentials": str(cfg.NATS_CREDS_FILE),
+        },
+    }
+    options = options_map[cfg.NATS_MODE]
+    return await nats.connect(servers=servers, name=name, **options)
 
 
 async def create_bucket_if_doesnt_exist(

@@ -121,6 +121,10 @@ class Settings(BaseSettings):
     # NATS
     NATS_SERVER_URL: NatsDsn = Field(default="nats://nats1:4222")
 
+    # External auth
+    EXTERNAL_SECRET_KEY: str
+    EXTERNAL_ALGORITHM: str
+
     # Container Registry
     CONTAINER_REGISTRY_URL: HttpUrl = Field(default="https://ghcr.io")
     GITHUB_USERNAME: str

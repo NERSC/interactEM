@@ -1,7 +1,7 @@
-import type React from "react"
 import ErrorIcon from "@mui/icons-material/Error"
-import { useOperatorEvents } from "../hooks/useOperatorEvents"
 import { Tooltip } from "@mui/material"
+import type React from "react"
+import { useOperatorEvents } from "../hooks/useOperatorEvents"
 import { type OperatorErrorEvent, OperatorEventType } from "../types/events"
 
 interface OperatorHeaderProps {

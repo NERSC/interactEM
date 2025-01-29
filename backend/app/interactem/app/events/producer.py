@@ -1,15 +1,11 @@
 import logging
 
-import nats
-import nats.errors
-from nats.aio.client import Client as NATSClient
-from nats.js import JetStreamContext
 from pydantic import BaseModel
 from sqlmodel import SQLModel
 
 from interactem.core.constants import STREAM_PIPELINES, SUBJECT_PIPELINES_RUN
 from interactem.core.events.pipelines import PipelineRunEvent
-from interactem.core.nats import create_or_update_stream
+from interactem.core.nats import create_or_update_stream, nc
 from interactem.core.nats.config import PIPELINES_STREAM_CONFIG
 
 from ..core.config import settings
@@ -18,15 +14,11 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-nats_client: NATSClient | None = None
-nats_jetstream: JetStreamContext | None = None
-
-
 async def start():
     global nats_client
     global nats_jetstream
     logger.info(f"Connecting to NATS server: {settings.NATS_SERVER_URL}")
-    nats_client = await nats.connect(settings.NATS_SERVER_URL.unicode_string())
+    nats_client = await nc([str(settings.NATS_SERVER_URL)], "api")
     nats_jetstream = nats_client.jetstream()
     info = await create_or_update_stream(PIPELINES_STREAM_CONFIG, nats_jetstream)
     logger.info(f"Stream information: {info}")

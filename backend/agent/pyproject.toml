@@ -13,6 +13,7 @@ podman = "^5.0.0"
 podman-hpc = "^1.1.0"
 podman-hpc-client = {path = "thirdparty/podman-hpc-py"}
 pydantic-settings = "^2.4"
+nkeys = "^0.2.1"
 
 [build-system]
 requires = ["poetry-core"]

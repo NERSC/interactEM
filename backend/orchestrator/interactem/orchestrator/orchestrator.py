@@ -2,9 +2,6 @@ import asyncio
 from itertools import cycle
 from uuid import UUID, uuid4
 
-import nats
-import nats.js
-import nats.js.errors
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
@@ -30,6 +27,7 @@ from interactem.core.nats import (
     get_keys,
     get_pipelines_bucket,
     get_val,
+    nc,
 )
 from interactem.core.nats.config import (
     AGENTS_STREAM_CONFIG,
@@ -198,10 +196,11 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
 
 async def main():
     id: UUID = uuid4()
-    nc: NATSClient = await nats.connect(
-        servers=[str(cfg.NATS_SERVER_URL)], name=f"orchestrator-{id}"
+    nats_client: NATSClient = await nc(
+        [str(cfg.NATS_SERVER_URL)],
+        f"orchestrator-{id}",
     )
-    js: JetStreamContext = nc.jetstream()
+    js: JetStreamContext = nats_client.jetstream()
 
     logger.info("Orchestrator is running...")
 

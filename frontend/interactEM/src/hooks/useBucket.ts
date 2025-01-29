@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from "react"
-import { useNats } from "../nats/NatsContext"
 import type { KV } from "@nats-io/kv"
+import { useEffect, useRef, useState } from "react"
+import { useNats } from "../nats/NatsContext"
 
 export const useBucket = (bucketName: string): KV | null => {
   const { keyValueManager } = useNats()

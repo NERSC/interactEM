@@ -1,5 +1,5 @@
+import type { Consumer, JsMsg } from "@nats-io/jetstream"
 import { useEffect, useRef } from "react"
-import type { JsMsg, Consumer } from "@nats-io/jetstream"
 
 interface UseConsumeMessagesOptions {
   consumer: Consumer | null
