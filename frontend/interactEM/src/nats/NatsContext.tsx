@@ -135,8 +135,10 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
                 break
               case "error":
                 // TODO: handle error better, maybe with UI update
-                console.error("NATS error:", status.error)
-                setState((prev) => ({ ...prev, isConnected: false }))
+                setState((prev) => ({
+                  ...prev,
+                  isConnected: false,
+                }))
                 break
             }
           }
