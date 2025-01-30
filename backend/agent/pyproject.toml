@@ -9,6 +9,9 @@ authors = [
 ]
 requires-python = ">=3.10"
 
+[project.scripts]
+interactem-agent = "interactem.agent.entrypoint:entrypoint"
+
 [tool.poetry]
 version = "0.1.0"
 packages = [{ include = "interactem" }]
