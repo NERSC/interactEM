@@ -2,11 +2,16 @@ import asyncio
 
 from interactem.agent.agent import Agent
 
-if __name__ == "__main__":
+
+async def main():
     agent = Agent()
     try:
-        asyncio.run(agent.run())
+        await agent.run()
     except KeyboardInterrupt:
         pass
     finally:
         print("Application terminated.")
+
+
+def entrypoint():
+    asyncio.run(main())
