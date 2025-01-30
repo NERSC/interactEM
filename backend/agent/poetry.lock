@@ -296,6 +296,7 @@ develop = true
 coloredlogs = "^15.0.1"
 nats-py = "^2.9.0"
 networkx = "^3.3"
+nkeys = "^0.2.1"
 pydantic = "^2.9"
 
 [package.source]
@@ -806,4 +807,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "1f997d607d1fb86c8d0abec4b68c5f6032a7e59335d3f42355d3fea50dc94a00"
+content-hash = "62ad558b72cbf5bcc6154a873f1abe868d6b6c2273049ac85376c9cc53dc2f64"

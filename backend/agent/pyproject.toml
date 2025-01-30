@@ -1,9 +1,16 @@
-[tool.poetry]
+[project]
 name = "interactem-agent"
-version = "0.1.0"
-description = ""
-authors = ["Sam Welborn <swelborn@lbl.gov>"]
+dynamic = [ "version", "dependencies"]
+description = "Agent for interactem"
 readme = "README.md"
+authors = [
+    {name = "Sam Welborn", email = "swelborn@lbl.gov"},
+    {name = "Chris Harris", email = "cjh@lbl.gov"}
+]
+requires-python = ">=3.10"
+
+[tool.poetry]
+version = "0.1.0"
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
