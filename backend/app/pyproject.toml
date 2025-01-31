@@ -28,6 +28,7 @@ pydantic-settings = "^2.2.1"
 sentry-sdk = {extras = ["fastapi"], version = "^1.40.6"}
 pyjwt = "^2.8.0"
 interactem-core = {path = "../core"}
+interactem-sfapi-models = {path = "../sfapi_models"}
 aiohttp = "^3.10.5"
 jsonpath-ng = "^1.7.0"
 
