@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env")
     NATS_SERVER_URL: NatsDsn = NatsDsn("nats://localhost:4222")
     SFAPI_KEY_PATH: Path = Path("/secrets/sfapi.pem")
+    CONDA_ENV: Path | str
+    ENV_FILE_PATH: Path
 
     @model_validator(mode="after")
     def resolve_path(self) -> Self:
@@ -18,4 +20,4 @@ class Settings(BaseSettings):
         return self
 
 
-cfg = Settings()
+cfg = Settings()  # type: ignore

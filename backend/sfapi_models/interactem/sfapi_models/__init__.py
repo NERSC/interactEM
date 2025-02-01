@@ -1,7 +1,6 @@
 import datetime
 import pathlib
 from typing import Self
-from uuid import UUID
 
 from pydantic import BaseModel, model_validator
 from sfapi_client._models import StatusValue
@@ -24,8 +23,8 @@ class JobSubmitRequest(BaseModel):
     constraint: str
     walltime: datetime.timedelta | str
     output: pathlib.Path
-    agent_id: UUID
     reservation: str | None = None
+    num_nodes: int = 1
 
     @model_validator(mode="after")
     def format_walltime(self) -> Self:
