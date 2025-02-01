@@ -10,12 +10,10 @@
 #SBATCH --qos=normal
 #SBATCH --constraint=gpu
 #SBATCH --time=01:30:00 
-#SBATCH --job-name=agent-5e0adf32-4181-4cb1-921c-e1b6ae986176
 #SBATCH --account=test_account
-#SBATCH --nodes=1
+#SBATCH --nodes=2
 #SBATCH --exclusive
 
-module load python
+module load conda
 conda activate interactem
-source /path/to/.env/file
-interactem-agent
+srun --nodes=2 --ntasks-per-node=1 dotenv -f /path/to/.env/file run interactem-agent

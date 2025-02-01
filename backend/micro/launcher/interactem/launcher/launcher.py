@@ -71,7 +71,9 @@ async def submit(req: Request) -> None:
 
     # Render job script
     template = jinja_env.get_template(LAUNCH_AGENT_TEMPLATE)
-    script = await template.render_async(job=job_req.model_dump())
+    script = await template.render_async(
+        job=job_req.model_dump(), settings=cfg.model_dump()
+    )
 
     try:
         job: AsyncJobSqueue = await perlmutter.submit_job(script)
