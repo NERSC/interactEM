@@ -16,6 +16,12 @@ from sfapi_client.compute import Machine
 from sfapi_client.exceptions import SfApiError
 from sfapi_client.jobs import AsyncJobSqueue
 
+from interactem.core.constants import (
+    SFAPI_GROUP_NAME,
+    SFAPI_SERVICE_NAME,
+    SFAPI_STATUS_ENDPOINT,
+    SFAPI_SUBMIT_ENDPOINT,
+)
 from interactem.core.logger import get_logger
 from interactem.core.nats import nc
 from interactem.launcher.models import (
@@ -53,6 +59,7 @@ async def status(req: Request) -> None:
 
 
 async def submit(req: Request) -> None:
+    logger.info("Received job submission request")
     try:
         job_req = JobSubmitRequest.model_validate_json(req.data)
     except ValidationError as e:
@@ -78,7 +85,10 @@ async def submit(req: Request) -> None:
     try:
         job: AsyncJobSqueue = await perlmutter.submit_job(script)
         logger.info(f"Job {job.jobid} submitted")
-        await req.respond(data=job.model_dump_json().encode())
+        logger.info(f"Script: \n{script}")
+        await req.respond(
+            data=JobSubmitResponse(jobid=int(job.jobid)).model_dump().encode()
+        )
     except SfApiError as e:
         logger.error(f"Failed to submit job: {e}")
         await req.respond_error(code="500", description=e.message)
@@ -98,7 +108,7 @@ async def main():
         )
 
         config = ServiceConfig(
-            name="sfapi-service",
+            name=SFAPI_SERVICE_NAME,
             version="0.0.1",
             description="A service for interacting with the SFAPI",
             metadata={},
@@ -111,14 +121,14 @@ async def main():
 
         sfapi_group = service.add_group(
             config=GroupConfig(
-                name="sfapi",
+                name=SFAPI_GROUP_NAME,
                 queue_group=None,
             )
         )
 
         await sfapi_group.add_endpoint(
             config=EndpointConfig(
-                name="submit",
+                name=SFAPI_SUBMIT_ENDPOINT,
                 handler=submit,
                 metadata={
                     "request_schema": json.dumps(JobSubmitRequest.model_json_schema()),
@@ -131,7 +141,7 @@ async def main():
 
         await sfapi_group.add_endpoint(
             config=EndpointConfig(
-                name="status",
+                name=SFAPI_STATUS_ENDPOINT,
                 handler=status,
                 metadata={
                     "request_schema": json.dumps(StatusRequest.model_json_schema()),
