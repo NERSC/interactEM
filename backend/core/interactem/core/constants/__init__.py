@@ -8,6 +8,11 @@ STREAM_AGENTS = "agents"
 BUCKET_AGENTS = "agents"
 BUCKET_AGENTS_TTL = 30
 
+SFAPI_SERVICE_NAME = "sfapi-service"
+SFAPI_GROUP_NAME = "sfapi"
+SFAPI_SUBMIT_ENDPOINT = "submit"
+SFAPI_STATUS_ENDPOINT = "status"
+
 STREAM_OPERATORS = "operators"
 
 BUCKET_OPERATORS = "operators"

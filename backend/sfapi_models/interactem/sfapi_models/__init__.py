@@ -1,6 +1,5 @@
 import datetime
 import pathlib
-from typing import Self
 
 from pydantic import BaseModel, model_validator
 from sfapi_client._models import StatusValue
@@ -27,7 +26,7 @@ class JobSubmitRequest(BaseModel):
     num_nodes: int = 1
 
     @model_validator(mode="after")
-    def format_walltime(self) -> Self:
+    def format_walltime(self) -> "JobSubmitRequest":
         if isinstance(self.walltime, str):
             # Validate the string format HH:MM:SS
             parts = self.walltime.split(":")
@@ -47,6 +46,4 @@ class JobSubmitRequest(BaseModel):
 
 
 class JobSubmitResponse(BaseModel):
-    job: JobStatusResponseSqueue
     jobid: int
-    status: StatusValue
