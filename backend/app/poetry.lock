@@ -1210,7 +1210,7 @@ optional = false
 python-versions = "^3.10"
 groups = ["main"]
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 coloredlogs = "^15.0.1"
@@ -1231,7 +1231,7 @@ optional = false
 python-versions = "^3.10"
 groups = ["main"]
 files = []
-develop = false
+develop = true
 
 [package.dependencies]
 sfapi-client = "^0.3.2"
@@ -3195,4 +3195,4 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "1bb384d408dd9e405034a5ddec788964d7b34e22f6fdedf34de151514544ef60"
+content-hash = "fef4c1e0c30e298831d3bb0f29f8524aa3d0849980876dc81c8b13b36c3ca552"
