@@ -4,3 +4,6 @@ export const PARAMETERS_QUERYKEY = "parameterValue"
 export const PARAMETERS_UPDATE_STREAM = `${PARAMETERS_STREAM}.update`
 export const IMAGES_STREAM = "images"
 export const OPERATORS_STREAM = "operators"
+export const NOTIFICATIONS_STREAM = "notifications"
+export const NOTIFICATIONS_ERRORS_SUBJECT = `${NOTIFICATIONS_STREAM}.errors`;
+export const NOTIFICATIONS_INFO_SUBJECT = `${NOTIFICATIONS_STREAM}.info`

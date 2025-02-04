@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    LOCAL: bool = True
+    LOCAL: bool = False
     DOCKER_COMPATIBILITY_MODE: bool = False
     PODMAN_SERVICE_URI: str | None = None
     NATS_SERVER_URL: NatsDsn = Field(default="nats://localhost:4222")

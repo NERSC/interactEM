@@ -677,6 +677,41 @@
         }
       }
     },
+    "/api/v1/pipelines/run": {
+      "post": {
+        "tags": ["pipelines"],
+        "summary": "Create And Run Pipeline",
+        "description": "Create new pipeline and run it.",
+        "operationId": "pipelines-create_and_run_pipeline",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PipelineCreate" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PipelinePublic" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "OAuth2PasswordBearer": [] }]
+      }
+    },
     "/api/v1/pipelines/{id}/run": {
       "post": {
         "tags": ["pipelines"],
@@ -730,10 +765,60 @@
         },
         "security": [{ "OAuth2PasswordBearer": [] }]
       }
+    },
+    "/api/v1/agents/launch": {
+      "post": {
+        "tags": ["agents"],
+        "summary": "Launch Agent",
+        "description": "Launch an agent remotely.",
+        "operationId": "agents-launch_agent",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/AgentCreateEvent" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "OAuth2PasswordBearer": [] }]
+      }
     }
   },
   "components": {
     "schemas": {
+      "AgentCreateEvent": {
+        "properties": {
+          "machine": { "$ref": "#/components/schemas/PublicHost" },
+          "duration": {
+            "type": "string",
+            "format": "duration",
+            "title": "Duration"
+          },
+          "compute_type": { "$ref": "#/components/schemas/ComputeType" },
+          "num_agents": { "type": "integer", "title": "Num Agents" },
+          "reservation": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Reservation"
+          }
+        },
+        "type": "object",
+        "required": ["machine", "duration", "compute_type", "num_agents"],
+        "title": "AgentCreateEvent"
+      },
       "Body_login-login_access_token": {
         "properties": {
           "grant_type": {
@@ -758,6 +843,11 @@
         "type": "object",
         "required": ["username", "password"],
         "title": "Body_login-login_access_token"
+      },
+      "ComputeType": {
+        "type": "string",
+        "enum": ["gpu", "cpu"],
+        "title": "ComputeType"
       },
       "HTTPValidationError": {
         "properties": {
@@ -929,6 +1019,11 @@
         "type": "object",
         "required": ["data", "count"],
         "title": "PipelinesPublic"
+      },
+      "PublicHost": {
+        "type": "string",
+        "enum": ["dtn01", "dtns", "perlmutter"],
+        "title": "PublicHost"
       },
       "Token": {
         "properties": {

@@ -7,6 +7,8 @@ import {
   urlSearchParamsBodySerializer,
 } from "@hey-api/client-axios"
 import type {
+  AgentsLaunchAgentData,
+  AgentsLaunchAgentError,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenError,
   LoginLoginAccessTokenResponse,
@@ -25,6 +27,9 @@ import type {
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
   OperatorsReadOperatorsResponse,
+  PipelinesCreateAndRunPipelineData,
+  PipelinesCreateAndRunPipelineError,
+  PipelinesCreateAndRunPipelineResponse,
   PipelinesCreatePipelineData,
   PipelinesCreatePipelineError,
   PipelinesCreatePipelineResponse,
@@ -573,6 +578,35 @@ export const pipelinesReadPipeline = <ThrowOnError extends boolean = false>(
 }
 
 /**
+ * Create And Run Pipeline
+ * Create new pipeline and run it.
+ */
+export const pipelinesCreateAndRunPipeline = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesCreateAndRunPipelineData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    PipelinesCreateAndRunPipelineResponse,
+    PipelinesCreateAndRunPipelineError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/run",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  })
+}
+
+/**
  * Run Pipeline
  * Run a pipeline.
  */
@@ -615,5 +649,32 @@ export const operatorsReadOperators = <ThrowOnError extends boolean = false>(
     ],
     url: "/api/v1/operators/",
     ...options,
+  })
+}
+
+/**
+ * Launch Agent
+ * Launch an agent remotely.
+ */
+export const agentsLaunchAgent = <ThrowOnError extends boolean = false>(
+  options: Options<AgentsLaunchAgentData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    unknown,
+    AgentsLaunchAgentError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/agents/launch",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
   })
 }

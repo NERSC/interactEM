@@ -1,0 +1,11 @@
+{% include "ascii_header.sh.j2" %}
+
+#SBATCH --qos={{job.qos}}
+#SBATCH --constraint={{job.constraint}}
+#SBATCH --time={{job.walltime}} 
+#SBATCH --account={{job.account}}
+#SBATCH --nodes={{job.num_nodes}}
+#SBATCH --exclusive
+{%- if job.reservation %}   
+#SBATCH --reservation={{job.reservation}}
+{%- endif %}

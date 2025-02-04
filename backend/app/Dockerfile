@@ -1,3 +1,4 @@
+# TODO: this is deprecated. We should use the core base image...
 FROM tiangolo/uvicorn-gunicorn-fastapi:python3.10
 
 WORKDIR /app/
@@ -15,6 +16,7 @@ COPY ./app/pyproject.toml ./app/poetry.lock* /app/
 ARG INSTALL_DEV=false
 
 COPY ./core/ /core/
+COPY ./sfapi_models/ /sfapi_models/
 
 RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root ; else poetry install --no-root --only main ; fi"
 

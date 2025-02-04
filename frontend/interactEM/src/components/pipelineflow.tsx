@@ -27,17 +27,12 @@ import OperatorNode, {
 } from "./operatornode"
 
 import "@xyflow/react/dist/style.css"
-
-import AddIcon from "@mui/icons-material/Add"
-import NavigationIcon from "@mui/icons-material/Navigation"
-import Fab from "@mui/material/Fab"
-import type { PipelinePublic } from "../client"
 import { useDnD } from "../dnd/dndcontext"
-import { useCreatePipeline } from "../hooks/useCreatePipeline"
 import useOperators from "../hooks/useOperators"
-import { useRunPipeline } from "../hooks/useRunPipeline"
 import { layoutElements } from "../layout"
 import { fromPipelineJSON } from "../pipeline"
+import { LaunchAgentFab } from "./launchagentfab"
+import { LaunchPipelineFab } from "./launchpipelinefab"
 
 export const edgeOptions = {
   type: "smoothstep",
@@ -58,18 +53,8 @@ export const PipelineFlow = () => {
     console.error("Error loading operators:", error)
   }
 
-  const [currentPipelineId, setCurrentPipelineId] = useState<string | null>(
-    null,
-  )
-
-  const createPipeline = useCreatePipeline((pipeline: PipelinePublic) => {
-    setCurrentPipelineId(pipeline.id)
-  })
-  const runPipeline = useRunPipeline()
-
   const handleConnect: OnConnect = useCallback((connection) => {
     // any new connections should nullify the current pipeline ID
-    setCurrentPipelineId(null)
     setEdges((eds) => addEdge(connection, eds))
   }, [])
 
@@ -159,15 +144,6 @@ export const PipelineFlow = () => {
   const handleNodesChange: OnNodesChange<Node<OperatorNodeData>> = useCallback(
     // no need to nullify ID if we are just moving/selecting node
     (changes) => {
-      const hasMeaningfulChanges = changes.some(
-        (change) =>
-          change.type !== "position" &&
-          change.type !== "select" &&
-          change.type !== "dimensions",
-      )
-      if (hasMeaningfulChanges) {
-        setCurrentPipelineId(null)
-      }
       setNodes((nds) => applyNodeChanges<Node<OperatorNodeData>>(changes, nds))
     },
     [],
@@ -190,24 +166,6 @@ export const PipelineFlow = () => {
     a.download = "pipeline.json"
     a.click()
     URL.revokeObjectURL(url)
-  }
-
-  const onCreatePipeline = () => {
-    const pipelineData = toJSON(nodes, edges)
-    createPipeline.mutate({
-      body: pipelineData,
-    })
-  }
-
-  const onRunPipeline = () => {
-    if (currentPipelineId === null) {
-      console.error("No pipeline ID to launch")
-      return
-    }
-    console.log("Launching pipeline:", currentPipelineId)
-    runPipeline.mutate({
-      path: { id: currentPipelineId },
-    })
   }
 
   const availableOperators = operators ?? []
@@ -245,29 +203,8 @@ export const PipelineFlow = () => {
               <DownloadIcon />
             </ControlButton>
           </Controls>
-          <Fab
-            variant="extended"
-            color="primary"
-            aria-label="launch"
-            onClick={onCreatePipeline}
-            style={{ position: "relative", top: "90%", left: "8%" }}
-          >
-            <AddIcon />
-            Create
-          </Fab>
-
-          {currentPipelineId && (
-            <Fab
-              variant="extended"
-              color="primary"
-              aria-label="launch"
-              onClick={onRunPipeline}
-              style={{ position: "relative", top: "90%", left: "10%" }}
-            >
-              <NavigationIcon />
-              Launch
-            </Fab>
-          )}
+          <LaunchPipelineFab nodes={nodes} edges={edges} />
+          <LaunchAgentFab />
         </ReactFlow>
       </div>
       <OperatorMenu operators={availableOperators} />

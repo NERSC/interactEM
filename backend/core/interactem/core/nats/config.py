@@ -1,14 +1,14 @@
-from nats.js.api import (
-    StreamConfig,
-)
+from nats.js.api import RetentionPolicy, StreamConfig
 
 from interactem.core.constants import (
     STREAM_AGENTS,
     STREAM_IMAGES,
     STREAM_METRICS,
+    STREAM_NOTIFICATIONS,
     STREAM_OPERATORS,
     STREAM_PARAMETERS,
     STREAM_PIPELINES,
+    STREAM_SFAPI,
 )
 
 PARAMETERS_STREAM_CONFIG = StreamConfig(
@@ -40,6 +40,19 @@ AGENTS_STREAM_CONFIG = StreamConfig(
     name=STREAM_AGENTS,
     description="A stream for messages to the agents.",
     subjects=[f"{STREAM_AGENTS}.>"],
+)
+
+SFAPI_STREAM_CONFIG = StreamConfig(
+    name=STREAM_SFAPI,
+    description="A stream for messages to the SFAPI.",
+    subjects=[f"{STREAM_SFAPI}.>"],
+)
+
+NOTIFICATIONS_STREAM_CONFIG = StreamConfig(
+    name=STREAM_NOTIFICATIONS,
+    description="A stream for notifications.",
+    subjects=[f"{STREAM_NOTIFICATIONS}.>"],
+    retention=RetentionPolicy.INTEREST,
 )
 
 OPERATORS_STREAM_CONFIG = StreamConfig(
