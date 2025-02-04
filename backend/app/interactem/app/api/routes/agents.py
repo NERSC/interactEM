@@ -1,22 +1,17 @@
 from fastapi import APIRouter
 
 from interactem.app.api.deps import CurrentUser
-from interactem.app.events.producer import request_agent_start
+from interactem.app.events.producer import publish_sfapi_submit_event
 from interactem.core.logger import get_logger
-from interactem.sfapi_models import JobSubmitRequest, JobSubmitResponse
+from interactem.sfapi_models import JobSubmitEvent
 
 logger = get_logger()
 router = APIRouter()
 
-_operators = None
 
-
-@router.post("/launch", response_model=JobSubmitResponse)
-async def launch_agent(
-    current_user: CurrentUser, job_request: JobSubmitRequest
-) -> JobSubmitResponse:
+@router.post("/launch")
+async def launch_agent(current_user: CurrentUser, job_request: JobSubmitEvent) -> None:
     """
-    Launch an agent on Perlmutter
+    Launch an agent remotely.
     """
-    rep = await request_agent_start(job_request)
-    return JobSubmitResponse.model_validate_json(rep.data)
+    await publish_sfapi_submit_event(job_request)

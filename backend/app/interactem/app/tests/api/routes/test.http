@@ -9,6 +9,20 @@ POST http://localhost:8080/api/v1/login/external-token
 Content-Type: application/json
 Authorization: bearer <TOKEN>
 
+### Create an agent 
+POST http://localhost:8080/api/v1/agents/launch
+Content-Type: application/json
+Authorization: bearer put_the_access_token_here
+
+{
+    "machine": "perlmutter",
+    "num_nodes": 1,
+    "qos": "debug",
+    "constraint": "cpu",
+    "walltime": "00:00:01",
+    "account": "PUT_AN_ACCOUNT_HERE"
+}
+
 ###
 GET http://localhost:80/api/v1/pipelines
 Authorization: bearer put_the_access_token_here

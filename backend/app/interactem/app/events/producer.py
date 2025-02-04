@@ -5,20 +5,23 @@ from fastapi import HTTPException
 from nats.aio.msg import Msg as NatsMessage
 from nats.errors import NoRespondersError as NatsNoRespondersError
 from nats.errors import TimeoutError as NatsTimeoutError
+from nats.js.api import StreamInfo
 from nats.js.errors import APIError, NoStreamResponseError
 from pydantic import BaseModel
 from sqlmodel import SQLModel
 
 from interactem.core.constants import (
     SFAPI_GROUP_NAME,
-    SFAPI_SUBMIT_ENDPOINT,
+    SFAPI_STATUS_ENDPOINT,
     STREAM_PIPELINES,
+    STREAM_SFAPI,
     SUBJECT_PIPELINES_RUN,
+    SUBJECT_SFAPI_JOBS_SUBMIT,
 )
 from interactem.core.events.pipelines import PipelineRunEvent
 from interactem.core.nats import create_or_update_stream, nc
-from interactem.core.nats.config import PIPELINES_STREAM_CONFIG
-from interactem.sfapi_models import JobSubmitRequest
+from interactem.core.nats.config import PIPELINES_STREAM_CONFIG, SFAPI_STREAM_CONFIG
+from interactem.sfapi_models import JobSubmitEvent, StatusRequest
 
 from ..core.config import settings
 
@@ -37,8 +40,14 @@ async def start():
     logger.info(f"Connecting to NATS server: {settings.NATS_SERVER_URL}")
     nats_client = await nc([str(settings.NATS_SERVER_URL)], "api")
     nats_jetstream = nats_client.jetstream()
-    info = await create_or_update_stream(PIPELINES_STREAM_CONFIG, nats_jetstream)
-    logger.info(f"Stream information: {info}")
+    stream_infos: list[StreamInfo] = []
+    stream_infos.append(
+        await create_or_update_stream(PIPELINES_STREAM_CONFIG, nats_jetstream)
+    )
+    stream_infos.append(
+        await create_or_update_stream(SFAPI_STREAM_CONFIG, nats_jetstream)
+    )
+    logger.info(f"Streams information:\n {stream_infos}")
 
 
 async def stop():
@@ -103,9 +112,12 @@ async def publish_pipeline_run_event(event: PipelineRunEvent) -> None:
     await publish_jetstream_event(STREAM_PIPELINES, SUBJECT_PIPELINES_RUN, event)
 
 
-async def request_agent_start(payload: JobSubmitRequest) -> NatsMessage:
+async def request_machine_status(payload: StatusRequest) -> NatsMessage:
     return await nats_req_rep(
-        f"{SFAPI_GROUP_NAME}.{SFAPI_SUBMIT_ENDPOINT}",
+        f"{SFAPI_GROUP_NAME}.{SFAPI_STATUS_ENDPOINT}",
         payload,
         timeout=NATS_REQ_TIMEOUT_SFAPI,  # longer timeout for sfapi calls
     )
+
+async def publish_sfapi_submit_event(event: JobSubmitEvent) -> None:
+    await publish_jetstream_event(STREAM_SFAPI, SUBJECT_SFAPI_JOBS_SUBMIT, event)

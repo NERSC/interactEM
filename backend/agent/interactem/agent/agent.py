@@ -48,6 +48,7 @@ from interactem.core.nats.consumers import (
     create_agent_parameter_consumer,
 )
 from interactem.core.pipeline import Pipeline
+from interactem.core.util import create_task_with_ref
 
 from .config import cfg
 
@@ -686,8 +687,3 @@ async def handle_name_conflict(client: PodmanClient, container_name: str) -> Non
     logger.info(f"Conflicting container {conflicting_container.id} removed. ")
 
 
-def create_task_with_ref(task_refs: set[asyncio.Task], coro: Coroutine) -> asyncio.Task:
-    task = asyncio.create_task(coro)
-    task_refs.add(task)
-    task.add_done_callback(task_refs.discard)  # Clean up after completion
-    return task

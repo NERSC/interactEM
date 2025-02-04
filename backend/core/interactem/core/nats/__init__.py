@@ -1,5 +1,7 @@
+import asyncio
 from typing import Awaitable, Callable
 
+from interactem.core.util import create_task_with_ref
 import nats
 
 from interactem.core.constants import (
@@ -114,10 +116,11 @@ async def consume_messages(
     num_msgs: int = 1,
 ):
     logger.info(f"Consuming messages on pull subscription {await psub.consumer_info()}")
+    handler_tasks: set[asyncio.Task] = set()
     while True:
         msgs = await psub.fetch(num_msgs, timeout=None)
         for msg in msgs:
-            await handler(msg, js)
+            create_task_with_ref(handler_tasks, handler(msg, js))
 
 
 async def create_or_update_stream(
