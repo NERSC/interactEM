@@ -13,6 +13,16 @@ export type HttpValidationError = {
   detail?: Array<ValidationError>
 }
 
+export type JobSubmitEvent = {
+  machine: PublicHost
+  account: string
+  qos: string
+  constraint: string
+  walltime: string
+  reservation?: string | null
+  num_nodes?: number
+}
+
 export type Message = {
   message: string
 }
@@ -84,6 +94,8 @@ export type PipelinesPublic = {
   data: Array<PipelinePublic>
   count: number
 }
+
+export type PublicHost = "dtn01" | "dtns" | "perlmutter"
 
 export type Token = {
   access_token: string
@@ -738,3 +750,27 @@ export type OperatorsReadOperatorsResponses = {
 
 export type OperatorsReadOperatorsResponse =
   OperatorsReadOperatorsResponses[keyof OperatorsReadOperatorsResponses]
+
+export type AgentsLaunchAgentData = {
+  body: JobSubmitEvent
+  path?: never
+  query?: never
+  url: "/api/v1/agents/launch"
+}
+
+export type AgentsLaunchAgentErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type AgentsLaunchAgentError =
+  AgentsLaunchAgentErrors[keyof AgentsLaunchAgentErrors]
+
+export type AgentsLaunchAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown
+}

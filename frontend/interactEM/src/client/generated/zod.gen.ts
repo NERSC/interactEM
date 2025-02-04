@@ -23,6 +23,16 @@ export const zHttpValidationError = z.object({
     .optional(),
 })
 
+export const zJobSubmitEvent = z.object({
+  machine: z.enum(["dtn01", "dtns", "perlmutter"]),
+  account: z.string(),
+  qos: z.string(),
+  constraint: z.string(),
+  walltime: z.unknown(),
+  reservation: z.union([z.string(), z.null()]).optional(),
+  num_nodes: z.number().int().optional().default(1),
+})
+
 export const zMessage = z.object({
   message: z.string(),
 })
@@ -124,6 +134,8 @@ export const zPipelinesPublic = z.object({
   data: z.array(zPipelinePublic),
   count: z.number().int(),
 })
+
+export const zPublicHost = z.enum(["dtn01", "dtns", "perlmutter"])
 
 export const zToken = z.object({
   access_token: z.string(),
