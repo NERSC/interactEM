@@ -7,7 +7,7 @@ from sfapi_client.compute import Machine
 
 from interactem.launcher.config import cfg
 from interactem.launcher.constants import LAUNCH_AGENT_TEMPLATE
-from interactem.launcher.models import JobSubmitRequest
+from interactem.sfapi_models import JobSubmitEvent
 
 HERE = Path(__file__).parent
 
@@ -20,7 +20,7 @@ def expected_script() -> str:
 
 @pytest.mark.asyncio
 async def test_submit_rendering(expected_script: str):
-    job_req = JobSubmitRequest(
+    job_req = JobSubmitEvent(
         machine=Machine.perlmutter,
         account="test_account",
         qos="normal",
