@@ -705,6 +705,33 @@ export type PipelinesReadPipelineResponses = {
 export type PipelinesReadPipelineResponse =
   PipelinesReadPipelineResponses[keyof PipelinesReadPipelineResponses]
 
+export type PipelinesCreateAndRunPipelineData = {
+  body: PipelineCreate
+  path?: never
+  query?: never
+  url: "/api/v1/pipelines/run"
+}
+
+export type PipelinesCreateAndRunPipelineErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PipelinesCreateAndRunPipelineError =
+  PipelinesCreateAndRunPipelineErrors[keyof PipelinesCreateAndRunPipelineErrors]
+
+export type PipelinesCreateAndRunPipelineResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelinePublic
+}
+
+export type PipelinesCreateAndRunPipelineResponse =
+  PipelinesCreateAndRunPipelineResponses[keyof PipelinesCreateAndRunPipelineResponses]
+
 export type PipelinesRunPipelineData = {
   body?: never
   path: {
