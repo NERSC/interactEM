@@ -677,6 +677,41 @@
         }
       }
     },
+    "/api/v1/pipelines/run": {
+      "post": {
+        "tags": ["pipelines"],
+        "summary": "Create And Run Pipeline",
+        "description": "Create new pipeline and run it.",
+        "operationId": "pipelines-create_and_run_pipeline",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PipelineCreate" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PipelinePublic" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "OAuth2PasswordBearer": [] }]
+      }
+    },
     "/api/v1/pipelines/{id}/run": {
       "post": {
         "tags": ["pipelines"],

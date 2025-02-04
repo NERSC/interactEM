@@ -27,6 +27,9 @@ import type {
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
   OperatorsReadOperatorsResponse,
+  PipelinesCreateAndRunPipelineData,
+  PipelinesCreateAndRunPipelineError,
+  PipelinesCreateAndRunPipelineResponse,
   PipelinesCreatePipelineData,
   PipelinesCreatePipelineError,
   PipelinesCreatePipelineResponse,
@@ -571,6 +574,35 @@ export const pipelinesReadPipeline = <ThrowOnError extends boolean = false>(
     ],
     url: "/api/v1/pipelines/{id}",
     ...options,
+  })
+}
+
+/**
+ * Create And Run Pipeline
+ * Create new pipeline and run it.
+ */
+export const pipelinesCreateAndRunPipeline = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesCreateAndRunPipelineData, ThrowOnError>,
+) => {
+  return (options?.client ?? client).post<
+    PipelinesCreateAndRunPipelineResponse,
+    PipelinesCreateAndRunPipelineError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/run",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
   })
 }
 

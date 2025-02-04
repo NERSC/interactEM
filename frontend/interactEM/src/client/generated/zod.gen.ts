@@ -238,6 +238,8 @@ export const zPipelinesDeletePipelineResponse = zMessage
 
 export const zPipelinesReadPipelineResponse = zPipelinePublic
 
+export const zPipelinesCreateAndRunPipelineResponse = zPipelinePublic
+
 export const zPipelinesRunPipelineResponse = zPipelinePublic
 
 export const zOperatorsReadOperatorsResponse = zOperators

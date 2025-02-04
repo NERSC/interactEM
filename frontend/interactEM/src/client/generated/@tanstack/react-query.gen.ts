@@ -17,6 +17,7 @@ import {
   loginResetPassword,
   loginTestToken,
   operatorsReadOperators,
+  pipelinesCreateAndRunPipeline,
   pipelinesCreatePipeline,
   pipelinesDeletePipeline,
   pipelinesReadPipeline,
@@ -54,6 +55,9 @@ import type {
   LoginTestTokenData,
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
+  PipelinesCreateAndRunPipelineData,
+  PipelinesCreateAndRunPipelineError,
+  PipelinesCreateAndRunPipelineResponse,
   PipelinesCreatePipelineData,
   PipelinesCreatePipelineError,
   PipelinesCreatePipelineResponse,
@@ -758,6 +762,47 @@ export const pipelinesReadPipelineOptions = (
     },
     queryKey: pipelinesReadPipelineQueryKey(options),
   })
+}
+
+export const pipelinesCreateAndRunPipelineQueryKey = (
+  options: Options<PipelinesCreateAndRunPipelineData>,
+) => [createQueryKey("pipelinesCreateAndRunPipeline", options)]
+
+export const pipelinesCreateAndRunPipelineOptions = (
+  options: Options<PipelinesCreateAndRunPipelineData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await pipelinesCreateAndRunPipeline({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: pipelinesCreateAndRunPipelineQueryKey(options),
+  })
+}
+
+export const pipelinesCreateAndRunPipelineMutation = (
+  options?: Partial<Options<PipelinesCreateAndRunPipelineData>>,
+) => {
+  const mutationOptions: UseMutationOptions<
+    PipelinesCreateAndRunPipelineResponse,
+    AxiosError<PipelinesCreateAndRunPipelineError>,
+    Options<PipelinesCreateAndRunPipelineData>
+  > = {
+    mutationFn: async (localOptions) => {
+      const { data } = await pipelinesCreateAndRunPipeline({
+        ...options,
+        ...localOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
 }
 
 export const pipelinesRunPipelineQueryKey = (
