@@ -2,6 +2,14 @@
 
 import { z } from "zod"
 
+export const zAgentCreateEvent = z.object({
+  machine: z.enum(["dtn01", "dtns", "perlmutter"]),
+  duration: z.string(),
+  compute_type: z.enum(["gpu", "cpu"]),
+  num_agents: z.number().int(),
+  reservation: z.union([z.string(), z.null()]).optional(),
+})
+
 export const zBodyLoginLoginAccessToken = z.object({
   grant_type: z.union([z.string().regex(/password/), z.null()]).optional(),
   username: z.string(),
@@ -10,6 +18,8 @@ export const zBodyLoginLoginAccessToken = z.object({
   client_id: z.union([z.string(), z.null()]).optional(),
   client_secret: z.union([z.string(), z.null()]).optional(),
 })
+
+export const zComputeType = z.enum(["gpu", "cpu"])
 
 export const zHttpValidationError = z.object({
   detail: z
@@ -21,16 +31,6 @@ export const zHttpValidationError = z.object({
       }),
     )
     .optional(),
-})
-
-export const zJobSubmitEvent = z.object({
-  machine: z.enum(["dtn01", "dtns", "perlmutter"]),
-  account: z.string(),
-  qos: z.string(),
-  constraint: z.string(),
-  walltime: z.unknown(),
-  reservation: z.union([z.string(), z.null()]).optional(),
-  num_nodes: z.number().int().optional().default(1),
 })
 
 export const zMessage = z.object({

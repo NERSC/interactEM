@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     SFAPI_KEY_PATH: Path = Path("/secrets/sfapi.pem")
     CONDA_ENV: Path | str
     ENV_FILE_PATH: Path
+    SFAPI_ACCOUNT: str
+    SFAPI_QOS: str
 
     @model_validator(mode="after")
     def resolve_path(self) -> Self:
