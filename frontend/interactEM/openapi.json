@@ -775,7 +775,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/JobSubmitEvent" }
+              "schema": { "$ref": "#/components/schemas/AgentCreateEvent" }
             }
           },
           "required": true
@@ -800,6 +800,25 @@
   },
   "components": {
     "schemas": {
+      "AgentCreateEvent": {
+        "properties": {
+          "machine": { "$ref": "#/components/schemas/PublicHost" },
+          "duration": {
+            "type": "string",
+            "format": "duration",
+            "title": "Duration"
+          },
+          "compute_type": { "$ref": "#/components/schemas/ComputeType" },
+          "num_agents": { "type": "integer", "title": "Num Agents" },
+          "reservation": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Reservation"
+          }
+        },
+        "type": "object",
+        "required": ["machine", "duration", "compute_type", "num_agents"],
+        "title": "AgentCreateEvent"
+      },
       "Body_login-login_access_token": {
         "properties": {
           "grant_type": {
@@ -825,6 +844,11 @@
         "required": ["username", "password"],
         "title": "Body_login-login_access_token"
       },
+      "ComputeType": {
+        "type": "string",
+        "enum": ["gpu", "cpu"],
+        "title": "ComputeType"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -835,29 +859,6 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
-      },
-      "JobSubmitEvent": {
-        "properties": {
-          "machine": { "$ref": "#/components/schemas/PublicHost" },
-          "account": { "type": "string", "title": "Account" },
-          "qos": { "type": "string", "title": "Qos" },
-          "constraint": { "type": "string", "title": "Constraint" },
-          "walltime": {
-            "anyOf": [
-              { "type": "string", "format": "duration" },
-              { "type": "string" }
-            ],
-            "title": "Walltime"
-          },
-          "reservation": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Reservation"
-          },
-          "num_nodes": { "type": "integer", "title": "Num Nodes", "default": 1 }
-        },
-        "type": "object",
-        "required": ["machine", "account", "qos", "constraint", "walltime"],
-        "title": "JobSubmitEvent"
       },
       "Message": {
         "properties": { "message": { "type": "string", "title": "Message" } },

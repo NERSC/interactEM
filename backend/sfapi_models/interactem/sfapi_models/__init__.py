@@ -1,8 +1,8 @@
 import datetime
+from enum import Enum
 
 from pydantic import BaseModel, model_validator
 from sfapi_client._models import StatusValue
-from sfapi_client._models.job_status_response_squeue import JobStatusResponseSqueue
 from sfapi_client.compute import Machine
 
 
@@ -12,6 +12,19 @@ class StatusRequest(BaseModel):
 
 class StatusResponse(BaseModel):
     status: StatusValue
+
+
+class ComputeType(str, Enum):
+    gpu = "gpu"
+    cpu = "cpu"
+
+
+class AgentCreateEvent(BaseModel):
+    machine: Machine
+    duration: datetime.timedelta
+    compute_type: ComputeType
+    num_agents: int
+    reservation: str | None = None
 
 
 class JobSubmitEvent(BaseModel):

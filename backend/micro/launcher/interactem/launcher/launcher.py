@@ -31,6 +31,7 @@ from interactem.core.nats.config import NOTIFICATIONS_STREAM_CONFIG, SFAPI_STREA
 from interactem.core.nats.consumers import create_sfapi_submit_consumer
 from interactem.core.util import create_task_with_ref
 from interactem.sfapi_models import (
+    AgentCreateEvent,
     JobSubmitEvent,
     StatusRequest,
     StatusResponse,
@@ -112,13 +113,25 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
     # know that we are working on it
     create_task_with_ref(task_refs, msg.in_progress())
     try:
-        job_req = JobSubmitEvent.model_validate_json(msg.data)
+        agent_event = AgentCreateEvent.model_validate_json(msg.data)
+
+        # Convert to JobSubmitEvent because we want to limit the frontend
+        # to not knowing what a job is...
+        job_submit_event = JobSubmitEvent(
+            machine=agent_event.machine,
+            account=cfg.SFAPI_ACCOUNT,
+            qos=cfg.SFAPI_QOS,
+            constraint=agent_event.compute_type.value,
+            walltime=agent_event.duration,
+            reservation=agent_event.reservation,
+            num_nodes=agent_event.num_agents,
+        )
     except ValidationError as e:
         logger.error(f"Failed to parse job request: {e}")
         create_task_with_ref(task_refs, msg.term())
         return
 
-    compute = await sfapi_client.compute(job_req.machine)
+    compute = await sfapi_client.compute(job_submit_event.machine)
 
     if compute.status != StatusValue.active:
         logger.error(f"Machine is not active: {compute.status}")
@@ -128,7 +141,7 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
     # Render job script
     template = jinja_env.get_template(LAUNCH_AGENT_TEMPLATE)
     script = await template.render_async(
-        job=job_req.model_dump(), settings=cfg.model_dump()
+        job=job_submit_event.model_dump(), settings=cfg.model_dump()
     )
 
     create_task_with_ref(task_refs, msg.in_progress())
@@ -139,8 +152,10 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
         create_task_with_ref(task_refs, msg.ack())
         create_task_with_ref(task_refs, monitor_job(job, js))
     except SfApiError as e:
-        logger.error(f"Failed to submit job: {e}")
-        create_task_with_ref(task_refs, msg.nak())
+        _msg = f"Failed to submit job: {e.message}"
+        logger.error(_msg)
+        publish_error(js, _msg)
+        create_task_with_ref(task_refs, msg.term())
 
 
 # taken from

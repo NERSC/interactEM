@@ -21,7 +21,7 @@ from interactem.core.constants import (
 from interactem.core.events.pipelines import PipelineRunEvent
 from interactem.core.nats import create_or_update_stream, nc
 from interactem.core.nats.config import PIPELINES_STREAM_CONFIG, SFAPI_STREAM_CONFIG
-from interactem.sfapi_models import JobSubmitEvent, StatusRequest
+from interactem.sfapi_models import AgentCreateEvent, StatusRequest
 
 from ..core.config import settings
 
@@ -119,5 +119,5 @@ async def request_machine_status(payload: StatusRequest) -> NatsMessage:
         timeout=NATS_REQ_TIMEOUT_SFAPI,  # longer timeout for sfapi calls
     )
 
-async def publish_sfapi_submit_event(event: JobSubmitEvent) -> None:
+async def publish_sfapi_submit_event(event: AgentCreateEvent) -> None:
     await publish_jetstream_event(STREAM_SFAPI, SUBJECT_SFAPI_JOBS_SUBMIT, event)

@@ -31,6 +31,7 @@ import { useDnD } from "../dnd/dndcontext"
 import useOperators from "../hooks/useOperators"
 import { layoutElements } from "../layout"
 import { fromPipelineJSON } from "../pipeline"
+import { LaunchAgentFab } from "./launchagentfab"
 import { LaunchPipelineFab } from "./launchpipelinefab"
 
 export const edgeOptions = {
@@ -203,6 +204,7 @@ export const PipelineFlow = () => {
             </ControlButton>
           </Controls>
           <LaunchPipelineFab nodes={nodes} edges={edges} />
+          <LaunchAgentFab />
         </ReactFlow>
       </div>
       <OperatorMenu operators={availableOperators} />
