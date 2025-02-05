@@ -19,7 +19,7 @@ import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import {
   type AgentCreateEvent,
   agentsLaunchAgentMutation,
-  zAgentCreateEventWithDuration,
+  zAgentCreateEvent,
 } from "../client"
 
 export const LaunchAgentFab = () => {
@@ -34,7 +34,7 @@ export const LaunchAgentFab = () => {
     handleSubmit,
     formState: { errors },
   } = useForm<AgentCreateEvent>({
-    resolver: zodResolver(zAgentCreateEventWithDuration),
+    resolver: zodResolver(zAgentCreateEvent),
     defaultValues: {
       machine: "perlmutter",
       compute_type: "cpu",
@@ -180,14 +180,15 @@ export const LaunchAgentFab = () => {
                 render={({ field }) => (
                   <TextField
                     label="Number of Agents"
-                    type="number"
                     variant="outlined"
                     onChange={field.onChange}
                     onBlur={field.onBlur}
                     value={field.value}
                     fullWidth
                     error={!!errors.num_agents}
-                    helperText={errors.num_agents?.message}
+                    helperText={
+                      errors.num_agents ? "This should be an integer." : ""
+                    }
                   />
                 )}
               />
