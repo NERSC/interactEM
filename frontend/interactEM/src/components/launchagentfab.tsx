@@ -100,11 +100,13 @@ export const LaunchAgentFab = () => {
                     error={!!errors.machine}
                     fullWidth
                   >
-                    {["perlmutter"].map((machine) => (
-                      <MenuItem key={machine} value={machine}>
-                        {machine}
-                      </MenuItem>
-                    ))}
+                    {zAgentCreateEvent.shape.machine._def.values.map(
+                      (machine) => (
+                        <MenuItem key={machine} value={machine}>
+                          {machine}
+                        </MenuItem>
+                      ),
+                    )}
                   </Select>
                 )}
               />
@@ -125,11 +127,13 @@ export const LaunchAgentFab = () => {
                     error={!!errors.compute_type}
                     fullWidth
                   >
-                    {["cpu", "gpu"].map((compute_type) => (
-                      <MenuItem key={compute_type} value={compute_type}>
-                        {compute_type}
-                      </MenuItem>
-                    ))}
+                    {zAgentCreateEvent.shape.compute_type._def.values.map(
+                      (compute_type) => (
+                        <MenuItem key={compute_type} value={compute_type}>
+                          {compute_type}
+                        </MenuItem>
+                      ),
+                    )}
                   </Select>
                 )}
               />
