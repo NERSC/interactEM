@@ -1,10 +1,9 @@
 import asyncio
 
-from nats.aio.client import Client as NATSClient
-from pydantic_settings import BaseSettings, SettingsConfigDict
-
 from core.nats import create_or_update_stream, nc
 from core.nats.config import AGENTS_STREAM_CONFIG
+from nats.aio.client import Client as NATSClient
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
