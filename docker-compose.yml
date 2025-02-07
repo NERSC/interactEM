@@ -10,6 +10,7 @@ services:
     volumes:
       - "./nats-conf/nats1.conf:/etc/nats/nats.conf"
       - "./nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
+      - "./nats-conf/websocket.conf:/etc/nats/websocket.conf"
 
   nats2:
     image: nats:latest
@@ -18,6 +19,7 @@ services:
     volumes:
       - "./nats-conf/nats2.conf:/etc/nats/nats.conf"
       - "./nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
+      - "./nats-conf/websocket.conf:/etc/nats/websocket.conf"
     depends_on:
       - nats1
 
@@ -28,6 +30,7 @@ services:
     volumes:
       - "./nats-conf/nats3.conf:/etc/nats/nats.conf"
       - "./nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
+      - "./nats-conf/websocket.conf:/etc/nats/websocket.conf"
     depends_on:
       - nats2
 
