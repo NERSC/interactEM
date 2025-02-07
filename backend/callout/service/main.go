@@ -23,14 +23,15 @@ import (
 )
 
 type Config struct {
-	VERIFY_URL                   string `validate:"omitempty,url"`
-	CALLOUT_ACCOUNT_NKEY_FILE    string `validate:"required"`
-	CALLOUT_ACCOUNT_XKEY_FILE    string `validate:"required"`
-	AUTH_USER_CREDS_OR_NKEY_FILE string `validate:"required,filepath"`
-	SERVER_URL                   string `validate:"required,url"`
-	TOKEN_EXPIRATION_TIME_S      int    `validate:"required"`
-	JWT_SECRET_KEY               string `validate:"required"`
-	JWT_ALGORITHM                string `validate:"required"`
+	VERIFY_URL                string `validate:"omitempty,url"`
+	CALLOUT_ACCOUNT_NKEY_FILE string `validate:"required,filepath"`
+	CALLOUT_ACCOUNT_XKEY_FILE string `validate:"required,filepath"`
+	CALLOUT_USER_CREDS_FILE   string `validate:"required,filepath"`
+	APP_ACCOUNT_NKEY_FILE     string `validate:"required,filepath"`
+	SERVER_URL                string `validate:"required,url"`
+	TOKEN_EXPIRATION_TIME_S   int    `validate:"required"`
+	JWT_SECRET_KEY            string `validate:"required"`
+	JWT_ALGORITHM             string `validate:"required"`
 }
 
 func main() {
@@ -43,11 +44,12 @@ func main() {
 	}
 
 	cfg := Config{
-		VERIFY_URL:                   os.Getenv("VERIFY_URL"),
-		CALLOUT_ACCOUNT_NKEY_FILE:    os.Getenv("CALLOUT_ACCOUNT_NKEY_FILE"),
-		CALLOUT_ACCOUNT_XKEY_FILE:    os.Getenv("CALLOUT_ACCOUNT_XKEY_FILE"),
-		AUTH_USER_CREDS_OR_NKEY_FILE: os.Getenv("AUTH_USER_CREDS_OR_NKEY_FILE"),
-		SERVER_URL:                   os.Getenv("SERVER_URL"),
+		VERIFY_URL:                os.Getenv("VERIFY_URL"),
+		CALLOUT_ACCOUNT_NKEY_FILE: os.Getenv("CALLOUT_ACCOUNT_NKEY_FILE"),
+		CALLOUT_ACCOUNT_XKEY_FILE: os.Getenv("CALLOUT_ACCOUNT_XKEY_FILE"),
+		CALLOUT_USER_CREDS_FILE:   os.Getenv("CALLOUT_USER_CREDS_FILE"),
+		APP_ACCOUNT_NKEY_FILE:     os.Getenv("APP_ACCOUNT_NKEY_FILE"),
+		SERVER_URL:                os.Getenv("SERVER_URL"),
 		TOKEN_EXPIRATION_TIME_S: func() int {
 			val, err := strconv.Atoi(os.Getenv("TOKEN_EXPIRATION_TIME_S"))
 			if err != nil {
@@ -67,13 +69,24 @@ func main() {
 	}
 	logger.Noticef("config validated")
 
-	issuerKP, err := loadAndParseKeys(cfg.CALLOUT_ACCOUNT_NKEY_FILE)
+	// Keys description:
+	// calloutAccountKP: signs callout responses. 
+	// 		should be **signing key** of the callout account
+	// calloutEncryptionKP: encrypts callout responses. 
+	// 		should be **encryption key** of the callout account
+	// appAccountKP: key pair for signing the user
+	// 		should be **signing key** of the app account
+	calloutAccountKP, err := loadAndParseKeys(cfg.CALLOUT_ACCOUNT_NKEY_FILE)
 	if err != nil {
 		panic(fmt.Errorf("error creating issuer key pair: %v", err))
 	}
-	encryptionKP, err := loadAndParseKeys(cfg.CALLOUT_ACCOUNT_XKEY_FILE)
+	calloutEncryptionKP, err := loadAndParseKeys(cfg.CALLOUT_ACCOUNT_XKEY_FILE)
 	if err != nil {
 		panic(fmt.Errorf("error creating encryption key pair: %v", err))
+	}
+	appAccountKP, err := loadAndParseKeys(cfg.CALLOUT_ACCOUNT_NKEY_FILE)
+	if err != nil {
+		panic(fmt.Errorf("error creating account key pair: %v", err))
 	}
 
 	// Function that creates the users
@@ -125,12 +138,11 @@ func main() {
 
 		// Set jwt expiration to 2 minutes after distiller expiration
 		uc.Expires = exp + 120
-		return uc.Encode(issuerKP)
+		return uc.Encode(appAccountKP)
 	}
 
-	// connect the service with the creds
-
-	opts, err := getConnectionOptions(cfg.AUTH_USER_CREDS_OR_NKEY_FILE)
+	// connect the service with callout user credentials
+	opts, err := getConnectionOptions(cfg.CALLOUT_USER_CREDS_FILE)
 	if err != nil {
 		panic(fmt.Errorf("error loading creds: %w", err))
 	}
@@ -144,8 +156,10 @@ func main() {
 	// Start the microservice
 	_, err = callout.AuthorizationService(nc,
 		callout.Authorizer(authorizer),
-		callout.ResponseSignerKey(issuerKP),
-		callout.EncryptionKey(encryptionKP))
+		// Sign the response with the callout account's signing key
+		callout.ResponseSignerKey(calloutAccountKP),
+		// Encrypt the response with the callout account's encryption key
+		callout.EncryptionKey(calloutEncryptionKP))
 
 	if err != nil {
 		logger.Errorf("error with service: %v", err)

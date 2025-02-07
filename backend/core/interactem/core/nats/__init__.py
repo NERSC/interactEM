@@ -39,14 +39,14 @@ logger = get_logger()
 
 async def nc(servers: list[str], name: str) -> NATSClient:
     options_map = {
-        cfg.NATS_MODE.NKEYS: {
+        cfg.NATS_SECURITY_MODE.NKEYS: {
             "nkeys_seed_str": cfg.NKEYS_SEED_STR,
         },
-        cfg.NATS_MODE.CREDS: {
+        cfg.NATS_SECURITY_MODE.CREDS: {
             "user_credentials": str(cfg.NATS_CREDS_FILE),
         },
     }
-    options = options_map[cfg.NATS_MODE]
+    options = options_map[cfg.NATS_SECURITY_MODE]
     return await nats.connect(servers=servers, name=name, **options)
 
 

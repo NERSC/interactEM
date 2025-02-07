@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     LOG_LEVEL: LogLevel = LogLevel.INFO
 
     # ------- NATS settings -------
-    NATS_MODE: NatsMode = NatsMode.NKEYS
+    NATS_SECURITY_MODE: NatsMode = NatsMode.CREDS
     # We need to supply either the NKEY seed string or file for all clients
     NKEYS_SEED_STR: str = ""
     NKEYS_SEED_FILE: pathlib.Path | None = None
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
             NatsMode.NKEYS: self.validate_nkeys,
             NatsMode.CREDS: self.validate_creds,
         }
-        return mode_method_map[self.NATS_MODE]()
+        return mode_method_map[self.NATS_SECURITY_MODE]()
 
     def validate_nkeys(self) -> "Settings":
         if not self.NKEYS_SEED_FILE and not self.NKEYS_SEED_STR:
