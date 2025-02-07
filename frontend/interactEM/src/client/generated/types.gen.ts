@@ -100,6 +100,7 @@ export type PublicHost = "dtn01" | "dtns" | "perlmutter"
 export type Token = {
   access_token: string
   token_type?: string
+  nats_jwt: string
 }
 
 export type UpdatePassword = {

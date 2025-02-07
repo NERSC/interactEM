@@ -39,7 +39,8 @@ router = APIRouter()
 
 @router.post("/login/access-token")
 def login_access_token(
-    session: SessionDep, form_data: Annotated[OAuth2PasswordRequestForm, Depends()]
+    session: SessionDep,
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
     """
     OAuth2 compatible token login, get an access token for future requests
@@ -55,7 +56,8 @@ def login_access_token(
     return Token(
         access_token=security.create_access_token(
             user.id, expires_delta=access_token_expires
-        )
+        ),
+        nats_jwt=settings.NATS_JWT,
     )
 
 @router.post("/login/external-token")
@@ -106,7 +108,8 @@ async def login_with_external_token(
     return Token(
         access_token=security.create_access_token(
             user.id, expires_delta=access_token_expires
-        )
+        ),
+        nats_jwt=settings.NATS_JWT,
     )
 
 

@@ -140,6 +140,7 @@ export const zPublicHost = z.enum(["dtn01", "dtns", "perlmutter"])
 export const zToken = z.object({
   access_token: z.string(),
   token_type: z.string().optional().default("bearer"),
+  nats_jwt: z.string(),
 })
 
 export const zUpdatePassword = z.object({

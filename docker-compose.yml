@@ -98,11 +98,13 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
       - SENTRY_DSN=${SENTRY_DSN}
       - NATS_CREDS_FILE=/backend.creds
+      - NATS_FRONTEND_CREDS=/frontend.creds
       - NATS_SECURITY_MODE=creds
       - GITHUB_USERNAME=${GITHUB_USERNAME?Variable not set}
       - GITHUB_TOKEN=${GITHUB_TOKEN?Variable not set}
     volumes:
       - "./nats-conf/out_jwt/backend.creds:/backend.creds"
+      - "./nats-conf/out_jwt/frontend.creds:/frontend.creds"
 
     build:
       context: ./backend/app

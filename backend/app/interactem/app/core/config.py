@@ -1,7 +1,9 @@
 import secrets
 import warnings
+from pathlib import Path
 from typing import Annotated, Any, Literal
 
+from nats.aio.client import Client as NATSClient
 from pydantic import (
     AnyUrl,
     BeforeValidator,
@@ -124,6 +126,14 @@ class Settings(BaseSettings):
     # External auth
     EXTERNAL_SECRET_KEY: str
     EXTERNAL_ALGORITHM: str
+    NATS_FRONTEND_CREDS: Path = Path("/frontend.creds")
+    NATS_JWT: str = ""
+
+    @model_validator(mode="after")
+    def extract_jwt_from_creds(self) -> Self:
+        user_jwt = NATSClient()._read_creds_user_jwt(str(self.NATS_FRONTEND_CREDS))
+        self.NATS_JWT = user_jwt.decode()
+        return self
 
     # Container Registry
     CONTAINER_REGISTRY_URL: HttpUrl = Field(default="https://ghcr.io")

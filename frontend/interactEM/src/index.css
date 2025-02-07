@@ -141,3 +141,82 @@ body,
   padding-bottom: 0;
   border-bottom: none;
 }
+
+
+.login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f5f5f5;
+}
+
+.login-form {
+  background: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  max-width: 400px;
+}
+
+.login-form h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #1a1a1a;
+  font-size: 1.8rem;
+}
+
+.login-form .MuiFormControl-root {
+  margin-bottom: 1.5rem;
+}
+
+.login-form .MuiOutlinedInput-root {
+  padding: 0.5rem;
+}
+
+.login-form .MuiOutlinedInput-root.Mui-error {
+  border-color: #ff4444;
+}
+
+.login-form .MuiButton-root {
+  padding: 0.75rem;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.login-form .MuiButton-containedPrimary {
+  background-color: #1976d2;
+}
+
+.login-form .MuiButton-containedPrimary:hover {
+  background-color: #1565c0;
+}
+
+.login-form .MuiButton-disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #ff4444;
+  margin-top: 0.25rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.login-container {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

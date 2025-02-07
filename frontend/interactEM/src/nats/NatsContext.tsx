@@ -7,6 +7,7 @@ import {
 import { Kvm } from "@nats-io/kv"
 import {
   type NatsConnection,
+  jwtAuthenticator,
   tokenAuthenticator,
   wsconnect,
 } from "@nats-io/nats-core"
@@ -67,8 +68,9 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
   const [natsConnection, setNatsConnection] = useState<NatsConnection | null>(
     null,
   )
-  const { token, isAuthenticated } = useAuth()
+  const { token, natsJwt, isAuthenticated } = useAuth()
   const tokenRef = useRef(token)
+  const natsJwtRef = useRef(natsJwt)
 
   useEffect(() => {
     tokenRef.current = token
@@ -102,13 +104,22 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
         const nc = await wsconnect({
           servers: servers,
           name: getConnectionId(),
-          authenticator: tokenAuthenticator(() => {
-            const currentToken = tokenRef.current
-            if (!currentToken) {
-              throw new Error("No token available")
-            }
-            return currentToken
-          }),
+          authenticator: [
+            tokenAuthenticator(() => {
+              const currentToken = tokenRef.current
+              if (!currentToken) {
+                throw new Error("No token available")
+              }
+              return currentToken
+            }),
+            jwtAuthenticator(() => {
+              const currentJwt = natsJwtRef.current
+              if (!currentJwt) {
+                throw new Error("No JWT available")
+              }
+              return currentJwt
+            }),
+          ],
           reconnect: true,
           reconnectTimeWait: 1000,
           maxReconnectAttempts: 30,

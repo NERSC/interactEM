@@ -1032,10 +1032,11 @@
             "type": "string",
             "title": "Token Type",
             "default": "bearer"
-          }
+          },
+          "nats_jwt": { "type": "string", "title": "Nats Jwt" }
         },
         "type": "object",
-        "required": ["access_token"],
+        "required": ["access_token", "nats_jwt"],
         "title": "Token"
       },
       "UpdatePassword": {
