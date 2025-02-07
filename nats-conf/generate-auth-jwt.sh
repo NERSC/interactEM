@@ -47,7 +47,7 @@ CALLOUT_USER=$(nsc describe user $CALLOUT_USER_NAME --json | jq .sub -r)
 # This user is locked down, only to act as a frontend
 FRONTEND_USER_NAME=frontend 
 nsc add user $FRONTEND_USER_NAME --deny-pubsub ">" --bearer --account $CALLOUT_ACCOUNT_NAME -K $CALLOUT_ACCOUNT_SK
-nsc edit authcallout --account $CALLOUT_ACCOUNT_NAME --auth-user $CALLOUT_USER --auth-user $BACKEND_USER -x generate
+nsc edit authcallout --account $CALLOUT_ACCOUNT_NAME --allowed-account $APP_ACCOUNT --auth-user $CALLOUT_USER --auth-user $BACKEND_USER -x generate
 CALLOUT_ACCOUNT_XKEY=$(nsc describe account $CALLOUT_ACCOUNT_NAME --json | jq -r '.nats.authorization.xkey')
 
 # Generate configuration file
