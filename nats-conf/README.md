@@ -17,9 +17,8 @@ Here we are using a variation on `delegated authentication` as shown in this exa
 
 The ___CALLOUT___ `account` is used for [auth callout](https://docs.nats.io/running-a-nats-service/configuration/securing_nats/auth_callout). This is the flow:
 
-1. A frontend client authenticates to FastAPI. With its token response, it gives back a cookie that includes a the ___frontend___ user credentials.
-1. When connecting to NATS through a websocket, the connection will be sent to the [auth callout service](backend/callout/).
-1. The request to connect will enter into the authorization function in the service, which verifies the token and authorizes it to pub/sub on certain subjects. This good-to-go is only sent back to the NATS cluster, not back to the client.
+1. A frontend client authenticates to FastAPI. With its token response, it gives back a cookie that includes a the ___frontend___ `user` credentials. When we created the ___frontend___ `user` we added the `--bearer` flag. On `connect`, the server sends a [nonce](https://en.wikipedia.org/wiki/Cryptographic_nonce) to the client. With bearer-only, we bypass the client-side nonce challenge, and the FastAPI token will be passed through to the [auth callout service](backend/callout/).
+1. The request to connect will enter into the authorization function in the service, which verifies the FastAPI token and authorizes it to pub/sub on certain subjects. The final good-to-go is only sent back to the NATS cluster, not back to the client.
 
 ```mermaid
 sequenceDiagram
