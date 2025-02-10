@@ -46,7 +46,6 @@ export const LaunchAgentFab = () => {
   const onSubmit: SubmitHandler<AgentCreateEvent> = useCallback(
     async (formData: AgentCreateEvent) => {
       try {
-        console.log(formData)
         launchAgent.mutate({
           body: formData,
         })
