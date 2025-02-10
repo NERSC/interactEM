@@ -1,2 +1,9 @@
 export * from "./generated"
 export * from "./generated/@tanstack/react-query.gen"
+import { z } from "zod"
+import { zAgentCreateEvent as zAgentCreateEventTmp } from "./generated/zod.gen"
+
+export const zAgentCreateEvent = zAgentCreateEventTmp.extend({
+  duration: z.string().time(),
+  num_agents: z.coerce.number().int(),
+})

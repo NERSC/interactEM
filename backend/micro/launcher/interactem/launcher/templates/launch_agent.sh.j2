@@ -1,0 +1,5 @@
+{% include "header.sh.j2" %}
+
+module load conda
+conda activate {{settings.CONDA_ENV}}
+srun --nodes={{job.num_nodes}} --ntasks-per-node=1 dotenv -f {{settings.ENV_FILE_PATH}} run interactem-agent

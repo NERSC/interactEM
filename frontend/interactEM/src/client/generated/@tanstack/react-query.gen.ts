@@ -8,6 +8,7 @@ import {
 } from "@tanstack/react-query"
 import type { AxiosError } from "axios"
 import {
+  agentsLaunchAgent,
   client,
   loginLoginAccessToken,
   loginLoginWithExternalToken,
@@ -16,6 +17,7 @@ import {
   loginResetPassword,
   loginTestToken,
   operatorsReadOperators,
+  pipelinesCreateAndRunPipeline,
   pipelinesCreatePipeline,
   pipelinesDeletePipeline,
   pipelinesReadPipeline,
@@ -34,6 +36,8 @@ import {
   utilsTestEmail,
 } from "../sdk.gen"
 import type {
+  AgentsLaunchAgentData,
+  AgentsLaunchAgentError,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenError,
   LoginLoginAccessTokenResponse,
@@ -51,6 +55,9 @@ import type {
   LoginTestTokenData,
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
+  PipelinesCreateAndRunPipelineData,
+  PipelinesCreateAndRunPipelineError,
+  PipelinesCreateAndRunPipelineResponse,
   PipelinesCreatePipelineData,
   PipelinesCreatePipelineError,
   PipelinesCreatePipelineResponse,
@@ -757,6 +764,47 @@ export const pipelinesReadPipelineOptions = (
   })
 }
 
+export const pipelinesCreateAndRunPipelineQueryKey = (
+  options: Options<PipelinesCreateAndRunPipelineData>,
+) => [createQueryKey("pipelinesCreateAndRunPipeline", options)]
+
+export const pipelinesCreateAndRunPipelineOptions = (
+  options: Options<PipelinesCreateAndRunPipelineData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await pipelinesCreateAndRunPipeline({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: pipelinesCreateAndRunPipelineQueryKey(options),
+  })
+}
+
+export const pipelinesCreateAndRunPipelineMutation = (
+  options?: Partial<Options<PipelinesCreateAndRunPipelineData>>,
+) => {
+  const mutationOptions: UseMutationOptions<
+    PipelinesCreateAndRunPipelineResponse,
+    AxiosError<PipelinesCreateAndRunPipelineError>,
+    Options<PipelinesCreateAndRunPipelineData>
+  > = {
+    mutationFn: async (localOptions) => {
+      const { data } = await pipelinesCreateAndRunPipeline({
+        ...options,
+        ...localOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
+}
+
 export const pipelinesRunPipelineQueryKey = (
   options: Options<PipelinesRunPipelineData>,
 ) => [createQueryKey("pipelinesRunPipeline", options)]
@@ -817,4 +865,45 @@ export const operatorsReadOperatorsOptions = (
     },
     queryKey: operatorsReadOperatorsQueryKey(options),
   })
+}
+
+export const agentsLaunchAgentQueryKey = (
+  options: Options<AgentsLaunchAgentData>,
+) => [createQueryKey("agentsLaunchAgent", options)]
+
+export const agentsLaunchAgentOptions = (
+  options: Options<AgentsLaunchAgentData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await agentsLaunchAgent({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: agentsLaunchAgentQueryKey(options),
+  })
+}
+
+export const agentsLaunchAgentMutation = (
+  options?: Partial<Options<AgentsLaunchAgentData>>,
+) => {
+  const mutationOptions: UseMutationOptions<
+    unknown,
+    AxiosError<AgentsLaunchAgentError>,
+    Options<AgentsLaunchAgentData>
+  > = {
+    mutationFn: async (localOptions) => {
+      const { data } = await agentsLaunchAgent({
+        ...options,
+        ...localOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
 }

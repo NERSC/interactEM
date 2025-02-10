@@ -13,7 +13,9 @@ from interactem.core.constants import (
     STREAM_OPERATORS,
     STREAM_PARAMETERS,
     STREAM_PIPELINES,
+    STREAM_SFAPI,
     SUBJECT_PIPELINES_RUN,
+    SUBJECT_SFAPI_JOBS_SUBMIT,
 )
 from interactem.core.logger import get_logger
 from interactem.core.models.operators import OperatorParameter
@@ -23,6 +25,11 @@ logger = get_logger()
 
 AGENT_CONSUMER_CONFIG = ConsumerConfig(
     deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
+    inactive_threshold=30,
+)
+
+SFAPI_CONSUMER_CONFIG = ConsumerConfig(
+    deliver_policy=DeliverPolicy.NEW,
     inactive_threshold=30,
 )
 
@@ -140,6 +147,23 @@ async def create_metrics_consumer(
     )
     psub = await js.pull_subscribe(
         stream=STREAM_METRICS,
+        subject=subject,
+        config=cfg,
+    )
+    logger.info(f"Subscribed to {subject}")
+    return psub
+
+
+async def create_sfapi_submit_consumer(
+    js: JetStreamContext,
+) -> JetStreamContext.PullSubscription:
+    subject = SUBJECT_SFAPI_JOBS_SUBMIT
+    cfg = replace(
+        SFAPI_CONSUMER_CONFIG,
+        description="sfapi_submit_consumer",
+    )
+    psub = await js.pull_subscribe(
+        stream=STREAM_SFAPI,
         subject=subject,
         config=cfg,
     )

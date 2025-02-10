@@ -10,6 +10,7 @@ import "../index.css"
 import "@xyflow/react/dist/style.css"
 import { QueryClientProvider } from "@tanstack/react-query"
 import { interactemQueryClient } from "../auth/api"
+import NotificationsToast from "../components/notificationstoast"
 
 interface InteractEMProps {
   authMode?: "external" | "internal"
@@ -29,6 +30,7 @@ export default function InteractEM({
     <QueryClientProvider client={interactemQueryClient}>
       <AuthProvider apiBaseUrl={apiBaseURL}>
         <NatsProvider natsServers={natsServers}>
+          <NotificationsToast />
           <ReactFlowProvider>
             <DnDProvider>
               <PipelineFlow />

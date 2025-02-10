@@ -1,0 +1,26 @@
+[project]
+name = "interactem-sfapi-models"
+description = ""
+dynamic = ["version", "dependencies"]
+authors = [
+    {name = "Sam Welborn", email = "swelborn@lbl.gov"},
+    {name = "Chris Harris", email = "cjh@lbl.gov"}
+]
+requires-python = ">=3.10"
+readme = "README.md"
+
+[tool.poetry]
+packages = [{ include = "interactem" }]
+version = "0.1.0"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+sfapi-client = "^0.3.2"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py310"
+extend = "../../.ruff.toml"

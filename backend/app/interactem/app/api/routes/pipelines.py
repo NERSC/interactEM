@@ -68,7 +68,7 @@ def read_pipeline(session: SessionDep, current_user: CurrentUser, id: uuid.UUID)
 @router.post("/", response_model=PipelinePublic)
 def create_pipeline(
     *, session: SessionDep, current_user: CurrentUser, pipeline_in: PipelineCreate
-) -> Any:
+) -> PipelinePublic:
     """
     Create new pipeline.
     """
@@ -78,7 +78,22 @@ def create_pipeline(
     session.add(pipeline)
     session.commit()
     session.refresh(pipeline)
+    pipeline = PipelinePublic.model_validate(pipeline)
     return pipeline
+
+
+@router.post("/run", response_model=PipelinePublic)
+async def create_and_run_pipeline(
+    *, session: SessionDep, current_user: CurrentUser, pipeline_in: PipelineCreate
+) -> PipelinePublic:
+    """
+    Create new pipeline and run it.
+    """
+    pipeline = create_pipeline(
+        session=session, current_user=current_user, pipeline_in=pipeline_in
+    )
+
+    return await run_pipeline(session, current_user, pipeline.id)
 
 
 @router.delete("/{id}")

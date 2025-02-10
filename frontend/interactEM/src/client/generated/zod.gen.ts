@@ -2,6 +2,14 @@
 
 import { z } from "zod"
 
+export const zAgentCreateEvent = z.object({
+  machine: z.enum(["dtn01", "dtns", "perlmutter"]),
+  duration: z.string(),
+  compute_type: z.enum(["gpu", "cpu"]),
+  num_agents: z.number().int(),
+  reservation: z.union([z.string(), z.null()]).optional(),
+})
+
 export const zBodyLoginLoginAccessToken = z.object({
   grant_type: z.union([z.string().regex(/password/), z.null()]).optional(),
   username: z.string(),
@@ -10,6 +18,8 @@ export const zBodyLoginLoginAccessToken = z.object({
   client_id: z.union([z.string(), z.null()]).optional(),
   client_secret: z.union([z.string(), z.null()]).optional(),
 })
+
+export const zComputeType = z.enum(["gpu", "cpu"])
 
 export const zHttpValidationError = z.object({
   detail: z
@@ -125,6 +135,8 @@ export const zPipelinesPublic = z.object({
   count: z.number().int(),
 })
 
+export const zPublicHost = z.enum(["dtn01", "dtns", "perlmutter"])
+
 export const zToken = z.object({
   access_token: z.string(),
   token_type: z.string().optional().default("bearer"),
@@ -225,6 +237,8 @@ export const zPipelinesCreatePipelineResponse = zPipelinePublic
 export const zPipelinesDeletePipelineResponse = zMessage
 
 export const zPipelinesReadPipelineResponse = zPipelinePublic
+
+export const zPipelinesCreateAndRunPipelineResponse = zPipelinePublic
 
 export const zPipelinesRunPipelineResponse = zPipelinePublic
 
