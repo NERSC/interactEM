@@ -809,14 +809,14 @@
             "title": "Duration"
           },
           "compute_type": { "$ref": "#/components/schemas/ComputeType" },
-          "num_agents": { "type": "integer", "title": "Num Agents" },
-          "reservation": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Reservation"
+          "num_nodes": { "type": "integer", "title": "Num Nodes" },
+          "extra": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Extra"
           }
         },
         "type": "object",
-        "required": ["machine", "duration", "compute_type", "num_agents"],
+        "required": ["machine", "duration", "compute_type", "num_nodes"],
         "title": "AgentCreateEvent"
       },
       "Body_login-login_access_token": {

@@ -6,8 +6,8 @@ export const zAgentCreateEvent = z.object({
   machine: z.enum(["dtn01", "dtns", "perlmutter"]),
   duration: z.string(),
   compute_type: z.enum(["gpu", "cpu"]),
-  num_agents: z.number().int(),
-  reservation: z.union([z.string(), z.null()]).optional(),
+  num_nodes: z.number().int(),
+  extra: z.union([z.object({}), z.null()]).optional(),
 })
 
 export const zBodyLoginLoginAccessToken = z.object({

@@ -114,6 +114,10 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
     create_task_with_ref(task_refs, msg.in_progress())
     try:
         agent_event = AgentCreateEvent.model_validate_json(msg.data)
+        reservation: str | None = None
+
+        if agent_event.extra:
+            reservation = agent_event.extra.get("reservation", None)
 
         # Convert to JobSubmitEvent because we want to limit the frontend
         # to not knowing what a job is...
@@ -123,8 +127,8 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
             qos=cfg.SFAPI_QOS,
             constraint=agent_event.compute_type.value,
             walltime=agent_event.duration,
-            reservation=agent_event.reservation,
-            num_nodes=agent_event.num_agents,
+            reservation=reservation,
+            num_nodes=agent_event.num_nodes,
         )
     except ValidationError as e:
         logger.error(f"Failed to parse job request: {e}")

@@ -5,5 +5,5 @@ import { zAgentCreateEvent as zAgentCreateEventTmp } from "./generated/zod.gen"
 
 export const zAgentCreateEvent = zAgentCreateEventTmp.extend({
   duration: z.string().time(),
-  num_agents: z.coerce.number().int(),
+  num_nodes: z.coerce.number().int(),
 })

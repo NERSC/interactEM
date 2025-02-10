@@ -4,8 +4,10 @@ export type AgentCreateEvent = {
   machine: PublicHost
   duration: string
   compute_type: ComputeType
-  num_agents: number
-  reservation?: string | null
+  num_nodes: number
+  extra?: {
+    [key: string]: unknown
+  } | null
 }
 
 export type BodyLoginLoginAccessToken = {

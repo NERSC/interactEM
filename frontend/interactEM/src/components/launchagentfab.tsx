@@ -40,8 +40,7 @@ export const LaunchAgentFab = () => {
       machine: "perlmutter",
       compute_type: "cpu",
       duration: "01:00:00",
-      reservation: "",
-      num_agents: 1,
+      num_nodes: 1,
     },
   })
   const onSubmit: SubmitHandler<AgentCreateEvent> = useCallback(
@@ -161,38 +160,19 @@ export const LaunchAgentFab = () => {
 
             <FormControl fullWidth sx={{ marginBottom: "1rem" }}>
               <Controller
-                name="reservation"
+                name="num_nodes"
                 control={control}
                 render={({ field }) => (
                   <TextField
-                    label="Reservation (optional)"
+                    label="Number of Nodes"
                     variant="outlined"
                     onChange={field.onChange}
                     onBlur={field.onBlur}
                     value={field.value}
                     fullWidth
-                    error={!!errors.reservation}
-                    helperText={errors.reservation?.message}
-                  />
-                )}
-              />
-            </FormControl>
-
-            <FormControl fullWidth sx={{ marginBottom: "1rem" }}>
-              <Controller
-                name="num_agents"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    label="Number of Agents"
-                    variant="outlined"
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    value={field.value}
-                    fullWidth
-                    error={!!errors.num_agents}
+                    error={!!errors.num_nodes}
                     helperText={
-                      errors.num_agents ? "This should be an integer." : ""
+                      errors.num_nodes ? "This should be an integer." : ""
                     }
                   />
                 )}
