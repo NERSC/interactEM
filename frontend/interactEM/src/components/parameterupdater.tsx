@@ -69,7 +69,6 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   const {
     mutate: updateParameter,
     isPending,
-    isSuccess,
     isError,
   } = useParameterUpdate(operatorID, parameter)
 
