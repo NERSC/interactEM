@@ -153,6 +153,28 @@ services:
     build: 
       context: ./backend/callout/service/
 
+  launcher:
+    image: '${DOCKER_IMAGE_LAUNCHER?Variable not set}:${TAG-latest}'
+    restart: always
+    depends_on:
+      nats-healthcheck:
+        condition: service_healthy
+    env_file:
+      - backend/launcher/.env
+    environment:
+      - NATS_CREDS_FILE=/backend.creds
+      - NATS_SECURITY_MODE=creds
+      - SFAPI_KEY_PATH=/key.pem
+      - NATS_CREDS_FILE=/backend.creds
+      - NATS_SECURITY_MODE=creds
+      - NATS_SERVER_URL=nats://nats1:4222
+    volumes:
+      - "./nats-conf/out_jwt/backend.creds:/backend.creds"
+      - "${HOME}/.superfacility/key.pem:/key.pem"
+    build: 
+      context: ./backend/
+      dockerfile: ./launcher/Dockerfile
+
   # frontend:
   #   image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
   #   restart: always
