@@ -1,7 +1,7 @@
 import InfoIcon from "@mui/icons-material/Info"
 import { IconButton, Tooltip } from "@mui/material"
 import type React from "react"
-import type { OperatorParameter } from "../operators"
+import type { OperatorParameter } from "../client"
 import ParametersButton from "./parametersbutton"
 
 interface OperatorToolbarProps {
