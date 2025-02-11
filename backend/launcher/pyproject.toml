@@ -14,9 +14,9 @@ packages = [{ include = "interactem" }]
 version = "0.1.0"
 
 [tool.poetry.dependencies]
-interactem-core = {path = "../../core", develop = true}
-interactem-sfapi-models = {path = "../../sfapi_models", develop = true}
 python = "^3.10"
+interactem-core = {path = "../core", develop = true}
+interactem-sfapi-models = {path = "../sfapi_models", develop = true}
 pydantic-settings = "^2.4.0"
 sfapi-client = "^0.3.2"
 jinja2 = "^3.1.5"
@@ -31,11 +31,5 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-extend = "../../../.ruff.toml"
-
-isort = { known-first-party = ["interactem"] }
-
-[tool.ruff.lint.pyupgrade]
-# Preserve types, even if a file imports `from __future__ import annotations`.
-keep-runtime-typing = true
 target-version = "py310"
+extend = "../../.ruff.toml"
