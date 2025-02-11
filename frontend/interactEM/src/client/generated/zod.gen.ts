@@ -48,12 +48,15 @@ export const zOperator = z.object({
   description: z.string(),
   image: z.string(),
   inputs: z
-    .array(
-      z.object({
-        label: z.string(),
-        description: z.string(),
-      }),
-    )
+    .union([
+      z.array(
+        z.object({
+          label: z.string(),
+          description: z.string(),
+        }),
+      ),
+      z.null(),
+    ])
     .optional(),
   outputs: z
     .union([
