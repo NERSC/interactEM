@@ -12,11 +12,11 @@ https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08
 
 ## Running locally
 
-First generate `auth.conf` for the NATS cluster and various `.nk` files for NATS authentication:
+First generate `auth.conf` for the NATS cluster and various `.creds` and `.nk` files for NATS authentication:
 
 ```bash
 cd nats-conf
-./generate-auth-nkey.sh
+./generate-auth-jwt.sh
 ```
 
 Generate the images using

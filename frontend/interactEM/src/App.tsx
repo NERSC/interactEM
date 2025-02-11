@@ -1,4 +1,4 @@
-import { ToastContainer } from "react-toastify"
+import { Flip, ToastContainer } from "react-toastify"
 import InteractEM from "./pages/interactem"
 
 export default function App() {
@@ -6,7 +6,7 @@ export default function App() {
     <>
       <InteractEM authMode="internal" />
       <ToastContainer
-        position="top-right"
+        position="top-left"
         autoClose={5000}
         hideProgressBar={false}
         newestOnTop
@@ -14,6 +14,7 @@ export default function App() {
         pauseOnFocusLoss
         draggable
         pauseOnHover
+        transition={Flip}
       />
     </>
   )

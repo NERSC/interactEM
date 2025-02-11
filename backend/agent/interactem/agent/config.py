@@ -1,4 +1,6 @@
-from pydantic import Field, NatsDsn
+from pathlib import Path
+
+from pydantic import Field, NatsDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +13,14 @@ class Settings(BaseSettings):
     NATS_SERVER_URL_IN_CONTAINER: NatsDsn = Field(default="nats://nats1:4222")
     AGENT_MACHINE_NAME: str | None = None
     MOUNT_LOCAL_REPO: bool = False
+    OPERATOR_CREDS_FILE: Path
+
+    @model_validator(mode="after")
+    def ensure_operator_creds_file(self) -> "Settings":
+        self.OPERATOR_CREDS_FILE = self.OPERATOR_CREDS_FILE.expanduser().resolve()
+        if not self.OPERATOR_CREDS_FILE.is_file():
+            raise ValueError("OPERATOR_CREDS_FILE must be provided")
+        return self
 
 
 cfg = Settings()

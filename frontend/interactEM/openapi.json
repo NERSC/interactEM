@@ -809,14 +809,14 @@
             "title": "Duration"
           },
           "compute_type": { "$ref": "#/components/schemas/ComputeType" },
-          "num_agents": { "type": "integer", "title": "Num Agents" },
-          "reservation": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Reservation"
+          "num_nodes": { "type": "integer", "title": "Num Nodes" },
+          "extra": {
+            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "title": "Extra"
           }
         },
         "type": "object",
-        "required": ["machine", "duration", "compute_type", "num_agents"],
+        "required": ["machine", "duration", "compute_type", "num_nodes"],
         "title": "AgentCreateEvent"
       },
       "Body_login-login_access_token": {
@@ -1032,10 +1032,11 @@
             "type": "string",
             "title": "Token Type",
             "default": "bearer"
-          }
+          },
+          "nats_jwt": { "type": "string", "title": "Nats Jwt" }
         },
         "type": "object",
-        "required": ["access_token"],
+        "required": ["access_token", "nats_jwt"],
         "title": "Token"
       },
       "UpdatePassword": {

@@ -3,6 +3,7 @@ import { type ReactNode, createContext, useContext } from "react"
 // Both internal/external auth implement this
 export type AuthState = {
   token: string | null
+  natsJwt: string | null
   isAuthenticated: boolean
   isLoading: boolean
   error: Error | null

@@ -1,5 +1,6 @@
 import datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, model_validator
 from sfapi_client._models import StatusValue
@@ -23,8 +24,8 @@ class AgentCreateEvent(BaseModel):
     machine: Machine
     duration: datetime.timedelta
     compute_type: ComputeType
-    num_agents: int
-    reservation: str | None = None
+    num_nodes: int
+    extra: dict[str, Any] | None = None
 
 
 class JobSubmitEvent(BaseModel):

@@ -16,14 +16,11 @@ import nats.js.errors
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
-from nats.js.kv import KeyValue
 from pydantic import ValidationError
 
 from interactem.core.constants import (
     BUCKET_METRICS,
     BUCKET_METRICS_TTL,
-    BUCKET_OPERATORS,
-    BUCKET_OPERATORS_TTL,
     MOUNT_DIR,
     OPERATOR_CLASS_NAME,
     OPERATOR_ID_ENV_VAR,
@@ -146,7 +143,6 @@ class OperatorMixin(RunnableKernel):
         self.info: OperatorJSON | None = None
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
-        self.operators_kv: KeyValue | None = None
         self.messenger_task: asyncio.Task | None = None
         self.update_kv_task: asyncio.Task | None = None
         self.parameters: dict[str, Any] = {}
@@ -339,9 +335,6 @@ class OperatorMixin(RunnableKernel):
         logger.info(f"Setting up Key-Value store for operator {self.id}...")
         if not self.js:
             raise ValueError("JetStream context not initialized")
-        self.operators_kv = await create_bucket_if_doesnt_exist(
-            self.js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
-        )
         self.metrics_kv = await create_bucket_if_doesnt_exist(
             self.js, BUCKET_METRICS, BUCKET_METRICS_TTL
         )

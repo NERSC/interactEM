@@ -4,8 +4,10 @@ export type AgentCreateEvent = {
   machine: PublicHost
   duration: string
   compute_type: ComputeType
-  num_agents: number
-  reservation?: string | null
+  num_nodes: number
+  extra?: {
+    [key: string]: unknown
+  } | null
 }
 
 export type BodyLoginLoginAccessToken = {
@@ -100,6 +102,7 @@ export type PublicHost = "dtn01" | "dtns" | "perlmutter"
 export type Token = {
   access_token: string
   token_type?: string
+  nats_jwt: string
 }
 
 export type UpdatePassword = {
