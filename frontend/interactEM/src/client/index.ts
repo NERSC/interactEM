@@ -1,5 +1,6 @@
 export * from "./generated"
 export * from "./generated/@tanstack/react-query.gen"
+export * from "./generated/client.gen"
 import { z } from "zod"
 import { zAgentCreateEvent as zAgentCreateEventTmp } from "./generated/zod.gen"
 

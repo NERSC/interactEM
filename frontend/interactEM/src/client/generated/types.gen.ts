@@ -804,3 +804,7 @@ export type AgentsLaunchAgentResponses = {
    */
   200: unknown
 }
+
+export type ClientOptions = {
+  baseURL: `${string}://openapi.json` | (string & {})
+}
