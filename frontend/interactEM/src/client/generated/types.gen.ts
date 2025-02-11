@@ -39,7 +39,7 @@ export type Operator = {
   label: string
   description: string
   image: string
-  inputs?: Array<OperatorInput>
+  inputs?: Array<OperatorInput> | null
   outputs?: Array<OperatorOutput> | null
   parameters?: Array<OperatorParameter> | null
 }
