@@ -13,6 +13,12 @@ ingress:
   name: ingress
   enabled: false
 
+image:
+  repository: ghcr.io/dingp/acme
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: latest
+
 # concatenate the list .ingress.hosts.host into ":" separated string
 domain: ingress.interactem.production.svc.spin.nersc.org
 
