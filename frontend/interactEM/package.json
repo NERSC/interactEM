@@ -1,5 +1,5 @@
 {
-  "name": "interactem",
+  "name": "@interactem/interactem",
   "version": "0.0.1",
   "type": "module",
   "files": ["dist"],
@@ -43,7 +43,7 @@
     "react-dom": "^18.2.0",
     "zod": "^3.24.1"
   },
-  "license": "MIT",
+  "license": "LBNL BSD-3",
   "devDependencies": {
     "@biomejs/biome": "^1.9.3",
     "@hey-api/openapi-ts": "^0.64.3",
