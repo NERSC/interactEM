@@ -1,8 +1,50 @@
-# FastAPI Project - Frontend
+# InteractEM - Frontend
 
-The frontend is built with [Vite](https://vitejs.dev/), [React](https://reactjs.org/), [TypeScript](https://www.typescriptlang.org/), [TanStack Query](https://tanstack.com/query), [TanStack Router](https://tanstack.com/router) and [Chakra UI](https://chakra-ui.com/).
+The frontend is built with [Vite](https://vitejs.dev/), [React](https://reactjs.org/), [TypeScript](https://www.typescriptlang.org/), and [TanStack Query](https://tanstack.com/query).
 
-## Frontend development
+## Publishing
+
+We use `vite` to build the library.
+
+* Login to npm with an account inside @interactem:
+
+```sh
+npm login
+```
+
+* Build library with vite:
+
+```sh
+vite build 
+```
+
+* Patch the version:
+
+```sh
+npm version patch
+```
+
+* Biome:
+
+```sh
+npx biome check \
+    --formatter-enabled=true \
+    --linter-enabled=true \
+    --organize-imports-enabled=true \
+    --write \
+    .
+```
+
+* Publish:
+
+```sh
+npm publish --access public
+```
+
+> [!NOTE]  
+> We use `peerDependencies`. In client applications, it is better to use `npm` to install dependencies, rather than yarn. At least for yarn `v1`, peerDependencies are not installed automatically.
+
+## Development
 
 Before you begin, ensure that you have either the Node Version Manager (nvm) or Fast Node Manager (fnm) installed on your system.
 
@@ -54,54 +96,10 @@ Check the file `package.json` to see other available options.
 
 ## Generate Client
 
-### Automatically
-
-* Activate the backend virtual environment.
-* From the top level project directory, run the script:
+From the top level project directory, run the script:
 
 ```bash
 ./scripts/generate-frontend-client.sh
 ```
 
-* Commit the changes.
-
-### Manually
-
-* Start the Docker Compose stack.
-
-* Download the OpenAPI JSON file from `http://localhost/api/v1/openapi.json` and copy it to a new file `openapi.json` at the root of the `frontend` directory.
-
-* To simplify the names in the generated frontend client code, modify the `openapi.json` file by running the following script:
-
-```bash
-node modify-openapi-operationids.js
-```
-
-* To generate the frontend client, run:
-
-```bash
-npm run generate-client
-```
-
-* Commit the changes.
-
-Notice that everytime the backend changes (changing the OpenAPI schema), you should follow these steps again to update the frontend client.
-
-## Using a Remote API
-
-If you want to use a remote API, you can set the environment variable `VITE_API_URL` to the URL of the remote API. For example, you can set it in the `frontend/.env` file:
-
-```env
-VITE_API_URL=https://api.my-domain.example.com
-```
-
-Then, when you run the frontend, it will use that URL as the base URL for the API.
-
-## Code Structure
-
-The frontend code is structured as follows:
-
-* `frontend/src` - The main frontend code.
-* `frontend/src/assets` - Static assets.
-* `frontend/src/client` - The generated OpenAPI client.
-* `frontend/src/components` -  The different components of the frontend.
+This will update the openapi.json, and results can be found in [src/client/generated](src/client/generated/).

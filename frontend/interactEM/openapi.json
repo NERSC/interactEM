@@ -887,8 +887,13 @@
           "description": { "type": "string", "title": "Description" },
           "image": { "type": "string", "title": "Image" },
           "inputs": {
-            "items": { "$ref": "#/components/schemas/OperatorInput" },
-            "type": "array",
+            "anyOf": [
+              {
+                "items": { "$ref": "#/components/schemas/OperatorInput" },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
             "title": "Inputs"
           },
           "outputs": {

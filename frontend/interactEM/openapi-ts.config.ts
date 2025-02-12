@@ -6,5 +6,10 @@ export default defineConfig({
     format: "biome",
     path: "src/client/generated",
   },
-  plugins: [...defaultPlugins, "@hey-api/client-axios", "@tanstack/react-query", "zod"],
+  plugins: [
+    ...defaultPlugins,
+    "@hey-api/client-axios",
+    "@tanstack/react-query",
+    "zod",
+  ],
 })

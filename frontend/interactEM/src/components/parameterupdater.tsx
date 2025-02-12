@@ -14,9 +14,9 @@ import {
 import { useReactFlow } from "@xyflow/react"
 import type React from "react"
 import { memo, useEffect, useState } from "react"
+import type { OperatorParameter } from "../client"
 import { useParameterUpdate } from "../hooks/useParameterUpdate"
 import { useParameterValue } from "../hooks/useParameterValue"
-import { type OperatorParameter, ParameterType } from "../operators"
 import type { OperatorNode as OperatorNodeType } from "./operatornode"
 
 const compareValues = (
@@ -25,15 +25,15 @@ const compareValues = (
   value2: string,
 ): boolean => {
   switch (parameter.type) {
-    case ParameterType.INTEGER:
+    case "int":
       return Number.parseInt(value1, 10) === Number.parseInt(value2, 10)
-    case ParameterType.FLOAT:
+    case "float":
       return Number.parseFloat(value1) === Number.parseFloat(value2)
-    case ParameterType.BOOLEAN:
+    case "bool":
       return value1 === value2
-    case ParameterType.STRING:
-    case ParameterType.STR_ENUM:
-    case ParameterType.MOUNT:
+    case "str":
+    case "str-enum":
+    case "mount":
       return value1 === value2
     default:
       return false
@@ -69,7 +69,6 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   const {
     mutate: updateParameter,
     isPending,
-    isSuccess,
     isError,
   } = useParameterUpdate(operatorID, parameter)
 
@@ -79,16 +78,16 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 
   const validateInput = (value: string) => {
     switch (parameter.type) {
-      case ParameterType.INTEGER:
+      case "int":
         return /^-?\d+$/.test(value)
-      case ParameterType.FLOAT:
+      case "float":
         return /^-?\d+(\.\d+)?$/.test(value)
-      case ParameterType.STRING:
-      case ParameterType.STR_ENUM:
+      case "str":
+      case "str-enum":
         return true
-      case ParameterType.BOOLEAN:
+      case "bool":
         return value === "true" || value === "false"
-      case ParameterType.MOUNT:
+      case "mount":
         return /^(\/|~\/)(?!.*(?:^|\/)\.\.(?:\/|$)).*$/.test(value)
       default:
         return false
@@ -140,10 +139,10 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 
   const renderInputField = () => {
     switch (parameter.type) {
-      case ParameterType.INTEGER:
-      case ParameterType.FLOAT:
-      case ParameterType.STRING:
-      case ParameterType.MOUNT:
+      case "int":
+      case "float":
+      case "str":
+      case "mount":
         return (
           <TextField
             value={inputValue}
@@ -156,7 +155,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
             sx={{ flexGrow: 1 }}
           />
         )
-      case ParameterType.STR_ENUM:
+      case "str-enum":
         return (
           <FormControl fullWidth size="small" sx={{ flexGrow: 1 }}>
             <InputLabel id={`${parameter.name}-label`}>Set Point</InputLabel>
@@ -177,7 +176,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
             </Select>
           </FormControl>
         )
-      case ParameterType.BOOLEAN:
+      case "bool":
         return (
           <FormControlLabel
             control={
@@ -200,7 +199,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   useEffect(() => {
     // TODO: we should make a ParameterErrorEvent type
     if (isError || compareValues(parameter, actualValue, "ERROR")) {
-      if (parameter.type === ParameterType.MOUNT) {
+      if (parameter.type === "mount") {
         setErrorMessage("Invalid mount. File/dir doesn't exist.")
       }
     }
