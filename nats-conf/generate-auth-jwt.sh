@@ -2,6 +2,8 @@
 
 # put the nsc artifacts where we can find them
 THIS_DIR=$(dirname $0)
+
+exec > >(tee -i ${THIS_DIR}/out_jwt/output.log) 2>&1
 export TMPDIR=/tmp
 export OUTDIR=$TMPDIR/DA
 export XDG_CONFIG_HOME=$OUTDIR/config
@@ -13,6 +15,8 @@ rm -rf $OUTDIR
 ORG_NAME=org
 nsc add operator --name $ORG_NAME --sys --generate-signing-key
 nsc edit operator --require-signing-keys
+ORG_ACCOUNT=$(nsc describe operator $ORG_NAME --json | jq .sub -r)
+ORG_ACCOUNT_SK=$(nsc describe operator $ORG_NAME --json | jq -r '.nats.signing_keys[0]')
 
 ## APP ACCOUNT
 APP_ACCOUNT_NAME=APP
@@ -61,12 +65,16 @@ nsc generate creds --account $APP_ACCOUNT_NAME --name $BACKEND_USER_NAME -o $OUT
 nsc generate creds --account $APP_ACCOUNT_NAME --name $OPERATOR_USER_NAME -o $OUTDIR/$OPERATOR_USER_NAME.creds
 
 # copy the signing keys (not the root keys) to the output directory TODO: see todo above, we need to fix this.
+OPERATOR_FILE=${ORG_NAME}.nk
+OPERATOR_SK_FILE=${ORG_NAME}_sk.nk
 CALLOUT_ACCOUNT_FILE=${CALLOUT_ACCOUNT_NAME}.nk
 CALLOUT_ACCOUNT_SK_FILE=${CALLOUT_ACCOUNT_NAME}_sk.nk
 CALLOUT_ACCOUNT_XKEY_FILE=${CALLOUT_ACCOUNT_NAME}_xkey.nk
 APP_ACCOUNT_FILE=${APP_ACCOUNT_NAME}.nk
 APP_ACCOUNT_SK_FILE=${APP_ACCOUNT_NAME}_sk.nk
 
+cp "$XDG_DATA_HOME/nats/nsc/keys/keys/O/${ORG_ACCOUNT:1:2}/${ORG_ACCOUNT}.nk" $OUTDIR/$OPERATOR_FILE
+cp "$XDG_DATA_HOME/nats/nsc/keys/keys/O/${ORG_ACCOUNT_SK:1:2}/${ORG_ACCOUNT_SK}.nk" $OUTDIR/$OPERATOR_SK_FILE
 cp "$XDG_DATA_HOME/nats/nsc/keys/keys/A/${CALLOUT_ACCOUNT:1:2}/${CALLOUT_ACCOUNT}.nk" $OUTDIR/$CALLOUT_ACCOUNT_SK_FILE
 cp "$XDG_DATA_HOME/nats/nsc/keys/keys/A/${CALLOUT_ACCOUNT_SK:1:2}/${CALLOUT_ACCOUNT_SK}.nk" $OUTDIR/$CALLOUT_ACCOUNT_FILE
 cp "$XDG_DATA_HOME/nats/nsc/keys/keys/X/${CALLOUT_ACCOUNT_XKEY:1:2}/${CALLOUT_ACCOUNT_XKEY}.nk" $OUTDIR/$CALLOUT_ACCOUNT_XKEY_FILE
@@ -75,6 +83,8 @@ cp "$XDG_DATA_HOME/nats/nsc/keys/keys/A/${APP_ACCOUNT_SK:1:2}/${APP_ACCOUNT_SK}.
 
 mkdir -p $THIS_DIR/out_jwt
 CP_DIR=$THIS_DIR/out_jwt
+cp $OUTDIR/$OPERATOR_FILE $CP_DIR/$OPERATOR_FILE
+cp $OUTDIR/$OPERATOR_SK_FILE $CP_DIR/$OPERATOR_SK_FILE
 cp $OUTDIR/$CALLOUT_ACCOUNT_FILE $CP_DIR/$CALLOUT_ACCOUNT_FILE
 cp $OUTDIR/$CALLOUT_ACCOUNT_SK_FILE $CP_DIR/$CALLOUT_ACCOUNT_SK_FILE
 cp $OUTDIR/$APP_ACCOUNT_FILE $CP_DIR/$APP_ACCOUNT_FILE
@@ -85,6 +95,13 @@ cp $OUTDIR/$OPERATOR_USER_NAME.creds $CP_DIR/$OPERATOR_USER_NAME.creds
 cp $OUTDIR/$AUTH_CONF_FILENAME $CP_DIR/$AUTH_CONF_FILENAME
 cp $OUTDIR/$CALLOUT_ACCOUNT_XKEY_FILE $CP_DIR/$CALLOUT_ACCOUNT_XKEY_FILE
 cp $OUTDIR/$APP_ACCOUNT_SK_FILE $CP_DIR/$APP_ACCOUNT_SK_FILE
+
+cp -r $OUTDIR $CP_DIR/raw_output
+
+# Create a tarball of raw_output
+rm $CP_DIR/raw_output.tar.gz
+tar --no-xattrs -czf $CP_DIR/raw_output.tar.gz -C $CP_DIR/raw_output .
+base64 -i $CP_DIR/raw_output.tar.gz -o $CP_DIR/raw_output.tar.gz.b64
 
 # Printout all the information
 echo -e "\n\n\n\n"
