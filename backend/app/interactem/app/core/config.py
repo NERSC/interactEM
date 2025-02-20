@@ -2,6 +2,7 @@ import secrets
 import warnings
 from pathlib import Path
 from typing import Annotated, Any, Literal
+from urllib.parse import quote_plus
 
 from nats.aio.client import Client as NATSClient
 from pydantic import (
@@ -64,7 +65,7 @@ class Settings(BaseSettings):
         return MultiHostUrl.build(
             scheme="postgresql+psycopg",
             username=self.POSTGRES_USER,
-            password=self.POSTGRES_PASSWORD,
+            password=quote_plus(self.POSTGRES_PASSWORD),
             host=self.POSTGRES_SERVER,
             port=self.POSTGRES_PORT,
             path=self.POSTGRES_DB,
