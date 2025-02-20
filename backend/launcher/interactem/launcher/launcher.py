@@ -138,7 +138,9 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
     compute = await sfapi_client.compute(job_submit_event.machine)
 
     if compute.status != StatusValue.active:
-        logger.error(f"Machine is not active: {compute.status}")
+        _msg = f"{job_submit_event.machine.value} is not active: {compute.status}"
+        logger.error(_msg)
+        publish_error(js, _msg)
         create_task_with_ref(task_refs, msg.term())
         return
 
