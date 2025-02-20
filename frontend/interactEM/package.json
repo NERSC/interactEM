@@ -15,7 +15,9 @@
   "types": "./dist/interactem.d.ts",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build:lib": "tsc && vite build --config vite.config.ts",
+    "build:app": "tsc && vite build --config vite.config.app.ts",
+    "build": "npm run build:lib && npm run build:app",
     "lint": "biome check --unsafe --no-errors-on-unmatched --files-ignore-unknown=true ./",
     "preview": "vite preview",
     "generate-client": "openapi-ts"
