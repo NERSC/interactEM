@@ -153,3 +153,5 @@ cython_debug/
 .DS_Store
 
 bundle-visualization.html
+
+biome.json

@@ -9,6 +9,7 @@ import { NatsProvider } from "../nats/NatsContext"
 import "../index.css"
 import "@xyflow/react/dist/style.css"
 import { QueryClientProvider } from "@tanstack/react-query"
+import { Flip, ToastContainer } from "react-toastify"
 import { interactemQueryClient } from "../auth/api"
 import NotificationsToast from "../components/notificationstoast"
 
@@ -36,6 +37,17 @@ export default function InteractEM({
               <PipelineFlow />
             </DnDProvider>
           </ReactFlowProvider>
+          <ToastContainer
+            position="top-left"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            transition={Flip}
+          />
         </NatsProvider>
       </AuthProvider>
     </QueryClientProvider>

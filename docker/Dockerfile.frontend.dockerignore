@@ -1,0 +1,6 @@
+.env*
+.log*
+bundle-visualization.html
+dist/
+dist_app/
+node_modules/

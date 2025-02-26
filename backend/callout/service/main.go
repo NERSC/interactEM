@@ -9,6 +9,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 
@@ -23,17 +24,17 @@ import (
 )
 
 type Config struct {
-	VERIFY_URL                       string `validate:"omitempty,url"`
-	CALLOUT_ACCOUNT_NKEY_FILE        string `validate:"required,filepath"`
-	CALLOUT_ACCOUNT_SIGNING_KEY_FILE string `validate:"required,filepath"`
-	CALLOUT_ACCOUNT_XKEY_FILE        string `validate:"required,filepath"`
-	CALLOUT_USER_CREDS_FILE          string `validate:"required,filepath"`
-	APP_ACCOUNT_NKEY_FILE            string `validate:"required,filepath"`
-	APP_ACCOUNT_SIGNING_KEY_FILE     string `validate:"required,filepath"`
-	SERVER_URL                       string `validate:"required,url"`
-	TOKEN_EXPIRATION_TIME_S          int    `validate:"required"`
-	JWT_SECRET_KEY                   string `validate:"required"`
-	JWT_ALGORITHM                    string `validate:"required"`
+	VERIFY_URL                       string   `validate:"omitempty,url"`
+	CALLOUT_ACCOUNT_NKEY_FILE        string   `validate:"required,filepath"`
+	CALLOUT_ACCOUNT_SIGNING_KEY_FILE string   `validate:"required,filepath"`
+	CALLOUT_ACCOUNT_XKEY_FILE        string   `validate:"required,filepath"`
+	CALLOUT_USER_CREDS_FILE          string   `validate:"required,filepath"`
+	APP_ACCOUNT_NKEY_FILE            string   `validate:"required,filepath"`
+	APP_ACCOUNT_SIGNING_KEY_FILE     string   `validate:"required,filepath"`
+	SERVER_URL                       string   `validate:"required,url"`
+	TOKEN_EXPIRATION_TIME_S          int      `validate:"required"`
+	JWT_SECRET_KEYS                  []string `validate:"required,min=1"` // Array of keys instead of single key
+	JWT_ALGORITHM                    string   `validate:"required"`
 }
 
 func main() {
@@ -61,8 +62,8 @@ func main() {
 			}
 			return val
 		}(),
-		JWT_SECRET_KEY: os.Getenv("JWT_SECRET_KEY"),
-		JWT_ALGORITHM:  os.Getenv("JWT_ALGORITHM"),
+		JWT_SECRET_KEYS: strings.Split(os.Getenv("JWT_SECRET_KEYS"), ","),
+		JWT_ALGORITHM:   os.Getenv("JWT_ALGORITHM"),
 	}
 
 	validate := validator.New()
@@ -116,7 +117,7 @@ func main() {
 	authorizer := func(req *natsjwt.AuthorizationRequest) (string, error) {
 		logger.Noticef("received request!")
 		parsedToken, err := VerifyTokenLocally(req.ConnectOptions.Token,
-			cfg.JWT_SECRET_KEY,
+			cfg.JWT_SECRET_KEYS,
 			cfg.JWT_ALGORITHM,
 		)
 		if err != nil {
@@ -196,20 +197,24 @@ func main() {
 	<-quit
 }
 
-func VerifyTokenLocally(token string, secretKey string, algorithm string) (*jwt.Token, error) {
-	parsedToken, err := jwt.Parse(token, func(pToken *jwt.Token) (interface{}, error) {
-		// Validate the token's signing method
-		if pToken.Method.Alg() != algorithm {
-			return nil, fmt.Errorf("unexpected signing method: %v", pToken.Header["alg"])
-		}
-		return []byte(secretKey), nil
-	})
+func VerifyTokenLocally(token string, secretKeys []string, algorithm string) (*jwt.Token, error) {
+    var lastErr error
+    
+    for _, secretKey := range secretKeys {
+        parsedToken, err := jwt.Parse(token, func(pToken *jwt.Token) (interface{}, error) {
+            if pToken.Method.Alg() != algorithm {
+                return nil, fmt.Errorf("unexpected signing method: %v", pToken.Header["alg"])
+            }
+            return []byte(secretKey), nil
+        })
 
-	if err != nil {
-		return nil, err
-	}
+        if err == nil && parsedToken.Valid {
+            return parsedToken, nil
+        }
+        lastErr = err
+    }
 
-	return parsedToken, nil
+    return nil, fmt.Errorf("failed to verify token with any key: %v", lastErr)
 }
 
 func VerifyToken(token string, verificationUrl string) error {

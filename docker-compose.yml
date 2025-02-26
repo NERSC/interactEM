@@ -107,7 +107,8 @@ services:
       - "./nats-conf/out_jwt/frontend.creds:/frontend.creds"
 
     build:
-      context: ./backend/app
+      context: backend/
+      dockerfile: ../docker/Dockerfile.fastapi
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
     platform: linux/amd64 # Patch for M1 Mac
@@ -131,8 +132,8 @@ services:
       - "./nats-conf/out_jwt/backend.creds:/backend.creds"
 
     build:
-      context: ./backend/
-      dockerfile: ./orchestrator/Dockerfile
+      context: backend/
+      dockerfile: ../docker/Dockerfile.orchestrator
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
 
@@ -151,7 +152,9 @@ services:
       - "./backend/callout/service/.env:/.env"
       - "./nats-conf/out_jwt/:/nats-conf/"
     build: 
-      context: ./backend/callout/service/
+      context: backend/
+      dockerfile: ../docker/Dockerfile.callout
+
 
   launcher:
     image: '${DOCKER_IMAGE_LAUNCHER?Variable not set}:${TAG-latest}'
@@ -165,24 +168,13 @@ services:
       - NATS_CREDS_FILE=/backend.creds
       - NATS_SECURITY_MODE=creds
       - SFAPI_KEY_PATH=/key.pem
-      - NATS_CREDS_FILE=/backend.creds
-      - NATS_SECURITY_MODE=creds
       - NATS_SERVER_URL=nats://nats1:4222
     volumes:
       - "./nats-conf/out_jwt/backend.creds:/backend.creds"
       - "${HOME}/.superfacility/key.pem:/key.pem"
     build: 
-      context: ./backend/
-      dockerfile: ./launcher/Dockerfile
-
-  # frontend:
-  #   image: '${DOCKER_IMAGE_FRONTEND?Variable not set}:${TAG-latest}'
-  #   restart: always
-  #   build:
-  #     context: ./frontend
-  #     args:
-  #       - VITE_API_URL=https://${DOMAIN?Variable not set}
-  #       - NODE_ENV=production
+      context: backend/
+      dockerfile: ../docker/Dockerfile.launcher
   
 volumes:
   app-db-data:

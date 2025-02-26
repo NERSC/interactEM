@@ -138,7 +138,9 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
     compute = await sfapi_client.compute(job_submit_event.machine)
 
     if compute.status != StatusValue.active:
-        logger.error(f"Machine is not active: {compute.status}")
+        _msg = f"{job_submit_event.machine.value} is not active: {compute.status}"
+        logger.error(_msg)
+        publish_error(js, _msg)
         create_task_with_ref(task_refs, msg.term())
         return
 
@@ -148,18 +150,34 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
         job=job_submit_event.model_dump(), settings=cfg.model_dump()
     )
 
-    create_task_with_ref(task_refs, msg.in_progress())
-    try:
-        job: AsyncJobSqueue = await compute.submit_job(script)
-        logger.info(f"Job {job.jobid} submitted")
-        logger.info(f"Script: \n{script}")
-        create_task_with_ref(task_refs, msg.ack())
-        create_task_with_ref(task_refs, monitor_job(job, js))
-    except SfApiError as e:
-        _msg = f"Failed to submit job: {e.message}"
-        logger.error(_msg)
-        publish_error(js, _msg)
-        create_task_with_ref(task_refs, msg.term())
+    async def submit_and_monitor():
+        try:
+            # Create a task for the actual job submission
+            submission_task = asyncio.create_task(compute.submit_job(script))
+
+            # Send progress updates until the submission is complete
+            while not submission_task.done():
+                create_task_with_ref(task_refs, msg.in_progress())
+                await asyncio.sleep(1)
+
+            # Get the result and handle success
+            job: AsyncJobSqueue = await submission_task
+            logger.info(f"Job {job.jobid} submitted")
+            logger.info(f"Script: \n{script}")
+            create_task_with_ref(task_refs, msg.ack())
+            create_task_with_ref(task_refs, monitor_job(job, js))
+
+        except SfApiError as e:
+            _msg = f"Failed to submit job: {e.message}"
+            logger.error(_msg)
+            publish_error(js, _msg)
+            create_task_with_ref(task_refs, msg.term())
+        except Exception as e:
+            logger.error(f"Unexpected error during job submission: {e}")
+            publish_error(js, str(e))
+            create_task_with_ref(task_refs, msg.term())
+
+    await submit_and_monitor()
 
 
 # taken from

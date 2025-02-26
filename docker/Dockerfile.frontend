@@ -1,0 +1,10 @@
+FROM node:23 AS build
+
+WORKDIR /app
+COPY ./interactEM/package*.json ./
+RUN npm install
+COPY ./interactEM/ .
+RUN npm run build:app
+
+FROM nginx:alpine
+COPY --from=build /app/dist_app /usr/share/nginx/html
