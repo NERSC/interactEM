@@ -40,7 +40,6 @@ export default function InternalAuthProvider({
       client.setConfig({
         auth: data.access_token,
       })
-      console.log("nats jwt:", data.nats_jwt)
     },
     onError: (err) => {
       console.log(err)
