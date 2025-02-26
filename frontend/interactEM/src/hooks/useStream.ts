@@ -1,8 +1,16 @@
-import type { StreamConfig, StreamInfo } from "@nats-io/jetstream"
+import {
+  JetStreamApiCodes,
+  JetStreamApiError,
+  type StreamConfig,
+  type StreamInfo,
+} from "@nats-io/jetstream"
+import type { WithRequired } from "@nats-io/nats-core/internal"
 import { useEffect, useState } from "react"
 import { useNats } from "../nats/NatsContext"
 
-export const useStream = (config: Partial<StreamConfig>): StreamInfo | null => {
+export const useStream = (
+  config: WithRequired<Partial<StreamConfig>, "name">,
+): StreamInfo | null => {
   const { jetStreamClient, jetStreamManager } = useNats()
   const [streamInfo, setStreamInfo] = useState<StreamInfo | null>(null)
 
@@ -14,9 +22,10 @@ export const useStream = (config: Partial<StreamConfig>): StreamInfo | null => {
         try {
           streamInfo = await jetStreamManager.streams.info(config.name)
         } catch (err: any) {
-          // Check if the error is due to the stream not existing, not ideal
-          // but the API doesn't current provide error codes.
-          if (err.message.includes("stream not found")) {
+          if (
+            err instanceof JetStreamApiError &&
+            err.code === JetStreamApiCodes.StreamNotFound
+          ) {
             streamInfo = await jetStreamManager.streams.add(config)
           } else {
             throw err

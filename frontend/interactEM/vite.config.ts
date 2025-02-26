@@ -31,7 +31,7 @@ export default defineConfig({
         globals: {
           react: "React",
           "react-dom": "ReactDOM",
-          // unsure if we need tanstack global...
+          "@tanstack/react-query": "ReactQuery",
         },
       },
       treeshake: true,

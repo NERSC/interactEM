@@ -117,6 +117,6 @@ class Operator(BaseModel):
     label: str  # Human readable name of the operator
     description: str  # Human readable description of the operator
     image: str  # Contain image for operator
-    inputs: list[OperatorInput] = None  # List of inputs
+    inputs: list[OperatorInput] | None = None  # List of inputs
     outputs: list[OperatorOutput] | None = None  # List of outputs
     parameters: list[OperatorParameter] | None = None  # List of parameters
