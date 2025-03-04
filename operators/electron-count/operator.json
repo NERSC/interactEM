@@ -15,8 +15,8 @@
     {
       "name": "out",
       "label": "The output",
-      "type": "scan",
-      "description": "Sparse scan"
+      "type": "sparse frame",
+      "description": "Sparsified data"
     }
   ],
   "parameters": [

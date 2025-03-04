@@ -44,22 +44,3 @@ def count_image(
     )
     header = MessageHeader(subject=MessageSubject.BYTES, meta=header.model_dump())
     return BytesMessage(header=header, data=sparse_array.data[0][0].tobytes())
-
-
-async def async_main():
-    op = count_image()
-    await op.start()
-
-
-def main():
-    # Run the async main function using asyncio.run
-    try:
-        asyncio.run(async_main())
-    except KeyboardInterrupt:
-        logger.info("Shutting down operator...")
-    finally:
-        print("Application terminated.")
-
-
-if __name__ == "__main__":
-    main()
