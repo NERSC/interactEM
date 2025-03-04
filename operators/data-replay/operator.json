@@ -2,7 +2,7 @@
   "id": "12345678-0001-0001-0000-1234567890ab",
   "image": "ghcr.io/nersc/interactem/data-replay",
   "label": "Data Replayer",
-  "description": "Data replayer",
+  "description": "Data replayer for NCEM data. Choose a raw data directory to mount, and replay it through the pipeline",
   "outputs": [
     {
       "name": "out",

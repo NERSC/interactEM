@@ -4,5 +4,3 @@ RUN pip install scipy ncempy stempy
 
 RUN mkdir -p /output
 RUN mkdir -p /raw_data
-
-COPY ./run.py /app/run.py
