@@ -2,9 +2,7 @@
   "name": "@interactem/interactem",
   "version": "0.0.4",
   "type": "module",
-  "files": [
-    "dist"
-  ],
+  "files": ["dist"],
   "main": "./dist/interactem.umd.cjs",
   "module": "./dist/interactem.js",
   "exports": {

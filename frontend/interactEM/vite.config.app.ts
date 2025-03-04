@@ -5,15 +5,13 @@ import { defineConfig } from "vite"
 const __dirname = resolve()
 
 export default defineConfig({
-  plugins: [
-    react(),
-  ],
+  plugins: [react()],
   build: {
-    outDir: 'dist_app',
-    assetsDir: 'assets',
+    outDir: "dist_app",
+    assetsDir: "assets",
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
+        main: resolve(__dirname, "index.html"),
       },
     },
   },
