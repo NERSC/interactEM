@@ -192,7 +192,6 @@ class Agent:
         self.server_task = self.create_task(self.server_loop())
 
         await self._shutdown_event.wait()
-        self.agent_val.status = AgentStatus.SHUTTING_DOWN
         await self.shutdown()
         await asyncio.gather(self.server_task, self.heartbeat_task)
 
