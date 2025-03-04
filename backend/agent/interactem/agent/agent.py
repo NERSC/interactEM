@@ -234,7 +234,7 @@ class Agent:
                 )
                 break
             except nats.js.errors.ServiceUnavailableError as e:
-                logger.error(
+                logger.exception(
                     f"JetStream service unavailable while trying to update key-value: {e}."
                 )
                 break
@@ -304,7 +304,7 @@ class Agent:
                     self.agent_val.status = AgentStatus.ERROR
                     _msg = f"Consumer not found: {e}"
                     self.agent_val.add_error(_msg)
-                    logger.error(_msg)
+                    logger.exception(_msg)
                 continue
 
             for msg in msgs:
@@ -314,9 +314,9 @@ class Agent:
                     logger.info(f"Agent ID verified: {event.agent_id}")
                 except (ValidationError, AssertionError) as e:
                     self.agent_val.status = AgentStatus.ERROR
-                    _msg = f"Invalid assignment: {str(e)}"
+                    _msg = f"Invalid assignment: {e}"
                     self.agent_val.add_error(_msg)
-                    logger.error(_msg)
+                    logger.exception(_msg)
                     continue
 
                 try:
@@ -334,10 +334,10 @@ class Agent:
                     self.agent_val.status = AgentStatus.IDLE
                 except Exception as e:
                     self.agent_val.status = AgentStatus.ERROR
-                    _msg = f"Failed to start operators: {str(e)}"
+                    _msg = f"Failed to start operators: {e}"
                     self.agent_val.add_error(_msg)
                     publish_error(self.js, _msg, task_refs=self.task_refs)
-                    logger.error(_msg)
+                    logger.exception(_msg)
                     continue
         logger.info("Server loop exiting")
 
@@ -387,9 +387,8 @@ class Agent:
             for result in results:
                 if isinstance(result, BaseException):
                     _msg = f"Error starting operator: {result}"
-                    logger.error(_msg)
+                    logger.exception(_msg)
                     self.agent_val.add_error(_msg)
-                    logger.error("Adding error to JetStream")
                     publish_error(self.js, _msg, task_refs=self.task_refs)
                 else:
                     operator, container = result
@@ -521,7 +520,9 @@ class Agent:
                 resolved = True
                 for mount in current_operator.mounts:
                     if not mount.resolve():
-                        logger.error(f"Mount source not found: {mount.source}")
+                        _msg = f"Mount source not found: {mount.source}"
+                        logger.error(_msg)
+                        self.agent_val.add_error(_msg)
                         resolved = False
                 if not resolved:
                     logger.error("Failed to resolve mounts")
@@ -537,7 +538,7 @@ class Agent:
                         current_container = new_container
                     except Exception as e:
                         _msg = f"Error starting operator: {e}"
-                        logger.error(_msg)
+                        logger.exception(_msg)
                         publish_error(self.js, _msg, task_refs=self.task_refs)
                         self.agent_val.add_error(_msg)
                         continue
@@ -570,7 +571,7 @@ class Agent:
                 self.js, self.id, operator, parameter
             )
         except Exception as e:
-            logger.error(f"Error subscribing to parameter {parameter.name}: {e}")
+            logger.exception(f"Error subscribing to parameter {parameter.name}: {e}")
             return
 
         # Publish initial value
@@ -621,7 +622,7 @@ class Agent:
                     _msg = (
                         f"Error decoding message for parameter '{parameter.name}': {e}"
                     )
-                    logger.error(_msg)
+                    logger.exception(_msg)
                     self.agent_val.add_error(_msg)
                     publish_error(self.js, _msg, task_refs=self.task_refs)
                     continue
@@ -629,7 +630,7 @@ class Agent:
                 continue
             except Exception as e:
                 _msg = f"Error fetching update for parameter '{parameter.name}': {e}"
-                logger.error(_msg)
+                logger.exception(_msg)
                 self.agent_val.add_error(_msg)
                 publish_error(self.js, _msg, task_refs=self.task_refs)
                 continue
