@@ -1,5 +1,6 @@
 import type { Node } from "@xyflow/react"
 import type { OperatorParameter } from "../client"
+import type { Agent } from "./agent"
 
 export enum NodeType {
   operator = "operator",
@@ -28,4 +29,8 @@ export type ImageNodeType = Node<
   },
   NodeType.image
 >
+
+export type AgentNodeType = Node<Agent, NodeType.agent>
+
+export type AnyNodeType = OperatorNodeType | ImageNodeType | AgentNodeType
 export type OperatorNodeTypes = OperatorNodeType | ImageNodeType
