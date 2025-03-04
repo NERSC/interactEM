@@ -9,12 +9,6 @@
       "label": "The output",
       "type": "partial frame",
       "description": "Partial frame"
-    },
-    {
-      "name": "out2",
-      "label": "The output",
-      "type": "partial frame",
-      "description": "Partial frame"
     }
   ]
 }
