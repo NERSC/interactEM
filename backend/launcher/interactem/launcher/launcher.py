@@ -22,11 +22,15 @@ from interactem.core.constants import (
     SFAPI_GROUP_NAME,
     SFAPI_SERVICE_NAME,
     SFAPI_STATUS_ENDPOINT,
-    SUBJECT_NOTIFICATIONS_ERRORS,
-    SUBJECT_NOTIFICATIONS_INFO,
 )
 from interactem.core.logger import get_logger
-from interactem.core.nats import consume_messages, create_or_update_stream, nc
+from interactem.core.nats import (
+    consume_messages,
+    create_or_update_stream,
+    nc,
+    publish_error,
+    publish_notification,
+)
 from interactem.core.nats.config import NOTIFICATIONS_STREAM_CONFIG, SFAPI_STREAM_CONFIG
 from interactem.core.nats.consumers import create_sfapi_submit_consumer
 from interactem.core.util import create_task_with_ref
@@ -67,30 +71,10 @@ async def status(req: Request) -> None:
         await req.respond_error(code="500", description=e.message)
 
 
-def publish_error(js: JetStreamContext, msg: str) -> None:
-    create_task_with_ref(
-        task_refs,
-        js.publish(
-            f"{SUBJECT_NOTIFICATIONS_ERRORS}",
-            payload=msg.encode(),
-        ),
-    )
-
-
-def publish_notification(js: JetStreamContext, msg: str) -> None:
-    create_task_with_ref(
-        task_refs,
-        js.publish(
-            f"{SUBJECT_NOTIFICATIONS_INFO}",
-            payload=msg.encode(),
-        ),
-    )
-
-
 async def monitor_job(job: AsyncJobSqueue, js: JetStreamContext) -> None:
     msg = f"Job {job.jobid} has been submitted to SFAPI. Waiting for it to run..."
     logger.info(msg)
-    publish_notification(js, msg)
+    publish_notification(js, msg, task_refs)
 
     try:
         await job.running()
@@ -98,13 +82,13 @@ async def monitor_job(job: AsyncJobSqueue, js: JetStreamContext) -> None:
         # Occurs when the job goes into terminal state. The state is updated in the job object
         # here, so we can publish its state directly
         logger.error(f"SFAPI Error: {e.message}.")
-        publish_error(js, e.message)
+        publish_error(js, e.message, task_refs)
         return
 
     await job.complete()
     msg = f"Job {job.jobid} has completed. Job state: {job.state}."
     logger.info(msg)
-    publish_notification(js, msg)
+    publish_notification(js, msg, task_refs)
 
 
 async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
@@ -140,7 +124,7 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
     if compute.status != StatusValue.active:
         _msg = f"{job_submit_event.machine.value} is not active: {compute.status}"
         logger.error(_msg)
-        publish_error(js, _msg)
+        publish_error(js, _msg, task_refs)
         create_task_with_ref(task_refs, msg.term())
         return
 
@@ -170,11 +154,11 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
         except SfApiError as e:
             _msg = f"Failed to submit job: {e.message}"
             logger.error(_msg)
-            publish_error(js, _msg)
+            publish_error(js, _msg, task_refs)
             create_task_with_ref(task_refs, msg.term())
         except Exception as e:
             logger.error(f"Unexpected error during job submission: {e}")
-            publish_error(js, str(e))
+            publish_error(js, str(e), task_refs)
             create_task_with_ref(task_refs, msg.term())
 
     await submit_and_monitor()
