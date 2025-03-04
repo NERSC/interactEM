@@ -22,15 +22,17 @@ import { v4 as uuidv4 } from "uuid"
 import { type OperatorNodeData, type PipelineJSON, toJSON } from "../pipeline"
 import ImageNode, { type ImageNode as ImageNodeType } from "./imagenode"
 import { OperatorMenu, type OperatorMenuItemDragData } from "./operatormenu"
-import OperatorNode, {
-  type OperatorNode as OperatorNodeType,
-} from "./operatornode"
-
+import OperatorNode from "./operatornode"
 import "@xyflow/react/dist/style.css"
 import { useDnD } from "../dnd/dndcontext"
 import useOperators from "../hooks/useOperators"
 import { layoutElements } from "../layout"
 import { fromPipelineJSON } from "../pipeline"
+import {
+  NodeType,
+  type OperatorNodeTypes,
+} from "../types/nodes"
+import ImageNode from "./imagenode"
 import { LaunchAgentFab } from "./launchagentfab"
 import { LaunchPipelineFab } from "./launchpipelinefab"
 
@@ -115,8 +117,8 @@ export const PipelineFlow = () => {
       }
 
       const position = screenToFlowPosition(screenPosition)
+      const nodeType = op.label === "Image" ? NodeType.image : NodeType.operator
 
-      const nodeType = op.label === "Image" ? "image" : "operator"
 
       const newNode: OperatorNodeType | ImageNodeType = {
         id: generateID(),
