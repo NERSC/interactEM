@@ -1,4 +1,3 @@
-import asyncio
 import multiprocessing
 import signal
 import sys
@@ -192,22 +191,3 @@ def receive_from_zmq_processes_and_send(
         logger.info(f"Received header: {header}")
         first_time = False
     return BytesMessage(header=header, data=data)
-
-
-async def async_main():
-    op = receive_from_zmq_processes_and_send()
-    await op.start()
-
-
-def main():
-    # Run the async main function using asyncio.run
-    try:
-        asyncio.run(async_main())
-    except KeyboardInterrupt:
-        logger.info("Shutting down operator...")
-    finally:
-        print("Application terminated.")
-
-
-if __name__ == "__main__":
-    main()
