@@ -1,5 +1,5 @@
 import asyncio
-from typing import Awaitable, Callable
+from typing import Awaitable, Callable, Set
 
 from interactem.core.util import create_task_with_ref
 import nats
@@ -13,6 +13,8 @@ from interactem.core.constants import (
     BUCKET_OPERATORS_TTL,
     BUCKET_PIPELINES,
     BUCKET_PIPELINES_TTL,
+    SUBJECT_NOTIFICATIONS_ERRORS,
+    SUBJECT_NOTIFICATIONS_INFO,
 )
 from interactem.core.models.agent import AgentVal
 from interactem.core.models.operators import OperatorMetrics, OperatorVal
@@ -141,3 +143,25 @@ async def create_or_update_stream(
         else:
             logger.info(f"Created stream {cfg.name}. Description: {cfg.description}")
         return stream_info
+
+
+def publish_error(js: JetStreamContext, msg: str, task_refs: Set[asyncio.Task]) -> None:
+    create_task_with_ref(
+        task_refs,
+        js.publish(
+            f"{SUBJECT_NOTIFICATIONS_ERRORS}",
+            payload=msg.encode(),
+        ),
+    )
+
+
+def publish_notification(
+    js: JetStreamContext, msg: str, task_refs: Set[asyncio.Task]
+) -> None:
+    create_task_with_ref(
+        task_refs,
+        js.publish(
+            f"{SUBJECT_NOTIFICATIONS_INFO}",
+            payload=msg.encode(),
+        ),
+    )

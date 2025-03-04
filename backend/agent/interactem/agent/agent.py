@@ -38,9 +38,15 @@ from interactem.core.models.pipeline import (
     PodmanMountType,
 )
 from interactem.core.models.uri import URI, CommBackend, URILocation
-from interactem.core.nats import create_or_update_stream, get_agents_bucket, nc
+from interactem.core.nats import (
+    create_or_update_stream,
+    get_agents_bucket,
+    nc,
+    publish_error,
+)
 from interactem.core.nats.config import (
     AGENTS_STREAM_CONFIG,
+    NOTIFICATIONS_STREAM_CONFIG,
     OPERATORS_STREAM_CONFIG,
     PARAMETERS_STREAM_CONFIG,
 )
@@ -84,6 +90,8 @@ class Agent:
     def __init__(self):
         self.id = uuid.uuid4()
         self.pipeline: Pipeline | None = None
+        self.my_operator_ids: list[uuid.UUID] = []
+        self.start_time = time.time()
 
         if PODMAN_SERVICE_URI:
             self._podman_service_uri = PODMAN_SERVICE_URI
@@ -171,13 +179,15 @@ class Agent:
             *[self.setup_signal_handlers(), self._start_podman_service()]
         )
 
-        self.nc = await nc(servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{id}")
+        self.nc = await nc(servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{self.id}")
         self.js = self.nc.jetstream()
 
         await create_or_update_stream(PARAMETERS_STREAM_CONFIG, self.js)
         await create_or_update_stream(AGENTS_STREAM_CONFIG, self.js)
         await create_or_update_stream(OPERATORS_STREAM_CONFIG, self.js)
+        await create_or_update_stream(NOTIFICATIONS_STREAM_CONFIG, self.js)
 
+        self.agent_val.status = AgentStatus.IDLE
         self.heartbeat_task = self.create_task(self.heartbeat(self.js, self.id))
         self.server_task = self.create_task(self.server_loop())
 
@@ -209,6 +219,14 @@ class Agent:
                 if self.nc.is_closed:
                     logger.info("NATS connection closed, exiting heartbeat loop.")
                     break
+
+                # Update the agent values with the current state
+                self.agent_val.pipeline_assignments = self.my_operator_ids
+                self.agent_val.uptime = time.time() - self.start_time
+
+                # Clear old error messages
+                self.agent_val.clear_old_errors()
+
                 await bucket.put(f"{id}", self.agent_val.model_dump_json().encode())
             except nats.errors.ConnectionClosedError:
                 logger.warning(
@@ -216,7 +234,7 @@ class Agent:
                 )
                 break
             except nats.js.errors.ServiceUnavailableError as e:
-                logger.error(
+                logger.exception(
                     f"JetStream service unavailable while trying to update key-value: {e}."
                 )
                 break
@@ -251,6 +269,7 @@ class Agent:
 
     async def shutdown(self):
         logger.info("Shutting down agent...")
+        self.agent_val.status = AgentStatus.SHUTTING_DOWN
 
         if self.heartbeat_task:
             await self.heartbeat_task
@@ -282,40 +301,43 @@ class Agent:
                 try:
                     await psub.consumer_info()
                 except nats.js.errors.NotFoundError as e:
-                    logger.error(e)
+                    self.agent_val.status = AgentStatus.ERROR
+                    _msg = f"Consumer not found: {e}"
+                    self.agent_val.add_error(_msg)
+                    logger.exception(_msg)
                 continue
 
             for msg in msgs:
                 try:
                     event = PipelineAssignment.model_validate_json(msg.data)
-                except ValidationError as e:
-                    logger.error(f"Invalid message: {msg.data}, error: {e}")
-                    continue
-
-                try:
                     assert event.agent_id == self.id
                     logger.info(f"Agent ID verified: {event.agent_id}")
-                except AssertionError:
-                    logger.error(f"Agent ID mismatch: {event.agent_id} != {self.id}")
+                except (ValidationError, AssertionError) as e:
+                    self.agent_val.status = AgentStatus.ERROR
+                    _msg = f"Invalid assignment: {e}"
+                    self.agent_val.add_error(_msg)
+                    logger.exception(_msg)
                     continue
 
                 try:
                     valid_pipeline = PipelineJSON.model_validate(event.pipeline)
-                    logger.info(f"Pipeline validated successfully: {valid_pipeline.id}")
-                except ValidationError as e:
-                    logger.error(f"Invalid pipeline: {event.pipeline}, error: {e}")
-                    continue
-
-                self.pipeline = Pipeline.from_pipeline(valid_pipeline)
-                self.my_operator_ids = event.operators_assigned
-                logger.info(f"Operators assigned: {self.my_operator_ids}")
-
-                try:
-                    logger.info("Starting operators...")
+                    self.pipeline = Pipeline.from_pipeline(valid_pipeline)
+                    self.my_operator_ids = event.operators_assigned
+                    self.agent_val.operator_assignments = (
+                        event.operators_assigned
+                    )  # Set operator assignments
+                    logger.info(f"Operators assigned: {self.my_operator_ids}")
+                    self.agent_val.status = AgentStatus.BUSY
+                    self.agent_val.status_message = "Starting operators..."
                     await self.start_operators()
+                    self.agent_val.status_message = "Operators started..."
+                    self.agent_val.status = AgentStatus.IDLE
                 except Exception as e:
-                    logger.error(f"Error starting operators: {e}")
-                    # TODO: publish error notification to jetstream
+                    self.agent_val.status = AgentStatus.ERROR
+                    _msg = f"Failed to start operators: {e}"
+                    self.agent_val.add_error(_msg)
+                    publish_error(self.js, _msg, task_refs=self.task_refs)
+                    logger.exception(_msg)
                     continue
         logger.info("Server loop exiting")
 
@@ -332,6 +354,8 @@ class Agent:
         loop.add_signal_handler(signal.SIGTERM, handle_signal)
 
     async def start_operators(self) -> dict[uuid.UUID, Container]:
+        if not self.js:
+            raise ValueError("No JetStream context")
         # Destroy any existing containers
         await self.cancel_and_cleanup()
         containers = {}
@@ -362,7 +386,10 @@ class Agent:
 
             for result in results:
                 if isinstance(result, BaseException):
-                    logger.error(f"Error starting operator: {result}")
+                    _msg = f"Error starting operator: {result}"
+                    logger.exception(_msg)
+                    self.agent_val.add_error(_msg)
+                    publish_error(self.js, _msg, task_refs=self.task_refs)
                 else:
                     operator, container = result
                     containers[operator.id] = container
@@ -493,7 +520,9 @@ class Agent:
                 resolved = True
                 for mount in current_operator.mounts:
                     if not mount.resolve():
-                        logger.error(f"Mount source not found: {mount.source}")
+                        _msg = f"Mount source not found: {mount.source}"
+                        logger.error(_msg)
+                        self.agent_val.add_error(_msg)
                         resolved = False
                 if not resolved:
                     logger.error("Failed to resolve mounts")
@@ -508,7 +537,10 @@ class Agent:
                         current_operator = new_operator
                         current_container = new_container
                     except Exception as e:
-                        logger.error(f"Error starting operator: {e}")
+                        _msg = f"Error starting operator: {e}"
+                        logger.exception(_msg)
+                        publish_error(self.js, _msg, task_refs=self.task_refs)
+                        self.agent_val.add_error(_msg)
                         continue
 
                 for param in changed_parameters.values():
@@ -539,7 +571,7 @@ class Agent:
                 self.js, self.id, operator, parameter
             )
         except Exception as e:
-            logger.error(f"Error subscribing to parameter {parameter.name}: {e}")
+            logger.exception(f"Error subscribing to parameter {parameter.name}: {e}")
             return
 
         # Publish initial value
@@ -587,16 +619,20 @@ class Agent:
                     changed_parameters[parameter.name] = parameter
                     restart_event.set()
                 except json.JSONDecodeError as e:
-                    logger.error(
+                    _msg = (
                         f"Error decoding message for parameter '{parameter.name}': {e}"
                     )
+                    logger.exception(_msg)
+                    self.agent_val.add_error(_msg)
+                    publish_error(self.js, _msg, task_refs=self.task_refs)
                     continue
             except nats.errors.TimeoutError:
                 continue
             except Exception as e:
-                logger.error(
-                    f"Error fetching update for parameter '{parameter.name}': {e}"
-                )
+                _msg = f"Error fetching update for parameter '{parameter.name}': {e}"
+                logger.exception(_msg)
+                self.agent_val.add_error(_msg)
+                publish_error(self.js, _msg, task_refs=self.task_refs)
                 continue
 
         await psub.unsubscribe()

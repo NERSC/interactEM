@@ -1,23 +1,11 @@
-import type { Node, NodeProps } from "@xyflow/react"
+import type { NodeProps } from "@xyflow/react"
 import { useRef } from "react"
-
-import type { OperatorParameter } from "../client"
 import { useImage } from "../hooks/useImage"
+import type { ImageNodeType } from "../types/nodes"
 import Handles from "./handles"
 import Image from "./image"
 
-export type ImageNode = Node<
-  {
-    label: string
-    image: string
-    inputs?: string[]
-    outputs?: string[]
-    parameters?: OperatorParameter[]
-  },
-  "image"
->
-
-const ImageNode = ({ id, data }: NodeProps<ImageNode>) => {
+const ImageNode = ({ id, data }: NodeProps<ImageNodeType>) => {
   const nodeRef = useRef<HTMLDivElement>(null)
   const imageData = useImage(id)
 

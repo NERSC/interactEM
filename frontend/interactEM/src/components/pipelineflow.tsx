@@ -4,7 +4,6 @@ import {
   Controls,
   type Edge,
   type KeyCode,
-  type Node,
   type OnConnect,
   type OnEdgesChange,
   type OnNodesChange,
@@ -15,22 +14,31 @@ import {
   applyNodeChanges,
   useReactFlow,
 } from "@xyflow/react"
-import { type DragEvent, useCallback, useMemo, useRef, useState } from "react"
-
+import {
+  type DragEvent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react"
 import { v4 as uuidv4 } from "uuid"
-
-import { type OperatorNodeData, type PipelineJSON, toJSON } from "../pipeline"
-import ImageNode, { type ImageNode as ImageNodeType } from "./imagenode"
+import { type PipelineJSON, fromPipelineJSON, toJSON } from "../pipeline"
 import { OperatorMenu, type OperatorMenuItemDragData } from "./operatormenu"
-import OperatorNode, {
-  type OperatorNode as OperatorNodeType,
-} from "./operatornode"
-
+import OperatorNode from "./operatornode"
 import "@xyflow/react/dist/style.css"
 import { useDnD } from "../dnd/dndcontext"
+import { useAgents } from "../hooks/useAgents"
 import useOperators from "../hooks/useOperators"
-import { layoutElements } from "../layout"
-import { fromPipelineJSON } from "../pipeline"
+import { layoutNodes } from "../layout"
+import {
+  type AgentNodeType,
+  type AnyNodeType,
+  NodeType,
+  type OperatorNodeTypes,
+} from "../types/nodes"
+import AgentNode from "./agentnode"
+import ImageNode from "./imagenode"
 import { LaunchAgentFab } from "./launchagentfab"
 import { LaunchPipelineFab } from "./launchpipelinefab"
 
@@ -43,15 +51,110 @@ const generateID = () => uuidv4()
 
 export const PipelineFlow = () => {
   const reactFlowWrapper = useRef(null)
-  const [nodes, setNodes] = useState<Node<OperatorNodeData>[]>([])
+  const [operatorNodes, setOperatorNodes] = useState<OperatorNodeTypes[]>([])
+  const [agentNodes, setAgentNodes] = useState<AgentNodeType[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
   const [pipelineJSONLoaded, setPipelineJSONLoaded] = useState(false)
+
+  // Add this after the savedOperatorPositions state declaration
   const { screenToFlowPosition } = useReactFlow()
   const [operatorDropData] = useDnD<OperatorMenuItemDragData>()
-  const { operators, error } = useOperators()
-  if (error) {
-    console.error("Error loading operators:", error)
-  }
+  const { operators, error: operatorsError } = useOperators()
+  const { agents, error: agentsError } = useAgents()
+
+  if (operatorsError) console.error("Error loading operators:", operatorsError)
+  if (agentsError) console.error("Error loading agents:", agentsError)
+
+  // filter old/new agents
+  useEffect(() => {
+    if (!agents) return
+    setAgentNodes((prevNodes) => {
+      const currentAgentIds = new Set(agents.map((a) => a.uri.id))
+
+      // Keep agents that are present in the agents KV
+      const filteredAgentNodes = prevNodes.filter((node) => {
+        return currentAgentIds.has(node.id)
+      })
+
+      // Update existing agent nodes with fresh agent data
+      const updatedAgentNodes = filteredAgentNodes.map((node) => {
+        const freshAgent = agents.find((a) => a.uri.id === node.id)
+        if (freshAgent) {
+          return {
+            ...node,
+            data: freshAgent,
+          }
+        }
+        return node
+      })
+
+      const existingAgentIds = new Set(updatedAgentNodes.map((n) => n.id))
+
+      // Create nodes for new agents
+      const newAgentsInKV = agents.filter(
+        (a) => !existingAgentIds.has(a.uri.id),
+      )
+      const newAgentNodes = newAgentsInKV.map(
+        (agent) =>
+          ({
+            id: agent.uri.id,
+            type: NodeType.agent,
+            position: { x: 0, y: 0 },
+            data: agent,
+            zIndex: 0,
+          }) as AgentNodeType,
+      )
+
+      if (newAgentNodes.length === 0) {
+        return updatedAgentNodes // Return updated nodes even if no new ones
+      }
+
+      // Combine existing and new agent nodes
+      const allAgentNodes = [...updatedAgentNodes, ...newAgentNodes]
+
+      // Layout the agent nodes if there is a new one
+      const { nodes: layoutedAgentNodes } = layoutNodes(allAgentNodes)
+
+      return [...layoutedAgentNodes]
+    })
+  }, [agents])
+
+  // memoize so we don't re-render on every agent KV state change
+  const agentOperatorAssignments = useMemo(() => {
+    if (!agents) return null
+
+    const assignmentsMap = new Map<string, string>()
+    for (const agent of agents) {
+      if (agent.operator_assignments) {
+        for (const operatorId of agent.operator_assignments) {
+          assignmentsMap.set(operatorId, agent.uri.id)
+        }
+      }
+    }
+
+    return assignmentsMap
+  }, [agents])
+
+  // Do operator assignments
+  useEffect(() => {
+    if (!agentOperatorAssignments) return
+
+    // Update operator nodes with parentId based on agent assignments
+    setOperatorNodes((prevOperatorNodes) => {
+      // Update each operator node with the parentId if assigned
+      return prevOperatorNodes.map((node) => {
+        const assignedAgentId = agentOperatorAssignments.get(node.id)
+        if (assignedAgentId) {
+          return {
+            ...node,
+            parentId: assignedAgentId,
+            extent: "parent",
+          }
+        }
+        return node
+      })
+    })
+  }, [agentOperatorAssignments])
 
   const handleConnect: OnConnect = useCallback((connection) => {
     // any new connections should nullify the current pipeline ID
@@ -73,12 +176,12 @@ export const PipelineFlow = () => {
       }
 
       const pipelineJSON: PipelineJSON = JSON.parse(await file.text())
-      const { nodes, edges } = fromPipelineJSON(pipelineJSON)
-      const { nodes: layoutedNodes, edges: layoutedEdges } = layoutElements(
-        nodes,
+      const { nodes: importedNodes, edges } = fromPipelineJSON(pipelineJSON)
+      const { nodes: layoutedNodes, edges: layoutedEdges } = layoutNodes(
+        importedNodes,
         edges,
       )
-      setNodes(layoutedNodes)
+      setOperatorNodes(layoutedNodes as OperatorNodeTypes[])
       setEdges(layoutedEdges)
       setPipelineJSONLoaded(true)
     },
@@ -115,13 +218,13 @@ export const PipelineFlow = () => {
       }
 
       const position = screenToFlowPosition(screenPosition)
+      const nodeType = op.label === "Image" ? NodeType.image : NodeType.operator
 
-      const nodeType = op.label === "Image" ? "image" : "operator"
-
-      const newNode: OperatorNodeType | ImageNodeType = {
+      const newNode: OperatorNodeTypes = {
         id: generateID(),
         type: nodeType,
         position,
+        zIndex: 1,
         data: {
           label: op.label ?? "",
           image: op.image,
@@ -136,15 +239,19 @@ export const PipelineFlow = () => {
         targetPosition: Position.Left,
       }
 
-      setNodes((nds) => nds.concat(newNode))
+      setOperatorNodes((nds) => nds.concat(newNode) as OperatorNodeTypes[])
     },
     [screenToFlowPosition, operatorDropData, handlePipelineJSONDrop, operators],
   )
 
-  const handleNodesChange: OnNodesChange<Node<OperatorNodeData>> = useCallback(
-    // no need to nullify ID if we are just moving/selecting node
+  const handleNodesChange: OnNodesChange<AnyNodeType> = useCallback(
     (changes) => {
-      setNodes((nds) => applyNodeChanges<Node<OperatorNodeData>>(changes, nds))
+      const nodeChanges = (nds: AnyNodeType[]) => {
+        return applyNodeChanges(changes, nds) as AnyNodeType[]
+      }
+
+      setOperatorNodes((nds) => nodeChanges(nds) as OperatorNodeTypes[])
+      setAgentNodes((nds) => nodeChanges(nds) as AgentNodeType[])
     },
     [],
   )
@@ -155,8 +262,7 @@ export const PipelineFlow = () => {
   )
 
   const handleDownloadClick = () => {
-    const pipelineJSON = toJSON(nodes, edges)
-
+    const pipelineJSON = toJSON(operatorNodes, edges)
     const blob = new Blob([JSON.stringify(pipelineJSON)], {
       type: "application/json",
     })
@@ -175,7 +281,7 @@ export const PipelineFlow = () => {
   const selectionKeyCode: KeyCode = "Space"
 
   const nodeTypes = useMemo(
-    () => ({ operator: OperatorNode, image: ImageNode }),
+    () => ({ operator: OperatorNode, image: ImageNode, agent: AgentNode }),
     [],
   )
 
@@ -183,7 +289,7 @@ export const PipelineFlow = () => {
     <div className="pipelineflow">
       <div className="reactflow-wrapper" ref={reactFlowWrapper}>
         <ReactFlow
-          nodes={nodes}
+          nodes={[...agentNodes, ...operatorNodes]}
           edges={edges}
           onNodesChange={handleNodesChange}
           onEdgesChange={handleEdgesChange}
@@ -203,7 +309,7 @@ export const PipelineFlow = () => {
               <DownloadIcon />
             </ControlButton>
           </Controls>
-          <LaunchPipelineFab nodes={nodes} edges={edges} />
+          <LaunchPipelineFab nodes={operatorNodes} edges={edges} />
           <LaunchAgentFab />
         </ReactFlow>
       </div>
