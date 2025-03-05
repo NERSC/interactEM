@@ -1,4 +1,7 @@
-FROM samwelborn/stempy:py310-43b9b6e
+FROM interactem/interactem-operator AS operator-base
+
+# Main build using stempy as the base
+FROM samwelborn/stempy:py310-f685f4d
 
 WORKDIR /app/
 
@@ -14,24 +17,21 @@ RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python
     ln -s /opt/poetry/bin/poetry && \
     poetry config virtualenvs.create false
 
+# Copy the interactem operator files from the base image
+COPY --from=operator-base /interactem/operators /interactem/operators
+COPY --from=operator-base /interactem/core /interactem/core
+
+# Install additional dependencies needed for this specific operator
 RUN pip install scipy
 
-# Copy poetry.lock* in case it doesn't exist in the repo
-WORKDIR /interactem/operators
-COPY ./backend/operators/pyproject.toml ./operators/poetry.lock* ./
-COPY ./backend/core/ /interactem/core/
-RUN poetry install --no-root
+# Copy the electron-count specific run script
+COPY ./run.py /app/run.py
 
-# Allow installing dev dependencies to run tests
-ARG INSTALL_DEV=false
-RUN bash -c "if [ $INSTALL_DEV == 'true' ] ; then poetry install --no-root ; else poetry install --no-root --only main ; fi"
-
+# Set Python path
+ENV PYTHONPATH=/interactem/operators
 ENV PYTHONUNBUFFERED=1
 
-COPY ./backend/operators/operators /interactem/operators/operators
-RUN touch /interactem/operators/README.md
-RUN poetry install --only main
+# Copy the startup script
+COPY --from=operator-base /app/startup.py /app/startup.py
 
-COPY ./operators/electron-count/run.py /app/run.py
-
-ENTRYPOINT [ "python", "/app/startup.py" ]
+ENTRYPOINT ["python", "/app/startup.py"]
