@@ -152,6 +152,10 @@ class OperatorMixin(RunnableKernel):
         self.run_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self._dependencies = []
+        self._last_tracking_time: datetime = datetime.now()
+        self._tracking_interval: float = 1.0
+        self._tracking_ready: asyncio.Event = asyncio.Event()
+        self._tracking_timer_task: asyncio.Task | None = None
 
     @property
     def input_queue(self) -> str:
@@ -174,6 +178,7 @@ class OperatorMixin(RunnableKernel):
             raise ValueError("Messenger not initialized")
         await self.messenger.start(self.pipeline)
         self.update_kv_task = asyncio.create_task(self.update_kv())
+        self._tracking_timer_task = asyncio.create_task(self._tracking_timer())
         self.run_task = asyncio.create_task(self.run())
         self.consume_params_task = asyncio.create_task(self.consume_params())
         await self._shutdown_event.wait()
@@ -406,25 +411,33 @@ class OperatorMixin(RunnableKernel):
     async def run(self):
         if not self.messenger:
             raise ValueError("Messenger not initialized")
-        has_input_op = True if len(self.messenger.input_ports) > 0 else False
-        loop_counter = 0
+        has_input = True if len(self.messenger.input_ports) > 0 else False
         error_count, max_retries, error_state = 0, 10, False
         await self._publish_running()
         while not self._shutdown_event.is_set():
             coros: list[Coroutine] = []
             msg = None
             _tracking = None
+            timing_this_iter = False
+            before_kernel = None
+            after_kernel = None
 
-            if has_input_op:
+            if has_input:
                 msg = await self.messenger.recv()
                 if not msg:
                     continue
+                # inject metrics if has input and there is tracking info in the header
                 _tracking = msg.header.tracking
+                timing_this_iter = True if _tracking is not None else False
+            # if it doesn't have input, we inject every tracking interval (seconds)
+            elif not has_input and self._tracking_ready.is_set():
+                self._tracking_ready.clear()
+                self._last_tracking_time = datetime.now()
+                timing_this_iter = True
 
-            # TODO: we should make this configurable/optional from frontend
-            inject_tracking: bool = loop_counter % 100 == 0 and not has_input_op
-            timing = inject_tracking or _tracking is not None
-            before_kernel = datetime.now() if timing else None
+            if timing_this_iter:
+                before_kernel = datetime.now()
+
             try:
                 processed_msg = await self.run_kernel(msg, self.parameters)
                 error_count = 0
@@ -440,26 +453,31 @@ class OperatorMixin(RunnableKernel):
                     self._shutdown_event.set()
 
                 continue
+
+            if timing_this_iter:
+                after_kernel = datetime.now()
+
+            # if we were previously in error state and successfully processed a message
+            # we need to publish that we are running again
             if error_state and processed_msg:
                 error_state = False
                 coros.append(self._publish_running())
-            after_kernel = datetime.now() if timing else None
 
             if processed_msg:
                 processed_msg.header.tracking = _tracking
-                if timing:
+                if timing_this_iter:
                     self._update_metrics(processed_msg, before_kernel, after_kernel)
                 if self.messenger.output_ports:
                     await self.messenger.send(processed_msg)
-                elif timing:
+                # if last operator in pipeline, publish tracking information
+                elif timing_this_iter:
                     coros.append(self._publish_metrics(processed_msg))
-
-            if not processed_msg and _tracking:
+            elif timing_this_iter and msg:
                 coros.append(
                     self._update_and_publish_metrics(msg, before_kernel, after_kernel)
                 )
 
-            if timing:
+            if timing_this_iter:
                 self.metrics.timing.after_send = datetime.now()
                 self.metrics.timing.before_kernel = before_kernel
                 self.metrics.timing.after_kernel = after_kernel
@@ -468,15 +486,20 @@ class OperatorMixin(RunnableKernel):
                 # TODO: possibly create tasks instead
                 await asyncio.gather(*coros)
 
-            loop_counter += 1
+    async def _tracking_timer(self):
+        """Task that periodically sets the tracking flag."""
+        while not self._shutdown_event.is_set():
+            await asyncio.sleep(self._tracking_interval)
+            self._tracking_ready.set()
 
     async def _publish_metrics(self, msg: BytesMessage):
         if not self.js:
             logger.warning("JetStream context not initialized...")
             return
-        if not msg or not msg.header.tracking:
-            logger.warning("Message or tracking data incomplete...")
+        if not msg.header.tracking:
+            logger.warning("No tracking data in message to publish...")
             return
+
         await self.js.publish(
             subject=f"{STREAM_METRICS}.operators",
             payload=msg.header.model_dump_json().encode(),
@@ -503,13 +526,13 @@ class OperatorMixin(RunnableKernel):
 
     def _update_metrics(
         self,
-        msg: BytesMessage | None,
+        msg: BytesMessage,
         before_kernel: datetime | None,
         after_kernel: datetime | None,
-    ) -> BytesMessage | None:
-        if not msg or not before_kernel or not after_kernel:
-            logger.warning("Message or tracking data incomplete...")
-            return
+    ) -> BytesMessage:
+        if before_kernel is None or after_kernel is None:
+            logger.warning("Tracking data incomplete...")
+            return msg
 
         meta = OperatorTrackingMetadata(
             id=self.id,
@@ -523,7 +546,7 @@ class OperatorMixin(RunnableKernel):
 
     async def _update_and_publish_metrics(
         self,
-        msg: BytesMessage | None,
+        msg: BytesMessage,
         before_kernel: datetime | None,
         after_kernel: datetime | None,
     ):
