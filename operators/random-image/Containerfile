@@ -1,4 +1,4 @@
-FROM interactem/operator
+FROM interactem/interactem-operator
 
 RUN pip install numpy pillow
 

@@ -1,4 +1,4 @@
-FROM interactem/operator
+FROM interactem/interactem-operator
 
 COPY ./run.py /app/run.py
 
