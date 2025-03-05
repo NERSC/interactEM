@@ -14,15 +14,20 @@ if [ $? -ne 0 ]; then
 fi
 
 build_dirs=(
-    "background-subtract"
+    "beam-compensation"
     "data-replay"
+    "detstream-aggregator"
+    "detstream-assembler"
+    "detstream-producer"
+    "detstream-state-server"
+    "electron-count"
     "electron-count-save"
     "error"
     "image-display"
-    "random-image"
-    "sparse-frame-image-converter"
     "pva-converter"
     "pvapy-ad-sim-server"
+    "random-image"
+    "sparse-frame-image-converter"
 )
 
 # Function to check if a directory is in the build_dirs array
