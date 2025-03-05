@@ -57,6 +57,7 @@ from interactem.core.nats.consumers import (
     create_operator_pipeline_consumer,
 )
 from interactem.core.pipeline import Pipeline
+from interactem.core.util import create_task_with_ref
 
 from .config import cfg
 from .messengers.base import (
@@ -156,6 +157,7 @@ class OperatorMixin(RunnableKernel):
         self._tracking_interval: float = 1.0
         self._tracking_ready: asyncio.Event = asyncio.Event()
         self._tracking_timer_task: asyncio.Task | None = None
+        self._task_refs: set[asyncio.Task] = set()
 
     @property
     def input_queue(self) -> str:
@@ -415,7 +417,7 @@ class OperatorMixin(RunnableKernel):
         error_count, max_retries, error_state = 0, 10, False
         await self._publish_running()
         while not self._shutdown_event.is_set():
-            coros: list[Coroutine] = []
+            tasks: list[Coroutine] = []
             msg = None
             _tracking = None
             timing_this_iter = False
@@ -461,7 +463,7 @@ class OperatorMixin(RunnableKernel):
             # we need to publish that we are running again
             if error_state and processed_msg:
                 error_state = False
-                coros.append(self._publish_running())
+                tasks.append(self._publish_running())
 
             if processed_msg:
                 processed_msg.header.tracking = _tracking
@@ -471,9 +473,9 @@ class OperatorMixin(RunnableKernel):
                     await self.messenger.send(processed_msg)
                 # if last operator in pipeline, publish tracking information
                 elif timing_this_iter:
-                    coros.append(self._publish_metrics(processed_msg))
+                    tasks.append(self._publish_metrics(processed_msg))
             elif timing_this_iter and msg:
-                coros.append(
+                tasks.append(
                     self._update_and_publish_metrics(msg, before_kernel, after_kernel)
                 )
 
@@ -482,9 +484,8 @@ class OperatorMixin(RunnableKernel):
                 self.metrics.timing.before_kernel = before_kernel
                 self.metrics.timing.after_kernel = after_kernel
 
-            if coros:
-                # TODO: possibly create tasks instead
-                await asyncio.gather(*coros)
+            for task in tasks:
+                create_task_with_ref(self._task_refs, task)
 
     async def _tracking_timer(self):
         """Task that periodically sets the tracking flag."""
