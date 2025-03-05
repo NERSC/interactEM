@@ -109,8 +109,6 @@ services:
     build:
       context: backend/
       dockerfile: ../docker/Dockerfile.fastapi
-      args:
-        INSTALL_DEV: ${INSTALL_DEV-false}
     platform: linux/amd64 # Patch for M1 Mac
 
   orchestrator:
@@ -134,8 +132,6 @@ services:
     build:
       context: backend/
       dockerfile: ../docker/Dockerfile.orchestrator
-      args:
-        INSTALL_DEV: ${INSTALL_DEV-false}
 
 
   callout:
