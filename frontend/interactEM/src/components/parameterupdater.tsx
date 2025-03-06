@@ -17,7 +17,7 @@ import { memo, useEffect, useState } from "react"
 import type { OperatorParameter } from "../client"
 import { useParameterUpdate } from "../hooks/useParameterUpdate"
 import { useParameterValue } from "../hooks/useParameterValue"
-import type { OperatorNode as OperatorNodeType } from "./operatornode"
+import type { OperatorNodeType } from "../types/nodes"
 
 const compareValues = (
   parameter: OperatorParameter,
