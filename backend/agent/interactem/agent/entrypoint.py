@@ -1,6 +1,6 @@
 import asyncio
 
-from interactem.agent.agent import Agent
+from interactem.agent.agent import Agent, logger
 
 
 async def main():
@@ -9,8 +9,10 @@ async def main():
         await agent.run()
     except KeyboardInterrupt:
         pass
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e}")
     finally:
-        print("Application terminated.")
+        logger.info("Application terminated.")
 
 
 def entrypoint():

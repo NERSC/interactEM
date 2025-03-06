@@ -34,6 +34,7 @@ METRICS_STREAM_CONFIG = StreamConfig(
     name=STREAM_METRICS,
     description="A stream for message metrics.",
     subjects=[f"{STREAM_METRICS}.>"],
+    max_age=60,  # seconds
 )
 
 AGENTS_STREAM_CONFIG = StreamConfig(

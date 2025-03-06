@@ -17,6 +17,7 @@ from sfapi_client.client import AsyncClient as SFApiClient
 from sfapi_client.compute import Machine
 from sfapi_client.exceptions import SfApiError
 from sfapi_client.jobs import AsyncJobSqueue
+from sfapi_client.paths import AsyncRemotePath
 
 from interactem.core.constants import (
     SFAPI_GROUP_NAME,
@@ -124,6 +125,16 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
     if compute.status != StatusValue.active:
         _msg = f"{job_submit_event.machine.value} is not active: {compute.status}"
         logger.error(_msg)
+        publish_error(js, _msg, task_refs)
+        create_task_with_ref(task_refs, msg.term())
+        return
+
+    try:
+        remote_path = AsyncRemotePath(path=cfg.ENV_FILE_PATH, compute=compute)
+        await remote_path.update()
+    except (SfApiError, FileNotFoundError):
+        _msg = "Failed to find .env file for agent startup."
+        logger.exception(_msg)
         publish_error(js, _msg, task_refs)
         create_task_with_ref(task_refs, msg.term())
         return
