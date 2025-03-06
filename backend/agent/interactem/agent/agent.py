@@ -346,12 +346,15 @@ class Agent:
 
         loop = asyncio.get_running_loop()
 
-        def handle_signal():
-            logger.info("Signal received, shutting down processes...")
+        def handle_signal(sig_num=None):
+            signal_name = (
+                signal.Signals(sig_num).name if sig_num is not None else "UNKNOWN"
+            )
+            logger.info(f"Signal {signal_name} received, shutting down processes...")
             self._shutdown_event.set()
 
-        loop.add_signal_handler(signal.SIGINT, handle_signal)
-        loop.add_signal_handler(signal.SIGTERM, handle_signal)
+        for sig in [signal.SIGINT, signal.SIGTERM]:
+            loop.add_signal_handler(sig, lambda s=sig: handle_signal(s))
 
     async def start_operators(self) -> dict[uuid.UUID, Container]:
         if not self.js:
