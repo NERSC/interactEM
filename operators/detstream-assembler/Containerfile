@@ -1,30 +1,3 @@
-ARG PYTHON_BASE=3.12-slim
-# build stage
-FROM python:$PYTHON_BASE AS builder
+FROM ghcr.io/nersc/interactem/operator
 
-# install PDM
-RUN pip install -U pdm
-# disable update check
-ENV PDM_CHECK_UPDATE=false
-ARG DETSTREAM_AGGREGATOR_PATH="./operators/containerfiles/detstream-aggregator"
-# copy files
-COPY ${DETSTREAM_AGGREGATOR_PATH}/pyproject.toml ${DETSTREAM_AGGREGATOR_PATH}/pdm.lock ${DETSTREAM_AGGREGATOR_PATH}/README.md /app/
-COPY ${DETSTREAM_AGGREGATOR_PATH}/src/ /app/src
-COPY ./core/ /app/core/
-COPY ./operators/ /app/operators/
-
-# install dependencies and project into the local packages directory
-WORKDIR /app
-RUN pdm lock && pdm install --check --prod --no-editable
-
-# run stage
-FROM python:$PYTHON_BASE
-WORKDIR /app
-# retrieve packages from build stage
-COPY --from=builder /app/.venv/ /app/.venv
-ENV PATH="/app/.venv/bin:$PATH"
-ARG DETSTREAM_AGGREGATOR_PATH="./operators/containerfiles/detstream-aggregator"
-# set command/entrypoint, adapt to fit your needs
-COPY ${DETSTREAM_AGGREGATOR_PATH}/src /app/src
-COPY ${DETSTREAM_AGGREGATOR_PATH}/run.py /app/run.py
-CMD ["python", "/app/run.py"]
+RUN pip install msgpack pyzmq

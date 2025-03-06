@@ -77,21 +77,3 @@ def save(
         header=MessageHeader(subject=MessageSubject.BYTES, meta=header.model_dump()),
         data=block[0].data.tobytes(),
     )
-
-
-async def async_main():
-    op = save()
-    await op.start()
-
-
-def main():
-    try:
-        asyncio.run(async_main())
-    except KeyboardInterrupt:
-        logger.info("Shutting down operator...")
-    finally:
-        print("Application terminated.")
-
-
-if __name__ == "__main__":
-    main()

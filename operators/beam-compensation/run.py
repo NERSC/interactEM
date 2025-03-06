@@ -214,22 +214,3 @@ def subtract(
         header=inputs.header,
         data=experiment_centered.data[0][0].astype(np.uint32).tobytes(),
     )
-
-
-async def async_main():
-    op = subtract()
-    await op.start()
-
-
-def main():
-    # Run the async main function using asyncio.run
-    try:
-        asyncio.run(async_main())
-    except KeyboardInterrupt:
-        logger.info("Shutting down operator...")
-    finally:
-        print("Application terminated.")
-
-
-if __name__ == "__main__":
-    main()

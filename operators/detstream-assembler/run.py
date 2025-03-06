@@ -141,22 +141,3 @@ def assemble(
             print(f"Complete frame: {complete_frame}")
             first_time = False
         return BytesMessage(header=new_header, data=complete_frame.tobytes())
-
-
-async def async_main():
-    op = assemble()
-    await op.start()
-
-
-def main():
-    # Run the async main function using asyncio.run
-    try:
-        asyncio.run(async_main())
-    except KeyboardInterrupt:
-        logger.info("Shutting down operator...")
-    finally:
-        print("Application terminated.")
-
-
-if __name__ == "__main__":
-    main()

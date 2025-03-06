@@ -11,10 +11,11 @@ services:
     volumes:
       - ./backend/app/:/app
       - ./backend/core/:/core
-    build:
-      args:
-        INSTALL_DEV: ${INSTALL_DEV-true}
-    command: /start-reload.sh
+    command: 
+      - fastapi
+      - run
+      - --reload
+      - "interactem/app/main.py"
     environment:
       SMTP_HOST: "mailcatcher"
       SMTP_PORT: "1025"

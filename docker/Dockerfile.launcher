@@ -1,4 +1,4 @@
-FROM interactem/interactem:latest
+FROM ghcr.io/nersc/interactem/interactem:latest
 
 COPY ./sfapi_models/ /interactem/sfapi_models/
 

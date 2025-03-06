@@ -77,7 +77,7 @@ services:
       nats-healthcheck:
         condition: service_healthy
     ports:
-      - "8080:80"
+      - "8080:8000"
     env_file:
       - .env
     environment:
@@ -109,8 +109,6 @@ services:
     build:
       context: backend/
       dockerfile: ../docker/Dockerfile.fastapi
-      args:
-        INSTALL_DEV: ${INSTALL_DEV-false}
     platform: linux/amd64 # Patch for M1 Mac
 
   orchestrator:
@@ -134,8 +132,6 @@ services:
     build:
       context: backend/
       dockerfile: ../docker/Dockerfile.orchestrator
-      args:
-        INSTALL_DEV: ${INSTALL_DEV-false}
 
 
   callout:

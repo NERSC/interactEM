@@ -3,8 +3,7 @@
 SCRIPT_DIR=$(dirname "$0")
 ROOT_DIR=$(git rev-parse --show-toplevel)
 TAG=$(git rev-parse --short=6 HEAD)
-ORG=${1:-interactem}
-PODMAN=${2:-p}
+PODMAN=${1:-p}
 
 if [ $PODMAN == "p" ]; then
     DOCKER=podman
@@ -31,12 +30,10 @@ build_image() {
     local context=$3
     local logfile="/tmp/build_${name}.log"
     
-    echo "Starting build for $ORG/interactem-${name}:$TAG..."
+    echo "Starting build for ghcr.io/nersc/interactem/${name}:$TAG..."
     $DOCKER build $PLATFORM \
-        -t interactem/interactem-${name}:latest \
-        -t interactem/interactem-${name}:$TAG \
-        -t $ORG/interactem-${name}:$TAG \
-        -t $ORG/interactem-${name}:latest \
+        -t ghcr.io/nersc/interactem/${name}:latest \
+        -t ghcr.io/nersc/interactem/${name}:$TAG \
         -f $SCRIPT_DIR/${dockerfile} \
         ${context} > $logfile 2>&1
     
@@ -44,9 +41,10 @@ build_image() {
 }
 
 # Build base image first
-$DOCKER build $PLATFORM -t interactem/interactem:$TAG -t interactem/interactem:latest -f $SCRIPT_DIR/Dockerfile.base $ROOT_DIR/backend
+BASE_IMAGE="ghcr.io/nersc/interactem/interactem"
+$DOCKER build $PLATFORM -t $BASE_IMAGE:latest -t $BASE_IMAGE:$TAG -f $SCRIPT_DIR/Dockerfile.base $ROOT_DIR/backend
 if [ $? -ne 0 ]; then
-    echo "Failed to build interactem/interactem"
+    echo "Failed to build $BASE_IMAGE"
     exit 1
 fi
 

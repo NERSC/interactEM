@@ -3,4 +3,4 @@ FROM ghcr.io/nersc/interactem/operator
 RUN pip install scipy ncempy stempy
 
 RUN mkdir -p /output
-RUN mkdir -p /raw_data
+RUN mkdir -p /vacuum_scan

@@ -2,4 +2,5 @@
 
 module load conda
 conda activate {{settings.CONDA_ENV}}
-srun --nodes={{job.num_nodes}} --ntasks-per-node=1 dotenv -f {{settings.ENV_FILE_PATH}} run interactem-agent
+cd {{settings.ENV_FILE_DIR}}
+srun --nodes={{job.num_nodes}} --ntasks-per-node=1 interactem-agent
