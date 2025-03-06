@@ -1,4 +1,4 @@
-FROM interactem/interactem-operator AS operator-base
+FROM ghcr.io/nersc/interactem/operator AS operator-base
 
 # Main build using stempy as the base
 FROM samwelborn/stempy:py310-f685f4d

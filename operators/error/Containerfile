@@ -1,3 +1,3 @@
-FROM interactem/interactem-operator
+FROM ghcr.io/nersc/interactem/operator
 
 COPY ./run.py /app/run.py

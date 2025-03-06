@@ -5,15 +5,14 @@
 SCRIPT_DIR=$(dirname "$0")
 ROOT_DIR=$(git rev-parse --show-toplevel)
 TAG=$(git rev-parse --short=6 HEAD)
-ORG=${1:-interactem}
-PODMAN=${2:-p}
+PODMAN=${1:-p}
 
 # Clean up any existing temp files before starting
 rm -f /tmp/build_operator_*.log /tmp/build_operator_*.exit
 
 # Build base containers
 echo "Building base containers..."
-$ROOT_DIR/docker/build.sh $ORG $PODMAN
+$ROOT_DIR/docker/build.sh $PODMAN
 if [ $? -ne 0 ]; then
     echo "Failed to build base containers."
     exit 1

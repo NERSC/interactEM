@@ -1,4 +1,4 @@
-FROM interactem/interactem-operator
+FROM ghcr.io/nersc/interactem/operator
 
 RUN pip install stempy h5py
 
