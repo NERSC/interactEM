@@ -1,3 +1,4 @@
+import shlex
 from pathlib import Path
 
 from pydantic import NatsDsn, model_validator
@@ -24,6 +25,13 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def env_file_parent(self) -> "Settings":
         self.ENV_FILE_DIR = self.ENV_FILE_PATH.parent
+        return self
+
+    @model_validator(mode="after")
+    def quote_conda_env(self) -> "Settings":
+        if isinstance(self.CONDA_ENV, Path):
+            self.CONDA_ENV = str(self.CONDA_ENV)
+        self.CONDA_ENV = shlex.quote(self.CONDA_ENV)
         return self
 
 
