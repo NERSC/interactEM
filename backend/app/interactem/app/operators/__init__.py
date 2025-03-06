@@ -2,6 +2,8 @@ import json
 from typing import Any
 import asyncio
 
+import httpx
+
 from jsonpath_ng import parse
 
 from interactem.app.core.config import settings
@@ -34,7 +36,10 @@ async def _labels(registry: ContainerRegistry, image: str, tag: str) -> dict[str
 async def _operator(
     registry: ContainerRegistry, image: str, tag: str
 ) -> dict[str, Any]:
-    labels = await _labels(registry, image, tag)
+    try:
+        labels = await _labels(registry, image, tag)
+    except httpx.HTTPStatusError:
+        return None
     if OPERATOR_SPEC_KEY in labels:
         return json.loads(labels[OPERATOR_SPEC_KEY])
 
