@@ -7,7 +7,7 @@ import ParametersButton from "./parametersbutton"
 interface OperatorToolbarProps {
   id: string
   image: string
-  parameters?: OperatorParameter[]
+  parameters?: OperatorParameter[] | null
   nodeRef: React.RefObject<HTMLDivElement>
 }
 

@@ -234,6 +234,7 @@ export const PipelineFlow = () => {
             ...param,
             value: param.default,
           })),
+          tags: op.tags ?? [],
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,

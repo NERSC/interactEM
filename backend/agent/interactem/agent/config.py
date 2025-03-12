@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     NATS_SERVER_URL_IN_CONTAINER: AnyWebsocketUrl | NatsDsn = Field(
         default="nats://nats1:4222"
     )
-    AGENT_MACHINE_NAME: str | None = None
+    AGENT_TAGS: list[str] = []
     MOUNT_LOCAL_REPO: bool = False
     OPERATOR_CREDS_FILE: Path
 

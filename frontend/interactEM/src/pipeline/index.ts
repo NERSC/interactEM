@@ -1,6 +1,7 @@
 import { type Edge, type Node, Position, type XYPosition } from "@xyflow/react"
 
-import type { OperatorParameter } from "../client"
+import type { OperatorParameter, OperatorTag } from "../client"
+
 import { edgeOptions } from "../components/pipelineflow"
 
 const position: XYPosition = {
@@ -14,6 +15,7 @@ export type OperatorNodeData = {
   inputs?: string[]
   outputs?: string[]
   parameters?: OperatorParameter[]
+  tags?: OperatorTag[]
 }
 
 export interface OperatorJSON extends OperatorNodeData {
@@ -70,6 +72,7 @@ export const fromPipelineJSON = (pipelineJSON: PipelineJSON) => {
         image: operatorJSON.image,
         inputs: operatorJSON.inputs,
         outputs: operatorJSON.outputs,
+        tags: operatorJSON.tags,
       },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
@@ -112,6 +115,7 @@ export const toJSON = (nodes: Node<OperatorNodeData>[], edges: Edge[]) => {
     const inputs = data.inputs
     const outputs = data.outputs
     const parameters = data.parameters
+    const tags = data.tags
 
     // Ports
     for (const portID of inputs ?? []) {
@@ -154,6 +158,7 @@ export const toJSON = (nodes: Node<OperatorNodeData>[], edges: Edge[]) => {
       inputs: inputs,
       outputs: outputs,
       parameters: parameters,
+      tags: tags,
     }
     operatorsJSON.push(op)
   }

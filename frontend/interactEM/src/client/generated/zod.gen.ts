@@ -86,6 +86,19 @@ export const zOperator = z.object({
       z.null(),
     ])
     .optional(),
+  tags: z
+    .union([
+      z.array(
+        z.object({
+          type: z.enum(["facility", "capability"]),
+          value: z.string(),
+          required: z.boolean().optional().default(true),
+          description: z.union([z.string(), z.null()]).optional(),
+        }),
+      ),
+      z.null(),
+    ])
+    .optional(),
 })
 
 export const zOperatorInput = z.object({
@@ -108,6 +121,15 @@ export const zOperatorParameter = z.object({
   value: z.union([z.string(), z.null()]).optional(),
   options: z.union([z.array(z.string()), z.null()]).optional(),
 })
+
+export const zOperatorTag = z.object({
+  type: z.enum(["facility", "capability"]),
+  value: z.string(),
+  required: z.boolean().optional().default(true),
+  description: z.union([z.string(), z.null()]).optional(),
+})
+
+export const zOperatorTagType = z.enum(["facility", "capability"])
 
 export const zOperators = z.object({
   data: z.array(zOperator),

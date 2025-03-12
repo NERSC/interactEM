@@ -111,6 +111,17 @@ class OperatorParameter(BaseModel):
     value: str | None = None  # Value of the parameter
     options: list[str] | None = None  # List of options for STR_ENUM
 
+class OperatorTagType(str, Enum):
+    FACILITY = "facility"  # For facility-specific resources (like "ncem-4dcamera")
+    CAPABILITY = "capability"  # For general capabilities (like "gpu")
+
+
+class OperatorTag(BaseModel):
+    type: OperatorTagType
+    value: str  # The actual tag value (e.g., "gpu", "ncem-4dstem")
+    required: bool = True  # Whether this tag is a strict requirement
+    description: str | None = None
+
 
 class Operator(BaseModel):
     id: IdType
@@ -120,3 +131,4 @@ class Operator(BaseModel):
     inputs: list[OperatorInput] | None = None  # List of inputs
     outputs: list[OperatorOutput] | None = None  # List of outputs
     parameters: list[OperatorParameter] | None = None  # List of parameters
+    tags: list[OperatorTag] | None = None  # List of tags to match on

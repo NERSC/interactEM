@@ -7,7 +7,7 @@ from pydantic import BaseModel, model_validator
 
 from ..constants import MOUNT_DIR
 from .base import IdType, NodeType, OperatorID, PortID, PortType
-from .operators import OperatorParameter, ParameterType
+from .operators import OperatorParameter, OperatorTag, ParameterType
 
 """
 Pipelines are a DAG of Operators and Ports
@@ -92,7 +92,7 @@ class OperatorJSON(PipelineNodeJSON):
     parameters: list[OperatorParameter] | None = None
     inputs: list[PortID] = []
     outputs: list[PortID] = []
-    machine_name: str | None = None  # Name of the machine to run the operator on
+    tags: list[OperatorTag] = []  # Tags for agent matching
     mounts: list[PodmanMount] = []  # Container mounts
     env: dict[str, str] = {}  # Environment variables to pass to the container
     command: str | list[str] = []  # Command to pass to the container
