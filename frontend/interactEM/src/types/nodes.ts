@@ -1,5 +1,5 @@
 import type { Node } from "@xyflow/react"
-import type { OperatorParameter } from "../client"
+import type { OperatorNodeData } from "../pipeline"
 import type { Agent } from "./agent"
 
 export enum NodeType {
@@ -8,27 +8,9 @@ export enum NodeType {
   agent = "agent",
 }
 
-export type OperatorNodeType = Node<
-  {
-    label: string
-    image: string
-    inputs?: string[]
-    outputs?: string[]
-    parameters?: OperatorParameter[]
-  },
-  NodeType.operator
->
+export type OperatorNodeType = Node<OperatorNodeData, NodeType.operator>
 
-export type ImageNodeType = Node<
-  {
-    label: string
-    image: string
-    inputs?: string[]
-    outputs?: string[]
-    parameters?: OperatorParameter[]
-  },
-  NodeType.image
->
+export type ImageNodeType = Node<OperatorNodeData, NodeType.image>
 
 export type AgentNodeType = Node<Agent, NodeType.agent>
 
