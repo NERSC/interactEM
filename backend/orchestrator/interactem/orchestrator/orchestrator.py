@@ -70,57 +70,101 @@ async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
 
 
 def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
-    # TODO: this is ugly
-    # Group agents by machine name
-    agents_on_machines: dict[str, list[AgentVal]] = {}
-    agents_without_machines: list[AgentVal] = []
-    for agent_info in agent_infos:
-        if agent_info.machine_name:
-            if agent_info.machine_name not in agents_on_machines:
-                agents_on_machines[agent_info.machine_name] = []
-            agents_on_machines[agent_info.machine_name].append(agent_info)
-        else:
-            agents_without_machines.append(agent_info)
+    """
+    Assign pipeline operators to agents based on tag matching.
 
-    # Group operators by machine name
-    operators_on_machines: dict[str, list[OperatorJSON]] = {}
-    operators_without_machines: list[OperatorJSON] = []
-    for operator in pipeline.operators.values():
-        if operator.machine_name:
-            if operator.machine_name not in operators_on_machines:
-                operators_on_machines[operator.machine_name] = []
-            operators_on_machines[operator.machine_name].append(operator)
-        else:
-            operators_without_machines.append(operator)
-
-    # Assign operators with machine names to agents with corresponding machine names using round-robin
+    The matching algorithm prioritizes:
+    1. Agents with exact tag matches for required tags
+    2. Agents with the most matching tags
+    3. Load balancing among qualified agents
+    """
     assignments: dict[IdType, list[OperatorJSON]] = {}
-    for machine_name, operators in operators_on_machines.items():
-        agents_on_this_machine = agents_on_machines.get(machine_name, None)
-        if not agents_on_this_machine:
-            raise Exception(f"No agents available for machine {machine_name}")
+    unassigned_operators = list(pipeline.operators.values())
 
-        agent_cycle = cycle(agents_on_this_machine)
-        for operator in operators:
+    def find_matching_agents(operator, require_all_required_tags=True):
+        """Helper function to find agents matching an operator's tags"""
+        op_required_tags = {tag.value for tag in operator.tags if tag.required}
+        op_all_tag_values = {tag.value for tag in operator.tags}
+
+        matching_agents = []
+        for agent in agent_infos:
+            agent_tag_values = set(agent.tags)
+
+            # Check if this agent matches the current matching strategy
+            if require_all_required_tags:
+                # First pass: Must match all required tags
+                if not op_required_tags or not op_required_tags.issubset(
+                    agent_tag_values
+                ):
+                    continue
+            else:
+                # Second pass: Any matching tag is sufficient
+                common_tags = op_all_tag_values.intersection(agent_tag_values)
+                if not common_tags:
+                    continue
+
+            # Count matching tags for ranking
+            match_count = len(op_all_tag_values.intersection(agent_tag_values))
+            matching_agents.append((agent, match_count))
+
+        return matching_agents
+
+    def assign_to_best_agent(matching_agents, operator):
+        """Helper to assign operator to the best agent from candidates"""
+        if not matching_agents:
+            return False
+
+        # Sort by number of matching tags (highest first)
+        matching_agents.sort(key=lambda x: x[1], reverse=True)
+
+        # Get all agents with the highest match score
+        best_score = matching_agents[0][1]
+        best_agents = [a for a, score in matching_agents if score == best_score]
+
+        # Choose agent with the lowest current load
+        best_agent = min(best_agents, key=lambda a: len(assignments.get(a.uri.id, [])))
+
+        # Assign the operator
+        agent_id = best_agent.uri.id
+        if agent_id not in assignments:
+            assignments[agent_id] = []
+
+        assignments[agent_id].append(operator)
+        unassigned_operators.remove(operator)
+        return True
+
+    # First pass: exact matches for required tags
+    for operator in list(unassigned_operators):
+        if not any(tag.required for tag in operator.tags):
+            continue  # Skip operators without required tags in first pass
+
+        matching_agents = find_matching_agents(operator, require_all_required_tags=True)
+        assign_to_best_agent(matching_agents, operator)
+
+    # Second pass: partial tag matches
+    for operator in list(unassigned_operators):
+        matching_agents = find_matching_agents(
+            operator, require_all_required_tags=False
+        )
+        assign_to_best_agent(matching_agents, operator)
+
+    # Final pass: round-robin assign any remaining operators
+    if unassigned_operators:
+        # Sort agents by current load (number of assigned operators)
+        sorted_agents = sorted(
+            agent_infos, key=lambda a: len(assignments.get(a.uri.id, []))
+        )
+        agent_cycle = cycle(sorted_agents)
+
+        for operator in unassigned_operators:
             agent = next(agent_cycle)
             agent_id = agent.uri.id
             if agent_id not in assignments:
                 assignments[agent_id] = []
+
             assignments[agent_id].append(operator)
 
-    # Assign operators without machine names to agents without machine names using round-robin
-    if operators_without_machines:
-        if not agents_without_machines:
-            raise Exception("No agents available for operators without machine names")
-
-        agent_cycle = cycle(agents_without_machines)
-        for operator in operators_without_machines:
-            agent = next(agent_cycle)
-            agent_id = agent.uri.id
-            if agent_id not in assignments:
-                assignments[agent_id] = []
-            assignments[agent_id].append(operator)
-
+    # Create pipeline assignments
     pipeline_assignments: list[PipelineAssignment] = []
     for agent_id, operators in assignments.items():
         pipeline_assignment = PipelineAssignment(
@@ -130,10 +174,11 @@ def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
         )
         pipeline_assignments.append(pipeline_assignment)
 
+    # Generate human-readable assignment log
     formatted_assignments = "\n".join(
-        f"Agent {assignment.agent_id}:\n"
+        f"Agent {assignment.agent_id} (tags: {next((a.tags for a in agent_infos if a.uri.id == assignment.agent_id), [])}):\n"
         + "\n".join(
-            f"  Operator {op_id} on machine {next(op.machine_name for op in assignment.pipeline.operators if op.id == op_id)}"
+            f"  Operator {op_id} (tags: {[tag.value for tag in next((op.tags for op in assignment.pipeline.operators if op.id == op_id), [])]})"
             for op_id in assignment.operators_assigned
         )
         for assignment in pipeline_assignments
