@@ -28,6 +28,7 @@ from interactem.core.nats import (
     get_pipelines_bucket,
     get_val,
     nc,
+    publish_error,
 )
 from interactem.core.nats.config import (
     AGENTS_STREAM_CONFIG,
@@ -42,6 +43,8 @@ from .config import cfg
 logger = get_logger()
 
 pipelines = {}
+
+task_refs: set[asyncio.Task] = set()
 
 
 async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignment):
@@ -69,7 +72,9 @@ async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
         await asyncio.sleep(interval)
 
 
-def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
+def assign_pipeline_to_agents(
+    js: JetStreamContext, agent_infos: list[AgentVal], pipeline: Pipeline
+):
     """
     Assign pipeline operators to agents based on tag matching.
 
@@ -142,6 +147,7 @@ def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
             unassignable_operators.append(operator)
             _msg = f"Operator {operator.id} has tags {[tag.value for tag in operator.tags]} that don't match any agent"
             logger.error(_msg)
+            publish_error(js, _msg, task_refs)
 
     # Final pass: round-robin assign any remaining operators (those without tags)
     remaining_operators = [
@@ -167,6 +173,7 @@ def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
     for operator in unassigned_operators:
         _msg = f"Failed to assign operator {operator.id} to any agent"
         logger.error(_msg)
+        publish_error(js, _msg, task_refs)
 
     # Create pipeline assignments
     pipeline_assignments: list[PipelineAssignment] = []
@@ -224,7 +231,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     agent_vals = [agent_info for agent_info in agent_vals if agent_info]
 
     try:
-        assignments = assign_pipeline_to_agents(agent_vals, pipeline)
+        assignments = assign_pipeline_to_agents(js, agent_vals, pipeline)
     except Exception as e:
         logger.error(f"Failed to assign pipeline to agents:  {e}")
         return
