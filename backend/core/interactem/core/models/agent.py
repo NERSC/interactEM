@@ -24,7 +24,7 @@ class AgentVal(BaseModel):
     uri: URI
     status: AgentStatus
     status_message: str | None = None
-    machine_name: str | None = None
+    tags: list[str] = []
     pipeline_id: str | None = None
     pipeline_assignments: list[UUID] = []
     operator_assignments: list[UUID] | None = None

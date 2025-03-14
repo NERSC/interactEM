@@ -42,6 +42,7 @@ export type Operator = {
   inputs?: Array<OperatorInput> | null
   outputs?: Array<OperatorOutput> | null
   parameters?: Array<OperatorParameter> | null
+  tags?: Array<OperatorTag> | null
 }
 
 export type OperatorInput = {
@@ -63,6 +64,11 @@ export type OperatorParameter = {
   required: boolean
   value?: string | null
   options?: Array<string> | null
+}
+
+export type OperatorTag = {
+  value: string
+  description?: string | null
 }
 
 export type Operators = {

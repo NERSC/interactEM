@@ -915,6 +915,16 @@
               { "type": "null" }
             ],
             "title": "Parameters"
+          },
+          "tags": {
+            "anyOf": [
+              {
+                "items": { "$ref": "#/components/schemas/OperatorTag" },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Tags"
           }
         },
         "type": "object",
@@ -969,6 +979,18 @@
           "required"
         ],
         "title": "OperatorParameter"
+      },
+      "OperatorTag": {
+        "properties": {
+          "value": { "type": "string", "title": "Value" },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": ["value"],
+        "title": "OperatorTag"
       },
       "Operators": {
         "properties": {

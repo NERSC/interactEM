@@ -28,6 +28,7 @@ from interactem.core.nats import (
     get_pipelines_bucket,
     get_val,
     nc,
+    publish_error,
 )
 from interactem.core.nats.config import (
     AGENTS_STREAM_CONFIG,
@@ -42,6 +43,8 @@ from .config import cfg
 logger = get_logger()
 
 pipelines = {}
+
+task_refs: set[asyncio.Task] = set()
 
 
 async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignment):
@@ -69,58 +72,110 @@ async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
         await asyncio.sleep(interval)
 
 
-def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
-    # TODO: this is ugly
-    # Group agents by machine name
-    agents_on_machines: dict[str, list[AgentVal]] = {}
-    agents_without_machines: list[AgentVal] = []
-    for agent_info in agent_infos:
-        if agent_info.machine_name:
-            if agent_info.machine_name not in agents_on_machines:
-                agents_on_machines[agent_info.machine_name] = []
-            agents_on_machines[agent_info.machine_name].append(agent_info)
-        else:
-            agents_without_machines.append(agent_info)
+def assign_pipeline_to_agents(
+    js: JetStreamContext, agent_infos: list[AgentVal], pipeline: Pipeline
+):
+    """
+    Assign pipeline operators to agents based on tag matching.
 
-    # Group operators by machine name
-    operators_on_machines: dict[str, list[OperatorJSON]] = {}
-    operators_without_machines: list[OperatorJSON] = []
-    for operator in pipeline.operators.values():
-        if operator.machine_name:
-            if operator.machine_name not in operators_on_machines:
-                operators_on_machines[operator.machine_name] = []
-            operators_on_machines[operator.machine_name].append(operator)
-        else:
-            operators_without_machines.append(operator)
-
-    # Assign operators with machine names to agents with corresponding machine names using round-robin
+    The matching algorithm prioritizes:
+    1. Agents with matching tags
+    2. Agents with the most matching tags
+    3. Load balancing among qualified agents
+    """
     assignments: dict[IdType, list[OperatorJSON]] = {}
-    for machine_name, operators in operators_on_machines.items():
-        agents_on_this_machine = agents_on_machines.get(machine_name, None)
-        if not agents_on_this_machine:
-            raise Exception(f"No agents available for machine {machine_name}")
+    unassigned_operators = list(pipeline.operators.values())
+    # Keep track of operators that couldn't be assigned due to tag mismatch
+    unassignable_operators = []
 
-        agent_cycle = cycle(agents_on_this_machine)
-        for operator in operators:
+    def find_matching_agents(operator: OperatorJSON):
+        """Helper function to find agents matching an operator's tags"""
+        op_tag_values = {tag.value for tag in operator.tags}
+
+        # If operator has no tags, it can go anywhere
+        if not op_tag_values:
+            return [(agent, 0) for agent in agent_infos]
+
+        matching_agents = []
+        for agent in agent_infos:
+            agent_tag_values = set(agent.tags)
+
+            # Check for any matching tags
+            common_tags = op_tag_values.intersection(agent_tag_values)
+            if not common_tags:
+                continue
+
+            # Count matching tags for ranking
+            match_count = len(common_tags)
+            matching_agents.append((agent, match_count))
+
+        return matching_agents
+
+    def assign_to_best_agent(
+        matching_agents: list[tuple[AgentVal, int]], operator: OperatorJSON
+    ):
+        """Helper to assign operator to the best agent from candidates"""
+        if not matching_agents:
+            return False
+
+        # Sort by number of matching tags (highest first)
+        matching_agents.sort(key=lambda x: x[1], reverse=True)
+
+        # Get all agents with the highest match score
+        best_score = matching_agents[0][1]
+        best_agents = [a for a, score in matching_agents if score == best_score]
+
+        # Choose agent with the lowest current load
+        best_agent = min(best_agents, key=lambda a: len(assignments.get(a.uri.id, [])))
+
+        # Assign the operator
+        agent_id = best_agent.uri.id
+        if agent_id not in assignments:
+            assignments[agent_id] = []
+
+        assignments[agent_id].append(operator)
+        unassigned_operators.remove(operator)
+        return True
+
+    # Main assignment pass: match by tags
+    for operator in list(unassigned_operators):
+        matching_agents = find_matching_agents(operator)
+        success = assign_to_best_agent(matching_agents, operator)
+
+        # If we couldn't assign this operator, it has tags that don't match any agent
+        if not success and operator.tags:  # Only log as unassignable if it has tags
+            unassignable_operators.append(operator)
+            _msg = f"Operator {operator.id} has tags {[tag.value for tag in operator.tags]} that don't match any agent"
+            logger.error(_msg)
+            publish_error(js, _msg, task_refs)
+
+    # Final pass: round-robin assign any remaining operators (those without tags)
+    remaining_operators = [
+        op for op in unassigned_operators if op not in unassignable_operators
+    ]
+    if remaining_operators:
+        # Sort agents by current load (number of assigned operators)
+        sorted_agents = sorted(
+            agent_infos, key=lambda a: len(assignments.get(a.uri.id, []))
+        )
+        agent_cycle = cycle(sorted_agents)
+
+        for operator in remaining_operators:
             agent = next(agent_cycle)
             agent_id = agent.uri.id
             if agent_id not in assignments:
                 assignments[agent_id] = []
+
             assignments[agent_id].append(operator)
+            unassigned_operators.remove(operator)
 
-    # Assign operators without machine names to agents without machine names using round-robin
-    if operators_without_machines:
-        if not agents_without_machines:
-            raise Exception("No agents available for operators without machine names")
+    # Log any operators that couldn't be assigned
+    for operator in unassigned_operators:
+        _msg = f"Failed to assign operator {operator.id} to any agent"
+        logger.error(_msg)
+        publish_error(js, _msg, task_refs)
 
-        agent_cycle = cycle(agents_without_machines)
-        for operator in operators_without_machines:
-            agent = next(agent_cycle)
-            agent_id = agent.uri.id
-            if agent_id not in assignments:
-                assignments[agent_id] = []
-            assignments[agent_id].append(operator)
-
+    # Create pipeline assignments
     pipeline_assignments: list[PipelineAssignment] = []
     for agent_id, operators in assignments.items():
         pipeline_assignment = PipelineAssignment(
@@ -130,10 +185,11 @@ def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
         )
         pipeline_assignments.append(pipeline_assignment)
 
+    # Generate human-readable assignment log
     formatted_assignments = "\n".join(
-        f"Agent {assignment.agent_id}:\n"
+        f"Agent {assignment.agent_id} (tags: {next((a.tags for a in agent_infos if a.uri.id == assignment.agent_id), [])}):\n"
         + "\n".join(
-            f"  Operator {op_id} on machine {next(op.machine_name for op in assignment.pipeline.operators if op.id == op_id)}"
+            f"  Operator {op_id} (tags: {[tag.value for tag in next((op.tags for op in assignment.pipeline.operators if op.id == op_id), [])]})"
             for op_id in assignment.operators_assigned
         )
         for assignment in pipeline_assignments
@@ -175,7 +231,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     agent_vals = [agent_info for agent_info in agent_vals if agent_info]
 
     try:
-        assignments = assign_pipeline_to_agents(agent_vals, pipeline)
+        assignments = assign_pipeline_to_agents(js, agent_vals, pipeline)
     except Exception as e:
         logger.error(f"Failed to assign pipeline to agents:  {e}")
         return

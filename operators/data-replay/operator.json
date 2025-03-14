@@ -20,5 +20,11 @@
       "description": "This is where the raw data files (*.data) are located",
       "required": true
     }
+  ],
+  "tags": [
+    {
+      "value": "ncem-4dcamera",
+      "description": "Required to run at the edge near the 4d camera."
+    }
   ]
 }

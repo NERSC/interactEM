@@ -112,6 +112,11 @@ class OperatorParameter(BaseModel):
     options: list[str] | None = None  # List of options for STR_ENUM
 
 
+class OperatorTag(BaseModel):
+    value: str  # The actual tag value (e.g., "gpu", "ncem-4dstem")
+    description: str | None = None
+
+
 class Operator(BaseModel):
     id: IdType
     label: str  # Human readable name of the operator
@@ -120,3 +125,4 @@ class Operator(BaseModel):
     inputs: list[OperatorInput] | None = None  # List of inputs
     outputs: list[OperatorOutput] | None = None  # List of outputs
     parameters: list[OperatorParameter] | None = None  # List of parameters
+    tags: list[OperatorTag] | None = None  # List of tags to match on

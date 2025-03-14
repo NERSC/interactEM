@@ -86,6 +86,17 @@ export const zOperator = z.object({
       z.null(),
     ])
     .optional(),
+  tags: z
+    .union([
+      z.array(
+        z.object({
+          value: z.string(),
+          description: z.union([z.string(), z.null()]).optional(),
+        }),
+      ),
+      z.null(),
+    ])
+    .optional(),
 })
 
 export const zOperatorInput = z.object({
@@ -107,6 +118,11 @@ export const zOperatorParameter = z.object({
   required: z.boolean(),
   value: z.union([z.string(), z.null()]).optional(),
   options: z.union([z.array(z.string()), z.null()]).optional(),
+})
+
+export const zOperatorTag = z.object({
+  value: z.string(),
+  description: z.union([z.string(), z.null()]).optional(),
 })
 
 export const zOperators = z.object({
