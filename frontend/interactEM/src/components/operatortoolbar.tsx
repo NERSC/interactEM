@@ -43,7 +43,7 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
                   <ul style={{ margin: "5px 0", paddingLeft: "20px" }}>
                     {nodeTags.map((tag: OperatorTag, index: number) => (
                       <li key={index}>
-                        {tag.type}: {tag.value} {tag.required && "(required)"}
+                        {tag.value}
                         {tag.description && (
                           <div>
                             <em>{tag.description}</em>

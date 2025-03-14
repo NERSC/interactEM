@@ -23,9 +23,7 @@
   ],
   "tags": [
     {
-      "type": "facility",
       "value": "ncem-4dcamera",
-      "required": true,
       "description": "Required to run at the edge near the 4d camera."
     }
   ]

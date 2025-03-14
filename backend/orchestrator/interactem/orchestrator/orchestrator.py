@@ -74,42 +74,41 @@ def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
     Assign pipeline operators to agents based on tag matching.
 
     The matching algorithm prioritizes:
-    1. Agents with exact tag matches for required tags
+    1. Agents with matching tags
     2. Agents with the most matching tags
     3. Load balancing among qualified agents
     """
     assignments: dict[IdType, list[OperatorJSON]] = {}
     unassigned_operators = list(pipeline.operators.values())
+    # Keep track of operators that couldn't be assigned due to tag mismatch
+    unassignable_operators = []
 
-    def find_matching_agents(operator, require_all_required_tags=True):
+    def find_matching_agents(operator: OperatorJSON):
         """Helper function to find agents matching an operator's tags"""
-        op_required_tags = {tag.value for tag in operator.tags if tag.required}
-        op_all_tag_values = {tag.value for tag in operator.tags}
+        op_tag_values = {tag.value for tag in operator.tags}
+
+        # If operator has no tags, it can go anywhere
+        if not op_tag_values:
+            return [(agent, 0) for agent in agent_infos]
 
         matching_agents = []
         for agent in agent_infos:
             agent_tag_values = set(agent.tags)
 
-            # Check if this agent matches the current matching strategy
-            if require_all_required_tags:
-                # First pass: Must match all required tags
-                if not op_required_tags or not op_required_tags.issubset(
-                    agent_tag_values
-                ):
-                    continue
-            else:
-                # Second pass: Any matching tag is sufficient
-                common_tags = op_all_tag_values.intersection(agent_tag_values)
-                if not common_tags:
-                    continue
+            # Check for any matching tags
+            common_tags = op_tag_values.intersection(agent_tag_values)
+            if not common_tags:
+                continue
 
             # Count matching tags for ranking
-            match_count = len(op_all_tag_values.intersection(agent_tag_values))
+            match_count = len(common_tags)
             matching_agents.append((agent, match_count))
 
         return matching_agents
 
-    def assign_to_best_agent(matching_agents, operator):
+    def assign_to_best_agent(
+        matching_agents: list[tuple[AgentVal, int]], operator: OperatorJSON
+    ):
         """Helper to assign operator to the best agent from candidates"""
         if not matching_agents:
             return False
@@ -133,36 +132,41 @@ def assign_pipeline_to_agents(agent_infos: list[AgentVal], pipeline: Pipeline):
         unassigned_operators.remove(operator)
         return True
 
-    # First pass: exact matches for required tags
+    # Main assignment pass: match by tags
     for operator in list(unassigned_operators):
-        if not any(tag.required for tag in operator.tags):
-            continue  # Skip operators without required tags in first pass
+        matching_agents = find_matching_agents(operator)
+        success = assign_to_best_agent(matching_agents, operator)
 
-        matching_agents = find_matching_agents(operator, require_all_required_tags=True)
-        assign_to_best_agent(matching_agents, operator)
+        # If we couldn't assign this operator, it has tags that don't match any agent
+        if not success and operator.tags:  # Only log as unassignable if it has tags
+            unassignable_operators.append(operator)
+            _msg = f"Operator {operator.id} has tags {[tag.value for tag in operator.tags]} that don't match any agent"
+            logger.error(_msg)
 
-    # Second pass: partial tag matches
-    for operator in list(unassigned_operators):
-        matching_agents = find_matching_agents(
-            operator, require_all_required_tags=False
-        )
-        assign_to_best_agent(matching_agents, operator)
-
-    # Final pass: round-robin assign any remaining operators
-    if unassigned_operators:
+    # Final pass: round-robin assign any remaining operators (those without tags)
+    remaining_operators = [
+        op for op in unassigned_operators if op not in unassignable_operators
+    ]
+    if remaining_operators:
         # Sort agents by current load (number of assigned operators)
         sorted_agents = sorted(
             agent_infos, key=lambda a: len(assignments.get(a.uri.id, []))
         )
         agent_cycle = cycle(sorted_agents)
 
-        for operator in unassigned_operators:
+        for operator in remaining_operators:
             agent = next(agent_cycle)
             agent_id = agent.uri.id
             if agent_id not in assignments:
                 assignments[agent_id] = []
 
             assignments[agent_id].append(operator)
+            unassigned_operators.remove(operator)
+
+    # Log any operators that couldn't be assigned
+    for operator in unassigned_operators:
+        _msg = f"Failed to assign operator {operator.id} to any agent"
+        logger.error(_msg)
 
     # Create pipeline assignments
     pipeline_assignments: list[PipelineAssignment] = []

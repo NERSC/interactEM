@@ -67,13 +67,9 @@ export type OperatorParameter = {
 }
 
 export type OperatorTag = {
-  type: OperatorTagType
   value: string
-  required?: boolean
   description?: string | null
 }
-
-export type OperatorTagType = "facility" | "capability"
 
 export type Operators = {
   data: Array<Operator>

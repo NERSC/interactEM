@@ -982,26 +982,15 @@
       },
       "OperatorTag": {
         "properties": {
-          "type": { "$ref": "#/components/schemas/OperatorTagType" },
           "value": { "type": "string", "title": "Value" },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "default": true
-          },
           "description": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Description"
           }
         },
         "type": "object",
-        "required": ["type", "value"],
+        "required": ["value"],
         "title": "OperatorTag"
-      },
-      "OperatorTagType": {
-        "type": "string",
-        "enum": ["facility", "capability"],
-        "title": "OperatorTagType"
       },
       "Operators": {
         "properties": {
