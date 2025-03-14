@@ -36,8 +36,8 @@ const AgentTooltip = ({ data }: AgentTooltipProps) => {
       <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
         <InfoItem label="ID" value={data.uri.id} />
         <InfoItem label="Status" value={data.status} />
-        {data.machine_name && (
-          <InfoItem label="Machine" value={data.machine_name} />
+        {data.tags && data.tags.length > 0 && (
+          <InfoItem label="Tags" value={data.tags} />
         )}
         <InfoItem label="Uptime" value={formattedUptime} />
       </Box>
