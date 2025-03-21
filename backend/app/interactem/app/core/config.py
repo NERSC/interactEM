@@ -7,6 +7,7 @@ from urllib.parse import quote_plus
 from nats.aio.client import Client as NATSClient
 from pydantic import (
     AnyUrl,
+    AnyWebsocketUrl,
     BeforeValidator,
     Field,
     HttpUrl,
@@ -122,7 +123,7 @@ class Settings(BaseSettings):
         return self
 
     # NATS
-    NATS_SERVER_URL: NatsDsn = Field(default="nats://nats1:4222")
+    NATS_SERVER_URL: AnyWebsocketUrl | NatsDsn = NatsDsn("nats://nats1:4222")
 
     # External auth
     EXTERNAL_SECRET_KEY: str

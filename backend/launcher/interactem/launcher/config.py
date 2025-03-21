@@ -1,13 +1,13 @@
 import shlex
 from pathlib import Path
 
-from pydantic import NatsDsn, model_validator
+from pydantic import AnyWebsocketUrl, NatsDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
-    NATS_SERVER_URL: NatsDsn = NatsDsn("nats://localhost:4222")
+    NATS_SERVER_URL: AnyWebsocketUrl | NatsDsn = NatsDsn("nats://localhost:4222")
     SFAPI_KEY_PATH: Path = Path("/secrets/sfapi.pem")
     CONDA_ENV: Path | str
     ENV_FILE_PATH: Path
