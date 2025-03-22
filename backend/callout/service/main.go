@@ -13,7 +13,7 @@ import (
 	"syscall"
 	"time"
 
-	"example.com/callout"
+	"github.com/aricart/callout.go"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
@@ -180,7 +180,7 @@ func main() {
 	logger.Noticef("connected to server at: %s", cfg.SERVER_URL)
 
 	// Start the microservice
-	_, err = callout.AuthorizationService(nc,
+	_, err = callout.NewAuthorizationService(nc,
 		callout.Authorizer(authorizer),
 		// Sign the response with the callout account's signing key
 		callout.ResponseSignerKey(calloutAccountKP),
