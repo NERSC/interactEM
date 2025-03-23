@@ -677,6 +677,21 @@ async def create_container(
 ) -> Container:
     name = f"operator-{operator.id}"
     network_mode = operator.network_mode or "host"
+
+    # Try to pull the image first if it doesn't exist
+    try:
+        client.images.get(operator.image)
+        logger.debug(f"Image {operator.image} is already available")
+    except podman.errors.exceptions.ImageNotFound:
+        logger.info(f"Image {operator.image} not found locally, attempting to pull...")
+        try:
+            client.images.pull(operator.image)
+            logger.info(f"Successfully pulled image {operator.image}")
+        except Exception as e:
+            error_msg = f"Failed to pull image {operator.image}: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg) from e
+
     for attempt in range(max_retries + 1):
         # Expand users
         # This should only be done at the agent (where data resides)
