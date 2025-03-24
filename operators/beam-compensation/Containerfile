@@ -2,5 +2,7 @@ FROM ghcr.io/nersc/interactem/operator
 
 RUN pip install scipy ncempy stempy
 
+COPY ./run.py /app/run.py
+
 RUN mkdir -p /output
 RUN mkdir -p /vacuum_scan
