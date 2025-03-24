@@ -19,6 +19,12 @@ logger = get_logger()
 
 
 class Pipeline(nx.DiGraph):
+    def __init__(self, **attr):
+        super().__init__(**attr)
+        self._operator_graph = nx.DiGraph()
+        self._topo_order = None
+        self._needs_rebuild = True
+
     @classmethod
     def from_pipeline(cls, pipeline: PipelineJSON) -> "Pipeline":
         graph = cls(id=pipeline.id)
@@ -32,7 +38,9 @@ class Pipeline(nx.DiGraph):
         for edge in pipeline.edges:
             graph.add_edge_model(edge)
 
+        graph._build_operator_graph()
 
+        return graph
 
     @classmethod
     def from_upstream_subgraph(cls, graph: "Pipeline", id: IdType) -> "Pipeline":
@@ -57,7 +65,43 @@ class Pipeline(nx.DiGraph):
             if u in visited and v in visited:
                 subgraph.add_edge(u, v, **graph.edges[u, v])
 
+        subgraph._build_operator_graph()
+
         return subgraph
+
+    def _build_operator_graph(self) -> None:
+        """
+        Build operator-to-operator dependency graph from the port connections
+        and cache the result.
+        """
+        self._operator_graph = nx.DiGraph()
+
+        # Add all operators as nodes
+        for op_id in self.operators:
+            self._operator_graph.add_node(op_id)
+
+        # For each port connection, determine the operators it connects
+        for u, v in self.edges:
+            # Get the ports at both ends of the connection
+            if u in self.ports and v in self.ports:
+                # Get the operators that own these ports
+                src_op_id = self.ports[u].operator_id
+                dst_op_id = self.ports[v].operator_id
+
+                # If they're different operators, add the edge
+                if src_op_id != dst_op_id:
+                    self._operator_graph.add_edge(src_op_id, dst_op_id)
+
+        # Try to compute topological order for later use
+        try:
+            self._topo_order = list(nx.topological_sort(self._operator_graph))
+        except nx.NetworkXUnfeasible:
+            logger.warning(
+                "Pipeline contains cycles; topological ordering not available"
+            )
+            self._topo_order = []
+
+        self._needs_rebuild = False
 
     def __eq__(self, other):
         if not isinstance(other, Pipeline):
@@ -181,6 +225,72 @@ class Pipeline(nx.DiGraph):
                 f"Edge {edge.input_id} -> {edge.output_id} already exists in the graph."
             )
         self.add_edge(edge.input_id, edge.output_id, **edge.model_dump())
+
+    def add_node(self, node_for_adding, **attr):
+        super().add_node(node_for_adding, **attr)
+        self._needs_rebuild = True
+
+    def add_edge(self, u_of_edge, v_of_edge, **attr):
+        super().add_edge(u_of_edge, v_of_edge, **attr)
+        self._needs_rebuild = True
+
+    def remove_node(self, n):
+        super().remove_node(n)
+        self._needs_rebuild = True
+
+    def remove_edge(self, u, v):
+        super().remove_edge(u, v)
+        self._needs_rebuild = True
+
+    def get_operator_graph(self) -> nx.DiGraph:
+        if self._needs_rebuild or self._operator_graph is None:
+            self._build_operator_graph()
+        return self._operator_graph
+
+    def get_indirect_upstream_operators(self, op_id: IdType) -> set[IdType]:
+        """
+        Get all upstream operators except immediate predecessors.
+        """
+        operator_graph = self.get_operator_graph()
+        all_upstream = set(nx.ancestors(operator_graph, op_id))
+        immediate_predecessors = set(operator_graph.predecessors(op_id))
+        return all_upstream - immediate_predecessors
+
+    def get_indirect_downstream_operators(self, op_id: IdType) -> set[IdType]:
+        """
+        Get all downstream operators except immediate successors.
+        """
+        operator_graph = self.get_operator_graph()
+        all_downstream = set(nx.descendants(operator_graph, op_id))
+        immediate_successors = set(operator_graph.successors(op_id))
+        return all_downstream - immediate_successors
+
+    def get_operator_topological_order(self) -> list[IdType]:
+        """
+        Get operators in topological order (upstream to downstream).
+        Returns the cached order or an empty list if the graph has cycles.
+        """
+        if self._needs_rebuild or self._topo_order is None:
+            self._build_operator_graph()
+        return self._topo_order.copy() if self._topo_order else []
+
+    def would_violate_dependency_constraints(
+        self, op_id: IdType, other_op_ids: set[IdType]
+    ) -> bool:
+        """
+        Check if assigning an operator to the same agent as the given operators
+        would violate our dependency constraint.
+
+        Returns True if there are both indirect upstream and downstream operators,
+        indicating a constraint violation.
+        """
+        indirect_upstream = self.get_indirect_upstream_operators(op_id)
+        indirect_downstream = self.get_indirect_downstream_operators(op_id)
+
+        has_upstream = bool(indirect_upstream.intersection(other_op_ids))
+        has_downstream = bool(indirect_downstream.intersection(other_op_ids))
+
+        return has_upstream or has_downstream
 
     def get_predecessors(self, node_id: IdType) -> list[IdType]:
         return list(self.predecessors(node_id))

@@ -1,5 +1,4 @@
 import asyncio
-from itertools import cycle
 from uuid import UUID, uuid4
 
 from nats.aio.client import Client as NATSClient
@@ -82,8 +81,13 @@ def assign_pipeline_to_agents(
     1. Agents with matching tags
     2. Agents with the most matching tags
     3. Load balancing among qualified agents
+
+    Constraints:
+    - Will not assign operators to agents if it would create an indirect
+      dependency cycle (i.e., an agent cannot have both upstream and downstream
+      operators that are separated by operators on other agents)
     """
-    assignments: dict[IdType, list[OperatorJSON]] = {}
+    agent_operator_map: dict[IdType, set[IdType]] = {}
     unassigned_operators = list(pipeline.operators.values())
     # Keep track of operators that couldn't be assigned due to tag mismatch
     unassignable_operators = []
@@ -111,6 +115,18 @@ def assign_pipeline_to_agents(
 
         return matching_agents
 
+    def would_violate_constraint(agent_id: IdType, operator_id: IdType) -> bool:
+        # Get the currently assigned operators to this agent
+        assigned_operator_ids = agent_operator_map.get(agent_id, set())
+
+        # Skip if no operators assigned to this agent yet
+        if not assigned_operator_ids:
+            return False
+
+        return pipeline.would_violate_dependency_constraints(
+            operator_id, assigned_operator_ids
+        )
+
     def assign_to_best_agent(
         matching_agents: list[tuple[AgentVal, int]], operator: OperatorJSON
     ):
@@ -123,17 +139,39 @@ def assign_pipeline_to_agents(
 
         # Get all agents with the highest match score
         best_score = matching_agents[0][1]
-        best_agents = [a for a, score in matching_agents if score == best_score]
+        best_agents_by_score = [
+            a for a, score in matching_agents if score == best_score
+        ]
+
+        # Filter out agents that would violate dependency constraints
+        valid_agents = [
+            agent
+            for agent in best_agents_by_score
+            if not would_violate_constraint(agent.uri.id, operator.id)
+        ]
+
+        if not valid_agents:
+            # If all best-scoring agents violate constraints, check if any agent would work
+            valid_agents = [
+                agent
+                for agent, _ in matching_agents
+                if not would_violate_constraint(agent.uri.id, operator.id)
+            ]
+
+            if not valid_agents:
+                return False
 
         # Choose agent with the lowest current load
-        best_agent = min(best_agents, key=lambda a: len(assignments.get(a.uri.id, [])))
+        best_agent = min(
+            valid_agents, key=lambda a: len(agent_operator_map.get(a.uri.id, set()))
+        )
 
         # Assign the operator
         agent_id = best_agent.uri.id
-        if agent_id not in assignments:
-            assignments[agent_id] = []
+        if agent_id not in agent_operator_map:
+            agent_operator_map[agent_id] = set()
 
-        assignments[agent_id].append(operator)
+        agent_operator_map[agent_id].add(operator.id)
         unassigned_operators.remove(operator)
         return True
 
@@ -154,20 +192,28 @@ def assign_pipeline_to_agents(
         op for op in unassigned_operators if op not in unassignable_operators
     ]
     if remaining_operators:
-        # Sort agents by current load (number of assigned operators)
-        sorted_agents = sorted(
-            agent_infos, key=lambda a: len(assignments.get(a.uri.id, []))
-        )
-        agent_cycle = cycle(sorted_agents)
+        # Try to assign remaining operators respecting dependency constraints
+        for operator in list(remaining_operators):
+            # Get all available agents
+            available_agents = [
+                agent
+                for agent in agent_infos
+                if not would_violate_constraint(agent.uri.id, operator.id)
+            ]
 
-        for operator in remaining_operators:
-            agent = next(agent_cycle)
-            agent_id = agent.uri.id
-            if agent_id not in assignments:
-                assignments[agent_id] = []
+            if available_agents:
+                # Choose agent with the lowest current load
+                best_agent = min(
+                    available_agents,
+                    key=lambda a: len(agent_operator_map.get(a.uri.id, set())),
+                )
 
-            assignments[agent_id].append(operator)
-            unassigned_operators.remove(operator)
+                agent_id = best_agent.uri.id
+                if agent_id not in agent_operator_map:
+                    agent_operator_map[agent_id] = set()
+
+                agent_operator_map[agent_id].add(operator.id)
+                remaining_operators.remove(operator)
 
     # Log any operators that couldn't be assigned
     for operator in unassigned_operators:
@@ -177,10 +223,10 @@ def assign_pipeline_to_agents(
 
     # Create pipeline assignments
     pipeline_assignments: list[PipelineAssignment] = []
-    for agent_id, operators in assignments.items():
+    for agent_id, operator_ids in agent_operator_map.items():
         pipeline_assignment = PipelineAssignment(
             agent_id=agent_id,
-            operators_assigned=[op.id for op in operators],
+            operators_assigned=list(operator_ids),
             pipeline=pipeline.to_json(),
         )
         pipeline_assignments.append(pipeline_assignment)
