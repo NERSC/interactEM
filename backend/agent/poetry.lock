@@ -691,6 +691,37 @@ fast-parse = ["fast-mail-parser"]
 nkeys = ["nkeys"]
 
 [[package]]
+name = "netifaces2"
+version = "0.0.22"
+description = "Portable network interface information"
+optional = false
+python-versions = ">=3.6"
+groups = ["main"]
+files = [
+    {file = "netifaces2-0.0.22-cp36-cp36m-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:b7bd4e11cb72d3c182b0b532a5c39d3945a35258cdade2ebaac55ab8ff3ba0e6"},
+    {file = "netifaces2-0.0.22-cp36-cp36m-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:81bf88e39ced999d66fff6db5c0dd70c532af18558b3e37da7cda70b6a52f842"},
+    {file = "netifaces2-0.0.22-cp36-cp36m-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:e9a880fd3fe76bc5fb040ccafee40f752300ef6349fd7c4c6e66151763b224f8"},
+    {file = "netifaces2-0.0.22-cp36-cp36m-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:eb4ac86acfe2f23522c2b5d1bed097e810dbbe4a5bd829528e5db52a83290e52"},
+    {file = "netifaces2-0.0.22-cp37-abi3-macosx_10_12_x86_64.whl", hash = "sha256:4b7073aabee570466373e312b7f92a81e669f2462051eaefafb8a3d9ba078a35"},
+    {file = "netifaces2-0.0.22-cp37-abi3-manylinux_2_17_aarch64.manylinux2014_aarch64.whl", hash = "sha256:2f6fa1ca50ede5d148a9c378ab08e093418666b58353a2fe31b02d772f568231"},
+    {file = "netifaces2-0.0.22-cp37-abi3-manylinux_2_17_armv7l.manylinux2014_armv7l.whl", hash = "sha256:e1393ddecc35fcbb5ca89c90783ef44c1cae3f93b60bbdcb2e2ebd20783b9e06"},
+    {file = "netifaces2-0.0.22-cp37-abi3-manylinux_2_17_i686.manylinux2014_i686.whl", hash = "sha256:150804d34f1a97d07ec7032573561267e1753c30670df5e32021a2cf4e3f76b5"},
+    {file = "netifaces2-0.0.22-cp37-abi3-manylinux_2_17_ppc64.manylinux2014_ppc64.whl", hash = "sha256:47d15b7235804e4b506298d757856c97e9d969be9cf91642581bf314f98cdefa"},
+    {file = "netifaces2-0.0.22-cp37-abi3-manylinux_2_17_ppc64le.manylinux2014_ppc64le.whl", hash = "sha256:c0f59974328a3481eb0b3264a1cb479f2058cc8f09a3a0097a24d306fd59ec5e"},
+    {file = "netifaces2-0.0.22-cp37-abi3-manylinux_2_17_s390x.manylinux2014_s390x.whl", hash = "sha256:69689cf211d17968e020582ddf3b023b0b956c003571e088a86ad21e27b678d9"},
+    {file = "netifaces2-0.0.22-cp37-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:043ddcd4b09f9b8e86c2bd54214a90904c2fec8869d0cfd295c671c2f4cb27b3"},
+    {file = "netifaces2-0.0.22-cp37-abi3-musllinux_1_1_aarch64.whl", hash = "sha256:e24c4089c743ad61c59e988d2c2de9ba2c91f1dccaecd57cf1d03c4414946a8f"},
+    {file = "netifaces2-0.0.22-cp37-abi3-musllinux_1_1_armv7l.whl", hash = "sha256:03151c24171e6da9079e5abcd303f3e0d8ac275a8fe4e178f82fdf1590f989e4"},
+    {file = "netifaces2-0.0.22-cp37-abi3-musllinux_1_1_i686.whl", hash = "sha256:db607a05fa9e7b4791649b83bdc260dcc2f1082e502e6c9e22eb3853a5ff1485"},
+    {file = "netifaces2-0.0.22-cp37-abi3-musllinux_1_1_x86_64.whl", hash = "sha256:a203a34be5976a747777add600d3d9942bd87b8252bbb7d250273ec4f23744f4"},
+    {file = "netifaces2-0.0.22-cp37-abi3-win_amd64.whl", hash = "sha256:c31ef56334aa73d0cb81d49e7a9bc3cdd8822e566594038b76c27eaf0334ea6d"},
+    {file = "netifaces2-0.0.22.tar.gz", hash = "sha256:c872a54e1a0e2bf078593b4460013996de804e40cab1b0ebc377b0e74b52a244"},
+]
+
+[package.extras]
+dev = ["black (>=23.1.0)", "mypy (>=0.991)", "pytest (>=7.1.1)", "ruff (>=0.0.240)"]
+
+[[package]]
 name = "networkx"
 version = "3.4.2"
 description = "Python package for creating and manipulating graphs and networks"

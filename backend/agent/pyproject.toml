@@ -25,6 +25,7 @@ podman-hpc-py = {path = "thirdparty/podman-hpc-py"}
 pydantic-settings = "^2.4"
 nkeys = "^0.2.1"
 aiohttp = "^3.11.12"
+netifaces2 = "^0.0.22"
 
 [build-system]
 requires = ["poetry-core"]
