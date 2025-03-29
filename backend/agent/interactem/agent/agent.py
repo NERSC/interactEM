@@ -716,6 +716,11 @@ async def create_container(
                 name=name,
                 command=operator.command,
                 detach=True,
+                stdout=True,
+                stderr=True,
+                log_config={
+                    "Type": "json-file",
+                },
                 network_mode=network_mode,
                 remove=True,
                 labels={"agent.id": str(agent_id)},
