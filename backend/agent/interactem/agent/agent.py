@@ -18,6 +18,7 @@ from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
 from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
+from podman_hpc_client import PodmanHpcClient
 from pydantic import ValidationError
 
 from interactem.core.constants import (
@@ -124,7 +125,18 @@ class Agent:
     async def _start_podman_service(self, create_process=False):
         self._podman_process = None
         if create_process:
-            args = ["podman", "system", "service", "--time=0", self._podman_service_uri]
+            if PodmanClient is PodmanHpcClient:
+                podman_cmd = "podman-hpc"
+            else:
+                podman_cmd = "podman"
+
+            args = [
+                podman_cmd,
+                "system",
+                "service",
+                "--time=0",
+                self._podman_service_uri,
+            ]
             logger.info(f"Starting podman service: {self._podman_service_uri}")
 
             # We use preexec_fn to create a new process group so that the podman service
@@ -752,5 +764,3 @@ async def handle_name_conflict(client: PodmanClient, container_name: str) -> Non
     conflicting_container = client.containers.get(container_name)
     await stop_and_remove_container(conflicting_container)
     logger.info(f"Conflicting container {conflicting_container.id} removed. ")
-
-
