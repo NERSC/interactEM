@@ -1,9 +1,16 @@
-[tool.poetry]
+[project]
 name = "interactem-core"
-version = "0.1.0"
+dynamic = ["version", "dependencies"]
 description = ""
-authors = ["Sam Welborn <swelborn@lbl.gov>"]
 readme = "README.md"
+authors = [
+    {name = "Sam Welborn", email = "swelborn@lbl.gov"},
+    {name = "Chris Harris", email = "cjh@lbl.gov"}
+]
+requires-python = ">=3.10"
+
+[tool.poetry]
+version = "0.1.0"
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
@@ -11,10 +18,8 @@ python = "^3.10"
 pydantic = "^2.9"
 coloredlogs = "^15.0.1"
 networkx = "^3.3"
-nats-py = "^2.9.0"
+nats-py = "^2.10.0"
 nkeys = "^0.2.1"
-
-
 
 [build-system]
 requires = ["poetry-core"]
