@@ -720,7 +720,7 @@ async def create_container(
                 stderr=True,
                 log_config={
                     "Type": "json-file",
-                },
+                } if isinstance(client, PodmanHpcClient) else {},
                 network_mode=network_mode,
                 remove=True,
                 labels={"agent.id": str(agent_id)},
