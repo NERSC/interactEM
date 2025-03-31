@@ -18,7 +18,6 @@ from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
 from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
-from podman_hpc_client import PodmanHpcClient
 from pydantic import ValidationError
 
 from interactem.core.constants import (
@@ -69,8 +68,10 @@ else:
 
 # Use configuration, as we always expect to install podman-hpc-client
 if cfg.LOCAL:
+    PODMAN_COMMAND = "podman"
     from podman import PodmanClient
 else:
+    PODMAN_COMMAND = "podman-hpc"
     from podman_hpc_client import PodmanHpcClient as PodmanClient
 
 
@@ -125,13 +126,8 @@ class Agent:
     async def _start_podman_service(self, create_process=False):
         self._podman_process = None
         if create_process:
-            if PodmanClient is PodmanHpcClient:
-                podman_cmd = "podman-hpc"
-            else:
-                podman_cmd = "podman"
-
             args = [
-                podman_cmd,
+                PODMAN_COMMAND,
                 "system",
                 "service",
                 "--time=0",
@@ -689,6 +685,9 @@ async def create_container(
 ) -> Container:
     name = f"operator-{operator.id}"
     network_mode = operator.network_mode or "host"
+    log_config = {}
+    if PODMAN_COMMAND == "podman-hpc":
+        log_config = {"Type": "json-file"}
 
     # Try to pull the image first if it doesn't exist
     try:
@@ -718,9 +717,7 @@ async def create_container(
                 detach=True,
                 stdout=True,
                 stderr=True,
-                log_config={
-                    "Type": "json-file",
-                } if isinstance(client, PodmanHpcClient) else {},
+                log_config=log_config,
                 network_mode=network_mode,
                 remove=True,
                 labels={"agent.id": str(agent_id)},
