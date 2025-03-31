@@ -19,8 +19,6 @@ from nats.js import JetStreamContext
 from pydantic import ValidationError
 
 from interactem.core.constants import (
-    BUCKET_METRICS,
-    BUCKET_METRICS_TTL,
     MOUNT_DIR,
     OPERATOR_CLASS_NAME,
     OPERATOR_ID_ENV_VAR,
@@ -43,7 +41,6 @@ from interactem.core.models.operators import (
     ParameterType,
 )
 from interactem.core.nats import (
-    create_bucket_if_doesnt_exist,
     create_or_update_stream,
     nc,
 )
@@ -56,6 +53,7 @@ from interactem.core.nats.consumers import (
     create_operator_parameter_consumer,
     create_operator_pipeline_consumer,
 )
+from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
 from interactem.core.pipeline import Pipeline
 from interactem.core.util import create_task_with_ref
 
@@ -145,7 +143,7 @@ class OperatorMixin(RunnableKernel):
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
         self.messenger_task: asyncio.Task | None = None
-        self.update_kv_task: asyncio.Task | None = None
+        self.metrics_kv: KeyValueLoop[OperatorMetrics] | None = None
         self.parameters: dict[str, Any] = {}
         self.metrics: OperatorMetrics = OperatorMetrics(
             id=self.id, timing=OperatorTiming()
@@ -167,19 +165,28 @@ class OperatorMixin(RunnableKernel):
         logger.info(f"Starting operator {self.id}...")
         await self.execute_dependencies_startup()
         await self.setup_signal_handlers()
-        await self.connect_to_nats()
+        self.nc, self.js = await self.connect_to_nats()
+        self.metrics_kv = KeyValueLoop[OperatorMetrics](
+            self.nc,
+            self.js,
+            shutdown_event=self._shutdown_event,
+            bucket=InteractemBucket.METRICS,
+            update_interval=1.0,
+            data_model=OperatorMetrics,
+        )
+        self.metrics_kv.add_or_update_value(self.id, self.metrics)
+        await self.metrics_kv.start()
         try:
             await self.initialize_pipeline()
         except ValueError as e:
             logger.error(e)
             self._shutdown_event.set()
             return
-        await self.setup_key_value_store()
         await self.initialize_messenger()
         if not self.messenger:
             raise ValueError("Messenger not initialized")
         await self.messenger.start(self.pipeline)
-        self.update_kv_task = asyncio.create_task(self.update_kv())
+
         self._tracking_timer_task = asyncio.create_task(self._tracking_timer())
         self.run_task = asyncio.create_task(self.run())
         self.consume_params_task = asyncio.create_task(self.consume_params())
@@ -192,7 +199,7 @@ class OperatorMixin(RunnableKernel):
             self._dependencies.append(gen)
             await gen.__next__() if asyncio.iscoroutinefunction(func) else next(gen)
 
-    async def connect_to_nats(self):
+    async def connect_to_nats(self) -> tuple[NATSClient, JetStreamContext]:
         logger.info(f"Connecting to NATS at {cfg.NATS_SERVER_URL}...")
         self.nc = await nc(
             servers=[str(cfg.NATS_SERVER_URL)], name=f"operator-{self.id}"
@@ -222,6 +229,7 @@ class OperatorMixin(RunnableKernel):
                     if retries == 0:
                         raise e
                     continue
+        return self.nc, self.js
 
     async def initialize_pipeline(self):
         logger.info(
@@ -326,25 +334,6 @@ class OperatorMixin(RunnableKernel):
                     await msg.term()
                     pass
             asyncio.create_task(self.publish_parameters())
-
-    async def update_kv(self):
-        while not self._shutdown_event.is_set():
-            try:
-                timing = OperatorTiming.model_validate(self.metrics.timing)
-                metrics = OperatorMetrics(id=self.id, timing=timing)
-            except ValidationError:
-                await asyncio.sleep(1)
-                continue
-            await self.metrics_kv.put(str(self.id), metrics.model_dump_json().encode())
-            await asyncio.sleep(1)
-
-    async def setup_key_value_store(self):
-        logger.info(f"Setting up Key-Value store for operator {self.id}...")
-        if not self.js:
-            raise ValueError("JetStream context not initialized")
-        self.metrics_kv = await create_bucket_if_doesnt_exist(
-            self.js, BUCKET_METRICS, BUCKET_METRICS_TTL
-        )
 
     async def initialize_messenger(self):
         # TODO: put this somewhere else

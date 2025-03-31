@@ -16,12 +16,10 @@ import podman
 import podman.errors
 from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
-from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
 from pydantic import ValidationError
 
 from interactem.core.constants import (
-    BUCKET_AGENTS,
     OPERATOR_ID_ENV_VAR,
     STREAM_OPERATORS,
     STREAM_PARAMETERS_UPDATE,
@@ -40,7 +38,6 @@ from interactem.core.models.pipeline import (
 from interactem.core.models.uri import URI, CommBackend, URILocation
 from interactem.core.nats import (
     create_or_update_stream,
-    get_agents_bucket,
     nc,
     publish_error,
 )
@@ -54,6 +51,7 @@ from interactem.core.nats.consumers import (
     create_agent_consumer,
     create_agent_parameter_consumer,
 )
+from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
 from interactem.core.pipeline import Pipeline
 from interactem.core.util import create_task_with_ref
 
@@ -118,7 +116,7 @@ class Agent:
             ),
             status=AgentStatus.INITIALIZING,
         )
-        self.heartbeat_task: asyncio.Task | None = None
+        self.agent_kv: KeyValueLoop[AgentVal] | None = None
         self.server_task: asyncio.Task | None = None
         self.watch_tasks: dict[uuid.UUID, asyncio.Task] = {}
         self.task_refs: set[asyncio.Task] = set()
@@ -196,100 +194,53 @@ class Agent:
         await create_or_update_stream(NOTIFICATIONS_STREAM_CONFIG, self.js)
 
         self.agent_val.status = AgentStatus.IDLE
-        self.heartbeat_task = self.create_task(self.heartbeat(self.js, self.id))
+
+        self.agent_kv = KeyValueLoop[AgentVal](
+            nc=self.nc,
+            js=self.js,
+            shutdown_event=self._shutdown_event,
+            bucket=InteractemBucket.AGENTS,
+            update_interval=10.0,
+            data_model=AgentVal,
+        )
+        self.agent_kv.before_update_callbacks.append(self._update_agent_state)
+        self.agent_kv.add_or_update_value(self.id, self.agent_val)
+
+        await self.agent_kv.start()
+
         self.server_task = self.create_task(self.server_loop())
 
         await self._shutdown_event.wait()
         await self.shutdown()
-        await asyncio.gather(self.server_task, self.heartbeat_task)
 
-    async def heartbeat(self, js: JetStreamContext, id: uuid.UUID):
-        if not self.nc:
-            logger.error("NATS connection not established. Exiting heartbeat loop.")
-            return
-
-        tries = 10
-        while tries > 0:
-            try:
-                bucket = await get_agents_bucket(js)
-            except BucketNotFoundError:
-                await asyncio.sleep(0.2)
-                tries -= 1
-                continue
-            break
-
-        if not bucket:
-            logger.error(f"Bucket {BUCKET_AGENTS} not found. Exiting heartbeat loop.")
-            return
-
-        while not self._shutdown_event.is_set():
-            try:
-                if self.nc.is_closed:
-                    logger.info("NATS connection closed, exiting heartbeat loop.")
-                    break
-
-                # Update the agent values with the current state
-                self.agent_val.pipeline_assignments = self.my_operator_ids
-                self.agent_val.uptime = time.time() - self.start_time
-
-                # Clear old error messages
-                self.agent_val.clear_old_errors()
-
-                await bucket.put(f"{id}", self.agent_val.model_dump_json().encode())
-            except nats.errors.ConnectionClosedError:
-                logger.warning(
-                    "Connection closed while trying to update key-value. Exiting loop."
-                )
-                break
-            except nats.js.errors.ServiceUnavailableError as e:
-                logger.exception(
-                    f"JetStream service unavailable while trying to update key-value: {e}."
-                )
-                break
-
-            try:
-                # this avoids waiting in this loop after the shutdown event is set
-                await asyncio.wait_for(self._shutdown_event.wait(), timeout=10)
-            except asyncio.TimeoutError:
-                pass
-
-        await self.remove_agent_key()
-
-    async def remove_agent_key(self):
-        if not self.nc or not self.js:
-            logger.error("NATS connection not established. Exiting remove_agent_key.")
-            return
-
-        try:
-            bucket = await self.js.key_value(BUCKET_AGENTS)
-        except BucketNotFoundError:
-            logger.warning(
-                f"Bucket {BUCKET_AGENTS} not found. Exiting remove_agent_key."
-            )
-            return
-
-        logger.info(f"Removing agent key {self.id}")
-        try:
-            await bucket.delete(f"{self.id}")
-            logger.info(f"Agent key {self.id} removed successfully.")
-        except Exception as e:
-            logger.exception(f"Exception occurred while removing agent key: {e}")
+    def _update_agent_state(self) -> None:
+        self.agent_val.pipeline_assignments = self.my_operator_ids
+        self.agent_val.uptime = time.time() - self.start_time
+        self.agent_val.clear_old_errors()
 
     async def shutdown(self):
         logger.info("Shutting down agent...")
         self.agent_val.status = AgentStatus.SHUTTING_DOWN
-
-        if self.heartbeat_task:
-            await self.heartbeat_task
+        if self.agent_kv:
+            await self.agent_kv.update_now()
 
         if self.server_task:
-            await self.server_task
+            logger.info("Cancelling server task...")
+            self.server_task.cancel()
+            try:
+                await self.server_task
+            except asyncio.CancelledError:
+                logger.info("Server task cancelled successfully")
+
+        await self._cleanup_containers()
+        await self._stop_podman_service()
+
+        if self.agent_kv:
+            await self.agent_kv.stop()
 
         if self.nc:
             await self.nc.close()
 
-        await self._cleanup_containers()
-        await self._stop_podman_service()
 
         logger.info("Agent shut down successfully.")
 
@@ -297,6 +248,10 @@ class Agent:
         logger.info("Server loop running...")
         if not self.nc or not self.js:
             logger.error("NATS connection not established. Exiting server loop.")
+            return
+
+        if not self.agent_kv:
+            logger.error("KeyValueLoop not established. Exiting server loop.")
             return
 
         psub = await create_agent_consumer(self.js, self.id)
@@ -337,13 +292,16 @@ class Agent:
                     logger.info(f"Operators assigned: {self.my_operator_ids}")
                     self.agent_val.status = AgentStatus.BUSY
                     self.agent_val.status_message = "Starting operators..."
+                    await self.agent_kv.update_now()
                     await self.start_operators()
                     self.agent_val.status_message = "Operators started..."
                     self.agent_val.status = AgentStatus.IDLE
+                    await self.agent_kv.update_now()
                 except Exception as e:
                     self.agent_val.status = AgentStatus.ERROR
                     _msg = f"Failed to start operators: {e}"
                     self.agent_val.add_error(_msg)
+                    await self.agent_kv.update_now()
                     publish_error(self.js, _msg, task_refs=self.task_refs)
                     logger.exception(_msg)
                     continue
@@ -638,6 +596,11 @@ class Agent:
                     publish_error(self.js, _msg, task_refs=self.task_refs)
                     continue
             except nats.errors.TimeoutError:
+                continue
+            except nats.js.errors.NotFoundError:
+                psub = await create_agent_parameter_consumer(
+                    self.js, self.id, operator, parameter
+                )
                 continue
             except Exception as e:
                 _msg = f"Error fetching update for parameter '{parameter.name}': {e}"

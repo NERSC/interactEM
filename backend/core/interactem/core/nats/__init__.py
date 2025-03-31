@@ -49,7 +49,24 @@ async def nc(servers: list[str], name: str) -> NATSClient:
         },
     }
     options = options_map[cfg.NATS_SECURITY_MODE]
-    return await nats.connect(servers=servers, name=name, **options)
+
+    async def disconnected_cb():
+        logger.info(f"NATS disconnected.")
+
+    async def reconnected_cb():
+        logger.info(f"NATS reconnected.")
+
+    async def closed_cb():
+        logger.info(f"NATS connection closed.")
+
+    return await nats.connect(
+        servers=servers,
+        name=name,
+        reconnected_cb=reconnected_cb,
+        disconnected_cb=disconnected_cb,
+        closed_cb=closed_cb,
+        **options,
+    )
 
 
 async def create_bucket_if_doesnt_exist(
