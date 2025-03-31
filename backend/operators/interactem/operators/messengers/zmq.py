@@ -33,6 +33,7 @@ from interactem.core.models.uri import URI, CommBackend, URILocation, ZMQAddress
 from interactem.core.nats import create_bucket_if_doesnt_exist
 from interactem.core.pipeline import Pipeline
 
+from ..config import cfg
 from ..zsocket import Context, Socket, SocketInfo
 from .base import (
     BaseMessenger,
@@ -374,20 +375,20 @@ class ZmqMessenger(BaseMessenger):
             self.add_socket(info)
 
         for port_id, socket in self.output_sockets.items():
-            # TODO: make interface/hostname configurable
             address = ZMQAddress(
-                protocol=Protocol.tcp, hostname="localhost", interface="lo"
+                protocol=Protocol.tcp,
+                hostname=cfg.ZMQ_BIND_HOSTNAME,
+                interface=cfg.ZMQ_BIND_INTERFACE,
             )
             socket.update_address_map(port_id, [address])
             socket.bind_or_connect()
             info = self.output_infos[port_id]
             addresses = [a.to_address() for a in socket.info.address_map[port_id]]
 
-            # TODO: change hostname to environment variable
             uri = URI(
                 id=port_id,
                 location=URILocation.port,
-                hostname="localhost",
+                hostname=cfg.ZMQ_BIND_HOSTNAME,
                 query={"address": addresses},
                 comm_backend=CommBackend.ZMQ,
             )
