@@ -8,9 +8,6 @@ WORKDIR /usr/src/app
 # Copy go.mod and go.sum for cache purposes
 COPY callout/service/go.mod callout/service/go.sum ./
 
-# Copy the aricallout module
-COPY callout/service/callout ./callout
-
 # Download dependencies
 RUN go mod download && go mod verify
 
