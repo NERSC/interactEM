@@ -597,6 +597,11 @@ class Agent:
                     continue
             except nats.errors.TimeoutError:
                 continue
+            except nats.js.errors.NotFoundError:
+                psub = await create_agent_parameter_consumer(
+                    self.js, self.id, operator, parameter
+                )
+                continue
             except Exception as e:
                 _msg = f"Error fetching update for parameter '{parameter.name}': {e}"
                 logger.exception(_msg)
