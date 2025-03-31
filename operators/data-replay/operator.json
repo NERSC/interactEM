@@ -19,6 +19,14 @@
       "default": "~/ncem_raw_data",
       "description": "This is where the raw data files (*.data) are located",
       "required": true
+    },
+    {
+      "name": "scan_num",
+      "label": "Scan number",
+      "type": "int",
+      "default": "0",
+      "description": "The scan number to be processed",
+      "required": true
     }
   ],
   "tags": [
