@@ -68,8 +68,10 @@ else:
 
 # Use configuration, as we always expect to install podman-hpc-client
 if cfg.LOCAL:
+    PODMAN_COMMAND = "podman"
     from podman import PodmanClient
 else:
+    PODMAN_COMMAND = "podman-hpc"
     from podman_hpc_client import PodmanHpcClient as PodmanClient
 
 
@@ -124,7 +126,13 @@ class Agent:
     async def _start_podman_service(self, create_process=False):
         self._podman_process = None
         if create_process:
-            args = ["podman", "system", "service", "--time=0", self._podman_service_uri]
+            args = [
+                PODMAN_COMMAND,
+                "system",
+                "service",
+                "--time=0",
+                self._podman_service_uri,
+            ]
             logger.info(f"Starting podman service: {self._podman_service_uri}")
 
             # We use preexec_fn to create a new process group so that the podman service
@@ -677,6 +685,24 @@ async def create_container(
 ) -> Container:
     name = f"operator-{operator.id}"
     network_mode = operator.network_mode or "host"
+    log_config = {}
+    if PODMAN_COMMAND == "podman-hpc":
+        log_config = {"Type": "json-file"}
+
+    # Try to pull the image first if it doesn't exist
+    try:
+        client.images.get(operator.image)
+        logger.debug(f"Image {operator.image} is already available")
+    except podman.errors.exceptions.ImageNotFound:
+        logger.info(f"Image {operator.image} not found locally, attempting to pull...")
+        try:
+            client.images.pull(operator.image)
+            logger.info(f"Successfully pulled image {operator.image}")
+        except Exception as e:
+            error_msg = f"Failed to pull image {operator.image}: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg) from e
+
     for attempt in range(max_retries + 1):
         # Expand users
         # This should only be done at the agent (where data resides)
@@ -689,6 +715,9 @@ async def create_container(
                 name=name,
                 command=operator.command,
                 detach=True,
+                stdout=True,
+                stderr=True,
+                log_config=log_config,
                 network_mode=network_mode,
                 remove=True,
                 labels={"agent.id": str(agent_id)},
@@ -737,5 +766,3 @@ async def handle_name_conflict(client: PodmanClient, container_name: str) -> Non
     conflicting_container = client.containers.get(container_name)
     await stop_and_remove_container(conflicting_container)
     logger.info(f"Conflicting container {conflicting_container.id} removed. ")
-
-
