@@ -371,6 +371,7 @@ nats-py = "^2.10.0"
 networkx = "^3.3"
 nkeys = "^0.2.1"
 pydantic = "^2.9"
+tenacity = "^9.0.0"
 
 [package.source]
 type = "directory"

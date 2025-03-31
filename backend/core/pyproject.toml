@@ -20,6 +20,7 @@ coloredlogs = "^15.0.1"
 networkx = "^3.3"
 nats-py = "^2.10.0"
 nkeys = "^0.2.1"
+tenacity = "^9.0.0"
 
 [build-system]
 requires = ["poetry-core"]
