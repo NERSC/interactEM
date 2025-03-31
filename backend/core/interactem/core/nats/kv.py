@@ -133,7 +133,7 @@ class KeyValueLoop(Generic[V]):
 
             except Exception as e:
                 logger.exception(f"Unexpected error in KeyValueLoop: {e}")
-                await asyncio.sleep(self._error_retry_delay)
+                raise
 
         logger.info(f"Exiting key-value update loop for {self._bucket_type.value}")
 
@@ -145,7 +145,8 @@ class KeyValueLoop(Generic[V]):
                 if asyncio.iscoroutine(result):
                     await result
             except Exception as e:
-                logger.error(f"Error in before_update callback: {e}")
+                logger.exception(f"Error in before_update callback: {e}")
+                raise
 
     async def _update_values(self) -> None:
         if not self._bucket:
@@ -174,7 +175,8 @@ class KeyValueLoop(Generic[V]):
             # handle reconnection immediately
             create_task_with_ref(self._pending_tasks, self._attempt_reconnect())
         except Exception as e:
-            logger.error(f"Error putting value for key {key_str}: {e}")
+            logger.exception(f"Error updating key {key_str}: {e}")
+            raise
 
     async def _wait_for_next_cycle(self) -> None:
         try:
@@ -196,6 +198,7 @@ class KeyValueLoop(Generic[V]):
             await self._update_values()
         except Exception as e:
             logger.exception(f"Error during immediate update: {e}")
+            raise
 
     @retry(
         stop=stop_after_attempt(3),
@@ -251,20 +254,16 @@ class KeyValueLoop(Generic[V]):
         retry=retry_if_exception_type(ERRORS_THAT_REQUIRE_RECONNECT),
         reraise=True,
     )
-    async def _safe_delete_key(self, key_str: str) -> bool:
-        if not self._bucket:
-            return False
-
+    async def _safe_delete_key(self, key_str: str):
         try:
             await self._bucket.delete(key_str)
-            return True
         except ERRORS_THAT_REQUIRE_RECONNECT as e:
             logger.warning(f"NATS connection issue while deleting key {key_str}: {e}")
             await self._attempt_reconnect()
             raise  # to let tenacity retry
         except Exception as e:
-            logger.error(f"Error deleting key {key_str}: {e}")
-            return False
+            logger.exception(f"Error deleting key {key_str}: {e}")
+            raise
 
     async def stop(self) -> None:
         self._running = False
@@ -293,6 +292,7 @@ class KeyValueLoop(Generic[V]):
                 if asyncio.iscoroutine(result):
                     await result
             except Exception as e:
+                # Don't need to raise here because we are shutting down...
                 logger.exception(f"Error in cleanup callback: {e}")
 
         # Delete all keys added to the bucket by this instance
