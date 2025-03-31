@@ -18,6 +18,7 @@ from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
 from nats.js.errors import BucketNotFoundError
 from podman.domain.containers import Container
+from podman_hpc_client import PodmanHpcClient
 from pydantic import ValidationError
 
 from interactem.core.constants import (
