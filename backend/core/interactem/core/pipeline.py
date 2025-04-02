@@ -35,22 +35,6 @@ class Pipeline(nx.DiGraph):
         return graph
 
     @classmethod
-    def from_node_neighborhood(cls, graph: "Pipeline", id: IdType) -> "Pipeline":
-        subgraph = cls(id=id)
-
-        neighbors = list(graph.predecessors(id)) + list(graph.successors(id))
-        neighbors_and_me = set(neighbors + [id])
-
-        for node in neighbors_and_me:
-            subgraph.add_node(node, **graph.nodes[node])
-
-        for u, v in graph.edges:
-            if u in neighbors_and_me and v in neighbors_and_me:
-                subgraph.add_edge(u, v, **graph.edges[u, v])
-
-        return subgraph
-
-    @classmethod
     def from_upstream_subgraph(cls, graph: "Pipeline", id: IdType) -> "Pipeline":
         subgraph = cls(id=id)
 
