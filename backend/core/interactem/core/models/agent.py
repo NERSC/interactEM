@@ -33,7 +33,6 @@ class AgentVal(BaseModel):
     networks: list[str] = []
 
     pipeline_id: str | None = None
-    pipeline_assignments: list[UUID] = []
     operator_assignments: list[UUID] | None = None
     uptime: float = 0.0
     error_messages: list[ErrorMessage] = []
