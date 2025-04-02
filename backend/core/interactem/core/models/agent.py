@@ -24,7 +24,14 @@ class AgentVal(BaseModel):
     uri: URI
     status: AgentStatus
     status_message: str | None = None
+
+    # Orchestrator matches agent tags with operator tags
     tags: list[str] = []
+
+    # Orchestrator prefers to avoid crossing network boundaries after
+    # crossing once
+    networks: list[str] = []
+
     pipeline_id: str | None = None
     pipeline_assignments: list[UUID] = []
     operator_assignments: list[UUID] | None = None
