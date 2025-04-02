@@ -214,7 +214,7 @@ class Agent:
         await self.shutdown()
 
     def _update_agent_state(self) -> None:
-        self.agent_val.pipeline_assignments = self.my_operator_ids
+        self.agent_val.operator_assignments = self.my_operator_ids
         self.agent_val.uptime = time.time() - self.start_time
         self.agent_val.clear_old_errors()
 

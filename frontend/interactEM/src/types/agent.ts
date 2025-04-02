@@ -28,7 +28,6 @@ export const AgentSchema = z.object({
   status_message: z.string().nullable().optional(),
   tags: z.array(z.string()).default([]),
   pipeline_id: z.string().nullable().optional(),
-  pipeline_assignments: z.array(z.string()),
   operator_assignments: z.array(z.string()).nullable().optional(), // New nullable field
   uptime: z.number(),
   error_messages: z
