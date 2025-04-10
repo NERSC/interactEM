@@ -36,8 +36,15 @@ current_scan_num = -1
 
 
 def read_scan_metadata(scan_num: int) -> tuple[stio.reader, itertools.cycle, int, int]:
-    scan_name_path = Path(f"data_scan{scan_num:010}*.data")
-    files = path.glob(str(scan_name_path))
+    scan_name_path = f"data_scan{scan_num:010d}_*.data"
+    logger.info(f"Looking for files with pattern: {scan_name_path} in {path}")
+    files = list(path.glob(scan_name_path))
+    logger.info(f"Found {len(files)} files for scan {scan_num}.")
+
+    if not files:
+        logger.info(f"Available scan files: {list(path.glob('data_scan*'))[:5]}...")
+        raise FileNotFoundError(f"No files found for scan {scan_num} in {path}")
+        
     iFiles = sorted(files)
     iFiles_str = [str(ii) for ii in iFiles]
     reader = stio.reader(iFiles_str, stio.FileVersion.VERSION5, backend="multi-pass")
@@ -57,6 +64,7 @@ def save(
     global reader, scan_positions_cycle, n_cols, n_rows, send_count, current_scan_num
     
     scan_num = parameters.get("scan_num", None)
+    scan_num = int(scan_num) if scan_num is not None else None
     if scan_num is None:
         logger.error("Missing scan_num parameter.")
         raise ValueError("Missing scan_num parameter.")
