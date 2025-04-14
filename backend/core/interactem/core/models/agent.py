@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from .uri import URI
 
@@ -30,7 +30,7 @@ class AgentVal(BaseModel):
 
     # Orchestrator prefers to avoid crossing network boundaries after
     # crossing once
-    networks: list[str] = []
+    networks: set[str]
 
     pipeline_id: str | None = None
     operator_assignments: list[UUID] | None = None
@@ -55,3 +55,9 @@ class AgentVal(BaseModel):
         if not self.error_messages:
             if self.status == AgentStatus.ERROR:
                 self.status = AgentStatus.IDLE
+
+    @model_validator(mode="after")
+    def check_has_networks(self) -> "AgentVal":
+        if not self.networks:
+            raise ValueError("Agent must have at least one network.")
+        return self
