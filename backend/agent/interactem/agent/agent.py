@@ -115,6 +115,7 @@ class Agent:
                 comm_backend=CommBackend.NATS,
             ),
             status=AgentStatus.INITIALIZING,
+            networks=cfg.AGENT_NETWORKS,
         )
         self.agent_kv: KeyValueLoop[AgentVal] | None = None
         self.server_task: asyncio.Task | None = None
