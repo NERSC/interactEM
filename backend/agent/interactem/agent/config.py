@@ -19,6 +19,7 @@ class Settings(BaseSettings):
         "nats://nats1:4222"
     )
     AGENT_TAGS: list[str] = []
+    AGENT_NETWORKS: set[str] = set()
     MOUNT_LOCAL_REPO: bool = False
     OPERATOR_CREDS_FILE: Path
 
