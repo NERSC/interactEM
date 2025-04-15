@@ -39,6 +39,9 @@ const AgentTooltip = ({ data }: AgentTooltipProps) => {
         {data.tags && data.tags.length > 0 && (
           <InfoItem label="Tags" value={data.tags} />
         )}
+        {data.networks && data.networks.length > 0 && (
+          <InfoItem label="Networks" value={data.networks} />
+        )}
         <InfoItem label="Uptime" value={formattedUptime} />
       </Box>
 

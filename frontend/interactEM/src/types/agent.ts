@@ -27,6 +27,7 @@ export const AgentSchema = z.object({
   status: z.nativeEnum(AgentStatus),
   status_message: z.string().nullable().optional(),
   tags: z.array(z.string()).default([]),
+  networks: z.array(z.string()).default([]),
   pipeline_id: z.string().nullable().optional(),
   operator_assignments: z.array(z.string()).nullable().optional(), // New nullable field
   uptime: z.number(),
