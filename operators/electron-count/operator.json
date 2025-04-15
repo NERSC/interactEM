@@ -36,5 +36,11 @@
       "description": "Removal of background below this threshold",
       "required": true
     }
+  ],
+  "tags": [
+    {
+      "value": "cpu",
+      "description": "This operator should be run on a CPU node."
+    }
   ]
 }
