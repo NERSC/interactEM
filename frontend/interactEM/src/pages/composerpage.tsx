@@ -1,5 +1,5 @@
-import { Stack } from "@mui/material"
-import AgentsArray from "../components/agentsarray"
+import { Box } from "@mui/material"
+import AgentsAccordion from "../components/agentsaccordion"
 import ComposerPipelineFlow from "../components/composerpipelineflow"
 import { OperatorMenu } from "../components/operatormenu"
 import { PipelineHud } from "../components/pipelinehud"
@@ -16,22 +16,34 @@ export default function ComposerPage() {
 
   return (
     <div className="composer-page">
-      {/* Top Bar Area */}
-      <Stack
-        direction="row"
-        spacing={2}
+      <Box
         sx={{
           position: "absolute",
           top: 16,
           left: 16,
           zIndex: 10,
-          alignItems: "center",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          gap: 1,
         }}
       >
-        {/* Self-contained Pipeline HUD with integrated pipeline drawer */}
-        <PipelineHud />
-        <AgentsArray agents={agents} />
-      </Stack>
+        {/* Pipeline HUD */}
+        <Box
+          sx={{
+            flexShrink: 0,
+            width: "100%",
+            alignSelf: "flex-start",
+          }}
+        >
+          <PipelineHud />
+        </Box>
+
+        {/* Agents Accordion */}
+        <Box>
+          <AgentsAccordion agents={agents} />
+        </Box>
+      </Box>
 
       {/* Main Flow Area */}
       <div className="composer-flow">
