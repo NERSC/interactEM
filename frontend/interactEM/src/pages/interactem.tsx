@@ -1,10 +1,10 @@
 import { ReactFlowProvider } from "@xyflow/react"
 import ExternalAuthProvider from "../auth/externalprovider"
 import InternalAuthProvider from "../auth/internalprovider"
-import { PipelineFlow } from "../components/pipelineflow"
 import config from "../config"
 import { DnDProvider } from "../dnd/dndcontext"
 import { NatsProvider } from "../nats/NatsContext"
+import PageSwitcher from "./pageswitcher"
 
 import "../index.css"
 import "@xyflow/react/dist/style.css"
@@ -34,7 +34,7 @@ export default function InteractEM({
           <NotificationsToast />
           <ReactFlowProvider>
             <DnDProvider>
-              <PipelineFlow />
+              <PageSwitcher />
             </DnDProvider>
           </ReactFlowProvider>
           <ToastContainer
