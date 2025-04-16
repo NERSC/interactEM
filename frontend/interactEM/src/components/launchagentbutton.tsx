@@ -1,8 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { SupportAgent } from "@mui/icons-material"
-import { Fab } from "@mui/material"
+import { Add } from "@mui/icons-material"
 import {
   Button,
+  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -23,7 +23,7 @@ import {
 } from "../client"
 
 // TODO: in the future, consider using: https://github.com/dohomi/react-hook-form-mui/
-export const LaunchAgentFab = () => {
+export const LaunchAgentButton = () => {
   const [open, setOpen] = useState(false)
 
   const launchAgent = useMutation({
@@ -59,21 +59,24 @@ export const LaunchAgentFab = () => {
 
   return (
     <>
-      <Fab
-        variant="extended"
+      <Chip
+        icon={<Add />}
+        label="Add agents"
         color="primary"
-        aria-label="launch"
+        variant="filled"
+        clickable
         onClick={() => setOpen(true)}
         sx={{
-          position: "relative",
-          top: "90%",
-          left: "10%",
+          fontSize: "1rem",
+          borderWidth: 2,
+          borderColor: "primary.main",
+          bgcolor: "primary.50",
+          "&:hover": {
+            bgcolor: "primary.100",
+          },
         }}
-      >
-        <SupportAgent />
-        Launch Agent
-      </Fab>
-
+        aria-label="Launch Agent"
+      />
       <Dialog
         open={open}
         onClose={() => setOpen(false)}
