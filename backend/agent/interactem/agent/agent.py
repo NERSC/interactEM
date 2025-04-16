@@ -107,6 +107,7 @@ class Agent:
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
         self.agent_val: AgentVal = AgentVal(
+            name=cfg.AGENT_NAME,
             tags=cfg.AGENT_TAGS,
             uri=URI(
                 id=self.id,
