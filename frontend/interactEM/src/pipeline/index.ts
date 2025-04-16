@@ -53,6 +53,10 @@ export interface PipelineJSON {
   data: PipelineData
 }
 
+export interface PipelineWithID {
+  id: string
+  data: PipelineJSON["data"]
+}
 export const fromPipelineJSON = (pipelineJSON: PipelineJSON) => {
   const pipelineNodes: Node<OperatorNodeData>[] = []
   const pipelineEdges: Edge[] = []
