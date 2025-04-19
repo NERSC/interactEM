@@ -25,39 +25,28 @@ router = APIRouter()
 
 @router.get("/", response_model=PipelinesPublic)
 def read_pipelines(
-    session: SessionDep, current_user: CurrentUser, skip: int = 0, limit: int = 100
-) -> Any:
+    session: SessionDep,
+    current_user: CurrentUser,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=200),
+) -> PipelinesPublic:
     """
-    Retrieve pipelines, ordered by last updated.
+    Retrieve pipelines, ordered by last updated. Includes pipeline name.
     """
-    if current_user.is_superuser:
-        count_statement = select(func.count()).select_from(Pipeline)
-        count = session.exec(count_statement).one()
-        statement = (
-            select(Pipeline)
-            .order_by(col(Pipeline.updated_at).desc())
-            .offset(skip)
-            .limit(limit)
-        )
-        pipelines = session.exec(statement).all()
-    else:
-        count_statement = (
-            select(func.count())
-            .select_from(Pipeline)
-            .where(Pipeline.owner_id == current_user.id)
-        )
-        count = session.exec(count_statement).one()
-        statement = (
-            select(Pipeline)
-            .where(Pipeline.owner_id == current_user.id)
-            .order_by(col(Pipeline.updated_at).desc())
-            .offset(skip)
-            .limit(limit)
-        )
-        pipelines = session.exec(statement).all()
+    common_query = select(Pipeline).order_by(col(Pipeline.updated_at).desc())
+    count_query = select(func.count()).select_from(Pipeline)
 
-    pipelines = [PipelinePublic.model_validate(pipeline) for pipeline in pipelines]
-    return PipelinesPublic(data=pipelines, count=count)
+    if not current_user.is_superuser:
+        common_query = common_query.where(Pipeline.owner_id == current_user.id)
+        count_query = count_query.where(Pipeline.owner_id == current_user.id)
+
+    count = session.exec(count_query).one()
+    pipelines_db = session.exec(common_query.offset(skip).limit(limit)).all()
+
+    # Validate data before returning - ensures name is included
+    pipelines_public = [PipelinePublic.model_validate(p) for p in pipelines_db]
+
+    return PipelinesPublic(data=pipelines_public, count=count)
 
 
 @router.get("/{id}", response_model=PipelinePublic)
@@ -69,8 +58,9 @@ def read_pipeline(session: SessionDep, current_user: CurrentUser, id: uuid.UUID)
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
-    return pipeline
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+    return PipelinePublic.model_validate(pipeline)
+        raise HTTPException(status_code=403, detail="Not enough permissions")
 
 
 @router.get("/{id}/revisions", response_model=list[PipelineRevision])
@@ -88,7 +78,7 @@ def list_pipeline_revisions(
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
+        raise HTTPException(status_code=403, detail="Not enough permissions")
 
     statement = (
         select(PipelineRevision)
@@ -116,7 +106,7 @@ def add_pipeline_revision(
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
+        raise HTTPException(status_code=403, detail="Not enough permissions")
 
     # Get latest revision_id
     statement = (
@@ -163,20 +153,6 @@ def create_pipeline(
     return pipeline
 
 
-@router.post("/run", response_model=PipelinePublic)
-async def create_and_run_pipeline(
-    *, session: SessionDep, current_user: CurrentUser, pipeline_in: PipelineCreate
-) -> PipelinePublic:
-    """
-    Create new pipeline and run it.
-    """
-    pipeline = create_pipeline(
-        session=session, current_user=current_user, pipeline_in=pipeline_in
-    )
-
-    return await run_pipeline(session, current_user, pipeline.id)
-
-
 @router.delete("/{id}")
 def delete_pipeline(
     session: SessionDep, current_user: CurrentUser, id: uuid.UUID
@@ -188,7 +164,7 @@ def delete_pipeline(
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
+        raise HTTPException(status_code=403, detail="Not enough permissions")
     session.delete(pipeline)
     session.commit()
     return Message(message="Pipeline deleted successfully")
@@ -205,7 +181,7 @@ async def run_pipeline(
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
     if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=400, detail="Not enough permissions")
+        raise HTTPException(status_code=403, detail="Not enough permissions")
 
     pipeline = PipelinePublic.model_validate(pipeline)
 
