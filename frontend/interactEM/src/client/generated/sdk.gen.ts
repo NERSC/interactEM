@@ -28,6 +28,9 @@ import type {
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
   OperatorsReadOperatorsResponse,
+  PipelinesAddPipelineRevisionData,
+  PipelinesAddPipelineRevisionError,
+  PipelinesAddPipelineRevisionResponse,
   PipelinesCreateAndRunPipelineData,
   PipelinesCreateAndRunPipelineError,
   PipelinesCreateAndRunPipelineResponse,
@@ -37,6 +40,9 @@ import type {
   PipelinesDeletePipelineData,
   PipelinesDeletePipelineError,
   PipelinesDeletePipelineResponse,
+  PipelinesListPipelineRevisionsData,
+  PipelinesListPipelineRevisionsError,
+  PipelinesListPipelineRevisionsResponse,
   PipelinesReadPipelineData,
   PipelinesReadPipelineError,
   PipelinesReadPipelineResponse,
@@ -499,7 +505,7 @@ export const utilsTestEmail = <ThrowOnError extends boolean = false>(
 
 /**
  * Read Pipelines
- * Retrieve pipelines.
+ * Retrieve pipelines, ordered by last updated.
  */
 export const pipelinesReadPipelines = <ThrowOnError extends boolean = false>(
   options?: Options<PipelinesReadPipelinesData, ThrowOnError>,
@@ -590,6 +596,60 @@ export const pipelinesReadPipeline = <ThrowOnError extends boolean = false>(
     ],
     url: "/api/v1/pipelines/{id}",
     ...options,
+  })
+}
+
+/**
+ * List Pipeline Revisions
+ * List revisions for a pipeline (paginated).
+ */
+export const pipelinesListPipelineRevisions = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesListPipelineRevisionsData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).get<
+    PipelinesListPipelineRevisionsResponse,
+    PipelinesListPipelineRevisionsError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}/revisions",
+    ...options,
+  })
+}
+
+/**
+ * Add Pipeline Revision
+ * Add a new revision to a pipeline and update the pipeline's updated_at timestamp.
+ */
+export const pipelinesAddPipelineRevision = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesAddPipelineRevisionData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).post<
+    PipelinesAddPipelineRevisionResponse,
+    PipelinesAddPipelineRevisionError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}/revisions",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
   })
 }
 

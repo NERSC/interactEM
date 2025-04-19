@@ -539,7 +539,7 @@
       "get": {
         "tags": ["pipelines"],
         "summary": "Read Pipelines",
-        "description": "Retrieve pipelines.",
+        "description": "Retrieve pipelines, ordered by last updated.",
         "operationId": "pipelines-read_pipelines",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
@@ -663,6 +663,109 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Message" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/pipelines/{id}/revisions": {
+      "get": {
+        "tags": ["pipelines"],
+        "summary": "List Pipeline Revisions",
+        "description": "List revisions for a pipeline (paginated).",
+        "operationId": "pipelines-list_pipeline_revisions",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          },
+          {
+            "name": "skip",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/PipelineRevision" },
+                  "title": "Response Pipelines-List Pipeline Revisions"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["pipelines"],
+        "summary": "Add Pipeline Revision",
+        "description": "Add a new revision to a pipeline and update the pipeline's updated_at timestamp.",
+        "operationId": "pipelines-add_pipeline_revision",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PipelineUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PipelineRevision" }
               }
             }
           },
@@ -1028,11 +1131,62 @@
             "type": "string",
             "format": "uuid",
             "title": "Owner Id"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
           }
         },
         "type": "object",
-        "required": ["data", "id", "owner_id"],
+        "required": ["data", "id", "owner_id", "updated_at", "created_at"],
         "title": "PipelinePublic"
+      },
+      "PipelineRevision": {
+        "properties": {
+          "pipeline_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pipeline Id"
+          },
+          "revision_id": { "type": "integer", "title": "Revision Id" },
+          "data": { "type": "object", "title": "Data" },
+          "tag": {
+            "anyOf": [
+              { "type": "string", "maxLength": 128 },
+              { "type": "null" }
+            ],
+            "title": "Tag"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": ["pipeline_id", "revision_id", "data"],
+        "title": "PipelineRevision"
+      },
+      "PipelineUpdate": {
+        "properties": {
+          "data": { "type": "object", "title": "Data" },
+          "tag": {
+            "anyOf": [
+              { "type": "string", "maxLength": 128 },
+              { "type": "null" }
+            ],
+            "title": "Tag"
+          }
+        },
+        "type": "object",
+        "required": ["data"],
+        "title": "PipelineUpdate"
       },
       "PipelinesPublic": {
         "properties": {

@@ -17,9 +17,11 @@ import {
   loginResetPassword,
   loginTestToken,
   operatorsReadOperators,
+  pipelinesAddPipelineRevision,
   pipelinesCreateAndRunPipeline,
   pipelinesCreatePipeline,
   pipelinesDeletePipeline,
+  pipelinesListPipelineRevisions,
   pipelinesReadPipeline,
   pipelinesReadPipelines,
   pipelinesRunPipeline,
@@ -55,6 +57,9 @@ import type {
   LoginTestTokenData,
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
+  PipelinesAddPipelineRevisionData,
+  PipelinesAddPipelineRevisionError,
+  PipelinesAddPipelineRevisionResponse,
   PipelinesCreateAndRunPipelineData,
   PipelinesCreateAndRunPipelineError,
   PipelinesCreateAndRunPipelineResponse,
@@ -64,6 +69,7 @@ import type {
   PipelinesDeletePipelineData,
   PipelinesDeletePipelineError,
   PipelinesDeletePipelineResponse,
+  PipelinesListPipelineRevisionsData,
   PipelinesReadPipelineData,
   PipelinesReadPipelinesData,
   PipelinesRunPipelineData,
@@ -762,6 +768,68 @@ export const pipelinesReadPipelineOptions = (
     },
     queryKey: pipelinesReadPipelineQueryKey(options),
   })
+}
+
+export const pipelinesListPipelineRevisionsQueryKey = (
+  options: Options<PipelinesListPipelineRevisionsData>,
+) => [createQueryKey("pipelinesListPipelineRevisions", options)]
+
+export const pipelinesListPipelineRevisionsOptions = (
+  options: Options<PipelinesListPipelineRevisionsData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await pipelinesListPipelineRevisions({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: pipelinesListPipelineRevisionsQueryKey(options),
+  })
+}
+
+export const pipelinesAddPipelineRevisionQueryKey = (
+  options: Options<PipelinesAddPipelineRevisionData>,
+) => [createQueryKey("pipelinesAddPipelineRevision", options)]
+
+export const pipelinesAddPipelineRevisionOptions = (
+  options: Options<PipelinesAddPipelineRevisionData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await pipelinesAddPipelineRevision({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: pipelinesAddPipelineRevisionQueryKey(options),
+  })
+}
+
+export const pipelinesAddPipelineRevisionMutation = (
+  options?: Partial<Options<PipelinesAddPipelineRevisionData>>,
+) => {
+  const mutationOptions: UseMutationOptions<
+    PipelinesAddPipelineRevisionResponse,
+    AxiosError<PipelinesAddPipelineRevisionError>,
+    Options<PipelinesAddPipelineRevisionData>
+  > = {
+    mutationFn: async (localOptions) => {
+      const { data } = await pipelinesAddPipelineRevision({
+        ...options,
+        ...localOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
 }
 
 export const pipelinesCreateAndRunPipelineQueryKey = (
