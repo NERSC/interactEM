@@ -28,13 +28,17 @@ def read_pipelines(
     session: SessionDep, current_user: CurrentUser, skip: int = 0, limit: int = 100
 ) -> Any:
     """
-    Retrieve pipelines.
+    Retrieve pipelines, ordered by last updated.
     """
-
     if current_user.is_superuser:
         count_statement = select(func.count()).select_from(Pipeline)
         count = session.exec(count_statement).one()
-        statement = select(Pipeline).offset(skip).limit(limit)
+        statement = (
+            select(Pipeline)
+            .order_by(col(Pipeline.updated_at).desc())
+            .offset(skip)
+            .limit(limit)
+        )
         pipelines = session.exec(statement).all()
     else:
         count_statement = (
@@ -46,6 +50,7 @@ def read_pipelines(
         statement = (
             select(Pipeline)
             .where(Pipeline.owner_id == current_user.id)
+            .order_by(col(Pipeline.updated_at).desc())
             .offset(skip)
             .limit(limit)
         )
