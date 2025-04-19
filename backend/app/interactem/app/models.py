@@ -1,6 +1,8 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
+import sqlalchemy as sa
 from pydantic import BaseModel, EmailStr
 from sqlmodel import JSON, Column, Field, Relationship, SQLModel
 
@@ -98,16 +100,59 @@ class Pipeline(PipelineBase, table=True):
     owner_id: uuid.UUID = Field(
         foreign_key="user.id", nullable=False, ondelete="CASCADE"
     )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={
+            "onupdate": lambda: datetime.now(timezone.utc),
+        },
+        index=True,
+        nullable=False,
+        sa_type=sa.DateTime(timezone=True),  # type: ignore
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        index=True,
+        sa_type=sa.DateTime(timezone=True),  # type: ignore
+    )
+
     owner: User | None = Relationship(back_populates="pipelines")
+    revisions: list["PipelineRevision"] = Relationship(
+        back_populates="pipeline",
+        cascade_delete=True,
+        sa_relationship_kwargs={"order_by": "PipelineRevision.revision_id"},
+    )
+
+
+class PipelineRevision(SQLModel, table=True):
+    pipeline_id: uuid.UUID = Field(
+        foreign_key="pipeline.id", primary_key=True, index=True, ondelete="CASCADE"
+    )
+    revision_id: int = Field(primary_key=True, index=True)
+    data: dict[str, Any] = Field(sa_column=Column(JSON))
+    tag: str | None = Field(default=None, max_length=128)
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        sa_type=sa.DateTime(timezone=True),  # type: ignore
+    )
+    pipeline: "Pipeline" = Relationship(back_populates="revisions")
 
 
 class PipelineCreate(SQLModel):
     data: dict[str, Any]
 
 
+class PipelineUpdate(SQLModel):
+    data: dict[str, Any]
+    tag: str | None = Field(default=None, max_length=128)
+
+
 class PipelinePublic(PipelineBase):
     id: uuid.UUID
     owner_id: uuid.UUID
+    updated_at: datetime
+    created_at: datetime
 
 
 class PipelinesPublic(SQLModel):
