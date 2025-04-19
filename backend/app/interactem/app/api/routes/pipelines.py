@@ -1,8 +1,9 @@
 import uuid
+from datetime import datetime, timezone
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
-from sqlmodel import func, select
+from fastapi import APIRouter, HTTPException, Query
+from sqlmodel import col, func, select
 
 from interactem.app.api.deps import CurrentUser, SessionDep
 from interactem.app.events.producer import publish_pipeline_run_event
@@ -11,7 +12,9 @@ from interactem.app.models import (
     Pipeline,
     PipelineCreate,
     PipelinePublic,
+    PipelineRevision,
     PipelinesPublic,
+    PipelineUpdate,
 )
 from interactem.core.events.pipelines import PipelineRunEvent
 from interactem.core.logger import get_logger
@@ -63,6 +66,79 @@ def read_pipeline(session: SessionDep, current_user: CurrentUser, id: uuid.UUID)
     if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
         raise HTTPException(status_code=400, detail="Not enough permissions")
     return pipeline
+
+
+@router.get("/{id}/revisions", response_model=list[PipelineRevision])
+def list_pipeline_revisions(
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    skip: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+):
+    """
+    List revisions for a pipeline (paginated).
+    """
+    pipeline = session.get(Pipeline, id)
+    if not pipeline:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
+        raise HTTPException(status_code=400, detail="Not enough permissions")
+
+    statement = (
+        select(PipelineRevision)
+        .where(col(PipelineRevision.pipeline_id) == id)
+        .order_by(col(PipelineRevision.revision_id).desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    revisions = session.exec(statement).all()
+    return revisions
+
+
+@router.post("/{id}/revisions", response_model=PipelineRevision)
+def add_pipeline_revision(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    revision_in: PipelineUpdate,
+):
+    """
+    Add a new revision to a pipeline and update the pipeline's updated_at timestamp.
+    """
+    pipeline = session.get(Pipeline, id)
+    if not pipeline:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
+        raise HTTPException(status_code=400, detail="Not enough permissions")
+
+    # Get latest revision_id
+    statement = (
+        select(PipelineRevision.revision_id)
+        .where(col(PipelineRevision.pipeline_id) == id)
+        .order_by(col(PipelineRevision.revision_id).desc())
+        .limit(1)
+    )
+    last_revision = session.exec(statement).first()
+    next_revision_id = (last_revision or 0) + 1
+
+    revision = PipelineRevision(
+        pipeline_id=id,
+        revision_id=next_revision_id,
+        data=revision_in.data,
+        tag=revision_in.tag,
+    )
+    session.add(revision)
+
+    pipeline.data = revision_in.data
+    pipeline.updated_at = datetime.now(timezone.utc)
+    session.add(pipeline)
+
+    session.commit()
+    session.refresh(revision)
+    session.refresh(pipeline)
+    return revision
 
 
 @router.post("/", response_model=PipelinePublic)
