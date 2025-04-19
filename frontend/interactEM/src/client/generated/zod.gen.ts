@@ -147,6 +147,21 @@ export const zPipelinePublic = z.object({
   running: z.boolean().optional().default(false),
   id: z.string().uuid(),
   owner_id: z.string().uuid(),
+  updated_at: z.string().datetime(),
+  created_at: z.string().datetime(),
+})
+
+export const zPipelineRevision = z.object({
+  pipeline_id: z.string().uuid(),
+  revision_id: z.number().int(),
+  data: z.object({}),
+  tag: z.union([z.string().max(128), z.null()]).optional(),
+  created_at: z.string().datetime().optional(),
+})
+
+export const zPipelineUpdate = z.object({
+  data: z.object({}),
+  tag: z.union([z.string().max(128), z.null()]).optional(),
 })
 
 export const zPipelinesPublic = z.object({
@@ -257,6 +272,11 @@ export const zPipelinesCreatePipelineResponse = zPipelinePublic
 export const zPipelinesDeletePipelineResponse = zMessage
 
 export const zPipelinesReadPipelineResponse = zPipelinePublic
+
+export const zPipelinesListPipelineRevisionsResponse =
+  z.array(zPipelineRevision)
+
+export const zPipelinesAddPipelineRevisionResponse = zPipelineRevision
 
 export const zPipelinesCreateAndRunPipelineResponse = zPipelinePublic
 

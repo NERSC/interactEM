@@ -96,6 +96,25 @@ export type PipelinePublic = {
   running?: boolean
   id: string
   owner_id: string
+  updated_at: string
+  created_at: string
+}
+
+export type PipelineRevision = {
+  pipeline_id: string
+  revision_id: number
+  data: {
+    [key: string]: unknown
+  }
+  tag?: string | null
+  created_at?: string
+}
+
+export type PipelineUpdate = {
+  data: {
+    [key: string]: unknown
+  }
+  tag?: string | null
 }
 
 export type PipelinesPublic = {
@@ -713,6 +732,67 @@ export type PipelinesReadPipelineResponses = {
 
 export type PipelinesReadPipelineResponse =
   PipelinesReadPipelineResponses[keyof PipelinesReadPipelineResponses]
+
+export type PipelinesListPipelineRevisionsData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    skip?: number
+    limit?: number
+  }
+  url: "/api/v1/pipelines/{id}/revisions"
+}
+
+export type PipelinesListPipelineRevisionsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PipelinesListPipelineRevisionsError =
+  PipelinesListPipelineRevisionsErrors[keyof PipelinesListPipelineRevisionsErrors]
+
+export type PipelinesListPipelineRevisionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: Array<PipelineRevision>
+}
+
+export type PipelinesListPipelineRevisionsResponse =
+  PipelinesListPipelineRevisionsResponses[keyof PipelinesListPipelineRevisionsResponses]
+
+export type PipelinesAddPipelineRevisionData = {
+  body: PipelineUpdate
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/api/v1/pipelines/{id}/revisions"
+}
+
+export type PipelinesAddPipelineRevisionErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PipelinesAddPipelineRevisionError =
+  PipelinesAddPipelineRevisionErrors[keyof PipelinesAddPipelineRevisionErrors]
+
+export type PipelinesAddPipelineRevisionResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelineRevision
+}
+
+export type PipelinesAddPipelineRevisionResponse =
+  PipelinesAddPipelineRevisionResponses[keyof PipelinesAddPipelineRevisionResponses]
 
 export type PipelinesCreateAndRunPipelineData = {
   body: PipelineCreate
