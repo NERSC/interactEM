@@ -6,7 +6,7 @@ import {
   zAgentCreateEvent as zAgentCreateEventTmp,
   zPipelineCreate as zPipelineCreateTmp,
   zPipelinePublic as zPipelinePublicTmp,
-  zPipelineRevision as zPipelineRevisionTmp,
+  zPipelineRevisionCreate as zPipelineRevisionCreateTmp,
   zPipelineUpdate as zPipelineUpdateTmp,
   zPipelinesPublic as zPipelinesPublicTmp,
 } from "./generated/zod.gen"
@@ -30,7 +30,7 @@ export const zPipelinePublic = zPipelinePublicTmp.extend({
 export const zPipelinesPublic = zPipelinesPublicTmp.extend({
   data: z.array(zPipelinePublic),
 })
-export const zPipelineRevision = zPipelineRevisionTmp.extend({
+export const zPipelineRevisionCreate = zPipelineRevisionCreateTmp.extend({
   data: zPipelineData,
 })
 export const zPipelineUpdate = zPipelineUpdateTmp.extend({

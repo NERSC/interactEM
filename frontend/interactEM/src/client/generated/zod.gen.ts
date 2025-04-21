@@ -143,25 +143,34 @@ export const zPipelineCreate = z.object({
 })
 
 export const zPipelinePublic = z.object({
+  name: z.union([z.string().max(128), z.null()]).optional(),
   data: z.object({}),
   running: z.boolean().optional().default(false),
   id: z.string().uuid(),
   owner_id: z.string().uuid(),
   updated_at: z.string().datetime(),
   created_at: z.string().datetime(),
+  current_revision_id: z.number().int(),
 })
 
-export const zPipelineRevision = z.object({
+export const zPipelineRevisionCreate = z.object({
+  data: z.object({}),
+})
+
+export const zPipelineRevisionPublic = z.object({
   pipeline_id: z.string().uuid(),
   revision_id: z.number().int(),
   data: z.object({}),
+  tag: z.union([z.string(), z.null()]),
+  created_at: z.string().datetime(),
+})
+
+export const zPipelineRevisionUpdate = z.object({
   tag: z.union([z.string().max(128), z.null()]).optional(),
-  created_at: z.string().datetime().optional(),
 })
 
 export const zPipelineUpdate = z.object({
-  data: z.object({}),
-  tag: z.union([z.string().max(128), z.null()]).optional(),
+  name: z.union([z.string().max(128), z.null()]),
 })
 
 export const zPipelinesPublic = z.object({
@@ -273,12 +282,17 @@ export const zPipelinesDeletePipelineResponse = zMessage
 
 export const zPipelinesReadPipelineResponse = zPipelinePublic
 
-export const zPipelinesListPipelineRevisionsResponse =
-  z.array(zPipelineRevision)
+export const zPipelinesUpdatePipelineResponse = zPipelinePublic
 
-export const zPipelinesAddPipelineRevisionResponse = zPipelineRevision
+export const zPipelinesListPipelineRevisionsResponse = z.array(
+  zPipelineRevisionPublic,
+)
 
-export const zPipelinesCreateAndRunPipelineResponse = zPipelinePublic
+export const zPipelinesAddPipelineRevisionResponse = zPipelineRevisionPublic
+
+export const zPipelinesReadPipelineRevisionResponse = zPipelineRevisionPublic
+
+export const zPipelinesUpdatePipelineRevisionResponse = zPipelineRevisionPublic
 
 export const zPipelinesRunPipelineResponse = zPipelinePublic
 
