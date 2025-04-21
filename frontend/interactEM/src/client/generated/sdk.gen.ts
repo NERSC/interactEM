@@ -31,9 +31,6 @@ import type {
   PipelinesAddPipelineRevisionData,
   PipelinesAddPipelineRevisionError,
   PipelinesAddPipelineRevisionResponse,
-  PipelinesCreateAndRunPipelineData,
-  PipelinesCreateAndRunPipelineError,
-  PipelinesCreateAndRunPipelineResponse,
   PipelinesCreatePipelineData,
   PipelinesCreatePipelineError,
   PipelinesCreatePipelineResponse,
@@ -46,12 +43,21 @@ import type {
   PipelinesReadPipelineData,
   PipelinesReadPipelineError,
   PipelinesReadPipelineResponse,
+  PipelinesReadPipelineRevisionData,
+  PipelinesReadPipelineRevisionError,
+  PipelinesReadPipelineRevisionResponse,
   PipelinesReadPipelinesData,
   PipelinesReadPipelinesError,
   PipelinesReadPipelinesResponse,
   PipelinesRunPipelineData,
   PipelinesRunPipelineError,
   PipelinesRunPipelineResponse,
+  PipelinesUpdatePipelineData,
+  PipelinesUpdatePipelineError,
+  PipelinesUpdatePipelineResponse,
+  PipelinesUpdatePipelineRevisionData,
+  PipelinesUpdatePipelineRevisionError,
+  PipelinesUpdatePipelineRevisionResponse,
   UsersCreateUserData,
   UsersCreateUserError,
   UsersCreateUserResponse,
@@ -505,7 +511,7 @@ export const utilsTestEmail = <ThrowOnError extends boolean = false>(
 
 /**
  * Read Pipelines
- * Retrieve pipelines, ordered by last updated.
+ * Retrieve pipelines, ordered by last updated. Includes pipeline name.
  */
 export const pipelinesReadPipelines = <ThrowOnError extends boolean = false>(
   options?: Options<PipelinesReadPipelinesData, ThrowOnError>,
@@ -600,6 +606,33 @@ export const pipelinesReadPipeline = <ThrowOnError extends boolean = false>(
 }
 
 /**
+ * Update Pipeline
+ * Update a pipeline's name.
+ */
+export const pipelinesUpdatePipeline = <ThrowOnError extends boolean = false>(
+  options: Options<PipelinesUpdatePipelineData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).patch<
+    PipelinesUpdatePipelineResponse,
+    PipelinesUpdatePipelineError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  })
+}
+
+/**
  * List Pipeline Revisions
  * List revisions for a pipeline (paginated).
  */
@@ -626,7 +659,7 @@ export const pipelinesListPipelineRevisions = <
 
 /**
  * Add Pipeline Revision
- * Add a new revision to a pipeline and update the pipeline's updated_at timestamp.
+ * Add a new revision to a pipeline.
  */
 export const pipelinesAddPipelineRevision = <
   ThrowOnError extends boolean = false,
@@ -654,17 +687,17 @@ export const pipelinesAddPipelineRevision = <
 }
 
 /**
- * Create And Run Pipeline
- * Create new pipeline and run it.
+ * Read Pipeline Revision
+ * Get specific revision data for a pipeline.
  */
-export const pipelinesCreateAndRunPipeline = <
+export const pipelinesReadPipelineRevision = <
   ThrowOnError extends boolean = false,
 >(
-  options: Options<PipelinesCreateAndRunPipelineData, ThrowOnError>,
+  options: Options<PipelinesReadPipelineRevisionData, ThrowOnError>,
 ) => {
-  return (options.client ?? _heyApiClient).post<
-    PipelinesCreateAndRunPipelineResponse,
-    PipelinesCreateAndRunPipelineError,
+  return (options.client ?? _heyApiClient).get<
+    PipelinesReadPipelineRevisionResponse,
+    PipelinesReadPipelineRevisionError,
     ThrowOnError
   >({
     security: [
@@ -673,7 +706,32 @@ export const pipelinesCreateAndRunPipeline = <
         type: "http",
       },
     ],
-    url: "/api/v1/pipelines/run",
+    url: "/api/v1/pipelines/{id}/revisions/{revision_id}",
+    ...options,
+  })
+}
+
+/**
+ * Update Pipeline Revision
+ * Update a specific pipeline revision.
+ */
+export const pipelinesUpdatePipelineRevision = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesUpdatePipelineRevisionData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).patch<
+    PipelinesUpdatePipelineRevisionResponse,
+    PipelinesUpdatePipelineRevisionError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}/revisions/{revision_id}",
     ...options,
     headers: {
       "Content-Type": "application/json",

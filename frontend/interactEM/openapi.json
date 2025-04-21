@@ -539,7 +539,7 @@
       "get": {
         "tags": ["pipelines"],
         "summary": "Read Pipelines",
-        "description": "Retrieve pipelines, ordered by last updated.",
+        "description": "Retrieve pipelines, ordered by last updated. Includes pipeline name.",
         "operationId": "pipelines-read_pipelines",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
@@ -547,13 +547,24 @@
             "name": "skip",
             "in": "query",
             "required": false,
-            "schema": { "type": "integer", "default": 0, "title": "Skip" }
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Skip"
+            }
           },
           {
             "name": "limit",
             "in": "query",
             "required": false,
-            "schema": { "type": "integer", "default": 100, "title": "Limit" }
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
           }
         ],
         "responses": {
@@ -624,6 +635,47 @@
             "schema": { "type": "string", "format": "uuid", "title": "Id" }
           }
         ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PipelinePublic" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["pipelines"],
+        "summary": "Update Pipeline",
+        "description": "Update a pipeline's name.",
+        "operationId": "pipelines-update_pipeline",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/PipelineUpdate" }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -722,7 +774,9 @@
               "application/json": {
                 "schema": {
                   "type": "array",
-                  "items": { "$ref": "#/components/schemas/PipelineRevision" },
+                  "items": {
+                    "$ref": "#/components/schemas/PipelineRevisionPublic"
+                  },
                   "title": "Response Pipelines-List Pipeline Revisions"
                 }
               }
@@ -741,7 +795,7 @@
       "post": {
         "tags": ["pipelines"],
         "summary": "Add Pipeline Revision",
-        "description": "Add a new revision to a pipeline and update the pipeline's updated_at timestamp.",
+        "description": "Add a new revision to a pipeline.",
         "operationId": "pipelines-add_pipeline_revision",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
@@ -756,7 +810,9 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/PipelineUpdate" }
+              "schema": {
+                "$ref": "#/components/schemas/PipelineRevisionCreate"
+              }
             }
           }
         },
@@ -765,7 +821,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PipelineRevision" }
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRevisionPublic"
+                }
               }
             }
           },
@@ -780,26 +838,35 @@
         }
       }
     },
-    "/api/v1/pipelines/run": {
-      "post": {
+    "/api/v1/pipelines/{id}/revisions/{revision_id}": {
+      "get": {
         "tags": ["pipelines"],
-        "summary": "Create And Run Pipeline",
-        "description": "Create new pipeline and run it.",
-        "operationId": "pipelines-create_and_run_pipeline",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/PipelineCreate" }
-            }
+        "summary": "Read Pipeline Revision",
+        "description": "Get specific revision data for a pipeline.",
+        "operationId": "pipelines-read_pipeline_revision",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
           },
-          "required": true
-        },
+          {
+            "name": "revision_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Revision Id" }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PipelinePublic" }
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRevisionPublic"
+                }
               }
             }
           },
@@ -811,8 +878,58 @@
               }
             }
           }
+        }
+      },
+      "patch": {
+        "tags": ["pipelines"],
+        "summary": "Update Pipeline Revision",
+        "description": "Update a specific pipeline revision.",
+        "operationId": "pipelines-update_pipeline_revision",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          },
+          {
+            "name": "revision_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Revision Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PipelineRevisionUpdate"
+              }
+            }
+          }
         },
-        "security": [{ "OAuth2PasswordBearer": [] }]
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRevisionPublic"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
       }
     },
     "/api/v1/pipelines/{id}/run": {
@@ -1120,6 +1237,14 @@
       },
       "PipelinePublic": {
         "properties": {
+          "name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 128 },
+              { "type": "null" }
+            ],
+            "title": "Name",
+            "default": "New Pipeline"
+          },
           "data": { "type": "object", "title": "Data" },
           "running": {
             "type": "boolean",
@@ -1141,13 +1266,30 @@
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "current_revision_id": {
+            "type": "integer",
+            "title": "Current Revision Id"
           }
         },
         "type": "object",
-        "required": ["data", "id", "owner_id", "updated_at", "created_at"],
+        "required": [
+          "data",
+          "id",
+          "owner_id",
+          "updated_at",
+          "created_at",
+          "current_revision_id"
+        ],
         "title": "PipelinePublic"
       },
-      "PipelineRevision": {
+      "PipelineRevisionCreate": {
+        "properties": { "data": { "type": "object", "title": "Data" } },
+        "type": "object",
+        "required": ["data"],
+        "title": "PipelineRevisionCreate"
+      },
+      "PipelineRevisionPublic": {
         "properties": {
           "pipeline_id": {
             "type": "string",
@@ -1157,10 +1299,7 @@
           "revision_id": { "type": "integer", "title": "Revision Id" },
           "data": { "type": "object", "title": "Data" },
           "tag": {
-            "anyOf": [
-              { "type": "string", "maxLength": 128 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Tag"
           },
           "created_at": {
@@ -1170,12 +1309,11 @@
           }
         },
         "type": "object",
-        "required": ["pipeline_id", "revision_id", "data"],
-        "title": "PipelineRevision"
+        "required": ["pipeline_id", "revision_id", "data", "tag", "created_at"],
+        "title": "PipelineRevisionPublic"
       },
-      "PipelineUpdate": {
+      "PipelineRevisionUpdate": {
         "properties": {
-          "data": { "type": "object", "title": "Data" },
           "tag": {
             "anyOf": [
               { "type": "string", "maxLength": 128 },
@@ -1185,7 +1323,20 @@
           }
         },
         "type": "object",
-        "required": ["data"],
+        "title": "PipelineRevisionUpdate"
+      },
+      "PipelineUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              { "type": "string", "maxLength": 128 },
+              { "type": "null" }
+            ],
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": ["name"],
         "title": "PipelineUpdate"
       },
       "PipelinesPublic": {

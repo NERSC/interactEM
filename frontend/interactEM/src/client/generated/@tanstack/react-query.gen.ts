@@ -18,13 +18,15 @@ import {
   loginTestToken,
   operatorsReadOperators,
   pipelinesAddPipelineRevision,
-  pipelinesCreateAndRunPipeline,
   pipelinesCreatePipeline,
   pipelinesDeletePipeline,
   pipelinesListPipelineRevisions,
   pipelinesReadPipeline,
+  pipelinesReadPipelineRevision,
   pipelinesReadPipelines,
   pipelinesRunPipeline,
+  pipelinesUpdatePipeline,
+  pipelinesUpdatePipelineRevision,
   usersCreateUser,
   usersDeleteUser,
   usersDeleteUserMe,
@@ -60,9 +62,6 @@ import type {
   PipelinesAddPipelineRevisionData,
   PipelinesAddPipelineRevisionError,
   PipelinesAddPipelineRevisionResponse,
-  PipelinesCreateAndRunPipelineData,
-  PipelinesCreateAndRunPipelineError,
-  PipelinesCreateAndRunPipelineResponse,
   PipelinesCreatePipelineData,
   PipelinesCreatePipelineError,
   PipelinesCreatePipelineResponse,
@@ -71,10 +70,17 @@ import type {
   PipelinesDeletePipelineResponse,
   PipelinesListPipelineRevisionsData,
   PipelinesReadPipelineData,
+  PipelinesReadPipelineRevisionData,
   PipelinesReadPipelinesData,
   PipelinesRunPipelineData,
   PipelinesRunPipelineError,
   PipelinesRunPipelineResponse,
+  PipelinesUpdatePipelineData,
+  PipelinesUpdatePipelineError,
+  PipelinesUpdatePipelineResponse,
+  PipelinesUpdatePipelineRevisionData,
+  PipelinesUpdatePipelineRevisionError,
+  PipelinesUpdatePipelineRevisionResponse,
   UsersCreateUserData,
   UsersCreateUserError,
   UsersCreateUserResponse,
@@ -770,6 +776,26 @@ export const pipelinesReadPipelineOptions = (
   })
 }
 
+export const pipelinesUpdatePipelineMutation = (
+  options?: Partial<Options<PipelinesUpdatePipelineData>>,
+) => {
+  const mutationOptions: UseMutationOptions<
+    PipelinesUpdatePipelineResponse,
+    AxiosError<PipelinesUpdatePipelineError>,
+    Options<PipelinesUpdatePipelineData>
+  > = {
+    mutationFn: async (localOptions) => {
+      const { data } = await pipelinesUpdatePipeline({
+        ...options,
+        ...localOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
+}
+
 export const pipelinesListPipelineRevisionsQueryKey = (
   options: Options<PipelinesListPipelineRevisionsData>,
 ) => [createQueryKey("pipelinesListPipelineRevisions", options)]
@@ -832,16 +858,16 @@ export const pipelinesAddPipelineRevisionMutation = (
   return mutationOptions
 }
 
-export const pipelinesCreateAndRunPipelineQueryKey = (
-  options: Options<PipelinesCreateAndRunPipelineData>,
-) => [createQueryKey("pipelinesCreateAndRunPipeline", options)]
+export const pipelinesReadPipelineRevisionQueryKey = (
+  options: Options<PipelinesReadPipelineRevisionData>,
+) => [createQueryKey("pipelinesReadPipelineRevision", options)]
 
-export const pipelinesCreateAndRunPipelineOptions = (
-  options: Options<PipelinesCreateAndRunPipelineData>,
+export const pipelinesReadPipelineRevisionOptions = (
+  options: Options<PipelinesReadPipelineRevisionData>,
 ) => {
   return queryOptions({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await pipelinesCreateAndRunPipeline({
+      const { data } = await pipelinesReadPipelineRevision({
         ...options,
         ...queryKey[0],
         signal,
@@ -849,20 +875,20 @@ export const pipelinesCreateAndRunPipelineOptions = (
       })
       return data
     },
-    queryKey: pipelinesCreateAndRunPipelineQueryKey(options),
+    queryKey: pipelinesReadPipelineRevisionQueryKey(options),
   })
 }
 
-export const pipelinesCreateAndRunPipelineMutation = (
-  options?: Partial<Options<PipelinesCreateAndRunPipelineData>>,
+export const pipelinesUpdatePipelineRevisionMutation = (
+  options?: Partial<Options<PipelinesUpdatePipelineRevisionData>>,
 ) => {
   const mutationOptions: UseMutationOptions<
-    PipelinesCreateAndRunPipelineResponse,
-    AxiosError<PipelinesCreateAndRunPipelineError>,
-    Options<PipelinesCreateAndRunPipelineData>
+    PipelinesUpdatePipelineRevisionResponse,
+    AxiosError<PipelinesUpdatePipelineRevisionError>,
+    Options<PipelinesUpdatePipelineRevisionData>
   > = {
     mutationFn: async (localOptions) => {
-      const { data } = await pipelinesCreateAndRunPipeline({
+      const { data } = await pipelinesUpdatePipelineRevision({
         ...options,
         ...localOptions,
         throwOnError: true,
