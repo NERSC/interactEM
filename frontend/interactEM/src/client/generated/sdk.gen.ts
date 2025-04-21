@@ -742,7 +742,7 @@ export const pipelinesUpdatePipelineRevision = <
 
 /**
  * Run Pipeline
- * Run a pipeline.
+ * Run a specific revision of a pipeline.
  */
 export const pipelinesRunPipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesRunPipelineData, ThrowOnError>,
@@ -758,7 +758,7 @@ export const pipelinesRunPipeline = <ThrowOnError extends boolean = false>(
         type: "http",
       },
     ],
-    url: "/api/v1/pipelines/{id}/run",
+    url: "/api/v1/pipelines/{id}/revisions/{revision_id}/run",
     ...options,
   })
 }

@@ -896,9 +896,10 @@ export type PipelinesRunPipelineData = {
   body?: never
   path: {
     id: string
+    revision_id: number
   }
   query?: never
-  url: "/api/v1/pipelines/{id}/run"
+  url: "/api/v1/pipelines/{id}/revisions/{revision_id}/run"
 }
 
 export type PipelinesRunPipelineErrors = {
@@ -915,7 +916,7 @@ export type PipelinesRunPipelineResponses = {
   /**
    * Successful Response
    */
-  200: PipelinePublic
+  200: PipelineRevisionPublic
 }
 
 export type PipelinesRunPipelineResponse =

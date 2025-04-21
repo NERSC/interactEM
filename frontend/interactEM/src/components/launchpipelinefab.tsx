@@ -5,13 +5,13 @@ import { pipelinesRunPipelineMutation } from "../client"
 import { usePipelineStore } from "../stores"
 
 export const LaunchPipelineFab = () => {
-  const { currentPipelineId } = usePipelineStore()
+  const { currentPipelineId, currentRevisionId } = usePipelineStore()
   const launchPipeline = useMutation({
     ...pipelinesRunPipelineMutation(),
   })
   const onLaunchPipeline = () => {
     launchPipeline.mutate({
-      path: { id: currentPipelineId! },
+      path: { id: currentPipelineId!, revision_id: currentRevisionId! },
     })
   }
 
