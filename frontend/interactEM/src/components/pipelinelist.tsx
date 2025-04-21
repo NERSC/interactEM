@@ -120,7 +120,11 @@ export const PipelineList: React.FC<PipelineListProps> = ({
           >
             <List disablePadding>
               {pipelines.map((pipeline) => (
-                <PipelineListItem key={pipeline.id} pipeline={pipeline} />
+                <PipelineListItem
+                  key={pipeline.id}
+                  pipeline={pipeline}
+                  onSelect={onClose}
+                />
               ))}
             </List>
           </InfiniteScroll>

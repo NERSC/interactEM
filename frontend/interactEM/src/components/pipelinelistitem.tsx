@@ -5,13 +5,18 @@ import { usePipelineStore } from "../stores"
 
 interface PipelineListItemProps {
   pipeline: PipelinePublic
+  onSelect?: () => void
 }
 
-export const PipelineListItem = ({ pipeline }: PipelineListItemProps) => {
+export const PipelineListItem = ({
+  pipeline,
+  onSelect,
+}: PipelineListItemProps) => {
   const { currentPipelineId, setPipeline } = usePipelineStore()
 
   const handleListItemClick = () => {
     setPipeline(pipeline)
+    if (onSelect) onSelect()
   }
 
   const isSelected = currentPipelineId === pipeline.id
