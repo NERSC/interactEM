@@ -1,5 +1,6 @@
 import { Edit } from "@mui/icons-material"
 import HistoryIcon from "@mui/icons-material/History"
+import ListIcon from "@mui/icons-material/List"
 import {
   Box,
   CircularProgress,
@@ -10,8 +11,8 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material"
+import { CommitIcon } from "@radix-ui/react-icons"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
-import { formatDistanceToNow } from "date-fns"
 import { useCallback, useRef, useState } from "react"
 import {
   pipelinesReadPipelineQueryKey,
@@ -23,17 +24,29 @@ import { usePipelineStore } from "../stores"
 import { LaunchPipelineButton } from "./launchpipelinebutton"
 import { DeletePipelineButton } from "./pipelinedeletebutton"
 import { PipelineEditDialog } from "./pipelineeditdialog"
+import { PipelineList } from "./pipelinelist"
 import { RevisionList } from "./revisionlist"
 
-export const CurrentPipelineDisplay: React.FC = () => {
+export const PipelineHud: React.FC = () => {
   const queryClient = useQueryClient()
-  const { currentPipelineId, setCurrentRevisionId } = usePipelineStore()
+  const { currentPipelineId, currentRevisionId, setCurrentRevisionId } =
+    usePipelineStore()
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isRevisionPopoverOpen, setIsRevisionPopoverOpen] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false) // State to track deletion status
+  const [isPipelineDrawerOpen, setIsPipelineDrawerOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   const revisionButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const { pipeline, isLoading } = useActivePipeline()
+
+  // Pipeline List Drawer handlers
+  const handleTogglePipelineDrawer = useCallback(() => {
+    setIsPipelineDrawerOpen(!isPipelineDrawerOpen)
+  }, [isPipelineDrawerOpen])
+
+  const handleClosePipelineDrawer = useCallback(() => {
+    setIsPipelineDrawerOpen(false)
+  }, [])
 
   const updatePipelineMutation = useMutation({
     ...pipelinesUpdatePipelineMutation(),
@@ -78,95 +91,60 @@ export const CurrentPipelineDisplay: React.FC = () => {
 
   const revisionListId = isRevisionPopoverOpen ? "revision-popover" : undefined
   const isMutating = updatePipelineMutation.isPending || isDeleting
-  if (!currentPipelineId) {
-    return (
-      <Box
-        sx={{
-          p: 1,
-          bgcolor: "background.paper",
-          borderRadius: 1,
-          boxShadow: 1,
-          minWidth: 250,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: 56,
-        }}
-      >
+
+  // Content for when no pipeline is selected or loading
+  const pipelineDisplayContent = () => {
+    if (!currentPipelineId) {
+      return (
         <Typography variant="body2" color="text.secondary">
           No pipeline selected
         </Typography>
-      </Box>
-    )
-  }
+      )
+    }
 
-  if (isLoading) {
-    return (
-      <Box
-        sx={{
-          p: 1,
-          bgcolor: "background.paper",
-          borderRadius: 1,
-          boxShadow: 1,
-          minWidth: 250,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: 56,
-        }}
-      >
-        <CircularProgress size={24} />
-      </Box>
-    )
-  }
+    if (isLoading) {
+      return <CircularProgress size={24} />
+    }
 
-  if (!pipeline) {
-    return (
-      <Box
-        sx={{
-          p: 1,
-          bgcolor: "background.paper",
-          borderRadius: 1,
-          boxShadow: 1,
-          minWidth: 250,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: 56,
-        }}
-      >
+    if (!pipeline) {
+      return (
         <Typography variant="body2" color="error">
           Error loading pipeline.
         </Typography>
-      </Box>
-    )
-  }
+      )
+    }
 
-  const displayName = pipeline.name || pipeline.id.substring(0, 8)
-  const displayRevision = pipeline.current_revision_id
-  const lastUpdated = `${formatDistanceToNow(new Date(pipeline.updated_at))} ago`
+    const displayName = pipeline.name || pipeline.id.substring(0, 8)
 
-  return (
-    <>
-      <Box
-        sx={{
-          p: 1,
-          bgcolor: "background.paper",
-          borderRadius: 1,
-          boxShadow: 1,
-          minWidth: 300,
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
+    return (
+      <>
         <Stack direction="column" sx={{ flexGrow: 1, mr: 1 }}>
-          <Tooltip title={pipeline.name ? `ID: ${pipeline.id}` : ""}>
-            <Typography variant="subtitle1" fontWeight="medium" noWrap>
-              {displayName}
-            </Typography>
-          </Tooltip>
-          <Typography variant="caption" color="text.secondary" noWrap>
-            {displayRevision} &bull; Updated {lastUpdated}
+          <Typography
+            variant="subtitle1"
+            fontWeight="medium"
+            noWrap
+            sx={{ display: "flex", alignItems: "center", gap: 1 }}
+          >
+            {displayName}
+            <Box
+              component="span"
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                bgcolor: "rgba(0, 0, 0, 0.05)",
+                borderRadius: "4px",
+                px: 0.8,
+                py: 0.2,
+                ml: 0.5,
+                color: "text.secondary",
+                fontSize: "0.8em",
+              }}
+            >
+              <Box component="span" sx={{ mr: 0.5, display: "flex" }}>
+                <CommitIcon fontSize="small" />
+              </Box>
+              {currentRevisionId}
+            </Box>
           </Typography>
         </Stack>
         <Tooltip title="Edit Pipeline Name">
@@ -203,7 +181,46 @@ export const CurrentPipelineDisplay: React.FC = () => {
             </IconButton>
           </span>
         </Tooltip>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <Box
+        sx={{
+          p: 1,
+          bgcolor: "background.paper",
+          borderRadius: 1,
+          boxShadow: 1,
+          minWidth: 300,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        {/* Pipeline List Toggle Button */}
+        <Tooltip title="Pipeline List">
+          <IconButton
+            size="small"
+            onClick={handleTogglePipelineDrawer}
+            sx={{ mr: 1 }}
+          >
+            <ListIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+        {/* Show separating divider */}
+        <Divider orientation="vertical" flexItem sx={{ mr: 1 }} />
+
+        {/* Pipeline content */}
+        {pipelineDisplayContent()}
       </Box>
+
+      {/* Pipeline List Drawer - Now integrated inside the PipelineHud */}
+      <PipelineList
+        open={isPipelineDrawerOpen}
+        onClose={handleClosePipelineDrawer}
+      />
 
       {/* Revision List Popover */}
       <Popover
