@@ -272,25 +272,45 @@ def delete_pipeline(
     return Message(message="Pipeline deleted successfully")
 
 
-@router.post("/{id}/run", response_model=PipelinePublic)
+# ...existing code...
+@router.post("/{id}/revisions/{revision_id}/run", response_model=PipelineRevisionPublic)
 async def run_pipeline(
-    session: SessionDep, current_user: CurrentUser, id: uuid.UUID
-) -> PipelinePublic:
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    revision_id: int,
+) -> PipelineRevisionPublic:
     """
-    Run a pipeline.
+    Run a specific revision of a pipeline.
     """
-    pipeline = session.get(Pipeline, id)
+    pipeline_id: uuid.UUID = id
+
+    revision = session.get(PipelineRevision, (id, revision_id))
+    if not revision:
+        raise HTTPException(status_code=404, detail="Pipeline revision not found")
+
+    pipeline = revision.pipeline
     if not pipeline:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
+        raise HTTPException(status_code=404, detail="Associated pipeline not found")
     if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
-    pipeline = PipelinePublic.model_validate(pipeline)
+    run_event_data = {
+        "id": revision.pipeline_id,
+        "data": revision.data,
+        "revision_id": revision.revision_id,
+    }
 
     try:
-        await publish_pipeline_run_event(PipelineRunEvent(**pipeline.model_dump()))
-        logger.info(f"Sent publish pipeline run event for pipeline {pipeline.id}")
+        event_to_publish = PipelineRunEvent(**run_event_data)
+        await publish_pipeline_run_event(event_to_publish)
+        logger.info(
+            f"Sent publish pipeline run event for pipeline {pipeline_id} using revision {revision_id}"
+        )
     except Exception as e:
+        logger.error(
+            f"Failed to publish run event for pipeline {pipeline_id} revision {revision_id}: {e}"
+        )
         raise HTTPException(status_code=500, detail=f"Failed to run pipeline: {e}")
 
-    return pipeline
+    return PipelineRevisionPublic.model_validate(revision)
