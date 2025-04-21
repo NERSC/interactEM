@@ -1,5 +1,5 @@
 import { DownloadIcon } from "@radix-ui/react-icons"
-import { useMutation, useQueryClient } from "@tanstack/react-query" // Import TanStack Query hooks
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   ControlButton,
   Controls,
@@ -29,14 +29,16 @@ import {
 import { useDnD } from "../dnd/dndcontext"
 import useOperators from "../hooks/useOperators"
 import { layoutNodes } from "../layout"
-import { type PipelineJSON, fromPipelineJSON, toJSON } from "../pipeline"
-import { usePipelineStore } from "../stores"
+import { fromPipelineJSON, toJSON } from "../pipeline"
 import { NodeType, type OperatorNodeTypes } from "../types/nodes"
 import ImageNode from "./imagenode"
 import { LaunchPipelineFab } from "./launchpipelinefab"
 import type { OperatorMenuItemDragData } from "./operatormenu"
 import OperatorNode from "./operatornode"
 import "@xyflow/react/dist/style.css"
+import { toast } from "react-toastify"
+import type { PipelineRevisionPublic } from "../client"
+import { usePipelineStore } from "../stores"
 
 export const edgeOptions = {
   type: "smoothstep",
@@ -46,13 +48,11 @@ export const edgeOptions = {
 const generateID = () => uuidv4()
 
 interface ComposerPipelineFlowProps {
-  pipelineData?: PipelineJSON | null
-  pipelineId?: string | null // Add pipelineId prop
+  pipelineData?: PipelineRevisionPublic | null
 }
 
 const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   pipelineData,
-  pipelineId,
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [nodes, setNodes] = useState<OperatorNodeTypes[]>([])
@@ -63,65 +63,51 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   const { operators } = useOperators()
   const queryClient = useQueryClient()
 
-  // Get current pipeline ID from store (fallback if prop not provided)
-  const currentPipelineIdFromStore = usePipelineStore(
-    (state) => state.currentPipelineId,
-  )
-  const activePipelineId = pipelineId ?? currentPipelineIdFromStore
+  const { currentPipelineId, setPipelineRevision } = usePipelineStore()
 
   // --- Revision Mutation Setup ---
   const addRevisionMutation = useMutation({
     ...pipelinesAddPipelineRevisionMutation(),
     onSuccess: (data) => {
-      console.log("Pipeline revision saved:", data)
       // Invalidate queries to refetch pipeline details and revisions
-      if (activePipelineId) {
+      setPipelineRevision(data)
+      queryClient.invalidateQueries({
+        queryKey: pipelinesReadPipelinesQueryKey(),
+      })
+      if (currentPipelineId) {
         queryClient.invalidateQueries({
           queryKey: pipelinesReadPipelineQueryKey({
-            path: { id: activePipelineId },
+            path: { id: currentPipelineId },
           }),
         })
         queryClient.invalidateQueries({
-          queryKey: pipelinesReadPipelinesQueryKey(),
-        })
-        queryClient.invalidateQueries({
           queryKey: pipelinesListPipelineRevisionsQueryKey({
-            path: { id: activePipelineId },
+            path: { id: currentPipelineId },
           }),
         })
       }
     },
-    onError: (error) => {
-      console.error("Failed to save pipeline revision:", error)
-      // TODO: Add user feedback (e.g., toast notification)
+    onError: () => {
+      toast.error("Failed to save pipeline revision. Please try again.")
     },
   })
 
   // --- Direct Save Revision Function ---
   const saveRevision = useCallback(
     (currentNodes: OperatorNodeTypes[], currentEdges: Edge[]) => {
-      if (!activePipelineId) {
-        console.log("Skipping revision save: No active pipeline ID.", {
-          activePipelineId,
-        })
+      if (!currentPipelineId) {
+        toast.error("Please select or create a pipeline.")
         return
       }
-
       const pipelineJson = toJSON(currentNodes, currentEdges)
-      console.log(
-        `Saving revision for pipeline ${activePipelineId}`,
-        pipelineJson.data,
-      )
       addRevisionMutation.mutate({
-        path: { id: activePipelineId },
+        path: { id: currentPipelineId },
         body: { data: pipelineJson.data },
-        // Add tag if needed: body: { data: pipelineJson.data, tag: "user-edit" }
       })
     },
-    [activePipelineId, addRevisionMutation, queryClient],
+    [currentPipelineId, addRevisionMutation],
   )
 
-  // Effect to handle pipeline data loading
   useEffect(() => {
     if (!pipelineData) {
       setNodes([])
@@ -129,25 +115,25 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       setPipelineJSONLoaded(false)
       return
     }
-    try {
-      const { nodes: importedNodes, edges: importedEdges } =
-        fromPipelineJSON(pipelineData)
-      const { nodes: layoutedNodes, edges: layoutedEdges } = layoutNodes(
-        importedNodes,
-        importedEdges,
-      )
-      setNodes(layoutedNodes as OperatorNodeTypes[])
-      setEdges(layoutedEdges)
-      setPipelineJSONLoaded(true)
-      setTimeout(() => {
-        fitView({ duration: 300, padding: 0.1 })
-      }, 100)
-    } catch (error) {
-      console.error("Error loading pipeline JSON:", error)
-      setNodes([])
-      setEdges([])
-      setPipelineJSONLoaded(false)
-    }
+
+    // TODO: type pipeline data!
+    const { nodes: importedNodes, edges: importedEdges } =
+      fromPipelineJSON(pipelineData)
+
+    let layoutedNodes = importedNodes
+    let layoutedEdges = importedEdges
+
+    // Only layout on first render after mount
+    const layoutResult = layoutNodes(importedNodes, importedEdges)
+    layoutedNodes = layoutResult.nodes
+    layoutedEdges = layoutResult.edges
+
+    setNodes(layoutedNodes as OperatorNodeTypes[])
+    setEdges(layoutedEdges)
+    setPipelineJSONLoaded(true)
+    setTimeout(() => {
+      fitView({ duration: 300, padding: 0.1 })
+    }, 100)
   }, [pipelineData, fitView])
 
   // --- Change Handlers ---
@@ -174,6 +160,14 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   const handleDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault()
+
+      if (!currentPipelineId) {
+        toast.error(
+          "Please select or create a pipeline before adding operators.",
+        )
+        return
+      }
+
       if (event.dataTransfer.files.length > 0) {
         console.log("A file was dropped. Not doing anything...")
         return
@@ -220,7 +214,14 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         return newNodes
       })
     },
-    [screenToFlowPosition, operatorDropData, operators, edges, saveRevision],
+    [
+      screenToFlowPosition,
+      operatorDropData,
+      operators,
+      edges,
+      saveRevision,
+      currentPipelineId,
+    ],
   )
 
   const handleNodesChange: OnNodesChange<OperatorNodeTypes> = useCallback(
@@ -317,7 +318,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
               <DownloadIcon />
             </ControlButton>
           </Controls>
-          <LaunchPipelineFab nodes={nodes} edges={edges} />
+          <LaunchPipelineFab />
         </ReactFlow>
       </div>
     </div>

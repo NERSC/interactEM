@@ -1,23 +1,17 @@
 import { Navigation } from "@mui/icons-material"
 import { Fab } from "@mui/material"
 import { useMutation } from "@tanstack/react-query"
-import type { Edge, Node } from "@xyflow/react"
-import { pipelinesCreateAndRunPipelineMutation } from "../client"
-import { type OperatorNodeData, toJSON } from "../pipeline"
+import { pipelinesRunPipelineMutation } from "../client"
+import { usePipelineStore } from "../stores"
 
-type CreatePipelineFabProps = {
-  nodes: Node<OperatorNodeData>[]
-  edges: Edge[]
-}
-
-export const LaunchPipelineFab = ({ nodes, edges }: CreatePipelineFabProps) => {
+export const LaunchPipelineFab = () => {
+  const { currentPipelineId } = usePipelineStore()
   const launchPipeline = useMutation({
-    ...pipelinesCreateAndRunPipelineMutation(),
+    ...pipelinesRunPipelineMutation(),
   })
   const onLaunchPipeline = () => {
-    const pipelineData = toJSON(nodes, edges)
     launchPipeline.mutate({
-      body: pipelineData,
+      path: { id: currentPipelineId! },
     })
   }
 
