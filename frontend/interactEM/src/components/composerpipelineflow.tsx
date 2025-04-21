@@ -32,7 +32,6 @@ import { layoutNodes } from "../layout"
 import { fromPipelineJSON, toJSON } from "../pipeline"
 import { NodeType, type OperatorNodeTypes } from "../types/nodes"
 import ImageNode from "./imagenode"
-import { LaunchPipelineFab } from "./launchpipelinefab"
 import type { OperatorMenuItemDragData } from "./operatormenu"
 import OperatorNode from "./operatornode"
 import "@xyflow/react/dist/style.css"
@@ -318,7 +317,6 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
               <DownloadIcon />
             </ControlButton>
           </Controls>
-          <LaunchPipelineFab />
         </ReactFlow>
       </div>
     </div>

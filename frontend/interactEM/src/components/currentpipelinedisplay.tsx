@@ -20,6 +20,7 @@ import {
 } from "../client/generated/@tanstack/react-query.gen"
 import { useActivePipeline } from "../hooks/useActivePipeline"
 import { usePipelineStore } from "../stores"
+import { LaunchPipelineButton } from "./launchpipelinebutton"
 import { DeletePipelineButton } from "./pipelinedeletebutton"
 import { PipelineEditDialog } from "./pipelineeditdialog"
 import { RevisionList } from "./revisionlist"
@@ -187,6 +188,7 @@ export const CurrentPipelineDisplay: React.FC = () => {
           onDeleteStarted={() => setIsDeleting(true)}
           onDeleteFinished={() => setIsDeleting(false)}
         />
+        <LaunchPipelineButton disabled={isMutating} />
         <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
         <Tooltip title="Revision History">
           <span>
