@@ -1,46 +1,30 @@
-import { Add as AddIcon } from "@mui/icons-material"
 import {
   Box,
-  Button,
   CircularProgress,
   Divider,
   Drawer,
   List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
   Typography,
 } from "@mui/material"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
-import type React from "react" // Added useRef
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import InfiniteScroll from "react-infinite-scroll-component"
-import type { PipelinePublic } from "../client"
-import {
-  pipelinesCreatePipelineMutation,
-  pipelinesReadPipelinesQueryKey,
-} from "../client/generated/@tanstack/react-query.gen"
 import { useInfinitePipelines } from "../hooks/usePipelinesQuery"
-import type { PipelineJSON } from "../pipeline"
-import { usePipelineStore } from "../stores"
+import { NewPipelineButton } from "./newpipelinebutton"
+import { PipelineListItem } from "./pipelinelistitem"
 
 interface PipelineListProps {
   open: boolean
   onClose: () => void
-  onPipelineSelect: (pipeline: PipelineJSON) => void
 }
 
 export const PipelineList: React.FC<PipelineListProps> = ({
   open,
   onClose,
-  onPipelineSelect,
 }) => {
-  const queryClient = useQueryClient()
   const containerRef = useRef<HTMLDivElement>(null)
-  const [loading, setLoading] = useState(false)
 
   const {
-    data: pipelineData,
+    data: pipelinesQueryData,
     fetchNextPage: fetchNextPipelines,
     hasNextPage: hasNextPipelines,
     isLoading: isLoadingPipelines,
@@ -48,56 +32,33 @@ export const PipelineList: React.FC<PipelineListProps> = ({
     error: errorPipelines,
   } = useInfinitePipelines()
 
-  // Mutation hook for creating a new pipeline
-  const createPipeline = useMutation({
-    ...pipelinesCreatePipelineMutation(),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: pipelinesReadPipelinesQueryKey(),
-      })
-    },
-    onError: (error) => {
-      console.error("Failed to create pipeline:", error)
-    },
-  })
-
-  const currentPipelineId = usePipelineStore((state) => state.currentPipelineId)
-  const setCurrentPipelineId = usePipelineStore(
-    (state) => state.setCurrentPipelineId,
-  )
-
-  const pipelines = pipelineData?.pages.flatMap((page) => page.data) ?? []
+  const pipelines = pipelinesQueryData?.pages.flatMap((page) => page.data) ?? []
   const pipelineScrollTargetId = "pipeline-drawer-scroll-target"
 
-  // Check for scroll and load more content if needed
-  const checkAndLoadMore = () => {
-    if (loading || !hasNextPipelines || !containerRef.current) return
+  const checkAndLoadMore = useCallback(() => {
+    if (!containerRef.current) return
+    if (!hasNextPipelines) return
 
     const container = containerRef.current
     const containerHeight = container.clientHeight
     const contentHeight = container.scrollHeight
 
-    // If content doesn't fill container, load more
-    if (contentHeight <= containerHeight && hasNextPipelines) {
+    if (contentHeight <= containerHeight) {
       console.log("Loading more pipelines - content doesn't fill container")
-      setLoading(true)
-      fetchNextPipelines().finally(() => setLoading(false))
+      fetchNextPipelines()
     }
-  }
+  }, [hasNextPipelines, fetchNextPipelines])
 
-  // When drawer opens or pipelines data changes
   useEffect(() => {
     if (!open || isLoadingPipelines) return
 
-    // Use setTimeout to ensure DOM has updated
     const timer = setTimeout(() => {
       checkAndLoadMore()
     }, 100)
 
     return () => clearTimeout(timer)
-  }, [open, pipelineData, isLoadingPipelines])
+  }, [open, isLoadingPipelines, checkAndLoadMore])
 
-  // Load more when drawer resizes
   useEffect(() => {
     if (!open) return
 
@@ -107,27 +68,7 @@ export const PipelineList: React.FC<PipelineListProps> = ({
 
     window.addEventListener("resize", handleResize)
     return () => window.removeEventListener("resize", handleResize)
-  }, [open, hasNextPipelines])
-
-  const handleSelectPipeline = (pipeline: PipelinePublic) => {
-    setCurrentPipelineId(pipeline.id)
-    if (pipeline.data && typeof pipeline.data === "object") {
-      onPipelineSelect({ data: pipeline.data })
-    } else {
-      console.warn(
-        "Selected pipeline has missing or invalid data structure, using empty default:",
-        pipeline,
-      )
-      onPipelineSelect({ data: {} })
-    }
-    onClose()
-  }
-
-  const handleCreateNewPipeline = () => {
-    createPipeline.mutate({
-      body: { data: {} },
-    })
-  }
+  }, [open, checkAndLoadMore])
 
   const pipelineLoader = (
     <Box sx={{ display: "flex", justifyContent: "center", p: 1 }}>
@@ -154,19 +95,11 @@ export const PipelineList: React.FC<PipelineListProps> = ({
       >
         <Box sx={{ p: 2, display: "flex", justifyContent: "space-between" }}>
           <Typography variant="h6">Pipelines</Typography>
-          <Button
-            variant="outlined"
-            size="small"
-            startIcon={<AddIcon />}
-            onClick={handleCreateNewPipeline}
-            disabled={createPipeline.isPending}
-          >
-            New
-          </Button>
+          <NewPipelineButton />
         </Box>
         <Divider />
         <Box
-          ref={containerRef} // Use ref here
+          ref={containerRef}
           id={pipelineScrollTargetId}
           sx={{ height: "calc(100% - 76px)", overflowY: "auto" }}
         >
@@ -179,35 +112,15 @@ export const PipelineList: React.FC<PipelineListProps> = ({
           <InfiniteScroll
             dataLength={pipelines.length}
             next={fetchNextPipelines}
-            hasMore={hasNextPipelines ?? false}
-            loader={loading || isLoadingPipelines ? pipelineLoader : null}
+            hasMore={hasNextPipelines}
+            loader={isLoadingPipelines ? pipelineLoader : null}
             scrollableTarget={pipelineScrollTargetId}
             endMessage={pipelineEndMessage}
-            style={{ overflow: "visible" }} // Prevent double scrollbars
+            style={{ overflow: "visible" }}
           >
             <List disablePadding>
               {pipelines.map((pipeline) => (
-                <ListItem
-                  key={pipeline.id}
-                  disablePadding
-                  sx={{
-                    backgroundColor:
-                      currentPipelineId === pipeline.id
-                        ? "action.selected"
-                        : "inherit",
-                  }}
-                >
-                  <ListItemButton
-                    onClick={() => handleSelectPipeline(pipeline)}
-                  >
-                    <ListItemText
-                      primary={`Pipeline ${pipeline.id.substring(0, 8)}...`}
-                      secondary={`Updated: ${new Date(
-                        pipeline.updated_at,
-                      ).toLocaleString()}`}
-                    />
-                  </ListItemButton>
-                </ListItem>
+                <PipelineListItem key={pipeline.id} pipeline={pipeline} />
               ))}
             </List>
           </InfiniteScroll>
