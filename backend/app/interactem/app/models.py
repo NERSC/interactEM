@@ -144,6 +144,7 @@ class PipelineCreate(SQLModel):
 
 
 class PipelineUpdate(SQLModel):
+    name: str | None = Field(..., max_length=128)
     data: dict[str, Any]
     tag: str | None = Field(default=None, max_length=128)
 

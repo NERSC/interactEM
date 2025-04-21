@@ -60,10 +60,37 @@ def read_pipeline(session: SessionDep, current_user: CurrentUser, id: uuid.UUID)
     if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
         raise HTTPException(status_code=403, detail="Not enough permissions")
     return PipelinePublic.model_validate(pipeline)
+
+
+@router.patch("/{id}", response_model=PipelinePublic)
+def update_pipeline(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    update: PipelineUpdate,
+) -> Any:
+    """
+    Update a pipeline's name.
+    """
+    pipeline = session.get(Pipeline, id)
+    if not pipeline:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
+    if not update.name:
+        raise HTTPException(status_code=400, detail="Pipeline name is required")
 
-@router.get("/{id}/revisions", response_model=list[PipelineRevision])
+    pipeline.name = update.name
+    pipeline.updated_at = datetime.now(timezone.utc)
+    session.add(pipeline)
+    session.commit()
+    session.refresh(pipeline)
+    return PipelinePublic.model_validate(pipeline)
+
+
+@router.get("/{id}/revisions", response_model=list[PipelineRevisionPublic])
 def list_pipeline_revisions(
     session: SessionDep,
     current_user: CurrentUser,
