@@ -4,7 +4,13 @@ from typing import Any
 
 import sqlalchemy as sa
 from pydantic import BaseModel, EmailStr
-from sqlmodel import JSON, Column, Field, Relationship, SQLModel
+from sqlmodel import (
+    JSON,
+    Column,
+    Field,
+    Relationship,
+    SQLModel,
+)
 
 from interactem.core.models.operators import Operator
 
@@ -91,6 +97,9 @@ class NewPassword(SQLModel):
 
 
 class PipelineBase(SQLModel):
+    name: str | None = Field(
+        index=True, max_length=128, default="New Pipeline", nullable=True
+    )
     data: dict[str, Any] = Field(sa_column=Column(JSON))
     running: bool = False
 
@@ -122,6 +131,11 @@ class Pipeline(PipelineBase, table=True):
         cascade_delete=True,
         sa_relationship_kwargs={"order_by": "PipelineRevision.revision_id"},
     )
+    current_revision_id: int = Field(
+        default=0,
+        index=True,
+        nullable=False,
+    )
 
 
 class PipelineRevision(SQLModel, table=True):
@@ -145,7 +159,13 @@ class PipelineCreate(SQLModel):
 
 class PipelineUpdate(SQLModel):
     name: str | None = Field(..., max_length=128)
+
+
+class PipelineRevisionCreate(SQLModel):
     data: dict[str, Any]
+
+
+class PipelineRevisionUpdate(SQLModel):
     tag: str | None = Field(default=None, max_length=128)
 
 
@@ -154,11 +174,21 @@ class PipelinePublic(PipelineBase):
     owner_id: uuid.UUID
     updated_at: datetime
     created_at: datetime
+    current_revision_id: int
 
 
 class PipelinesPublic(SQLModel):
     data: list[PipelinePublic]
     count: int
+
+
+class PipelineRevisionPublic(SQLModel):
+    pipeline_id: uuid.UUID
+    revision_id: int
+    data: dict[str, Any]
+    tag: str | None
+    created_at: datetime
+
 
 class Operators(BaseModel):
     data: list[Operator]

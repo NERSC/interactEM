@@ -13,6 +13,9 @@ from interactem.app.models import (
     PipelineCreate,
     PipelinePublic,
     PipelineRevision,
+    PipelineRevisionCreate,
+    PipelineRevisionPublic,
+    PipelineRevisionUpdate,
     PipelinesPublic,
     PipelineUpdate,
 )
@@ -101,6 +104,7 @@ def list_pipeline_revisions(
     """
     List revisions for a pipeline (paginated).
     """
+    # Check pipeline existence and permissions first
     pipeline = session.get(Pipeline, id)
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -114,21 +118,26 @@ def list_pipeline_revisions(
         .offset(skip)
         .limit(limit)
     )
-    revisions = session.exec(statement).all()
-    return revisions
+
+    revisions_db = session.exec(statement).all()
+
+    revisions_public = [PipelineRevisionPublic.model_validate(r) for r in revisions_db]
+    return revisions_public
 
 
-@router.post("/{id}/revisions", response_model=PipelineRevision)
+@router.post("/{id}/revisions", response_model=PipelineRevisionPublic)
 def add_pipeline_revision(
     *,
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    revision_in: PipelineUpdate,
+    revision_in: PipelineRevisionCreate,
 ):
     """
-    Add a new revision to a pipeline and update the pipeline's updated_at timestamp.
+    Add a new revision to a pipeline.
     """
+    if not revision_in.data:
+        raise HTTPException(status_code=400, detail="Revision data is required")
     pipeline = session.get(Pipeline, id)
     if not pipeline:
         raise HTTPException(status_code=404, detail="Pipeline not found")
@@ -145,22 +154,88 @@ def add_pipeline_revision(
     last_revision = session.exec(statement).first()
     next_revision_id = (last_revision or 0) + 1
 
+    # Create the new revision
     revision = PipelineRevision(
         pipeline_id=id,
         revision_id=next_revision_id,
         data=revision_in.data,
-        tag=revision_in.tag,
     )
     session.add(revision)
 
+    # Update the parent pipeline
     pipeline.data = revision_in.data
     pipeline.updated_at = datetime.now(timezone.utc)
+    pipeline.current_revision_id = next_revision_id
     session.add(pipeline)
 
+    try:
+        session.commit()
+        session.refresh(revision)
+        session.refresh(pipeline)
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error adding revision: {e}")
+        raise HTTPException(status_code=500, detail="Failed to save pipeline revision.")
+
+    # Validate before returning
+    return PipelineRevisionPublic.model_validate(revision)
+
+
+@router.get("/{id}/revisions/{revision_id}", response_model=PipelineRevisionPublic)
+def read_pipeline_revision(
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    revision_id: int,
+) -> Any:
+    """
+    Get specific revision data for a pipeline.
+    """
+    # Use composite primary key lookup
+    revision = session.get(PipelineRevision, (id, revision_id))
+
+    if not revision:
+        raise HTTPException(status_code=404, detail="Pipeline revision not found")
+
+    # Check ownership via the related pipeline
+    pipeline = revision.pipeline
+    if not pipeline:
+        raise HTTPException(status_code=404, detail="Associated pipeline not found")
+    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    return PipelineRevisionPublic.model_validate(revision)
+
+
+@router.patch("/{id}/revisions/{revision_id}", response_model=PipelineRevisionPublic)
+def update_pipeline_revision(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    revision_id: int,
+    update: PipelineRevisionUpdate,
+) -> PipelineRevisionPublic:
+    """
+    Update a specific pipeline revision.
+    """
+    revision = session.get(PipelineRevision, (id, revision_id))
+    if not revision:
+        raise HTTPException(status_code=404, detail="Pipeline revision not found")
+
+    # Check ownership via the related pipeline
+    pipeline = revision.pipeline
+    if not pipeline:
+        raise HTTPException(status_code=404, detail="Associated pipeline not found")
+    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    revision.tag = update.tag
+    session.add(revision)
     session.commit()
     session.refresh(revision)
-    session.refresh(pipeline)
-    return revision
+
+    return PipelineRevisionPublic.model_validate(revision)
 
 
 @router.post("/", response_model=PipelinePublic)
