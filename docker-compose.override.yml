@@ -23,6 +23,12 @@ services:
       SMTP_TLS: "false"
       EMAILS_FROM_EMAIL: "noreply@example.com"
 
+  orchestrator:
+    restart: "no"
+    volumes:
+      - ./backend/app/:/interactem/app
+      - ./backend/core/:/interactem/core
+      - ./backend/sfapi_models/:/interactem/sfapi_models
 
   mailcatcher:
     image: schickling/mailcatcher
