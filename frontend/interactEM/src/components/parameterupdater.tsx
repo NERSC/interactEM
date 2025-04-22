@@ -17,6 +17,8 @@ import { memo, useEffect, useState } from "react"
 import type { OperatorParameter } from "../client"
 import { useParameterUpdate } from "../hooks/useParameterUpdate"
 import { useParameterValue } from "../hooks/useParameterValue"
+import { usePipelineContext } from "../hooks/usePipelineContext"
+import { useEditModeState } from "../stores/edit"
 import type { OperatorNodeType } from "../types/nodes"
 
 const compareValues = (
@@ -49,32 +51,47 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   parameter,
   operatorID,
 }) => {
+  const { isCurrentPipelineRunning } = usePipelineContext()
+  const { isEditMode } = useEditModeState()
   const { getNode, setNodes } = useReactFlow<OperatorNodeType>()
-  const { actualValue, hasReceivedMessage } = useParameterValue(
+  const { actualValue: runtimeValue, hasReceivedMessage } = useParameterValue(
     operatorID,
     parameter.name,
     parameter.default,
   )
-  const [inputValue, setInputValue] = useState<string>(
-    parameter.value || parameter.default || "",
-  )
-  const [error, setError] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("")
 
   const node = getNode(operatorID)
   if (!node) {
     throw new Error(`Node with id ${operatorID} not found`)
   }
 
-  const {
-    mutate: updateParameter,
-    isPending,
-    isError,
-  } = useParameterUpdate(operatorID, parameter)
+  // Get the correct value depending on our mode
+  const comparisonTarget = isCurrentPipelineRunning
+    ? // If we haven't received a message use the parameter default.
+      hasReceivedMessage
+      ? runtimeValue
+      : parameter.default
+    : parameter.default
 
+  const [inputValue, setInputValue] = useState<string>(comparisonTarget)
+  const [error, setError] = useState(false)
+  const [errorMessage, setErrorMessage] = useState("")
+  const [userEditing, setUserEditing] = useState(false)
+
+  const isReadOnly = !isCurrentPipelineRunning && !isEditMode
+
+  // Update the input value when critical parameters or mode change
   useEffect(() => {
-    setInputValue(parameter.value || parameter.default || "")
-  }, [parameter.value, parameter.default])
+    // Only update if we haven't received user edits or we're in read-only mode
+    if (!userEditing || isReadOnly) {
+      setInputValue(comparisonTarget)
+    }
+
+    // Reset userEditing state when switching modes
+    if (isReadOnly) {
+      setUserEditing(false)
+    }
+  }, [comparisonTarget, isReadOnly, userEditing])
 
   const validateInput = (value: string) => {
     switch (parameter.type) {
@@ -94,12 +111,22 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     }
   }
 
+  const {
+    mutate: updateParameter,
+    isPending,
+    isError,
+  } = useParameterUpdate(operatorID, parameter)
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
+    if (isReadOnly) return
+
     e.preventDefault()
     const newValue = e.target.value
     setInputValue(newValue)
+    setUserEditing(true)
+
     if (!validateInput(newValue)) {
       setError(true)
       setErrorMessage("Invalid value (type mismatch)")
@@ -109,32 +136,37 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   }
 
   const handleUpdateClick = async () => {
-    if (error) {
+    if (error || isReadOnly) {
       return
     }
 
     setNodes((nodes) =>
-      nodes.map((node) => {
-        if (node.id === operatorID) {
-          const updatedParameters = node.data.parameters?.map((p) => {
+      nodes.map((n) => {
+        if (n.id === operatorID) {
+          const updatedParameters = n.data.parameters?.map((p) => {
             if (p.name === parameter.name) {
-              return { ...p, value: inputValue }
+              if (isCurrentPipelineRunning) {
+                return { ...p, value: inputValue }
+              }
+              // Only update default if not running and in edit mode
+              return { ...p, default: inputValue }
             }
             return p
           })
           return {
-            ...node,
+            ...n,
             data: {
-              ...node.data,
+              ...n.data,
               parameters: updatedParameters,
             },
           }
         }
-        return node
+        return n
       }),
     )
 
     updateParameter(inputValue)
+    setUserEditing(false)
   }
 
   const renderInputField = () => {
@@ -152,21 +184,36 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
             onChange={handleInputChange}
             error={error}
             helperText={error ? errorMessage : ""}
-            sx={{ flexGrow: 1 }}
+            sx={{
+              flexGrow: 1,
+              "& .MuiInputBase-input.Mui-disabled": {
+                WebkitTextFillColor: "rgba(0, 0, 0, 0.7)",
+              },
+            }}
+            disabled={isReadOnly}
           />
         )
       case "str-enum":
         return (
-          <FormControl fullWidth size="small" sx={{ flexGrow: 1 }}>
+          <FormControl
+            fullWidth
+            size="small"
+            sx={{ flexGrow: 1 }}
+            disabled={isReadOnly}
+          >
             <InputLabel id={`${parameter.name}-label`}>Set Point</InputLabel>
             <Select
               labelId={`${parameter.name}-label`}
               value={inputValue}
               label="Set Point"
               onChange={(e) => {
+                if (isReadOnly) return
                 const newValue = e.target.value as string
                 setInputValue(newValue)
+                setUserEditing(true)
               }}
+              inputProps={{ readOnly: isReadOnly }}
+              sx={{ opacity: isReadOnly ? 0.7 : 1 }}
             >
               {parameter.options?.map((option) => (
                 <MenuItem key={option} value={option}>
@@ -183,12 +230,16 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
               <Switch
                 checked={inputValue === "true"}
                 onChange={(e) => {
+                  if (isReadOnly) return
                   const newValue = e.target.checked ? "true" : "false"
                   setInputValue(newValue)
+                  setUserEditing(true)
                 }}
+                disabled={isReadOnly}
               />
             }
             label="Set Point"
+            sx={{ opacity: isReadOnly ? 0.7 : 1 }}
           />
         )
       default:
@@ -198,16 +249,18 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 
   useEffect(() => {
     // TODO: we should make a ParameterErrorEvent type
-    if (isError || compareValues(parameter, actualValue, "ERROR")) {
+    if (isError || compareValues(parameter, runtimeValue, "ERROR")) {
       if (parameter.type === "mount") {
         setErrorMessage("Invalid mount. File/dir doesn't exist.")
       }
     }
-  }, [parameter, isError, actualValue])
+  }, [parameter, isError, runtimeValue])
 
   const buttonVisible =
-    !error && !compareValues(parameter, actualValue, inputValue)
-  const buttonDisabled = isPending
+    !error &&
+    !isReadOnly &&
+    !compareValues(parameter, comparisonTarget, inputValue) &&
+    !isPending
 
   return (
     <Container>
@@ -228,9 +281,8 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
             color="primary"
             size="small"
             onClick={handleUpdateClick}
-            disabled={buttonDisabled}
           >
-            {hasReceivedMessage ? "Update" : "Set"}
+            {isCurrentPipelineRunning ? "Update" : "Set Default"}
           </Button>
         )}
       </Box>
