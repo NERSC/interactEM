@@ -231,7 +231,7 @@ class KeyValueLoop(Generic[V]):
 
         self._value_getters[key_str] = getter
 
-    async def delete_keys(self, keys: list[str | uuid.UUID] = None) -> None:
+    async def delete_keys(self, keys: list[str | uuid.UUID] | None = None) -> None:
         if not self._bucket:
             logger.error("Cannot delete keys: bucket not initialized")
             return
