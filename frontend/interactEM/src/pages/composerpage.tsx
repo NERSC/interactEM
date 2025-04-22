@@ -1,4 +1,7 @@
-import { Box } from "@mui/material"
+import BuildIcon from "@mui/icons-material/Build"
+import VisibilityIcon from "@mui/icons-material/Visibility"
+import { Box, IconButton } from "@mui/material"
+import { useState } from "react"
 import AgentsAccordion from "../components/agentsaccordion"
 import ComposerPipelineFlow from "../components/composerpipelineflow"
 import { OperatorMenu } from "../components/operatormenu"
@@ -13,6 +16,12 @@ export default function ComposerPage() {
   const { agents } = useAgents()
   const { revision } = useActivePipeline()
   const { currentPipelineId } = usePipelineStore()
+
+  const [isEditMode, setIsEditMode] = useState(false)
+
+  const toggleEditMode = () => {
+    setIsEditMode(!isEditMode)
+  }
 
   return (
     <div className="composer-page">
@@ -34,9 +43,29 @@ export default function ComposerPage() {
             flexShrink: 0,
             width: "100%",
             alignSelf: "flex-start",
+            display: "flex", // Make HUD and Toggle flex container
+            alignItems: "center", // Align items vertically
+            gap: 2, // Add gap between HUD and Toggle
           }}
         >
           <PipelineHud />
+          {/* TODO: I think we should separate this into a button bar along with delete and launch buttons. */}
+          <IconButton
+            onClick={toggleEditMode}
+            color="primary"
+            sx={{
+              bgcolor: "background.paper",
+              borderRadius: 1,
+              boxShadow: 1,
+              alignItems: "center",
+              justifyContent: "center",
+              p: 1,
+            }}
+            size="medium"
+            aria-label="toggle edit mode"
+          >
+            {isEditMode ? <VisibilityIcon /> : <BuildIcon />}
+          </IconButton>
         </Box>
 
         {/* Agents Accordion */}
@@ -50,13 +79,16 @@ export default function ComposerPage() {
         <ComposerPipelineFlow
           key={currentPipelineId}
           pipelineData={revision ?? null}
+          isEditMode={isEditMode}
         />
       </div>
 
       {/* Operator Menu */}
-      <div className="composer-operators">
-        <OperatorMenu operators={operators ?? []} />
-      </div>
+      {isEditMode && (
+        <div className="composer-operators">
+          <OperatorMenu operators={operators ?? []} />
+        </div>
+      )}
     </div>
   )
 }
