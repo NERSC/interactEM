@@ -10,6 +10,7 @@ import {
   type OnConnect,
   type OnEdgesChange,
   type OnNodesChange,
+  type OnNodesDelete,
   Position,
   ReactFlow,
   addEdge,
@@ -250,12 +251,10 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       setNodes(nextNodes)
 
       // Trigger revision save if topology might have changed
+      // But exclude "remove" type changes as those are handled by onNodesDelete
       if (isEditMode) {
         const affectsTopology = allowedChanges.some(
-          (change) =>
-            change.type === "add" ||
-            change.type === "remove" ||
-            change.type === "replace",
+          (change) => change.type === "add" || change.type === "replace",
         )
         if (affectsTopology) {
           saveRevision(nextNodes, edges)
@@ -280,8 +279,8 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         const affectsTopology = allowedChanges.some(
           (change) =>
             change.type === "add" ||
-            change.type === "remove" ||
-            change.type === "replace",
+            change.type === "replace" ||
+            change.type !== "remove",
         )
         if (affectsTopology) {
           saveRevision(nodes, nextEdges)
@@ -289,6 +288,28 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       }
     },
     [edges, nodes, saveRevision, isEditMode],
+  )
+
+  const handleNodesDelete: OnNodesDelete = useCallback(
+    (deletedNodes) => {
+      if (!isEditMode) return
+
+      // When nodes are deleted, we handle this as a single operation
+      // that includes removing connected edges as well
+      // This prevents duplicate saveRevision calls
+      saveRevision(
+        nodes.filter(
+          (node) => !deletedNodes.some((deleted) => deleted.id === node.id),
+        ),
+        edges.filter(
+          (edge) =>
+            !deletedNodes.some(
+              (node) => node.id === edge.source || node.id === edge.target,
+            ),
+        ),
+      )
+    },
+    [nodes, edges, saveRevision, isEditMode],
   )
 
   const handleDownloadClick = () => {
@@ -324,6 +345,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
           onConnect={handleConnect}
           onDrop={handleDrop}
           onDragOver={handleDragOver}
+          onNodesDelete={handleNodesDelete}
           deleteKeyCode={deleteKeyCode}
           multiSelectionKeyCode={multiSelectionKeyCode}
           selectionKeyCode={selectionKeyCode}
