@@ -4,7 +4,6 @@ import InternalAuthProvider from "../auth/internalprovider"
 import config from "../config"
 import { DnDProvider } from "../dnd/dndcontext"
 import { NatsProvider } from "../nats/NatsContext"
-import PageSwitcher from "./pageswitcher"
 
 import "../index.css"
 import "@xyflow/react/dist/style.css"
@@ -13,6 +12,7 @@ import { Flip, ToastContainer } from "react-toastify"
 import { interactemQueryClient } from "../auth/api"
 import NotificationsToast from "../components/notificationstoast"
 import { PipelineProvider } from "../hooks/usePipelineContext"
+import ComposerPage from "./composerpage"
 
 interface InteractEMProps {
   authMode?: "external" | "internal"
@@ -36,7 +36,7 @@ export default function InteractEM({
           <ReactFlowProvider>
             <DnDProvider>
               <PipelineProvider>
-                <PageSwitcher />
+                <ComposerPage />
               </PipelineProvider>
             </DnDProvider>
           </ReactFlowProvider>
