@@ -12,6 +12,7 @@ import { QueryClientProvider } from "@tanstack/react-query"
 import { Flip, ToastContainer } from "react-toastify"
 import { interactemQueryClient } from "../auth/api"
 import NotificationsToast from "../components/notificationstoast"
+import { PipelineProvider } from "../hooks/usePipelineContext"
 
 interface InteractEMProps {
   authMode?: "external" | "internal"
@@ -34,7 +35,9 @@ export default function InteractEM({
           <NotificationsToast />
           <ReactFlowProvider>
             <DnDProvider>
-              <PageSwitcher />
+              <PipelineProvider>
+                <PageSwitcher />
+              </PipelineProvider>
             </DnDProvider>
           </ReactFlowProvider>
           <ToastContainer

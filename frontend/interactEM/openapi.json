@@ -932,11 +932,11 @@
         }
       }
     },
-    "/api/v1/pipelines/{id}/run": {
+    "/api/v1/pipelines/{id}/revisions/{revision_id}/run": {
       "post": {
         "tags": ["pipelines"],
         "summary": "Run Pipeline",
-        "description": "Run a pipeline.",
+        "description": "Run a specific revision of a pipeline.",
         "operationId": "pipelines-run_pipeline",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
@@ -945,6 +945,12 @@
             "in": "path",
             "required": true,
             "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          },
+          {
+            "name": "revision_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Revision Id" }
           }
         ],
         "responses": {
@@ -952,7 +958,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/PipelinePublic" }
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRevisionPublic"
+                }
               }
             }
           },

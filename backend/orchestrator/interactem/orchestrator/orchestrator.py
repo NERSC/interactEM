@@ -15,7 +15,7 @@ from interactem.core.constants import (
     BUCKET_PIPELINES_TTL,
     STREAM_AGENTS,
 )
-from interactem.core.events.pipelines import PipelineRunEvent
+from interactem.core.events.pipelines import PipelineRunEvent, PipelineRunVal
 from interactem.core.logger import get_logger
 from interactem.core.models.agent import AgentVal
 from interactem.core.models.base import IdType
@@ -43,7 +43,7 @@ from .config import cfg
 
 logger = get_logger()
 
-pipelines = {}
+pipelines: dict[IdType, PipelineRunEvent] = {}
 
 task_refs: set[asyncio.Task] = set()
 
@@ -78,7 +78,14 @@ async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
     await pipeline_bucket.purge(str(pipeline_id))
 
 
-async def update_pipeline_kv(js: JetStreamContext, pipeline: PipelineJSON):
+async def update_pipeline_kv(
+    js: JetStreamContext, pipeline: PipelineRunVal | PipelineRunEvent
+):
+    if isinstance(pipeline, PipelineRunEvent):
+        pipeline = PipelineRunVal(
+            id=pipeline.id,
+            revision_id=pipeline.revision_id,
+        )
     pipeline_bucket = await get_pipelines_bucket(js)
     await pipeline_bucket.put(str(pipeline.id), pipeline.model_dump_json().encode())
 
@@ -87,6 +94,7 @@ async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
     while True:
         for pipeline in pipelines.values():
             await update_pipeline_kv(js, pipeline)
+        logger.info(f"Updated {len(pipelines)} pipelines in KV store.")
         await asyncio.sleep(interval)
 
 
@@ -106,9 +114,7 @@ async def clean_up_old_pipelines(js: JetStreamContext, valid_pipeline: PipelineJ
         await asyncio.gather(*delete_tasks)
         logger.info(f"Deleted {len(delete_tasks)} old pipeline entries from KV store.")
 
-    await update_pipeline_kv(js, valid_pipeline)
-    pipelines[valid_pipeline.id] = valid_pipeline  # Update in-memory cache
-    logger.info(f"Updated KV store with pipeline {valid_pipeline.id}.")
+    pipelines.clear()
 
 
 class AssignmentState(BaseModel):
@@ -444,6 +450,10 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info(f"Published {len(assignments)} assignments for pipeline {pipeline.id}.")
 
     await clean_up_old_pipelines(js, valid_pipeline)
+
+    await update_pipeline_kv(js, event)
+    pipelines[valid_pipeline.id] = event
+    logger.info(f"Updated KV store with pipeline {valid_pipeline.id}.")
 
     logger.info(f"Pipeline run event for {valid_pipeline.id} processed.")
 

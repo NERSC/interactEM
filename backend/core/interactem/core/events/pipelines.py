@@ -8,3 +8,7 @@ class PipelineRunEvent(BaseModel):
     id: uuid.UUID
     revision_id: int
     data: dict[str, Any]
+
+class PipelineRunVal(BaseModel):
+    id: uuid.UUID
+    revision_id: int
