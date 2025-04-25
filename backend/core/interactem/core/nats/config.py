@@ -1,4 +1,4 @@
-from nats.js.api import RetentionPolicy, StorageType, StreamConfig
+from nats.js.api import RetentionPolicy, StreamConfig
 
 from interactem.core.constants import (
     STREAM_AGENTS,
@@ -68,5 +68,4 @@ TABLE_STREAM_CONFIG = StreamConfig(
     subjects=[f"{STREAM_TABLES}.>"],
     retention=RetentionPolicy.LIMITS,
     max_msgs_per_subject=1,
-    storage=StorageType.MEMORY,
 )

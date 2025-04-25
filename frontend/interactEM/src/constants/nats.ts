@@ -9,3 +9,4 @@ export const NOTIFICATIONS_ERRORS_SUBJECT = `${NOTIFICATIONS_STREAM}.errors`
 export const NOTIFICATIONS_INFO_SUBJECT = `${NOTIFICATIONS_STREAM}.info`
 export const AGENTS_BUCKET = "agents"
 export const PIPELINES_BUCKET = "pipelines"
+export const TABLES_STREAM = "tables"
