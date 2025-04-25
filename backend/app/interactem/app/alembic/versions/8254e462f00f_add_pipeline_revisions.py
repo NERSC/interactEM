@@ -30,8 +30,8 @@ def upgrade():
     )
     op.create_index(op.f('ix_pipelinerevision_pipeline_id'), 'pipelinerevision', ['pipeline_id'], unique=False)
     op.create_index(op.f('ix_pipelinerevision_revision_id'), 'pipelinerevision', ['revision_id'], unique=False)
-    op.add_column('pipeline', sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False))
-    op.add_column('pipeline', sa.Column('created_at', sa.DateTime(timezone=True), nullable=False))
+    op.add_column('pipeline', sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False))
+    op.add_column('pipeline', sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False))
     op.create_index(op.f('ix_pipeline_created_at'), 'pipeline', ['created_at'], unique=False)
     op.create_index(op.f('ix_pipeline_updated_at'), 'pipeline', ['updated_at'], unique=False)
     # ### end Alembic commands ###
