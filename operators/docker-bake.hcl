@@ -6,10 +6,10 @@ variable "TAG" {
   default = "latest"
 }
 
-group "base-targets" {
+group "base" {
   targets = [
     "base",
-    "operator-base"
+    "operator"
   ]
 }
 
@@ -40,21 +40,19 @@ target "base" {
   context = "backend/"
   dockerfile = "../docker/Dockerfile.base"
   platforms = ["linux/amd64", "linux/arm64"]
-  tags = ["${REGISTRY}/interactem-base:${TAG}"]
+  tags = ["${REGISTRY}/interactem:${TAG}"]
 }
 
-target "operator-base" {
+target "operator" {
   context = "backend/"
   dockerfile = "../docker/Dockerfile.operator"
   platforms = ["linux/amd64", "linux/arm64"]
   tags = ["${REGISTRY}/operator:${TAG}"]
-  depends = ["base"]
 }
 
 target "common" {
   platforms = ["linux/amd64"]
   args = {}
-  depends = ["operator-base"]
 }
 
 target "beam-compensation" {

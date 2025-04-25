@@ -6,7 +6,8 @@ TAG=$(git rev-parse --short=6 HEAD)
 cd $REPO_ROOT_DIR
 
 # Build all images using Docker Bake
-docker buildx bake base-targets operators --file $REPO_ROOT_DIR/operators/docker-bake.hcl --provenance=false
+docker buildx bake base --file $REPO_ROOT_DIR/operators/docker-bake.hcl
+docker buildx bake operators --file $REPO_ROOT_DIR/operators/docker-bake.hcl --provenance=false
 
 if [ $? -ne 0 ]; then
     echo "Failed to build images"

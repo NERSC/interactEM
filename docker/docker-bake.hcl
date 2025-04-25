@@ -31,7 +31,6 @@ target "operator" {
     "${REGISTRY}/operator:${TAG}",
     "${REGISTRY}/operator:latest",
   ]
-  depends_on = ["base"]
 }
 
 target "callout" {
@@ -42,7 +41,6 @@ target "callout" {
     "${REGISTRY}/callout:${TAG}",
     "${REGISTRY}/callout:latest",
   ]
-  depends_on = ["base"]
 }
 
 target "fastapi" {
@@ -53,7 +51,6 @@ target "fastapi" {
     "${REGISTRY}/fastapi:${TAG}",
     "${REGISTRY}/fastapi:latest",
   ]
-  depends_on = ["base"]
 }
 
 target "launcher" {
@@ -64,7 +61,6 @@ target "launcher" {
     "${REGISTRY}/launcher:${TAG}",
     "${REGISTRY}/launcher:latest",
   ]
-  depends_on = ["base"]
 }
 
 target "orchestrator" {
@@ -75,7 +71,6 @@ target "orchestrator" {
     "${REGISTRY}/orchestrator:${TAG}",
     "${REGISTRY}/orchestrator:latest",
   ]
-  depends_on = ["base"]
 }
 
 target "frontend" {
@@ -88,12 +83,11 @@ target "frontend" {
   ]
 }
 
-// Default target group
-group "default" {
-  targets = ["base", "operator", "callout", "fastapi", "launcher", "orchestrator", "frontend"]
+
+group "base" {
+  targets = ["base"]
 }
 
-// Production target group
 group "prod" {
-  targets = ["base", "operator", "callout", "fastapi", "launcher", "orchestrator", "frontend"]
+  targets = ["operator", "callout", "fastapi", "launcher", "orchestrator", "frontend"]
 }
