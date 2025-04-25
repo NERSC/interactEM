@@ -18,6 +18,7 @@ import {
   applyNodeChanges,
   useReactFlow,
 } from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 import type React from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "react-toastify"
@@ -38,7 +39,6 @@ import { NodeType, type OperatorNodeTypes } from "../types/nodes"
 import ImageNode from "./imagenode"
 import type { OperatorMenuItemDragData } from "./operatormenu"
 import OperatorNode from "./operatornode"
-import "@xyflow/react/dist/style.css"
 import TableNode from "./tablenode"
 
 export const edgeOptions = {
