@@ -1,0 +1,24 @@
+{
+  "id": "ffc731fc-2a95-46d8-b513-a5efd47701d4",
+  "image": "ghcr.io/nersc/interactem/distiller-state-client:latest",
+  "label": "Distiller Pipeline State",
+  "description": "Connect to the distiller pipeline state server and display the state of the pipeline.",
+  "outputs": [
+    {
+      "name": "out",
+      "label": "The output",
+      "type": "table",
+      "description": "This table to display"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "pub_address",
+      "label": "Publisher Address",
+      "type": "str",
+      "default": "tcp://localhost:7082",
+      "description": "This is the address to get the state from",
+      "required": true
+    }
+  ]
+}
