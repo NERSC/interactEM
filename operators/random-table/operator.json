@@ -1,0 +1,24 @@
+{
+  "id": "bb45f14c-bce3-445d-8930-e7c6633a3aca",
+  "image": "ghcr.io/nersc/interactem/random-table:latest",
+  "label": "Random Table",
+  "description": "Generates a random table",
+  "outputs": [
+    {
+      "name": "out",
+      "label": "The table",
+      "type": "table",
+      "description": "The table"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "update_interval",
+      "label": "Update Interval",
+      "type": "int",
+      "default": "3",
+      "description": "The interval at which to update the table",
+      "required": true
+    }
+  ]
+}

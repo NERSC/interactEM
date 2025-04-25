@@ -1,0 +1,14 @@
+{
+  "id": "4acb255b-b4bc-4d56-b4ae-8014a4bd1b67",
+  "image": "ghcr.io/nersc/interactem/table-display:latest",
+  "label": "Table",
+  "description": "Display a table",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "table",
+      "description": "This table to display"
+    }
+  ]
+}
