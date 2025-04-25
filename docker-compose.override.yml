@@ -7,8 +7,9 @@ services:
     ports:
       - "8888:8888"
     volumes:
-      - ./backend/app/:/app
-      - ./backend/core/:/core
+      - ./backend/app/:/interactem/app
+      - ./backend/core/:/interactem/core
+      - ./backend/sfapi_models/:/interactem/sfapi_models
     command: 
       - fastapi
       - run
@@ -20,6 +21,12 @@ services:
       SMTP_TLS: "false"
       EMAILS_FROM_EMAIL: "noreply@example.com"
 
+  orchestrator:
+    restart: "no"
+    volumes:
+      - ./backend/app/:/interactem/app
+      - ./backend/core/:/interactem/core
+      - ./backend/sfapi_models/:/interactem/sfapi_models
 
   mailcatcher:
     image: schickling/mailcatcher
