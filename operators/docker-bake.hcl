@@ -28,7 +28,11 @@ group "operators" {
     "pva-converter",
     "pvapy-ad-sim-server",
     "random-image",
-    "sparse-frame-image-converter"
+    "sparse-frame-image-converter",
+    "random-table",
+    "table-display",
+    "distiller-state-client",
+    "distiller-grabber",
   ]
 }
 
@@ -149,4 +153,32 @@ target "sparse-frame-image-converter" {
   context = "operators/sparse-frame-image-converter"
   dockerfile = "Containerfile" 
   tags = ["${REGISTRY}/sparse-frame-image-converter:${TAG}"]
+}
+
+target "random-table" {
+  inherits = ["common"]
+  context = "operators/random-table"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/random-table:${TAG}"]
+}
+
+target "table-display" {
+  inherits = ["common"]
+  context = "operators/table-display"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/table-display:${TAG}"]
+}
+
+target "distiller-state-client" {
+  inherits = ["common"]
+  context = "operators/"
+  dockerfile = "distiller-state-client/Containerfile"
+  tags = ["${REGISTRY}/distiller-state-client:${TAG}"]
+}
+
+target "distiller-grabber" {
+  inherits = ["common"]
+  context = "operators/"
+  dockerfile = "distiller-grabber/Containerfile"
+  tags = ["${REGISTRY}/distiller-grabber:${TAG}"]
 }
