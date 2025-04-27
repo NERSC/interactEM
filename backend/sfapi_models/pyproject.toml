@@ -15,7 +15,8 @@ version = "0.1.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"
-sfapi-client = "^0.3.2"
+sfapi-client = "^0.4"
+h11 = "^0.16.0"
 
 [build-system]
 requires = ["poetry-core"]
