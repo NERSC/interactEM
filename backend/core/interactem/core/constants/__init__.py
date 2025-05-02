@@ -41,6 +41,8 @@ STREAM_PARAMETERS_UPDATE = f"{STREAM_PARAMETERS}.update"
 
 STREAM_IMAGES = "images"
 
+STREAM_TABLES = "tables"
+
 MOUNT_DIR = "/mnt"
 
 PACKAGE_DIR_IN_CONTAINER = "/interactem"

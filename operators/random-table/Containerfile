@@ -1,0 +1,5 @@
+FROM ghcr.io/nersc/interactem/operator
+
+RUN poetry add pandas
+
+COPY ./run.py /app/run.py

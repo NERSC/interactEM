@@ -1,0 +1,11 @@
+FROM ghcr.io/nersc/interactem/operator
+
+WORKDIR /app
+COPY ./distiller-pipeline/pyproject.toml ./distiller-pipeline/poetry.lock ./distiller-pipeline/README.md /app/
+
+RUN poetry install --no-root
+
+COPY ./distiller-pipeline/distiller_pipeline/ /app/distiller_pipeline/
+RUN poetry install
+
+COPY ./distiller-state-client/run.py /app/run.py

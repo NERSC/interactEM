@@ -90,12 +90,40 @@ export type PipelineCreate = {
 }
 
 export type PipelinePublic = {
+  name?: string | null
   data: {
     [key: string]: unknown
   }
   running?: boolean
   id: string
   owner_id: string
+  updated_at: string
+  created_at: string
+  current_revision_id: number
+}
+
+export type PipelineRevisionCreate = {
+  data: {
+    [key: string]: unknown
+  }
+}
+
+export type PipelineRevisionPublic = {
+  pipeline_id: string
+  revision_id: number
+  data: {
+    [key: string]: unknown
+  }
+  tag: string | null
+  created_at: string
+}
+
+export type PipelineRevisionUpdate = {
+  tag?: string | null
+}
+
+export type PipelineUpdate = {
+  name: string | null
 }
 
 export type PipelinesPublic = {
@@ -714,40 +742,164 @@ export type PipelinesReadPipelineResponses = {
 export type PipelinesReadPipelineResponse =
   PipelinesReadPipelineResponses[keyof PipelinesReadPipelineResponses]
 
-export type PipelinesCreateAndRunPipelineData = {
-  body: PipelineCreate
-  path?: never
+export type PipelinesUpdatePipelineData = {
+  body: PipelineUpdate
+  path: {
+    id: string
+  }
   query?: never
-  url: "/api/v1/pipelines/run"
+  url: "/api/v1/pipelines/{id}"
 }
 
-export type PipelinesCreateAndRunPipelineErrors = {
+export type PipelinesUpdatePipelineErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError
 }
 
-export type PipelinesCreateAndRunPipelineError =
-  PipelinesCreateAndRunPipelineErrors[keyof PipelinesCreateAndRunPipelineErrors]
+export type PipelinesUpdatePipelineError =
+  PipelinesUpdatePipelineErrors[keyof PipelinesUpdatePipelineErrors]
 
-export type PipelinesCreateAndRunPipelineResponses = {
+export type PipelinesUpdatePipelineResponses = {
   /**
    * Successful Response
    */
   200: PipelinePublic
 }
 
-export type PipelinesCreateAndRunPipelineResponse =
-  PipelinesCreateAndRunPipelineResponses[keyof PipelinesCreateAndRunPipelineResponses]
+export type PipelinesUpdatePipelineResponse =
+  PipelinesUpdatePipelineResponses[keyof PipelinesUpdatePipelineResponses]
+
+export type PipelinesListPipelineRevisionsData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: {
+    skip?: number
+    limit?: number
+  }
+  url: "/api/v1/pipelines/{id}/revisions"
+}
+
+export type PipelinesListPipelineRevisionsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PipelinesListPipelineRevisionsError =
+  PipelinesListPipelineRevisionsErrors[keyof PipelinesListPipelineRevisionsErrors]
+
+export type PipelinesListPipelineRevisionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: Array<PipelineRevisionPublic>
+}
+
+export type PipelinesListPipelineRevisionsResponse =
+  PipelinesListPipelineRevisionsResponses[keyof PipelinesListPipelineRevisionsResponses]
+
+export type PipelinesAddPipelineRevisionData = {
+  body: PipelineRevisionCreate
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/api/v1/pipelines/{id}/revisions"
+}
+
+export type PipelinesAddPipelineRevisionErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PipelinesAddPipelineRevisionError =
+  PipelinesAddPipelineRevisionErrors[keyof PipelinesAddPipelineRevisionErrors]
+
+export type PipelinesAddPipelineRevisionResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelineRevisionPublic
+}
+
+export type PipelinesAddPipelineRevisionResponse =
+  PipelinesAddPipelineRevisionResponses[keyof PipelinesAddPipelineRevisionResponses]
+
+export type PipelinesReadPipelineRevisionData = {
+  body?: never
+  path: {
+    id: string
+    revision_id: number
+  }
+  query?: never
+  url: "/api/v1/pipelines/{id}/revisions/{revision_id}"
+}
+
+export type PipelinesReadPipelineRevisionErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PipelinesReadPipelineRevisionError =
+  PipelinesReadPipelineRevisionErrors[keyof PipelinesReadPipelineRevisionErrors]
+
+export type PipelinesReadPipelineRevisionResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelineRevisionPublic
+}
+
+export type PipelinesReadPipelineRevisionResponse =
+  PipelinesReadPipelineRevisionResponses[keyof PipelinesReadPipelineRevisionResponses]
+
+export type PipelinesUpdatePipelineRevisionData = {
+  body: PipelineRevisionUpdate
+  path: {
+    id: string
+    revision_id: number
+  }
+  query?: never
+  url: "/api/v1/pipelines/{id}/revisions/{revision_id}"
+}
+
+export type PipelinesUpdatePipelineRevisionErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PipelinesUpdatePipelineRevisionError =
+  PipelinesUpdatePipelineRevisionErrors[keyof PipelinesUpdatePipelineRevisionErrors]
+
+export type PipelinesUpdatePipelineRevisionResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelineRevisionPublic
+}
+
+export type PipelinesUpdatePipelineRevisionResponse =
+  PipelinesUpdatePipelineRevisionResponses[keyof PipelinesUpdatePipelineRevisionResponses]
 
 export type PipelinesRunPipelineData = {
   body?: never
   path: {
     id: string
+    revision_id: number
   }
   query?: never
-  url: "/api/v1/pipelines/{id}/run"
+  url: "/api/v1/pipelines/{id}/revisions/{revision_id}/run"
 }
 
 export type PipelinesRunPipelineErrors = {
@@ -764,7 +916,7 @@ export type PipelinesRunPipelineResponses = {
   /**
    * Successful Response
    */
-  200: PipelinePublic
+  200: PipelineRevisionPublic
 }
 
 export type PipelinesRunPipelineResponse =

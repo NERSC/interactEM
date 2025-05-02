@@ -21,6 +21,7 @@ class ErrorMessage(BaseModel):
 
 
 class AgentVal(BaseModel):
+    name: str | None = None
     uri: URI
     status: AgentStatus
     status_message: str | None = None

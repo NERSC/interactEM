@@ -28,24 +28,36 @@ import type {
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
   OperatorsReadOperatorsResponse,
-  PipelinesCreateAndRunPipelineData,
-  PipelinesCreateAndRunPipelineError,
-  PipelinesCreateAndRunPipelineResponse,
+  PipelinesAddPipelineRevisionData,
+  PipelinesAddPipelineRevisionError,
+  PipelinesAddPipelineRevisionResponse,
   PipelinesCreatePipelineData,
   PipelinesCreatePipelineError,
   PipelinesCreatePipelineResponse,
   PipelinesDeletePipelineData,
   PipelinesDeletePipelineError,
   PipelinesDeletePipelineResponse,
+  PipelinesListPipelineRevisionsData,
+  PipelinesListPipelineRevisionsError,
+  PipelinesListPipelineRevisionsResponse,
   PipelinesReadPipelineData,
   PipelinesReadPipelineError,
   PipelinesReadPipelineResponse,
+  PipelinesReadPipelineRevisionData,
+  PipelinesReadPipelineRevisionError,
+  PipelinesReadPipelineRevisionResponse,
   PipelinesReadPipelinesData,
   PipelinesReadPipelinesError,
   PipelinesReadPipelinesResponse,
   PipelinesRunPipelineData,
   PipelinesRunPipelineError,
   PipelinesRunPipelineResponse,
+  PipelinesUpdatePipelineData,
+  PipelinesUpdatePipelineError,
+  PipelinesUpdatePipelineResponse,
+  PipelinesUpdatePipelineRevisionData,
+  PipelinesUpdatePipelineRevisionError,
+  PipelinesUpdatePipelineRevisionResponse,
   UsersCreateUserData,
   UsersCreateUserError,
   UsersCreateUserResponse,
@@ -499,7 +511,7 @@ export const utilsTestEmail = <ThrowOnError extends boolean = false>(
 
 /**
  * Read Pipelines
- * Retrieve pipelines.
+ * Retrieve pipelines, ordered by last updated. Includes pipeline name.
  */
 export const pipelinesReadPipelines = <ThrowOnError extends boolean = false>(
   options?: Options<PipelinesReadPipelinesData, ThrowOnError>,
@@ -594,17 +606,15 @@ export const pipelinesReadPipeline = <ThrowOnError extends boolean = false>(
 }
 
 /**
- * Create And Run Pipeline
- * Create new pipeline and run it.
+ * Update Pipeline
+ * Update a pipeline's name.
  */
-export const pipelinesCreateAndRunPipeline = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<PipelinesCreateAndRunPipelineData, ThrowOnError>,
+export const pipelinesUpdatePipeline = <ThrowOnError extends boolean = false>(
+  options: Options<PipelinesUpdatePipelineData, ThrowOnError>,
 ) => {
-  return (options.client ?? _heyApiClient).post<
-    PipelinesCreateAndRunPipelineResponse,
-    PipelinesCreateAndRunPipelineError,
+  return (options.client ?? _heyApiClient).patch<
+    PipelinesUpdatePipelineResponse,
+    PipelinesUpdatePipelineError,
     ThrowOnError
   >({
     security: [
@@ -613,7 +623,115 @@ export const pipelinesCreateAndRunPipeline = <
         type: "http",
       },
     ],
-    url: "/api/v1/pipelines/run",
+    url: "/api/v1/pipelines/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  })
+}
+
+/**
+ * List Pipeline Revisions
+ * List revisions for a pipeline (paginated).
+ */
+export const pipelinesListPipelineRevisions = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesListPipelineRevisionsData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).get<
+    PipelinesListPipelineRevisionsResponse,
+    PipelinesListPipelineRevisionsError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}/revisions",
+    ...options,
+  })
+}
+
+/**
+ * Add Pipeline Revision
+ * Add a new revision to a pipeline.
+ */
+export const pipelinesAddPipelineRevision = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesAddPipelineRevisionData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).post<
+    PipelinesAddPipelineRevisionResponse,
+    PipelinesAddPipelineRevisionError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}/revisions",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  })
+}
+
+/**
+ * Read Pipeline Revision
+ * Get specific revision data for a pipeline.
+ */
+export const pipelinesReadPipelineRevision = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesReadPipelineRevisionData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).get<
+    PipelinesReadPipelineRevisionResponse,
+    PipelinesReadPipelineRevisionError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}/revisions/{revision_id}",
+    ...options,
+  })
+}
+
+/**
+ * Update Pipeline Revision
+ * Update a specific pipeline revision.
+ */
+export const pipelinesUpdatePipelineRevision = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesUpdatePipelineRevisionData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).patch<
+    PipelinesUpdatePipelineRevisionResponse,
+    PipelinesUpdatePipelineRevisionError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}/revisions/{revision_id}",
     ...options,
     headers: {
       "Content-Type": "application/json",
@@ -624,7 +742,7 @@ export const pipelinesCreateAndRunPipeline = <
 
 /**
  * Run Pipeline
- * Run a pipeline.
+ * Run a specific revision of a pipeline.
  */
 export const pipelinesRunPipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesRunPipelineData, ThrowOnError>,
@@ -640,7 +758,7 @@ export const pipelinesRunPipeline = <ThrowOnError extends boolean = false>(
         type: "http",
       },
     ],
-    url: "/api/v1/pipelines/{id}/run",
+    url: "/api/v1/pipelines/{id}/revisions/{revision_id}/run",
     ...options,
   })
 }

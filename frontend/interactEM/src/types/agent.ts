@@ -17,6 +17,7 @@ export enum URILocation {
 }
 
 export const AgentSchema = z.object({
+  name: z.string().nullable().optional(),
   uri: z.object({
     id: z.string(),
     location: z.nativeEnum(URILocation),

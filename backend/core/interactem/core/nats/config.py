@@ -9,6 +9,7 @@ from interactem.core.constants import (
     STREAM_PARAMETERS,
     STREAM_PIPELINES,
     STREAM_SFAPI,
+    STREAM_TABLES,
 )
 
 PARAMETERS_STREAM_CONFIG = StreamConfig(
@@ -60,4 +61,11 @@ OPERATORS_STREAM_CONFIG = StreamConfig(
     name=STREAM_OPERATORS,
     description="A stream for messages for operators.",
     subjects=[f"{STREAM_OPERATORS}.>"],
+)
+
+TABLE_STREAM_CONFIG = StreamConfig(
+    name=STREAM_TABLES,
+    subjects=[f"{STREAM_TABLES}.>"],
+    retention=RetentionPolicy.LIMITS,
+    max_msgs_per_subject=1,
 )

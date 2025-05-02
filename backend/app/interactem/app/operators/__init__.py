@@ -3,22 +3,28 @@ from typing import Any
 import asyncio
 
 import httpx
-
 from jsonpath_ng import parse
 
 from interactem.app.core.config import settings
 from interactem.app.operators.registry import ContainerRegistry
 from interactem.core.models.operators import Operator
+from interactem.core.logger import get_logger
 
 OPERATOR_SPEC_KEY = "interactem.operator.spec"
+logger = get_logger()
 
 
-async def _labels(registry: ContainerRegistry, image: str, tag: str) -> dict[str, Any]:
+async def _labels(
+    registry: ContainerRegistry, image: str, tag: str
+) -> dict[str, Any] | None:
     manifest = await registry.manifest(image, tag)
     path = parse("$.config.digest")
     matches = path.find(manifest)
     if not matches:
-        raise Exception("Digest not found")
+        logger.warning(
+            f"Digest not found in manifest for image '{image}:{tag}'. Skipping."
+        )
+        return None
 
     digest = matches[0].value
     blob = await registry.blob(image, digest)
@@ -26,7 +32,10 @@ async def _labels(registry: ContainerRegistry, image: str, tag: str) -> dict[str
     path = parse("$.config.Labels")
     matches = path.find(blob)
     if not matches:
-        raise Exception("Labels not found")
+        logger.warning(
+            f"Labels not found in blob for image '{image}:{tag}' (digest: {digest}). Skipping."
+        )
+        return None
 
     labels = matches[0].value
 
@@ -35,18 +44,27 @@ async def _labels(registry: ContainerRegistry, image: str, tag: str) -> dict[str
 
 async def _operator(
     registry: ContainerRegistry, image: str, tag: str
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     try:
         labels = await _labels(registry, image, tag)
-    except httpx.HTTPStatusError:
+        if labels is None:
+            return None
+    except httpx.HTTPStatusError as e:
+        logger.warning(f"Failed to fetch labels for {image}:{tag}: {e}")
         return None
     if OPERATOR_SPEC_KEY in labels:
-        return json.loads(labels[OPERATOR_SPEC_KEY])
+        try:
+            return json.loads(labels[OPERATOR_SPEC_KEY])
+        except json.JSONDecodeError:
+            logger.warning(f"Failed to decode operator spec JSON for {image}:{tag}")
+            return None
 
     return None
 
 
-async def _fetch_operator(registry: ContainerRegistry, image: str) -> dict[str, Any]:
+async def _fetch_operator(
+    registry: ContainerRegistry, image: str
+) -> dict[str, Any] | None:
     tags = await registry.tags(image)
     # For now only include images with a latest tag
     if "latest" in tags:

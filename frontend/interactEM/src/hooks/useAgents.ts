@@ -59,7 +59,18 @@ export const useAgents = () => {
                 try {
                   const data = entry.json<Agent>()
                   if (isValidAgent(data)) {
-                    return [...filteredAgents, data]
+                    // If agent already exists, update in place to preserve order
+                    const existingIndex = prevAgents.findIndex(
+                      (a) => a.uri.id === key,
+                    )
+                    if (existingIndex !== -1) {
+                      // Replace the agent at the same index
+                      const updatedAgents = [...prevAgents]
+                      updatedAgents[existingIndex] = data
+                      return updatedAgents
+                    }
+                    // New agent, add to end
+                    return [...prevAgents, data]
                   }
                   console.warn(`Invalid agent data for key ${key}`, data)
                   return filteredAgents

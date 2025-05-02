@@ -47,6 +47,7 @@ const ParametersButton: React.FC<ParametersButtonProps> = ({
       <IconButton
         onClick={handleOpenModal}
         size="small"
+        className="nodrag"
         aria-label="Parameters"
       >
         <SettingsIcon fontSize="small" />

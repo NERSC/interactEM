@@ -1,0 +1,32 @@
+[project]
+name = "distiller_pipeline"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "swelborn", email = "swelborn@lbl.gov"}
+]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "pyzmq (>=26.4.0,<27.0.0)",
+    "msgpack (>=1.1.0,<2.0.0)",
+    "pandas (>=2.2.3,<3.0.0)",
+    "pydantic (>=2.11.0,<3.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.ruff]
+target-version = "py310"
+extend = "../../.ruff.toml"
+exclude = []
+
+
+[tool.ruff.lint]
+exclude = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["distiller_pipeline", "interactem"]
