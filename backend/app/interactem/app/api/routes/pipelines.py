@@ -26,6 +26,15 @@ logger = get_logger()
 router = APIRouter()
 
 
+def check_present_and_authorized(
+    pipeline: Pipeline, current_user: CurrentUser, id: uuid.UUID
+) -> None:
+    if not pipeline:
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
+        raise HTTPException(status_code=404, detail="Pipeline not found")
+
+
 @router.get("/", response_model=PipelinesPublic)
 def read_pipelines(
     session: SessionDep,
@@ -58,10 +67,7 @@ def read_pipeline(session: SessionDep, current_user: CurrentUser, id: uuid.UUID)
     Get pipeline by ID.
     """
     pipeline = session.get(Pipeline, id)
-    if not pipeline:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
-    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    check_present_and_authorized(pipeline, current_user, id)
     return PipelinePublic.model_validate(pipeline)
 
 
@@ -77,10 +83,7 @@ def update_pipeline(
     Update a pipeline's name.
     """
     pipeline = session.get(Pipeline, id)
-    if not pipeline:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
-    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    check_present_and_authorized(pipeline, current_user, id)
 
     if not update.name:
         raise HTTPException(status_code=400, detail="Pipeline name is required")
@@ -106,10 +109,7 @@ def list_pipeline_revisions(
     """
     # Check pipeline existence and permissions first
     pipeline = session.get(Pipeline, id)
-    if not pipeline:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
-    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    check_present_and_authorized(pipeline, current_user, id)
 
     statement = (
         select(PipelineRevision)
@@ -139,10 +139,7 @@ def add_pipeline_revision(
     if not revision_in.data:
         raise HTTPException(status_code=400, detail="Revision data is required")
     pipeline = session.get(Pipeline, id)
-    if not pipeline:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
-    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    check_present_and_authorized(pipeline, current_user, id)
 
     # Get latest revision_id
     statement = (
@@ -199,10 +196,7 @@ def read_pipeline_revision(
 
     # Check ownership via the related pipeline
     pipeline = revision.pipeline
-    if not pipeline:
-        raise HTTPException(status_code=404, detail="Associated pipeline not found")
-    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    check_present_and_authorized(pipeline, current_user, id)
 
     return PipelineRevisionPublic.model_validate(revision)
 
@@ -225,10 +219,7 @@ def update_pipeline_revision(
 
     # Check ownership via the related pipeline
     pipeline = revision.pipeline
-    if not pipeline:
-        raise HTTPException(status_code=404, detail="Associated pipeline not found")
-    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    check_present_and_authorized(pipeline, current_user, id)
 
     revision.tag = update.tag
     session.add(revision)
@@ -263,16 +254,12 @@ def delete_pipeline(
     Delete an pipeline.
     """
     pipeline = session.get(Pipeline, id)
-    if not pipeline:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
-    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    check_present_and_authorized(pipeline, current_user, id)
     session.delete(pipeline)
     session.commit()
     return Message(message="Pipeline deleted successfully")
 
 
-# ...existing code...
 @router.post("/{id}/revisions/{revision_id}/run", response_model=PipelineRevisionPublic)
 async def run_pipeline(
     session: SessionDep,
@@ -290,10 +277,7 @@ async def run_pipeline(
         raise HTTPException(status_code=404, detail="Pipeline revision not found")
 
     pipeline = revision.pipeline
-    if not pipeline:
-        raise HTTPException(status_code=404, detail="Associated pipeline not found")
-    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    check_present_and_authorized(pipeline, current_user, id)
 
     run_event_data = {
         "id": revision.pipeline_id,
