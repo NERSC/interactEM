@@ -1,4 +1,4 @@
-.env*
+**/.env*
 .log*
 bundle-visualization.html
 dist/
