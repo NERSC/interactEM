@@ -145,22 +145,34 @@ async def consume_messages(
 async def create_or_update_stream(
     cfg: StreamConfig, js: JetStreamContext
 ) -> StreamInfo:
-    updated = False
+    stream_info: StreamInfo | None = None
     try:
         stream_info = await js.add_stream(config=cfg)
+        logger.info(f"Created stream {cfg.name}. Description: {cfg.description}")
     except BadRequestError as e:
         if e.err_code == 10058:  # Stream already exists
-            updated = True
-            stream_info = await js.update_stream(config=cfg)
+            try:
+                stream_info = await js.update_stream(config=cfg)
+                logger.info(
+                    f"Updated stream {cfg.name}. Description: {cfg.description}"
+                )
+            except Exception as update_err:
+                logger.error(f"Failed to update stream {cfg.name}: {update_err}")
+                raise update_err
         else:
+            logger.error(f"Failed to add stream {cfg.name}: {e}")
             raise
-    finally:
-        if updated:
-            logger.info(f"Updated stream {cfg.name}. Description: {cfg.description}")
-        else:
-            logger.info(f"Created stream {cfg.name}. Description: {cfg.description}")
-        return stream_info
+    except Exception as add_err:
+        logger.error(
+            f"An unexpected error occurred while adding stream {cfg.name}: {add_err}"
+        )
+        raise add_err
 
+    if stream_info is None:
+        # This case should ideally not be reached if exceptions are handled correctly above.
+        raise RuntimeError(f"Stream info could not be obtained for stream {cfg.name}")
+
+    return stream_info
 
 def publish_error(js: JetStreamContext, msg: str, task_refs: Set[asyncio.Task]) -> None:
     create_task_with_ref(

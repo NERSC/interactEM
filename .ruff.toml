@@ -3,7 +3,6 @@ exclude = [
     "backend/app/interactem/app/alembic/**", 
     "backend/agent/thirdparty/**", 
     "conftest.py", 
-    "operators/**", 
     "tests/**"
 ]
 

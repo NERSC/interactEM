@@ -18,6 +18,7 @@ import {
   applyNodeChanges,
   useReactFlow,
 } from "@xyflow/react"
+import "@xyflow/react/dist/style.css"
 import type React from "react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { toast } from "react-toastify"
@@ -38,7 +39,7 @@ import { NodeType, type OperatorNodeTypes } from "../types/nodes"
 import ImageNode from "./imagenode"
 import type { OperatorMenuItemDragData } from "./operatormenu"
 import OperatorNode from "./operatornode"
-import "@xyflow/react/dist/style.css"
+import TableNode from "./tablenode"
 
 export const edgeOptions = {
   type: "smoothstep",
@@ -119,6 +120,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
 
     // TODO: type pipeline data!
     const { nodes: importedNodes, edges: importedEdges } =
+      // @ts-expect-error Ignore type mismatch between PipelineRevisionPublic and PipelineJSON
       fromPipelineJSON(pipelineData)
 
     let layoutedNodes = importedNodes
@@ -192,7 +194,15 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         y: event.clientY - offsetY,
       }
       const position = screenToFlowPosition(screenPosition)
-      const nodeType = op.label === "Image" ? NodeType.image : NodeType.operator
+
+      const labelToNodeTypeMap: {
+        [key: string]: NodeType.image | NodeType.table
+      } = {
+        Image: NodeType.image,
+        Table: NodeType.table,
+      }
+      const nodeType: OperatorNodeTypes["type"] =
+        labelToNodeTypeMap[op.label] ?? NodeType.operator
 
       const newNode: OperatorNodeTypes = {
         id: generateID(),
@@ -326,7 +336,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   }
 
   const nodeTypes = useMemo(
-    () => ({ operator: OperatorNode, image: ImageNode }),
+    () => ({ operator: OperatorNode, image: ImageNode, table: TableNode }),
     [],
   )
 
@@ -354,6 +364,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
           fitView={pipelineJSONLoaded}
           fitViewOptions={{ duration: 300, padding: 0.1 }}
           nodesConnectable={isEditMode}
+          noWheelClassName="no-wheel"
         >
           <Controls>
             <ControlButton onClick={handleDownloadClick}>
