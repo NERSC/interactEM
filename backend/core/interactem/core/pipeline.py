@@ -19,6 +19,22 @@ logger = get_logger()
 
 
 class Pipeline(nx.DiGraph):
+    def __init__(self, **attr):
+        super().__init__(**attr)
+        self._operator_graph = nx.DiGraph()
+        self._needs_rebuild = True
+
+    @property
+    def id(self) -> IdType:
+        """Returns the ID of the pipeline graph stored in graph attributes."""
+        try:
+            return self.graph["id"]
+        except KeyError:
+            # This case should ideally not happen if constructed via from_pipeline
+            # or if id is always provided.
+            logger.error("Pipeline graph object missing 'id' attribute in self.graph.")
+            raise AttributeError("Pipeline graph object has no 'id' attribute.")
+
     @classmethod
     def from_pipeline(cls, pipeline: PipelineJSON) -> "Pipeline":
         graph = cls(id=pipeline.id)
@@ -33,22 +49,6 @@ class Pipeline(nx.DiGraph):
             graph.add_edge_model(edge)
 
         return graph
-
-    @classmethod
-    def from_node_neighborhood(cls, graph: "Pipeline", id: IdType) -> "Pipeline":
-        subgraph = cls(id=id)
-
-        neighbors = list(graph.predecessors(id)) + list(graph.successors(id))
-        neighbors_and_me = set(neighbors + [id])
-
-        for node in neighbors_and_me:
-            subgraph.add_node(node, **graph.nodes[node])
-
-        for u, v in graph.edges:
-            if u in neighbors_and_me and v in neighbors_and_me:
-                subgraph.add_edge(u, v, **graph.edges[u, v])
-
-        return subgraph
 
     @classmethod
     def from_upstream_subgraph(cls, graph: "Pipeline", id: IdType) -> "Pipeline":
@@ -73,7 +73,33 @@ class Pipeline(nx.DiGraph):
             if u in visited and v in visited:
                 subgraph.add_edge(u, v, **graph.edges[u, v])
 
+        subgraph._build_operator_graph()
+
         return subgraph
+
+    def _build_operator_graph(self) -> None:
+        """
+        Build operator-to-operator dependency graph from the port connections
+        and cache the result.
+        """
+
+        # Add all operators as nodes
+        for op_id in self.operators:
+            self._operator_graph.add_node(op_id)
+
+        # For each port connection, determine the operators it connects
+        for u, v in self.edges:
+            # Get the ports at both ends of the connection
+            if u in self.ports and v in self.ports:
+                # Get the operators that own these ports
+                src_op_id = self.ports[u].operator_id
+                dst_op_id = self.ports[v].operator_id
+
+                # If they're different operators, add the edge
+                if src_op_id != dst_op_id:
+                    self._operator_graph.add_edge(src_op_id, dst_op_id)
+
+        self._needs_rebuild = False
 
     def __eq__(self, other):
         if not isinstance(other, Pipeline):
@@ -197,6 +223,27 @@ class Pipeline(nx.DiGraph):
                 f"Edge {edge.input_id} -> {edge.output_id} already exists in the graph."
             )
         self.add_edge(edge.input_id, edge.output_id, **edge.model_dump())
+
+    def add_node(self, node_for_adding, **attr):
+        super().add_node(node_for_adding, **attr)
+        self._needs_rebuild = True
+
+    def add_edge(self, u_of_edge, v_of_edge, **attr):
+        super().add_edge(u_of_edge, v_of_edge, **attr)
+        self._needs_rebuild = True
+
+    def remove_node(self, n):
+        super().remove_node(n)
+        self._needs_rebuild = True
+
+    def remove_edge(self, u, v):
+        super().remove_edge(u, v)
+        self._needs_rebuild = True
+
+    def get_operator_graph(self) -> nx.DiGraph:
+        if self._needs_rebuild or self._operator_graph is None:
+            self._build_operator_graph()
+        return self._operator_graph
 
     def get_predecessors(self, node_id: IdType) -> list[IdType]:
         return list(self.predecessors(node_id))

@@ -566,6 +566,10 @@ KernelFn = Callable[
     BytesMessage | None,
 ]
 
+AsyncKernelFn = Callable[
+    [BytesMessage | None, Parameters],
+    Coroutine[Any, Any, BytesMessage | None],
+]
 
 def operator(
     func: KernelFn | None = None,
@@ -598,10 +602,10 @@ def operator(
 
 
 def async_operator(
-    func: KernelFn | None = None,
+    func: AsyncKernelFn | None = None,
     start: bool = False,
 ) -> Any:
-    def decorator(func: KernelFn) -> Callable[[], Operator]:
+    def decorator(func: AsyncKernelFn) -> Callable[[], AsyncOperator]:
         @wraps(func)
         def wrapper():
             @wraps(func)

@@ -9,6 +9,7 @@ import { StatusDot } from "./statusdot"
 
 const AgentNode = ({ data, id, selected }: NodeProps<AgentNodeType>) => {
   const shortId = data.uri.id.substring(0, 6)
+  const displayName = data.name?.trim() ? data.name : `Agent ${shortId}`
   const { getNodes, setNodes } = useReactFlow()
 
   const childNodes = getNodes().filter(
@@ -94,7 +95,7 @@ const AgentNode = ({ data, id, selected }: NodeProps<AgentNodeType>) => {
             status={effectiveStatus}
             tooltipContent={<AgentTooltip data={data} />}
           />
-          <Typography variant="subtitle1">Agent {shortId}</Typography>
+          <Typography variant="subtitle1">{displayName}</Typography>
         </div>
         {hasOperators && (
           <Typography variant="caption" className="operator-count">

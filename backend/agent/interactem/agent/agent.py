@@ -107,6 +107,7 @@ class Agent:
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
         self.agent_val: AgentVal = AgentVal(
+            name=cfg.AGENT_NAME,
             tags=cfg.AGENT_TAGS,
             uri=URI(
                 id=self.id,
@@ -115,6 +116,7 @@ class Agent:
                 comm_backend=CommBackend.NATS,
             ),
             status=AgentStatus.INITIALIZING,
+            networks=cfg.AGENT_NETWORKS,
         )
         self.agent_kv: KeyValueLoop[AgentVal] | None = None
         self.server_task: asyncio.Task | None = None
@@ -214,7 +216,7 @@ class Agent:
         await self.shutdown()
 
     def _update_agent_state(self) -> None:
-        self.agent_val.pipeline_assignments = self.my_operator_ids
+        self.agent_val.operator_assignments = self.my_operator_ids
         self.agent_val.uptime = time.time() - self.start_time
         self.agent_val.clear_old_errors()
 
