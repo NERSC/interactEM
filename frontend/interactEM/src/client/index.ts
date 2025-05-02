@@ -16,7 +16,7 @@ export const zAgentCreateEvent = zAgentCreateEventTmp.extend({
   num_nodes: z.coerce.number().int(),
 })
 
-// This is a workaround for the generated data field being an objet.
+// This is a workaround for the generated data field being an object.
 // This removes the actual data when it is parsed. Could be changed
 // if we added something other than a json blob to our pipeline.
 const zPipelineData = z.record(z.unknown())
