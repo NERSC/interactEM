@@ -41,7 +41,7 @@ def planeFit(points):
 
 class FrameHeader(BaseModel):
     scan_number: int
-    frame_number: int
+    frame_number: int | None = None
     nSTEM_positions_per_row_m1: int
     nSTEM_rows_m1: int
     STEM_x_position_in_row: int
