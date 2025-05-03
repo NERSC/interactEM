@@ -20,12 +20,14 @@ import {
   pipelinesUpdatePipelineMutation,
 } from "../client/generated/@tanstack/react-query.gen"
 import { useActivePipeline } from "../hooks/useActivePipeline"
+import { usePipelineContext } from "../hooks/usePipelineContext"
 import { usePipelineStore } from "../stores"
 import { LaunchPipelineButton } from "./launchpipelinebutton"
 import { DeletePipelineButton } from "./pipelinedeletebutton"
 import { PipelineEditDialog } from "./pipelineeditdialog"
 import { PipelineList } from "./pipelinelist"
 import { RevisionList } from "./revisionlist"
+import { StopPipelineButton } from "./stoppipelinebutton"
 
 export const PipelineHud: React.FC = () => {
   const queryClient = useQueryClient()
@@ -38,6 +40,7 @@ export const PipelineHud: React.FC = () => {
   const revisionButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const { pipeline, isLoading } = useActivePipeline()
+  const { isCurrentPipelineRunning } = usePipelineContext()
 
   // Pipeline List Drawer handlers
   const handleTogglePipelineDrawer = useCallback(() => {
@@ -92,7 +95,7 @@ export const PipelineHud: React.FC = () => {
   const revisionListId = isRevisionPopoverOpen ? "revision-popover" : undefined
   const isMutating = updatePipelineMutation.isPending || isDeleting
 
-  // Content for when no pipeline is selected or loading
+  // Pipeline content rendering
   const pipelineDisplayContent = () => {
     if (!currentPipelineId) {
       return (
@@ -159,15 +162,23 @@ export const PipelineHud: React.FC = () => {
             </IconButton>
           </span>
         </Tooltip>
-        <DeletePipelineButton
-          pipelineId={pipeline.id}
-          pipelineName={displayName}
-          disabled={isMutating && !isDeleting}
-          onDeleteStarted={() => setIsDeleting(true)}
-          onDeleteFinished={() => setIsDeleting(false)}
-        />
-        <LaunchPipelineButton disabled={isMutating} />
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+        {!isCurrentPipelineRunning && (
+          <DeletePipelineButton
+            pipelineId={pipeline.id}
+            pipelineName={displayName}
+            disabled={isMutating && !isDeleting}
+            onDeleteStarted={() => setIsDeleting(true)}
+            onDeleteFinished={() => setIsDeleting(false)}
+          />
+        )}
+        {isCurrentPipelineRunning ? (
+          <StopPipelineButton disabled={isMutating} />
+        ) : (
+          <LaunchPipelineButton disabled={isMutating} />
+        )}
+        {!isCurrentPipelineRunning && (
+          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
+        )}
         <Tooltip title="Revision History">
           <span>
             <IconButton

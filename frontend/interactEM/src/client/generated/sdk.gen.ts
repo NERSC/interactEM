@@ -52,6 +52,9 @@ import type {
   PipelinesRunPipelineData,
   PipelinesRunPipelineError,
   PipelinesRunPipelineResponse,
+  PipelinesStopPipelineData,
+  PipelinesStopPipelineError,
+  PipelinesStopPipelineResponse,
   PipelinesUpdatePipelineData,
   PipelinesUpdatePipelineError,
   PipelinesUpdatePipelineResponse,
@@ -759,6 +762,28 @@ export const pipelinesRunPipeline = <ThrowOnError extends boolean = false>(
       },
     ],
     url: "/api/v1/pipelines/{id}/revisions/{revision_id}/run",
+    ...options,
+  })
+}
+
+/**
+ * Stop Pipeline
+ */
+export const pipelinesStopPipeline = <ThrowOnError extends boolean = false>(
+  options: Options<PipelinesStopPipelineData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).post<
+    PipelinesStopPipelineResponse,
+    PipelinesStopPipelineError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}/revisions/{revision_id}/stop",
     ...options,
   })
 }

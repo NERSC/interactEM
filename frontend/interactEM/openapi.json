@@ -975,6 +975,48 @@
         }
       }
     },
+    "/api/v1/pipelines/{id}/revisions/{revision_id}/stop": {
+      "post": {
+        "tags": ["pipelines"],
+        "summary": "Stop Pipeline",
+        "operationId": "pipelines-stop_pipeline",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          },
+          {
+            "name": "revision_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Revision Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRevisionPublic"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/operators/": {
       "get": {
         "tags": ["operators"],
@@ -1039,7 +1081,10 @@
           "compute_type": { "$ref": "#/components/schemas/ComputeType" },
           "num_nodes": { "type": "integer", "title": "Num Nodes" },
           "extra": {
-            "anyOf": [{ "type": "object" }, { "type": "null" }],
+            "anyOf": [
+              { "additionalProperties": true, "type": "object" },
+              { "type": "null" }
+            ],
             "title": "Extra"
           }
         },
@@ -1051,7 +1096,7 @@
         "properties": {
           "grant_type": {
             "anyOf": [
-              { "type": "string", "pattern": "password" },
+              { "type": "string", "pattern": "^password$" },
               { "type": "null" }
             ],
             "title": "Grant Type"
@@ -1238,7 +1283,13 @@
         "title": "ParameterType"
       },
       "PipelineCreate": {
-        "properties": { "data": { "type": "object", "title": "Data" } },
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
         "type": "object",
         "required": ["data"],
         "title": "PipelineCreate"
@@ -1253,7 +1304,11 @@
             "title": "Name",
             "default": "New Pipeline"
           },
-          "data": { "type": "object", "title": "Data" },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          },
           "running": {
             "type": "boolean",
             "title": "Running",
@@ -1292,7 +1347,13 @@
         "title": "PipelinePublic"
       },
       "PipelineRevisionCreate": {
-        "properties": { "data": { "type": "object", "title": "Data" } },
+        "properties": {
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          }
+        },
         "type": "object",
         "required": ["data"],
         "title": "PipelineRevisionCreate"
@@ -1305,7 +1366,11 @@
             "title": "Pipeline Id"
           },
           "revision_id": { "type": "integer", "title": "Revision Id" },
-          "data": { "type": "object", "title": "Data" },
+          "data": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Data"
+          },
           "tag": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Tag"

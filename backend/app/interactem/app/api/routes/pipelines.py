@@ -6,7 +6,10 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlmodel import col, func, select
 
 from interactem.app.api.deps import CurrentUser, SessionDep
-from interactem.app.events.producer import publish_pipeline_run_event
+from interactem.app.events.producer import (
+    publish_pipeline_run_event,
+    publish_pipeline_stop_event,
+)
 from interactem.app.models import (
     Message,
     Pipeline,
@@ -19,7 +22,7 @@ from interactem.app.models import (
     PipelinesPublic,
     PipelineUpdate,
 )
-from interactem.core.events.pipelines import PipelineRunEvent
+from interactem.core.events.pipelines import PipelineRunEvent, PipelineStopEvent
 from interactem.core.logger import get_logger
 
 logger = get_logger()
@@ -296,5 +299,39 @@ async def run_pipeline(
             f"Failed to publish run event for pipeline {pipeline_id} revision {revision_id}: {e}"
         )
         raise HTTPException(status_code=500, detail=f"Failed to run pipeline: {e}")
+
+    return PipelineRevisionPublic.model_validate(revision)
+
+@router.post(
+    "/{id}/revisions/{revision_id}/stop", response_model=PipelineRevisionPublic
+)
+async def stop_pipeline(
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    revision_id: int,
+) -> PipelineRevisionPublic:
+    pipeline_id: uuid.UUID = id
+
+    revision = session.get(PipelineRevision, (id, revision_id))
+    if not revision:
+        raise HTTPException(status_code=404, detail="Pipeline revision not found")
+
+    pipeline = revision.pipeline
+    check_present_and_authorized(pipeline, current_user, id)
+
+    try:
+        event_to_publish = PipelineStopEvent(
+            id=revision.pipeline_id, revision_id=revision.revision_id
+        )
+        await publish_pipeline_stop_event(event_to_publish)
+        logger.info(
+            f"Sent publish pipeline stop event for pipeline {pipeline_id} using revision {revision_id}"
+        )
+    except Exception as e:
+        logger.error(
+            f"Failed to publish stop event for pipeline {pipeline_id} revision {revision_id}: {e}"
+        )
+        raise HTTPException(status_code=500, detail=f"Failed to stop pipeline: {e}")
 
     return PipelineRevisionPublic.model_validate(revision)

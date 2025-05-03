@@ -922,6 +922,36 @@ export type PipelinesRunPipelineResponses = {
 export type PipelinesRunPipelineResponse =
   PipelinesRunPipelineResponses[keyof PipelinesRunPipelineResponses]
 
+export type PipelinesStopPipelineData = {
+  body?: never
+  path: {
+    id: string
+    revision_id: number
+  }
+  query?: never
+  url: "/api/v1/pipelines/{id}/revisions/{revision_id}/stop"
+}
+
+export type PipelinesStopPipelineErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PipelinesStopPipelineError =
+  PipelinesStopPipelineErrors[keyof PipelinesStopPipelineErrors]
+
+export type PipelinesStopPipelineResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelineRevisionPublic
+}
+
+export type PipelinesStopPipelineResponse =
+  PipelinesStopPipelineResponses[keyof PipelinesStopPipelineResponses]
+
 export type OperatorsReadOperatorsData = {
   body?: never
   path?: never

@@ -11,7 +11,7 @@ export const zAgentCreateEvent = z.object({
 })
 
 export const zBodyLoginLoginAccessToken = z.object({
-  grant_type: z.union([z.string().regex(/password/), z.null()]).optional(),
+  grant_type: z.union([z.string().regex(/^password$/), z.null()]).optional(),
   username: z.string(),
   password: z.string(),
   scope: z.string().optional().default(""),
@@ -295,5 +295,7 @@ export const zPipelinesReadPipelineRevisionResponse = zPipelineRevisionPublic
 export const zPipelinesUpdatePipelineRevisionResponse = zPipelineRevisionPublic
 
 export const zPipelinesRunPipelineResponse = zPipelineRevisionPublic
+
+export const zPipelinesStopPipelineResponse = zPipelineRevisionPublic
 
 export const zOperatorsReadOperatorsResponse = zOperators
