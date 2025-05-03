@@ -21,6 +21,7 @@ class FrameHeader(BaseModel):
     STEM_x_position_in_row: int
     STEM_row_in_scan: int
     modules: list[int]
+    frame_shape: tuple[int, int]
 
 
 open_files: dict[int, h5py.File] = {}
@@ -45,7 +46,7 @@ def save(
         return None
 
     scan_shape = (header.nSTEM_rows_m1, header.nSTEM_positions_per_row_m1)
-    frame_shape = (576, 576)
+    frame_shape = header.frame_shape
     f = open_files.get(header.scan_number, None)
     if not f:
         logger.info(f"Scan {header.scan_number - 1} has {count_for_this_scan} frames")
