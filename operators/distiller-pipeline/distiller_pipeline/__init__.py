@@ -4,6 +4,7 @@ import os
 import sys
 import time
 from collections import defaultdict
+from collections.abc import Callable, Generator
 from enum import Enum
 from typing import Any
 
@@ -65,6 +66,50 @@ def messaging_status_to_string(status_int: int) -> str:
 
 
 # --- Pydantic Models (Mirroring C++ Structs) ---
+def decode_str(value: Any) -> str:
+    if isinstance(value, bytes):
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError:
+            return str(value)  # Fallback for non-UTF8 bytes
+    return str(value)
+
+
+def parse_nested_dict(
+    data: dict, inner_parser: Callable[[Any], Any], depth: int
+) -> dict:
+    """
+    Recursively parse a nested dictionary with string keys expected to be integers.
+
+    Args:
+        data: The dictionary to parse.
+        inner_parser: The function to apply to the innermost values.
+        depth: The current nesting depth (starts at the desired level, e.g., 2 for two levels).
+
+    Returns:
+        The parsed dictionary with integer keys.
+
+    Raises:
+        ValueError: If keys cannot be converted to int or structure is invalid.
+        TypeError: If input is not a dictionary at expected levels.
+    """
+    if depth < 1:
+        raise ValueError("Depth must be at least 1")
+    if not isinstance(data, dict):
+        raise TypeError(f"Expected dict at depth {depth}, got {type(data)}")
+
+    parsed = {}
+    for k, v in data.items():
+        try:
+            int_key = int(k)
+        except (ValueError, TypeError):
+            raise ValueError(f"Invalid key '{k}' at depth {depth}, expected integer")
+
+        if depth == 1:
+            parsed[int_key] = inner_parser(v)
+        else:
+            parsed[int_key] = parse_nested_dict(v, inner_parser, depth - 1)
+    return parsed
 
 
 class ReceiverInfo(BaseModel):
@@ -75,18 +120,14 @@ class ReceiverInfo(BaseModel):
 
     @classmethod
     def from_msgpack(cls, data: list[Any]) -> "ReceiverInfo":
-        if isinstance(data, list) and len(data) >= 4:
-            try:
-                return cls(
-                    status=data[0],
-                    module=data[1],
-                    n_messages=data[2],
-                    scan_number=data[3],
-                )
-            except (ValidationError, ValueError, TypeError):
-                pass
-
-        return cls()
+        if len(data) < 4:
+            raise ValueError(f"Invalid data format for ReceiverInfo: {data}")
+        return cls(
+            status=int(data[0]),
+            module=int(data[1]),
+            n_messages=int(data[2]),
+            scan_number=int(data[3]),
+        )
 
 
 class ReceiversInfo(BaseModel):
@@ -95,32 +136,11 @@ class ReceiversInfo(BaseModel):
 
     @classmethod
     def from_msgpack(cls, data: list[Any]) -> "ReceiversInfo":
-        instance_data: dict[str, Any] = {
-            "n_messages": 0,
-            "receivers": {},
-        }
-        if isinstance(data, list) and len(data) >= 2:
-            try:
-                instance_data["n_messages"] = int(data[0])
-            except (ValueError, TypeError):
-                pass
-
-            if isinstance(data[1], dict):
-                try:
-                    instance_data["receivers"] = {
-                        int(module): {
-                            int(thread_id): ReceiverInfo.from_msgpack(info_data)
-                            for thread_id, info_data in threads_map.items()
-                        }
-                        for module, threads_map in data[1].items()
-                    }
-                except (ValueError, TypeError):
-                    instance_data["receivers"] = {}
-
-        try:
-            return cls(**instance_data)
-        except ValidationError:
-            return cls()
+        if len(data) < 2:
+            raise ValueError(f"Invalid data format for ReceiversInfo: {data}")
+        n_messages = int(data[0])
+        receivers = parse_nested_dict(data[1], ReceiverInfo.from_msgpack, depth=2)
+        return cls(n_messages=n_messages, receivers=receivers)
 
 
 class AggregatorInfo(BaseModel):
@@ -132,18 +152,15 @@ class AggregatorInfo(BaseModel):
 
     @classmethod
     def from_msgpack(cls, data: list[Any]) -> "AggregatorInfo":
-        if isinstance(data, list) and len(data) >= 5:
-            try:
-                return cls(
-                    status=data[0],
-                    module=data[1],
-                    n_messages=data[2],
-                    scan_number=data[3],
-                    thread_id=data[4],
-                )
-            except (ValidationError, ValueError, TypeError):
-                pass
-        return cls()
+        if len(data) < 5:
+            raise ValueError(f"Invalid data format for AggregatorInfo: {data}")
+        return cls(
+            status=int(data[0]),
+            module=int(data[1]),
+            n_messages=int(data[2]),
+            scan_number=int(data[3]),
+            thread_id=int(data[4]),
+        )
 
 
 class AggregatorsInfo(BaseModel):
@@ -152,32 +169,11 @@ class AggregatorsInfo(BaseModel):
 
     @classmethod
     def from_msgpack(cls, data: list[Any]) -> "AggregatorsInfo":
-        instance_data: dict[str, Any] = {
-            "n_messages": 0,
-            "aggregators": {},
-        }
-        if isinstance(data, list) and len(data) >= 2:
-            try:
-                instance_data["n_messages"] = int(data[0])
-            except (ValueError, TypeError):
-                pass
-
-            if isinstance(data[1], dict):
-                try:
-                    instance_data["aggregators"] = {
-                        int(module): {
-                            int(thread_id): AggregatorInfo.from_msgpack(info_data)
-                            for thread_id, info_data in threads_map.items()
-                        }
-                        for module, threads_map in data[1].items()
-                    }
-                except (ValueError, TypeError):
-                    instance_data["aggregators"] = {}
-
-        try:
-            return cls(**instance_data)
-        except ValidationError:
-            return cls()
+        if len(data) < 2:
+            raise ValueError(f"Invalid data format for AggregatorsInfo: {data}")
+        n_messages = int(data[0])
+        aggregators = parse_nested_dict(data[1], AggregatorInfo.from_msgpack, depth=2)
+        return cls(n_messages=n_messages, aggregators=aggregators)
 
 
 class NodeGroupThreadInfo(BaseModel):
@@ -189,18 +185,15 @@ class NodeGroupThreadInfo(BaseModel):
 
     @classmethod
     def from_msgpack(cls, data: list[Any]) -> "NodeGroupThreadInfo":
-        if isinstance(data, list) and len(data) >= 5:
-            try:
-                return cls(
-                    status=data[0],
-                    n_messages=data[1],
-                    scan_number=data[2],
-                    short_id=data[3],
-                    mpi_rank=data[4],
-                )
-            except (ValidationError, ValueError, TypeError):
-                pass
-        return cls()
+        if not isinstance(data, list) or len(data) < 5:
+            raise ValueError(f"Invalid data format for NodeGroupThreadInfo: {data}")
+        return cls(
+            status=int(data[0]),
+            n_messages=int(data[1]),
+            scan_number=int(data[2]),
+            short_id=int(data[3]),
+            mpi_rank=int(data[4]),
+        )
 
 
 class NodeInfo(BaseModel):
@@ -212,48 +205,19 @@ class NodeInfo(BaseModel):
 
     @classmethod
     def from_msgpack(cls, data: list[Any]) -> "NodeInfo":
-        instance_data: dict[str, Any] = {
-            "n_messages": 0,
-            "node_id": "0",
-            "node_group_thread_info": {},
-        }
-        if isinstance(data, list) and len(data) >= 3:
-            try:
-                instance_data["n_messages"] = int(data[0])
-            except (ValueError, TypeError):
-                pass
+        if not isinstance(data, list) or len(data) < 3:
+            raise ValueError(f"Invalid data format for NodeInfo: {data}")
 
-            node_id_raw = data[1]
-            try:
-                instance_data["node_id"] = (
-                    node_id_raw.decode("utf-8")
-                    if isinstance(node_id_raw, bytes)
-                    else str(node_id_raw)
-                )
-            except UnicodeDecodeError:
-                instance_data["node_id"] = str(node_id_raw)
-
-            if isinstance(data[2], dict):
-                try:
-                    instance_data["node_group_thread_info"] = {
-                        int(mpi_rank): {
-                            int(short_id): {
-                                int(thread_id): NodeGroupThreadInfo.from_msgpack(
-                                    info_data,
-                                )
-                                for thread_id, info_data in threads_map.items()
-                            }
-                            for short_id, threads_map in short_ids_map.items()
-                        }
-                        for mpi_rank, short_ids_map in data[2].items()
-                    }
-                except (ValueError, TypeError):
-                    instance_data["node_group_thread_info"] = {}
-
-        try:
-            return cls(**instance_data)
-        except ValidationError:
-            return cls()
+        n_messages = int(data[0])
+        node_id = decode_str(data[1])
+        node_group_thread_info = parse_nested_dict(
+            data[2], NodeGroupThreadInfo.from_msgpack, depth=3
+        )
+        return cls(
+            n_messages=n_messages,
+            node_id=node_id,
+            node_group_thread_info=node_group_thread_info,
+        )
 
 
 class SharedState(BaseModel):
@@ -263,139 +227,126 @@ class SharedState(BaseModel):
 
     @classmethod
     def from_msgpack(cls, data: list[Any]) -> "SharedState":
-        instance_data: dict[str, Any] = {
-            "receiver_map": {},
-            "aggregator_map": {},
-            "node_map": {},
+        if not isinstance(data, list) or len(data) < 3:
+            raise ValueError(f"Invalid data format for SharedState: {data}")
+
+        receiver_map = {
+            decode_str(k): ReceiversInfo.from_msgpack(v) for k, v in data[0].items()
         }
-        if isinstance(data, list) and len(data) >= 3:
-            if isinstance(data[0], dict):
-                try:
-                    instance_data["receiver_map"] = {
-                        (
-                            k.decode("utf-8") if isinstance(k, bytes) else str(k)
-                        ): ReceiversInfo.from_msgpack(v)
-                        for k, v in data[0].items()
-                    }
-                except (UnicodeDecodeError, ValueError, TypeError):
-                    instance_data["receiver_map"] = {}
 
-            if isinstance(data[1], dict):
-                try:
-                    instance_data["aggregator_map"] = {
-                        (
-                            k.decode("utf-8") if isinstance(k, bytes) else str(k)
-                        ): AggregatorsInfo.from_msgpack(v)
-                        for k, v in data[1].items()
-                    }
-                except (UnicodeDecodeError, ValueError, TypeError):
-                    instance_data["aggregator_map"] = {}
+        aggregator_map = {
+            decode_str(k): AggregatorsInfo.from_msgpack(v) for k, v in data[1].items()
+        }
 
-            if isinstance(data[2], dict):
-                try:
-                    instance_data["node_map"] = {
-                        (
-                            k.decode("utf-8") if isinstance(k, bytes) else str(k)
-                        ): NodeInfo.from_msgpack(v)
-                        for k, v in data[2].items()
-                    }
-                except (UnicodeDecodeError, ValueError, TypeError):
-                    instance_data["node_map"] = {}
+        node_map = {decode_str(k): NodeInfo.from_msgpack(v) for k, v in data[2].items()}
 
-        try:
-            return cls(**instance_data)
-        except ValidationError:
-            return cls()
+        return cls(
+            receiver_map=receiver_map,
+            aggregator_map=aggregator_map,
+            node_map=node_map,
+        )
 
     def get_receiver_dataframe_and_totals(
         self,
     ) -> tuple[pd.DataFrame, dict[str, int]]:
         """Prepares a DataFrame and totals for receiver information."""
-        receiver_data = []
-        receiver_totals = {}
-        for rec_id in sorted(self.receiver_map.keys()):
-            recs_info = self.receiver_map[rec_id]
-            receiver_totals[rec_id] = recs_info.n_messages
-            for module in sorted(recs_info.receivers.keys()):
-                threads_dict = recs_info.receivers[module]
-                for thread_id in sorted(threads_dict.keys()):
-                    info = threads_dict[thread_id]
-                    receiver_data.append(
-                        {
-                            # "Rec ID": rec_id, # Optional
-                            "Module": info.module,
-                            "Thread ID": thread_id,
-                            "Status": messaging_status_to_string(info.status),
-                            "No. Messages": info.n_messages,
-                            "Scan No.": info.scan_number,
-                        },
-                    )
-        df_receivers = pd.DataFrame(receiver_data)
-        return df_receivers, receiver_totals
+        receiver_totals = {
+            rec_id: recs_info.n_messages
+            for rec_id, recs_info in self.receiver_map.items()
+        }
+        receiver_data = [
+            {
+                "Module": info.module,
+                "Thread ID": thread_id,
+                "Status": messaging_status_to_string(info.status),
+                "No. Messages": info.n_messages,
+                "Scan No.": info.scan_number,
+            }
+            for recs_info in self.receiver_map.values()
+            for threads_dict in recs_info.receivers.values()
+            for thread_id, info in threads_dict.items()
+        ]
 
-    def get_aggregator_dataframe_and_totals(
+        if not receiver_data:
+            df_receivers = pd.DataFrame(
+                columns=["Module", "Thread ID", "Status", "No. Messages", "Scan No."]
+            )
+        else:
+            df_receivers = pd.DataFrame(receiver_data)
+            df_receivers = df_receivers.sort_values(by=["Module", "Thread ID"])
+
+        sorted_receiver_totals = dict(sorted(receiver_totals.items()))
+        return df_receivers, sorted_receiver_totals
+
+    def get_aggregator_dataframe(
         self,
-    ) -> tuple[pd.DataFrame, dict[str, int]]:
+    ) -> pd.DataFrame:
         """Prepares a DataFrame and totals for aggregator information."""
-        aggregator_data = []
-        aggregator_totals = {}
-        for agg_id in sorted(self.aggregator_map.keys()):
-            aggs_info = self.aggregator_map[agg_id]
-            aggregator_totals[agg_id] = aggs_info.n_messages
-            for module in sorted(aggs_info.aggregators.keys()):
-                threads_dict = aggs_info.aggregators[module]
-                for thread_id in sorted(threads_dict.keys()):
-                    info = threads_dict[thread_id]
-                    aggregator_data.append(
-                        {
-                            # "Agg ID": agg_id, # Optional
-                            "Module": info.module,
-                            # "Thread ID": thread_id, # Optional
-                            "Status": messaging_status_to_string(info.status),
-                            # "No. Messages": info.n_messages,
-                            "Scan No.": info.scan_number,
-                        },
-                    )
-        df_aggregators = pd.DataFrame(aggregator_data)
-        return df_aggregators, aggregator_totals
+        aggregator_data = [
+            {
+                "Module": info.module,
+                "Status": messaging_status_to_string(info.status),
+                "Scan No.": info.scan_number,
+            }
+            for aggs_info in self.aggregator_map.values()
+            for threads_dict in aggs_info.aggregators.values()
+            for info in threads_dict.values()
+        ]
 
-    def get_node_group_dataframe_and_totals(
+        if not aggregator_data:
+            df_aggregators = pd.DataFrame(columns=["Module", "Status", "Scan No."])
+        else:
+            df_aggregators = pd.DataFrame(aggregator_data)
+            df_aggregators = df_aggregators.sort_values(by=["Module"])
+
+        return df_aggregators
+
+    def get_node_group_dataframe(
         self,
-    ) -> tuple[pd.DataFrame, dict[str, int]]:
-        """Prepares a DataFrame and totals for node group information."""
+    ) -> pd.DataFrame:
+        """Prepares a DataFrame for node group information."""
         node_group_data = []
-        node_totals = {}
+
         for node_key in sorted(self.node_map.keys()):
             node_info = self.node_map[node_key]
-            node_totals[node_info.node_id] = node_info.n_messages
 
+            # --- Aggregate thread info per (mpi_rank, short_id) group ---
             aggregated_groups: dict[tuple[int, int], dict[str, Any]] = defaultdict(
                 lambda: {
                     "n_messages": 0,
                     "status": MessagingStatus.IDLE,
                     "scan_num": float("inf"),
-                },
+                }
             )
-            for mpi_rank in sorted(node_info.node_group_thread_info.keys()):
-                short_id_dict = node_info.node_group_thread_info[mpi_rank]
-                for short_id in sorted(short_id_dict.keys()):
-                    thread_id_dict = short_id_dict[short_id]
-                    group_key = (mpi_rank, short_id)
-                    for thread_id in sorted(thread_id_dict.keys()):
-                        ng_thread_info = thread_id_dict[thread_id]
-                        aggregated_groups[group_key]["n_messages"] += (
-                            ng_thread_info.n_messages
-                        )
-                        aggregated_groups[group_key]["status"] = ng_thread_info.status
-                        aggregated_groups[group_key]["scan_num"] = min(
-                            aggregated_groups[group_key]["scan_num"],
-                            ng_thread_info.scan_number,
-                        )
 
-            for (mpi_rank, short_id), data in sorted(aggregated_groups.items()):
-                scan_num_str = (
-                    str(data["scan_num"]) if data["scan_num"] != float("inf") else "0"
+            # Flatten the nested dictionary iteration
+            all_threads_info = [
+                (mpi_rank, short_id, thread_id, thread_info)
+                for mpi_rank, short_id_dict in node_info.node_group_thread_info.items()
+                for short_id, thread_id_dict in short_id_dict.items()
+                for thread_id, thread_info in thread_id_dict.items()
+            ]
+
+            # Sort by mpi_rank, short_id, then thread_id.
+            # Sorting by thread_id ensures the status assignment below matches
+            # the original logic (implicitly taking the status of the last thread_id).
+            all_threads_info.sort()
+
+            # Process the flattened list to aggregate data
+            for mpi_rank, short_id, _thread_id, ng_thread_info in all_threads_info:
+                group_key = (mpi_rank, short_id)
+                aggregated_groups[group_key]["n_messages"] += ng_thread_info.n_messages
+                # Status gets overwritten by later threads in the sorted list (highest thread_id)
+                aggregated_groups[group_key]["status"] = ng_thread_info.status
+                aggregated_groups[group_key]["scan_num"] = min(
+                    aggregated_groups[group_key]["scan_num"],
+                    ng_thread_info.scan_number,
                 )
+            # --- End Aggregation ---
+
+            # --- Create DataFrame rows from aggregated data ---
+            for (mpi_rank, short_id), data in sorted(aggregated_groups.items()):
+                scan_num_str = str(data["scan_num"])
                 node_group_data.append(
                     {
                         "Node ID": node_info.node_id,
@@ -403,16 +354,30 @@ class SharedState(BaseModel):
                         "ShortID": short_id,
                         "Status": messaging_status_to_string(data["status"]),
                         "Scan No.": scan_num_str,
-                    },
+                    }
                 )
+            # --- End DataFrame Row Creation ---
+
+        # Create the final DataFrame
         df_node_groups = pd.DataFrame(node_group_data)
-        return df_node_groups, node_totals
+
+        # Ensure consistent sorting (although data is likely already sorted)
+        if not df_node_groups.empty:
+            df_node_groups = df_node_groups.sort_values(
+                by=["Node ID", "MPI Rank", "ShortID"]
+            ).reset_index(drop=True)
+        else:
+            df_node_groups = pd.DataFrame(
+                columns=["Node ID", "MPI Rank", "ShortID", "Status", "Scan No."]
+            )
+
+        return df_node_groups
 
     def print(self: "SharedState") -> None:
         # --- Prepare DataFrames using methods from SharedState ---
         df_receivers, receiver_totals = self.get_receiver_dataframe_and_totals()
-        df_aggregators, aggregator_totals = self.get_aggregator_dataframe_and_totals()
-        df_node_groups, node_totals = self.get_node_group_dataframe_and_totals()
+        df_aggregators = self.get_aggregator_dataframe()
+        df_node_groups = self.get_node_group_dataframe()
 
         # --- Configure Pandas Display ---
         pd.set_option("display.max_rows", None)
@@ -424,10 +389,10 @@ class SharedState(BaseModel):
         try:
             os.system("clear")
         except OSError:
-            print("\n" * 50)
+            logger.info("\n" * 50)
 
         # --- Print Receivers ---
-        print("--- Receivers ---")
+        logger.info("--- Receivers ---")
         if not df_receivers.empty:
             # Ensure correct columns are present before printing
             cols_to_print = [
@@ -437,36 +402,36 @@ class SharedState(BaseModel):
                 "No. Messages",
                 "Scan No.",
             ]
-            print(df_receivers[cols_to_print].to_string(index=False))
+            logger.info(df_receivers[cols_to_print].to_string(index=False))
             # Print totals after the table
             for rec_id, total in receiver_totals.items():
-                print(f"Total Messages for {rec_id}: {total}")
+                logger.info(f"Total Messages for {rec_id}: {total}")
         else:
-            print("No receiver data.")
-        print("\n")
+            logger.info("No receiver data.")
+        logger.info("\n")
 
         # --- Print Aggregators ---
-        print("--- Aggregators ---")
+        logger.info("--- Aggregators ---")
         if not df_aggregators.empty:
             # Ensure correct columns are present before printing
             cols_to_print = ["Module", "Status", "Scan No."]
-            print(df_aggregators[cols_to_print].to_string(index=False))
+            logger.info(df_aggregators[cols_to_print].to_string(index=False))
         else:
-            print("No aggregator data.")
-        print("\n")
+            logger.info("No aggregator data.")
+        logger.info("\n")
 
         # --- Print Node Groups ---
-        print("--- Node Groups ---")
+        logger.info("--- Node Groups ---")
         if not df_node_groups.empty:
             df_node_groups = df_node_groups.sort_values(
                 by=["Node ID", "MPI Rank", "ShortID"],
             )
             # Ensure correct columns are present before printing
             cols_to_print = ["Node ID", "MPI Rank", "ShortID", "Status", "Scan No."]
-            print(df_node_groups[cols_to_print].to_string(index=False))
+            logger.info(df_node_groups[cols_to_print].to_string(index=False))
         else:
-            print("No node group data.")
-        print("\n")
+            logger.info("No node group data.")
+        logger.info("\n")
 
         sys.stdout.flush()
 
@@ -481,61 +446,38 @@ class SharedStateMsg(BaseModel):
 
     @classmethod
     def from_msgpack(cls, data: list[Any]) -> "SharedStateMsg":
-        instance_data: dict[str, Any] = {
-            "sequence": 0,
-            "state_location_origin": 0,
-            "key": "",
-            "properties": {},
-            "body": "",
-            "shared_state": SharedState(),
-        }
-        if isinstance(data, list) and len(data) >= 6:
-            try:
-                instance_data["sequence"] = int(data[0])
-                instance_data["state_location_origin"] = int(data[1])
-            except (ValueError, TypeError):
-                pass
+        if not isinstance(data, list) or len(data) < 6:
+            raise ValueError(f"Invalid data format for SharedStateMsg: {data}")
 
-            key_raw = data[2]
-            try:
-                instance_data["key"] = (
-                    key_raw.decode("utf-8")
-                    if isinstance(key_raw, bytes)
-                    else str(key_raw)
-                )
-            except UnicodeDecodeError:
-                instance_data["key"] = str(key_raw)
+        sequence = int(data[0])
+        state_location_origin = int(data[1])
+        key = decode_str(data[2])
 
-            properties_raw = data[3]
-            if isinstance(properties_raw, dict):
-                try:
-                    instance_data["properties"] = {
-                        (k.decode("utf-8") if isinstance(k, bytes) else str(k)): (
-                            v.decode("utf-8") if isinstance(v, bytes) else str(v)
-                        )
-                        for k, v in properties_raw.items()
-                    }
-                except (UnicodeDecodeError, ValueError, TypeError):
-                    instance_data["properties"] = {}
+        properties_raw = data[3]
+        if not isinstance(properties_raw, dict):
+            raise TypeError(f"Expected dict for properties, got {type(properties_raw)}")
+        properties = {decode_str(k): decode_str(v) for k, v in properties_raw.items()}
 
-            body_raw = data[4]
-            try:
-                instance_data["body"] = (
-                    body_raw.decode("utf-8")
-                    if isinstance(body_raw, bytes)
-                    else str(body_raw)
-                )
-            except UnicodeDecodeError:
-                instance_data["body"] = str(body_raw)
+        body = decode_str(data[4])
 
-            if isinstance(data[5], list):
-                instance_data["shared_state"] = SharedState.from_msgpack(data[5])
+        shared_state_raw = data[5]
+        if not isinstance(shared_state_raw, list):
+            raise TypeError(
+                f"Expected list for shared_state, got {type(shared_state_raw)}"
+            )
+        shared_state = SharedState.from_msgpack(shared_state_raw)
 
-        try:
-            return cls(**instance_data)
-        except ValidationError:
-            return cls()
+        return cls(
+            sequence=sequence,
+            state_location_origin=state_location_origin,
+            key=key,
+            properties=properties,
+            body=body,
+            shared_state=shared_state,
+        )
 
+
+def receive_and_unpack_sparse_array(
 
 class UpdateType(Enum):
     NODES_CONNECTED = "NODES_CONNECTED"
@@ -567,6 +509,8 @@ class SharedStateClient:
     and provides methods to receive head node status changes.
     """
 
+    DATA_PORT = 17000
+
     def __init__(self, pub_address: str):
         self.pub_address = pub_address
         self._process: multiprocessing.Process | None = None
@@ -585,15 +529,15 @@ class SharedStateClient:
         try:
             self._update_pull_socket.bind(self._update_pull_address)
         except zmq.ZMQError as e:
-            print(
+            logger.info(
                 f"[Client] Error binding IPC socket {self._update_pull_address}: {e}."
             )
             self._cleanup_ipc_file()
             try:
                 self._update_pull_socket.bind(self._update_pull_address)
-                print("[Client] Successfully bound IPC socket after cleanup.")
+                logger.info("[Client] Successfully bound IPC socket after cleanup.")
             except Exception as bind_e:
-                print(
+                logger.info(
                     f"[Client] Failed to bind IPC socket even after cleanup: {bind_e}"
                 )
                 raise e
@@ -604,17 +548,135 @@ class SharedStateClient:
         self.current_head_node_id: str | None = None
         self._latest_state: SharedState | None = None
 
+        # Data socket management
+        self._zmq_data_context: zmq.Context = zmq.Context()
+        self._data_pull_socket: zmq.Socket | None = None
+        self._connected_node_id: str | None = None
+
     def _cleanup_ipc_file(self):
         """Removes the IPC socket file if it exists."""
         ipc_socket_path = self._update_pull_address.replace("ipc://", "")
         try:
             if os.path.exists(ipc_socket_path):
                 os.unlink(ipc_socket_path)
-                print(f"[Client] Removed existing IPC socket file: {ipc_socket_path}")
+                logger.info(
+                    f"[Client] Removed existing IPC socket file: {ipc_socket_path}"
+                )
         except OSError as e:
-            print(f"[Client] Error removing IPC socket file {ipc_socket_path}: {e}")
+            logger.info(
+                f"[Client] Error removing IPC socket file {ipc_socket_path}: {e}"
+            )
         except Exception as e:
-            print(f"[Client] Unexpected error removing IPC file: {e}")
+            logger.info(f"[Client] Unexpected error removing IPC file: {e}")
+
+    @staticmethod
+    def _setup_zmq_sockets(
+        pub_address: str, update_push_address: str
+    ) -> tuple[zmq.Context, zmq.Socket, zmq.Socket, zmq.Poller]:
+        """Initializes and connects ZMQ sockets for communication."""
+        context = zmq.Context()
+        poller = zmq.Poller()
+
+        try:
+            # Connect Subscriber
+            subscriber = context.socket(zmq.SUB)
+            subscriber.connect(pub_address)
+            subscriber.setsockopt_string(zmq.SUBSCRIBE, "")
+            poller.register(subscriber, zmq.POLLIN)
+
+            # Connect Pusher
+            update_pusher = context.socket(zmq.PUSH)
+            update_pusher.setsockopt(zmq.LINGER, 0)
+            update_pusher.connect(update_push_address)
+
+            return context, subscriber, update_pusher, poller
+
+        except Exception as e:
+            # Simple cleanup on failure
+            if "subscriber" in locals() and not subscriber.closed:
+                subscriber.close()
+            if "update_pusher" in locals() and not update_pusher.closed:
+                update_pusher.close()
+            if not context.closed:
+                context.term()
+            raise e
+
+    @staticmethod
+    def _process_incoming_message(
+        subscriber: zmq.Socket,
+        update_pusher: zmq.Socket,
+        last_head_node_id: str | None,
+    ) -> str | None:
+        """Process incoming messages and detect head node changes."""
+        try:
+            message_bytes = subscriber.recv(zmq.NOBLOCK)
+            unpacked_list = msgpack.unpackb(
+                message_bytes, raw=True, use_list=True, strict_map_key=False
+            )
+            shared_state_msg = SharedStateMsg.from_msgpack(unpacked_list)
+
+            # Skip heartbeat messages
+            if shared_state_msg.body == "HUGZ":
+                return last_head_node_id
+
+            # Process state update
+            shared_state_data = shared_state_msg.shared_state
+            update_pusher.send_pyobj(StateUpdate(shared_state=shared_state_data))
+
+            # Check for head node changes
+            new_head_node_id = None
+            if shared_state_data.node_map:
+                for node_info in shared_state_data.node_map.values():
+                    if any(
+                        0 in short_id_dict
+                        for short_id_dict in node_info.node_group_thread_info.values()
+                    ):
+                        new_head_node_id = node_info.node_id
+                        break
+
+            # Send notifications if head node status changed
+            if new_head_node_id != last_head_node_id:
+                if new_head_node_id is not None:
+                    update_pusher.send_pyobj(
+                        NodeConnectedUpdate(head_node_id=new_head_node_id)
+                    )
+                else:
+                    update_pusher.send_pyobj(NodeDisconnectedUpdate())
+                return new_head_node_id
+
+            return last_head_node_id
+
+        except zmq.Again:
+            # No message available
+            return last_head_node_id
+        except Exception:
+            # Let errors propagate to main loop
+            raise
+
+    @staticmethod
+    def _cleanup_zmq_resources(
+        context: zmq.Context,
+        subscriber: zmq.Socket,
+        update_pusher: zmq.Socket,
+        poller: zmq.Poller,
+    ):
+        """Close ZMQ sockets and terminate context."""
+        # Clean up subscriber
+        if subscriber and not subscriber.closed:
+            if poller:
+                try:
+                    poller.unregister(subscriber)
+                except KeyError:
+                    pass
+            subscriber.close()
+
+        # Clean up pusher
+        if update_pusher and not update_pusher.closed:
+            update_pusher.close()
+
+        # Clean up context
+        if context and not context.closed:
+            context.term()
 
     @staticmethod
     def _run_background_process(
@@ -622,168 +684,98 @@ class SharedStateClient:
         update_push_address: str,
         stop_event: multiprocessing.synchronize.Event,
     ):
-        print(
-            f"[BGProc:{os.getpid()}] Starting. Publisher: {pub_address}, Updates: {update_push_address}"
-        )
-
-        context = zmq.Context()
-        subscriber = context.socket(zmq.SUB)
-        update_pusher = context.socket(zmq.PUSH)
-        poller = zmq.Poller()
-
-        last_head_node_id: str | None = None
-        sub_connected = False
-        push_connected = False
+        """Background process that monitors for state updates and node changes."""
+        logger.info(f"[BGProc:{os.getpid()}] Starting background process")
 
         try:
-            # Connect Subscriber
-            print(f"[BGProc:{os.getpid()}] Connecting SUB socket to {pub_address}...")
-            subscriber.connect(pub_address)
-            subscriber.setsockopt_string(zmq.SUBSCRIBE, "")
-            poller.register(subscriber, zmq.POLLIN)
-            sub_connected = True
-            print(f"[BGProc:{os.getpid()}] SUB socket connected.")
-
-            # Connect Pusher
-            print(
-                f"[BGProc:{os.getpid()}] Connecting PUSH socket to {update_push_address}..."
+            # Set up ZMQ resources
+            context, subscriber, update_pusher, poller = (
+                SharedStateClient._setup_zmq_sockets(pub_address, update_push_address)
             )
-            update_pusher.setsockopt(zmq.LINGER, 0)
-            update_pusher.connect(update_push_address)
-            push_connected = True
-            print(f"[BGProc:{os.getpid()}] PUSH socket connected.")
 
-            print(f"[BGProc:{os.getpid()}] Waiting for messages...")
+            last_head_node_id = None
+
+            # Main monitoring loop
             while not stop_event.is_set():
-                socks = dict(poller.poll(100))
-
-                if subscriber in socks and socks[subscriber] == zmq.POLLIN:
-                    try:
-                        message_bytes = subscriber.recv(zmq.NOBLOCK)
-                        unpacked_list = msgpack.unpackb(
-                            message_bytes, raw=True, use_list=True, strict_map_key=False
-                        )
-                        shared_state_msg = SharedStateMsg.from_msgpack(unpacked_list)
-
-                        if shared_state_msg.body != "HUGZ":
-                            shared_state_data = shared_state_msg.shared_state
-
-                            # --- Send full state update ---
-                            state_update_msg = StateUpdate(
-                                shared_state=shared_state_data
-                            )
-                            update_pusher.send_pyobj(state_update_msg)
-                            # -----------------------------
-
-                            current_head_node_id = None
-                            if shared_state_data and shared_state_data.node_map:
-                                for node_info in shared_state_data.node_map.values():
-                                    if 0 in node_info.node_group_thread_info:
-                                        current_head_node_id = node_info.node_id
-                                        break
-
-                            if current_head_node_id != last_head_node_id:
-                                if current_head_node_id is not None:
-                                    print(
-                                        f"[BGProc:{os.getpid()}] Head node connected: {current_head_node_id}"
-                                    )
-                                    update_msg = NodeConnectedUpdate(
-                                        head_node_id=current_head_node_id
-                                    )
-                                    update_pusher.send_pyobj(update_msg)
-                                else:
-                                    if last_head_node_id is not None:
-                                        print(
-                                            f"[BGProc:{os.getpid()}] Head node disconnected."
-                                        )
-                                    update_msg = NodeDisconnectedUpdate()
-                                    update_pusher.send_pyobj(update_msg)
-                                last_head_node_id = current_head_node_id
-
-                    except zmq.Again:
-                        pass
-                    except (
-                        msgpack.UnpackException,
-                        ValidationError,
-                        IndexError,
-                        UnicodeDecodeError,
-                    ) as e:
-                        print(f"[BGProc:{os.getpid()}] Error processing message: {e}")
-                    except zmq.ZMQError as e:
-                        print(f"[BGProc:{os.getpid()}] ZMQ Error during recv/send: {e}")
-                        if e.errno == zmq.EHOSTUNREACH or e.errno == zmq.ETERM:
-                            print(
-                                f"[BGProc:{os.getpid()}] IPC connection likely lost. Exiting."
-                            )
-                            break
-                    except Exception as e:
-                        print(
-                            f"[BGProc:{os.getpid()}] Unexpected error: {type(e).__name__}: {e}"
-                        )
-
-                if not socks:
-                    time.sleep(0.05)
-
-        except zmq.ZMQError as e:
-            print(f"[BGProc:{os.getpid()}] ZMQ Error during setup/connect: {e}")
-        except Exception as e:
-            print(f"[BGProc:{os.getpid()}] Fatal error: {type(e).__name__}: {e}")
-        finally:
-            print(f"[BGProc:{os.getpid()}] Stopping...")
-            # Cleanup ZMQ
-            if sub_connected and subscriber and not subscriber.closed:
                 try:
-                    poller.unregister(subscriber)
-                except KeyError:
-                    pass
-                subscriber.close()
-            if push_connected and update_pusher and not update_pusher.closed:
-                update_pusher.close()
-            if context and not context.closed:
-                context.term()
-            print(f"[BGProc:{os.getpid()}] Cleanup complete.")
+                    socks = dict(poller.poll(100))  # 100ms timeout
+
+                    # Process messages when available
+                    if subscriber in socks and socks[subscriber] == zmq.POLLIN:
+                        last_head_node_id = SharedStateClient._process_incoming_message(
+                            subscriber, update_pusher, last_head_node_id
+                        )
+
+                except zmq.ZMQError as e:
+                    if e.errno == zmq.ETERM:
+                        break  # Context terminated, exit loop
+                    # For other errors, pause briefly to avoid busy-looping
+                    time.sleep(0.1)
+
+        except Exception as e:
+            logger.info(
+                f"[BGProc:{os.getpid()}] Error in background process: {type(e).__name__}: {e}"
+            )
+        finally:
+            # Ensure resources are cleaned up
+            SharedStateClient._cleanup_zmq_resources(
+                context,
+                subscriber,
+                update_pusher,
+                poller,
+            )
+            logger.info(f"[BGProc:{os.getpid()}] Background process finished")
 
     def start(self):
         """Starts the background subscriber process."""
         if self._process is not None and self._process.is_alive():
-            print("[Client] Process already running.")
+            logger.info("[Client] Process already running.")
             return
 
-        print(
-            f"[Client] Starting background process for pub_address: {self.pub_address}..."
-        )
+        logger.info(f"[Client] Starting background process for {self.pub_address}")
         self._stop_event.clear()
-        # Ensure the process context is clean before starting
-        # Use 'fork' on Unix-like systems if possible and not already set globally
-        try:
-            if multiprocessing.get_start_method(allow_none=True) is None:
-                multiprocessing.set_start_method("fork")
-        except (ValueError, RuntimeError) as e:
-            print(f"[Client] Warning: Could not set start method to 'fork': {e}")
 
+        # Start the background process
         self._process = multiprocessing.Process(
-            target=SharedStateClient._run_background_process,  # Use static method
+            target=SharedStateClient._run_background_process,
             args=(self.pub_address, self._update_pull_address, self._stop_event),
-            daemon=True,  # Ensure process exits if main process exits uncleanly
+            daemon=True,
         )
         self._process.start()
-        print(f"[Client] Background process started (PID: {self._process.pid}).")
+        logger.info(f"[Client] Background process started (PID: {self._process.pid})")
 
-    def receive_update(self, timeout_ms: int = 0) -> BaseUpdate | None:
+    def _handle_node_connected_update(self, update: NodeConnectedUpdate) -> None:
+        """Handle node connected updates"""
+        if self.current_head_node_id != update.head_node_id:
+            logger.info(f"[Client] Head node connected: {update.head_node_id}")
+        self.current_head_node_id = update.head_node_id
+
+    def _handle_node_disconnected_update(self, _: NodeDisconnectedUpdate) -> None:
+        """Handle node disconnected updates"""
+        if self.current_head_node_id is not None:
+            logger.info("[Client] Head node disconnected")
+        self.current_head_node_id = None
+
+    def _handle_state_update(self, update: StateUpdate) -> None:
+        """Handle full state updates"""
+        self._latest_state = update.shared_state
+
+    def receive_update(self, timeout_ms: int = 0) -> None:
         """
-        Checks for and receives updates (connection status or full state)
-        from the background process. Updates internal state accordingly.
+        Checks for and processes updates from the background process.
 
         Args:
             timeout_ms: Poll timeout in milliseconds. 0 for non-blocking.
-
-        Returns:
-            The received update message (NodeConnectedUpdate, NodeDisconnectedUpdate,
-            StateUpdate) or None if no update or timeout.
         """
-        update: BaseUpdate | None = None
         if self._update_pull_socket is None or self._update_pull_socket.closed:
-            return None
+            raise RuntimeError("[Client] ZMQ socket is closed or not initialized")
+
+        # Function map for dispatch
+        update_handlers = {
+            UpdateType.NODES_CONNECTED: self._handle_node_connected_update,
+            UpdateType.NODES_DISCONNECTED: self._handle_node_disconnected_update,
+            UpdateType.STATE_UPDATE: self._handle_state_update,
+        }
 
         try:
             socks = dict(self._update_poller.poll(timeout_ms))
@@ -791,191 +783,165 @@ class SharedStateClient:
                 self._update_pull_socket in socks
                 and socks[self._update_pull_socket] == zmq.POLLIN
             ):
-                try:
-                    update = self._update_pull_socket.recv_pyobj(zmq.NOBLOCK)
-                    if isinstance(update, NodeConnectedUpdate):
-                        if self.current_head_node_id != update.head_node_id:
-                            print(
-                                f"[Client] Received NODES_CONNECTED: {update.head_node_id}"
-                            )
-                        self.current_head_node_id = update.head_node_id
-                    elif isinstance(update, NodeDisconnectedUpdate):
-                        if self.current_head_node_id is not None:
-                            print("[Client] Received NODES_DISCONNECTED")
-                        self.current_head_node_id = None
-                    elif isinstance(update, StateUpdate):  # Handle new state update
-                        self._latest_state = update.shared_state
-                        # Optionally print or log state reception
-                        # print("[Client] Received STATE_UPDATE")
-                    else:
-                        print(f"[Client] Received unknown update type: {type(update)}")
-                        update = None
+                update = self._update_pull_socket.recv_pyobj(zmq.NOBLOCK)
+                if not isinstance(update, BaseUpdate):
+                    raise TypeError(f"[Client] Expected BaseUpdate, got {type(update)}")
 
-                except zmq.Again:
-                    pass
-                except (AttributeError, EOFError, ImportError, IndexError) as e:
-                    print(f"[Client] Error deserializing update: {e}")
-                    update = None
-                except Exception as e:
-                    print(f"[Client] Error receiving update: {e}")
-                    update = None
+                handler = update_handlers.get(update.update_type)
+                if handler:
+                    handler(update)
+                else:
+                    raise RuntimeError(
+                        f"[Client] Unknown update type: {update.update_type}"
+                    )
+
+        except zmq.Again:
+            pass  # No messages available
         except zmq.ZMQError as e:
-            print(f"[Client] ZMQ Error during poll/recv: {e}")
+            logger.error(f"[Client] ZMQ Error: {e}")
             if e.errno == zmq.ETERM:
-                print("[Client] ZMQ Context terminated during receive.")
                 self._close_ipc_resources()
-            update = None
-        except ValueError as e:
-            print(f"[Client] ValueError during poll (potential context issue): {e}")
-            update = None
-
-        return update
+        except Exception as e:
+            logger.error(f"[Client] Error processing update: {e}")
+            raise
 
     def get_current_head_node_id(self) -> str | None:
         """Returns the last known head node ID, checking for updates first."""
-        self.receive_update(timeout_ms=0)  # Check for updates non-blockingly
+        self.receive_update(timeout_ms=0)
         return self.current_head_node_id
 
     def get_latest_state(self) -> SharedState | None:
-        """
-        Returns the most recently received SharedState object.
-        Checks for pending updates first.
-        """
-        self.receive_update(timeout_ms=0)  # Ensure latest updates are processed
+        """Returns the most recently received SharedState object."""
+        self.receive_update(timeout_ms=0)
         return self._latest_state
 
     def update_pub_address(self, new_pub_address: str, shutdown_timeout_sec: int = 5):
         """
-        Updates the publisher address the background process subscribes to.
-        This involves stopping the current process and starting a new one.
+        Updates the publisher address and restarts the background process.
         """
         if new_pub_address == self.pub_address:
-            print(
-                f"[Client] New address '{new_pub_address}' is the same as current. No update needed."
-            )
             return
 
-        print(
-            f"[Client] Updating publisher address from '{self.pub_address}' to '{new_pub_address}'..."
+        logger.info(
+            f"[Client] Updating address: {self.pub_address} → {new_pub_address}"
         )
 
-        # 1. Shutdown the current process and client-side IPC
-        print("[Client] Shutting down existing background process and IPC...")
+        # Shutdown current process and IPC
         self.shutdown(timeout_sec=shutdown_timeout_sec)
 
-        # 2. Update the address
+        # Update address
         self.pub_address = new_pub_address
-        print(f"[Client] Publisher address updated to: {self.pub_address}")
 
-        # 3. Re-initialize client-side IPC and restart the process
-        print("[Client] Re-initializing IPC socket...")
+        # Re-initialize IPC and socket
         self._ipc_context = zmq.Context()
         self._update_pull_socket = self._ipc_context.socket(zmq.PULL)
-        self._cleanup_ipc_file()  # Clean before binding again
+        self._cleanup_ipc_file()
+
+        # Try to bind socket, with one retry after cleanup
         try:
             self._update_pull_socket.bind(self._update_pull_address)
-        except zmq.ZMQError as e:
-            print(
-                f"[Client] Error binding IPC socket {self._update_pull_address} on restart: {e}"
-            )
+        except zmq.ZMQError:
             self._cleanup_ipc_file()
             try:
                 self._update_pull_socket.bind(self._update_pull_address)
-                print(
-                    "[Client] Successfully bound IPC socket after cleanup on restart."
-                )
-            except Exception as bind_e:
-                print(f"[Client] Failed to bind IPC socket on restart: {bind_e}")
-                # If binding fails here, the client might be unusable.
-                self._close_ipc_resources()  # Ensure cleanup
-                return  # Exit the update method
+            except Exception:
+                logger.info("[Client] Failed to bind IPC socket after cleanup")
+                self._close_ipc_resources()
+                return
 
+        # Register with poller and restart process
         self._update_poller = zmq.Poller()
         self._update_poller.register(self._update_pull_socket, zmq.POLLIN)
+        self.start()
 
-        print("[Client] Restarting background process with new address...")
-        self.start()  # Start will use the updated self.pub_address
+    def get_data_socket(self) -> zmq.Socket | None:
+        """
+        Returns a connected socket to the current head node's data port.
+        """
+        self.receive_update(timeout_ms=0)
+        new_head_node_id = self.current_head_node_id
 
-        print("[Client] Publisher address update complete.")
+        # Handle head node change
+        if new_head_node_id != self._connected_node_id:
+            # Close existing connection
+            if self._data_pull_socket:
+                self._data_pull_socket.close()
+                self._data_pull_socket = None
+
+            # Connect to new head node if available
+            if new_head_node_id:
+                data_pull_addr = f"tcp://{new_head_node_id}:{self.DATA_PORT}"
+                try:
+                    self._data_pull_socket = self._zmq_data_context.socket(zmq.SUB)
+                    if not self._data_pull_socket:
+                        raise RuntimeError("Unable to create data socket")
+                    self._data_pull_socket.setsockopt(zmq.LINGER, 0)
+                    self._data_pull_socket.setsockopt(zmq.RCVTIMEO, 1000)
+                    self._data_pull_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+                    self._data_pull_socket.connect(data_pull_addr)
+                    self._connected_node_id = new_head_node_id
+                    logger.info(f"[Client] Connected to data port: {data_pull_addr}")
+                except Exception as e:
+                    self._data_pull_socket = None
+                    self._connected_node_id = None
+                    raise RuntimeError(f"[Client] Data socket connection failed: {e}")
+            else:
+                self._connected_node_id = None
+
+        return self._data_pull_socket
+
+    def _close_data_socket(self) -> None:
+        """Close the data socket if it exists."""
+        if self._data_pull_socket:
+            self._data_pull_socket.close()
+            self._data_pull_socket = None
+        self._connected_node_id = None
 
     def _close_ipc_resources(self):
-        """Safely close client-side IPC context and socket."""
-        print("[Client] Closing client-side IPC resources...")
-        # Unregister before closing socket
-        if (
-            hasattr(self, "_update_poller")
-            and self._update_pull_socket
-            and not self._update_pull_socket.closed
-        ):
+        """Safely close client-side IPC resources."""
+        # Unregister and close socket
+        if self._update_pull_socket:
             try:
                 self._update_poller.unregister(self._update_pull_socket)
             except KeyError:
-                pass  # Ignore if already unregistered
-            except Exception as e:
-                print(f"[Client] Error unregistering poller: {e}")
-
-        if (
-            hasattr(self, "_update_pull_socket")
-            and self._update_pull_socket
-            and not self._update_pull_socket.closed
-        ):
+                pass
             self._update_pull_socket.close()
-        self._update_pull_socket = None  # Mark as closed
+            self._update_pull_socket = None
 
-        if (
-            hasattr(self, "_ipc_context")
-            and self._ipc_context
-            and not self._ipc_context.closed
-        ):
+        # Terminate context
+        if self._ipc_context and not self._ipc_context.closed:
             self._ipc_context.term()
-        self._ipc_context = None  # Mark as terminated
 
-        # Attempt to remove the IPC socket file
+        # Close data socket
+        self._close_data_socket()
+
+        # Clean up IPC file
         self._cleanup_ipc_file()
 
     def shutdown(self, timeout_sec: int = 5):
-        """Signals the background process to stop and cleans up resources."""
-        print("[Client] Initiating shutdown...")
+        """Stop the background process and clean up resources."""
         if self._process is not None and self._process.is_alive():
-            print("[Client] Setting stop event for background process...")
+            # Signal process to stop
             self._stop_event.set()
-            print(
-                f"[Client] Waiting up to {timeout_sec}s for background process (PID: {self._process.pid}) to join..."
-            )
             self._process.join(timeout=timeout_sec)
+
+            # Force terminate if needed
             if self._process.is_alive():
-                print(
-                    f"[Client] Background process (PID: {self._process.pid}) did not terminate gracefully. Terminating..."
-                )
                 try:
                     self._process.terminate()
-                    self._process.join(1)
+                    self._process.join(2)
                     if self._process.is_alive():
-                        print(
-                            f"[Client] Process (PID: {self._process.pid}) still alive after SIGTERM, sending SIGKILL..."
-                        )
                         self._process.kill()
                         self._process.join(1)
-                except ProcessLookupError:
-                    print(
-                        f"[Client] Process (PID: {self._process.pid}) already terminated."
-                    )
                 except Exception as e:
-                    print(
-                        f"[Client] Error terminating process {self._process.pid}: {e}"
-                    )
-            else:
-                print(f"[Client] Background process (PID: {self._process.pid}) joined.")
+                    logger.info(f"[Client] Error terminating process: {e}")
+
             self._process = None
-        else:
-            print("[Client] Background process not running or already stopped.")
 
-        # Drain final messages and close client-side IPC resources
+        # Clean up IPC resources
         self._close_ipc_resources()
-
-        print("[Client] Shutdown complete.")
+        logger.info("[Client] Shutdown complete")
 
     def __del__(self):
-        """Attempt graceful shutdown if the client object is garbage collected."""
-        print("[Client] __del__ called. Initiating shutdown...")
-        self.shutdown(timeout_sec=2)  # Use a short timeout for GC
+        """Cleanup when object is garbage collected."""
+        self.shutdown(timeout_sec=2)
