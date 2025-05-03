@@ -49,7 +49,7 @@ def save(
     f = open_files.get(header.scan_number, None)
     if not f:
         logger.info(f"Scan {header.scan_number - 1} has {count_for_this_scan} frames")
-        count_for_this_scan = 1
+        count_for_this_scan = 0
         logger.info(f"Starting scan {header.scan_number}")
         keys_to_remove = list(open_files.keys())
         for k in keys_to_remove:
