@@ -18,7 +18,7 @@ import {
   pipelinesReadPipelineQueryKey,
   pipelinesReadPipelinesQueryKey,
   pipelinesUpdatePipelineMutation,
-} from "../client/generated/@tanstack/react-query.gen"
+} from "../client"
 import { useActivePipeline } from "../hooks/useActivePipeline"
 import { usePipelineContext } from "../hooks/usePipelineContext"
 import { usePipelineStore } from "../stores"
@@ -51,48 +51,55 @@ export const PipelineHud: React.FC = () => {
     setIsPipelineDrawerOpen(false)
   }, [])
 
+  // Revision List handlers
+  const revisionListId = isRevisionPopoverOpen ? "revision-popover" : undefined
+
+  const handleToggleRevisionPopover = () => {
+    setIsRevisionPopoverOpen(!isRevisionPopoverOpen)
+  }
+
+  const handleCloseRevisionPopover = () => {
+    setIsRevisionPopoverOpen(false)
+  }
+
+  const handleRevisionSelected = (revisionId: number) => {
+    setCurrentRevisionId(revisionId)
+    handleCloseRevisionPopover()
+  }
+
+  // Edit Dialog handlers
+  const handleOpenEditDialog = () => {
+    setIsEditDialogOpen(true)
+  }
+
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false)
+  }
+
   const updatePipelineMutation = useMutation({
     ...pipelinesUpdatePipelineMutation(),
     onSuccess: (updatedPipeline) => {
+      handleCloseEditDialog()
+      queryClient.invalidateQueries({
+        queryKey: pipelinesReadPipelineQueryKey({
+          path: { id: updatedPipeline.id },
+        }),
+      })
       queryClient.invalidateQueries({
         queryKey: pipelinesReadPipelinesQueryKey(),
       })
-      queryClient.setQueryData(
-        pipelinesReadPipelineQueryKey({ path: { id: updatedPipeline.id } }),
-        updatedPipeline,
-      )
-      setIsEditDialogOpen(false)
     },
-    onError: () => setIsEditDialogOpen(false),
+    onError: () => handleCloseEditDialog(),
   })
 
-  const handleOpenEditDialog = () => setIsEditDialogOpen(true)
-  const handleCloseEditDialog = () => setIsEditDialogOpen(false)
   const handleSaveEdit = (newName: string) => {
     if (!pipeline) return
     updatePipelineMutation.mutate({
       path: { id: pipeline.id },
-      body: { name: newName || null },
+      body: { name: newName },
     })
   }
 
-  const handleToggleRevisionPopover = () =>
-    setIsRevisionPopoverOpen((prev) => !prev)
-
-  const handleCloseRevisionPopover = useCallback(
-    () => setIsRevisionPopoverOpen(false),
-    [],
-  )
-
-  const handleRevisionSelected = useCallback(
-    (revisionId: number) => {
-      setCurrentRevisionId(revisionId)
-      handleCloseRevisionPopover()
-    },
-    [setCurrentRevisionId, handleCloseRevisionPopover],
-  )
-
-  const revisionListId = isRevisionPopoverOpen ? "revision-popover" : undefined
   const isMutating = updatePipelineMutation.isPending || isDeleting
 
   // Pipeline content rendering
@@ -227,7 +234,7 @@ export const PipelineHud: React.FC = () => {
         {pipelineDisplayContent()}
       </Box>
 
-      {/* Pipeline List Drawer - Now integrated inside the PipelineHud */}
+      {/* Pipeline List Drawer */}
       <PipelineList
         open={isPipelineDrawerOpen}
         onClose={handleClosePipelineDrawer}
