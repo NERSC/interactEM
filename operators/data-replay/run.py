@@ -1,14 +1,14 @@
-import asyncio
 import itertools
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import stempy.io as stio
+from pydantic import BaseModel, ValidationError
+
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
 from interactem.operators.operator import DATA_DIRECTORY, operator
-from pydantic import BaseModel, ValidationError
 
 logger = get_logger()
 
@@ -44,7 +44,7 @@ def read_scan_metadata(scan_num: int) -> tuple[stio.reader, itertools.cycle, int
     if not files:
         logger.info(f"Available scan files: {list(path.glob('data_scan*'))[:5]}...")
         raise FileNotFoundError(f"No files found for scan {scan_num} in {path}")
-        
+
     iFiles = sorted(files)
     iFiles_str = [str(ii) for ii in iFiles]
     reader = stio.reader(iFiles_str, stio.FileVersion.VERSION5, backend="multi-pass")
@@ -62,30 +62,30 @@ def save(
     inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> BytesMessage | None:
     global reader, scan_positions_cycle, n_cols, n_rows, send_count, current_scan_num
-    
+
     scan_num = parameters.get("scan_num", None)
     scan_num = int(scan_num) if scan_num is not None else None
     if scan_num is None:
         logger.error("Missing scan_num parameter.")
         raise ValueError("Missing scan_num parameter.")
-    
+
     # Only read new metadata when the scan number changes
     if scan_num != current_scan_num:
         logger.info(f"New scan number detected: {scan_num}, loading metadata")
         reader, scan_positions_cycle, n_cols, n_rows = read_scan_metadata(scan_num)
         current_scan_num = scan_num
         send_count = 0
-    
+
     if scan_positions_cycle is None:
         _msg = "scan_positions_cycle is None. Make sure metadata is loaded properly."
         logger.error(_msg)
         raise ValueError("scan_positions_cycle is None. Make sure metadata is loaded properly.")
-        
+
     position = next(scan_positions_cycle)
     if position == 0 and send_count > 0:
         logger.info(f"Completed full cycle of scan {scan_num}")
         logger.info(f"Sent {send_count} frames.")
-    
+
     block = reader.read_frames(position)
     row_idx, col_idx = np.unravel_index(position, (n_rows, n_cols))
     try:

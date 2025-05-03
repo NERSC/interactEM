@@ -6,6 +6,7 @@ from typing import Any
 
 import msgpack
 import zmq
+
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import (
     BytesMessage,
