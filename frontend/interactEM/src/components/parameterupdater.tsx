@@ -20,6 +20,7 @@ import { useParameterValue } from "../hooks/useParameterValue"
 import { usePipelineContext } from "../hooks/usePipelineContext"
 import { useEditModeState } from "../stores/edit"
 import type { OperatorNodeType } from "../types/nodes"
+import ParameterInfoTooltip from "./parameterinfotooltip"
 
 const compareValues = (
   parameter: OperatorParameter,
@@ -264,7 +265,10 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 
   return (
     <Container>
-      <Typography sx={{ fontSize: 16, mb: 1 }}>{parameter.name}</Typography>
+      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
+        <Typography sx={{ fontSize: 16 }}>{parameter.label}</Typography>
+        <ParameterInfoTooltip parameter={parameter} />
+      </Box>
       <Box
         sx={{
           display: "flex",
