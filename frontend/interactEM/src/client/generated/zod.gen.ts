@@ -296,6 +296,6 @@ export const zPipelinesUpdatePipelineRevisionResponse = zPipelineRevisionPublic
 
 export const zPipelinesRunPipelineResponse = zPipelineRevisionPublic
 
-export const zPipelinesStopPipelineResponse = zPipelineRevisionPublic
+export const zPipelinesStopPipelineResponse = zMessage
 
 export const zOperatorsReadOperatorsResponse = zOperators

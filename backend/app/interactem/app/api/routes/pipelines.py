@@ -302,15 +302,16 @@ async def run_pipeline(
 
     return PipelineRevisionPublic.model_validate(revision)
 
-@router.post(
-    "/{id}/revisions/{revision_id}/stop", response_model=PipelineRevisionPublic
-)
+@router.post("/{id}/revisions/{revision_id}/stop", response_model=Message)
 async def stop_pipeline(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
     revision_id: int,
-) -> PipelineRevisionPublic:
+) -> Message:
+    """
+    Request to stop a running pipeline associated with a specific revision.
+    """
     pipeline_id: uuid.UUID = id
 
     revision = session.get(PipelineRevision, (id, revision_id))
@@ -329,9 +330,11 @@ async def stop_pipeline(
             f"Sent publish pipeline stop event for pipeline {pipeline_id} using revision {revision_id}"
         )
     except Exception as e:
-        logger.error(
+        logger.exception(
             f"Failed to publish stop event for pipeline {pipeline_id} revision {revision_id}: {e}"
         )
-        raise HTTPException(status_code=500, detail=f"Failed to stop pipeline: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to request pipeline stop: {e}"
+        )
 
-    return PipelineRevisionPublic.model_validate(revision)
+    return Message(message="Pipeline stop request sent.")

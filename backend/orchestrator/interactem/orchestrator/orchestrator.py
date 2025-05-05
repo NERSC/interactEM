@@ -36,6 +36,7 @@ from interactem.core.nats import (
     get_val,
     nc,
     publish_error,
+    publish_notification,
 )
 from interactem.core.nats.config import (
     AGENTS_STREAM_CONFIG,
@@ -482,6 +483,7 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
 
     await delete_pipeline_kv(js, pipeline_id)
     logger.info(f"Deleted pipeline {pipeline_id} from KV store.")
+    publish_notification(js=js, msg="Pipeline stopped", task_refs=task_refs)
 
     # Send stop command (empty assignment) to all agents
     agents_bucket = await get_agents_bucket(js)

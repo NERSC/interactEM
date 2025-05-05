@@ -768,6 +768,7 @@ export const pipelinesRunPipeline = <ThrowOnError extends boolean = false>(
 
 /**
  * Stop Pipeline
+ * Request to stop a running pipeline associated with a specific revision.
  */
 export const pipelinesStopPipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesStopPipelineData, ThrowOnError>,

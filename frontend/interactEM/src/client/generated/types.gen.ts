@@ -946,7 +946,7 @@ export type PipelinesStopPipelineResponses = {
   /**
    * Successful Response
    */
-  200: PipelineRevisionPublic
+  200: Message
 }
 
 export type PipelinesStopPipelineResponse =

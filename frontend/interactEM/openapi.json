@@ -979,6 +979,7 @@
       "post": {
         "tags": ["pipelines"],
         "summary": "Stop Pipeline",
+        "description": "Request to stop a running pipeline associated with a specific revision.",
         "operationId": "pipelines-stop_pipeline",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
@@ -1000,9 +1001,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PipelineRevisionPublic"
-                }
+                "schema": { "$ref": "#/components/schemas/Message" }
               }
             }
           },

@@ -17,11 +17,11 @@ export const StopPipelineButton: React.FC<StopPipelineButtonProps> = ({
 
   const stopPipeline = useMutation({
     ...pipelinesStopPipelineMutation(),
-    onSuccess: () => {
-      toast.success("Pipeline stop request sent")
+    onSuccess: (data) => {
+      toast.success(data.message)
     },
-    onError: () => {
-      toast.error("Failed to stop pipeline")
+    onError: (data) => {
+      toast.error(data.message)
     },
   })
 
