@@ -11,7 +11,9 @@ dependencies = [
     "pyzmq (>=26.4.0,<27.0.0)",
     "msgpack (>=1.1.0,<2.0.0)",
     "pandas (>=2.2.3,<3.0.0)",
-    "pydantic (>=2.11.0,<3.0.0)"
+    "pydantic (>=2.11.0,<3.0.0)",
+    "stempy (>=3.4.0,<4.0.0)",
+    "numpy (>=1.24.0,<2.0.0)",
 ]
 
 
@@ -30,3 +32,6 @@ exclude = []
 
 [tool.ruff.lint.isort]
 known-first-party = ["distiller_pipeline", "interactem"]
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.3.5"

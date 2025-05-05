@@ -9,9 +9,21 @@ from enum import Enum
 from typing import Any
 
 import msgpack
+import numpy as np
 import pandas as pd
+import stempy.image as stim
 import zmq
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field
+from stempy.io import SparseArray
+
+from interactem.core.logger import get_logger
+from interactem.core.models.messages import (
+    BytesMessage,
+    MessageHeader,
+    MessageSubject,
+)
+
+logger = get_logger()
 
 
 # --- Enum Mappings ---
@@ -477,7 +489,63 @@ class SharedStateMsg(BaseModel):
         )
 
 
+def unpack_sparse_array(
+    packed_data: bytes,
+) -> SparseArray:
+    unpacked_data = msgpack.unpackb(packed_data, raw=False)
+
+    scan_number = unpacked_data.get("scan_number")
+    scan_shape = tuple(unpacked_data["scan_shape"])
+    frame_shape = tuple(unpacked_data["frame_shape"])
+    raw_data = unpacked_data["data"]  # Expected: list[list[list[int]]]
+    metadata = unpacked_data.get("metadata", {})
+
+    num_scan_positions = len(raw_data)
+    expected_scan_positions = np.prod(scan_shape) if scan_shape else 0
+
+    if expected_scan_positions != num_scan_positions:
+        raise ValueError(
+            f"Inconsistent unpacked data: scan_shape {scan_shape} product ({expected_scan_positions}) "
+            f"does not match outer data length {num_scan_positions}"
+        )
+
+    # Determine frames_per_scan safely, handle empty scans
+    frames_per_scan = len(raw_data[0]) if num_scan_positions > 0 else 0
+
+    # Create the outer numpy array with dtype=object
+    data_array = np.empty(scan_shape + (frames_per_scan,), dtype=object)
+
+    for i in range(num_scan_positions):
+        scan_index = np.unravel_index(i, scan_shape)
+        if len(raw_data[i]) != frames_per_scan:
+            raise ValueError(
+                f"Inconsistent frame count at scan position {i} (index {scan_index}): "
+                f"expected {frames_per_scan}, got {len(raw_data[i])}"
+            )
+        for j in range(frames_per_scan):
+            data_array[scan_index + (j,)] = np.array(raw_data[i][j], dtype=np.uint32)
+
+    # --- Instantiate SparseArray ---
+    sparse_array = SparseArray(
+        data=data_array,
+        scan_shape=scan_shape,
+        frame_shape=frame_shape,
+        metadata=metadata,
+    )
+    sparse_array.metadata["frames_per_scan"] = frames_per_scan
+    if scan_number is not None:
+        sparse_array.metadata["scan_number"] = scan_number
+
+    return sparse_array
+
+
 def receive_and_unpack_sparse_array(
+    socket: zmq.Socket,
+) -> SparseArray:
+    packed_data = socket.recv(copy=False)
+
+    return unpack_sparse_array(bytes(packed_data.buffer))
+
 
 class UpdateType(Enum):
     NODES_CONNECTED = "NODES_CONNECTED"
@@ -945,3 +1013,429 @@ class SharedStateClient:
     def __del__(self):
         """Cleanup when object is garbage collected."""
         self.shutdown(timeout_sec=2)
+
+
+class FrameHeader(BaseModel):
+    scan_number: int
+    frame_number: int | None = None
+    nSTEM_positions_per_row_m1: int
+    nSTEM_rows_m1: int
+    STEM_x_position_in_row: int
+    STEM_row_in_scan: int
+    modules: list[int]
+    frame_shape: tuple[int, int]
+
+
+class FrameAccumulator(SparseArray):
+    """Accumulates sparse frames for a single scan, tracking which frames have been added."""
+
+    def __init__(
+        self,
+        scan_number: int,
+        scan_shape: tuple[int, int],
+        frame_shape: tuple[int, int],
+        dtype=np.uint32,
+        **kwargs,
+    ):
+        # Validate shapes
+        if not isinstance(scan_shape, tuple) or len(scan_shape) != 2:
+            raise ValueError(
+                f"Invalid scan_shape: {scan_shape}. Must be a tuple of length 2."
+            )
+        if not isinstance(frame_shape, tuple) or len(frame_shape) != 2:
+            raise ValueError(
+                f"Invalid frame_shape: {frame_shape}. Must be a tuple of length 2."
+            )
+
+        self.scan_number = scan_number
+        num_scan_positions = int(np.prod(scan_shape))
+
+        # Initialize data storage
+        initial_data = np.empty((num_scan_positions, 1), dtype=object)
+        empty_array = np.array([], dtype=np.uint32)
+        for i in range(num_scan_positions):
+            initial_data[i, 0] = empty_array
+
+        # Initialize parent
+        super().__init__(
+            data=initial_data,
+            scan_shape=scan_shape,
+            frame_shape=frame_shape,
+            dtype=dtype,
+            **kwargs,
+        )
+
+        self._frames_per_position = {}
+        self.num_frames_added = 0
+
+        logger.info(
+            f"Initialized FrameAccumulator for scan {scan_number} with shape {scan_shape}x{frame_shape}"
+        )
+
+    @property
+    def frames_added_indices(self) -> set[int]:
+        """Set of scan position indices for which at least one frame has been added."""
+        return set(self._frames_per_position.keys())
+
+    @property
+    def num_positions_with_frames(self) -> int:
+        """Number of scan positions that have at least one frame."""
+        return len(self._frames_per_position)
+
+    def add_frame(self, header: FrameHeader, frame_data: np.ndarray) -> None:
+        """
+        Adds a sparse frame's data at the position specified in the header.
+        If a frame already exists at this position, adds it as an additional frame
+        rather than overwriting.
+
+        Args:
+            header: Frame header containing position information
+            frame_data: NumPy array containing sparse frame data
+
+        Raises:
+            ValueError: If header dimensions don't match accumulator dimensions
+            IndexError: If calculated position is out of bounds
+        """
+        if header.scan_number != self.scan_number:
+            raise ValueError(
+                f"Scan number mismatch: header {header.scan_number}, "
+                f"accumulator {self.scan_number}"
+            )
+
+        # Validate scan shape matches header
+        if (header.nSTEM_rows_m1, header.nSTEM_positions_per_row_m1) != self.scan_shape:
+            raise ValueError(
+                f"Scan {self.scan_number}: Mismatch between header scan shape "
+                f"{(header.nSTEM_rows_m1, header.nSTEM_positions_per_row_m1)} and "
+                f"accumulator scan shape {self.scan_shape}"
+            )
+
+        # Validate frame shape matches header
+        if header.frame_shape != self.frame_shape:
+            raise ValueError(
+                f"Scan {self.scan_number}: Mismatch between header frame shape "
+                f"{header.frame_shape} and accumulator frame shape {self.frame_shape}"
+            )
+
+        # Calculate flat index from 2D position
+        scan_position_flat = (
+            header.STEM_row_in_scan * header.nSTEM_positions_per_row_m1
+            + header.STEM_x_position_in_row
+        )
+
+        # Ensure position is within bounds
+        if not (0 <= scan_position_flat < self.num_scans):
+            raise IndexError(
+                f"Invalid scan position {scan_position_flat}. Max expected: {self.num_scans - 1}"
+            )
+
+        # Count frames already at this position
+        frames_at_position = self._frames_per_position.get(scan_position_flat, 0)
+
+        # If this is the first frame at this position
+        if frames_at_position == 0:
+            # Store at index 0
+            self.data[scan_position_flat, 0] = frame_data
+        else:
+            current_frames_dim = self.data.shape[1]
+
+            # Check if we need to expand the data array
+            if frames_at_position >= current_frames_dim:
+                # Increase the frame dimension by exactly one
+                new_frame_dim = frames_at_position + 1
+                new_shape = (self.data.shape[0], new_frame_dim)
+                new_data = np.empty(new_shape, dtype=object)
+
+                # Copy existing data
+                new_data[:, :current_frames_dim] = self.data
+
+                # Initialize remaining slots with empty arrays
+                empty_array = np.array([], dtype=self.dtype)
+                for i in range(self.data.shape[0]):
+                    for j in range(current_frames_dim, new_frame_dim):
+                        new_data[i, j] = empty_array
+
+                # Replace data with expanded array
+                self.data = new_data
+
+            # Store the new frame at the next available index
+            self.data[scan_position_flat, frames_at_position] = frame_data
+
+        # Update tracking information
+        self._frames_per_position[scan_position_flat] = frames_at_position + 1
+        self.num_frames_added += 1
+
+
+def get_summed_diffraction_pattern(
+    accumulator: FrameAccumulator, subsample_step: int = 2
+) -> np.ndarray:
+    """Calculate summed diffraction pattern from frames in accumulator."""
+    scan_number = accumulator.scan_number
+    num_frames = accumulator.num_frames_added
+
+    if num_frames == 0:
+        raise ValueError(f"Scan {scan_number}: No frames available for summing")
+
+    # Get indices to sum
+    added_indices = sorted(accumulator.frames_added_indices)
+    indices_to_sum = added_indices[::subsample_step]
+
+    if not indices_to_sum:
+        raise ValueError(f"Scan {scan_number}: No frames left after subsampling")
+
+    # Save original shape
+    original_shape = accumulator.shape
+    accumulator.ravel_scans()
+
+    try:
+        subset = accumulator[indices_to_sum]
+
+        if not isinstance(subset, SparseArray):
+            raise TypeError(f"Expected SparseArray subset, got {type(subset)}")
+
+        summed_dp = subset.sum(axis=subset.scan_axes, dtype=np.float64)
+
+        if summed_dp is None or summed_dp.sum() == 0:
+            raise ValueError(f"Scan {scan_number}: Summed DP is empty")
+
+        return summed_dp
+
+    finally:
+        if accumulator.shape != original_shape:
+            accumulator.shape = original_shape
+
+
+def calculate_diffraction_center(diffraction_pattern: np.ndarray) -> tuple[int, int]:
+    """
+    Calculates the beam center from a diffraction pattern using center of mass.
+
+    Args:
+        diffraction_pattern: 2D NumPy array of the diffraction pattern
+        scan_number: Optional scan number for logging purposes
+
+    Returns:
+        Tuple of (center_x, center_y) coordinates
+
+    Raises:
+        ValueError: If diffraction pattern is empty or center calculation fails
+    """
+    # Validate input
+    if diffraction_pattern is None or diffraction_pattern.size == 0:
+        raise ValueError("Empty diffraction pattern")
+
+    # Calculate center of mass using stempy function
+    center_yx = stim.com_dense(diffraction_pattern)
+
+    # Validate result
+    if center_yx is None or center_yx.size == 0 or np.isnan(center_yx).any():
+        raise ValueError("Center calculation failed")
+
+    # Convert to integer coordinates (x,y)
+    center = (int(center_yx[1, 0]), int(center_yx[0, 0]))
+
+    logger.debug(f"Calculated center at {center}")
+    return center
+
+
+def get_diffraction_center(
+    accumulator: FrameAccumulator, subsample_step: int = 2
+) -> tuple[int, int]:
+    """
+    Convenience function that calculates the diffraction center from an accumulator.
+
+    Args:
+        accumulator: FrameAccumulator containing sparse frames
+        subsample_step: Step size for subsampling positions
+
+    Returns:
+        Tuple of (center_x, center_y) coordinates
+
+    Raises:
+        ValueError: If calculation fails at any stage
+    """
+    # Get the summed diffraction pattern
+    summed_dp = get_summed_diffraction_pattern(
+        accumulator, subsample_step=subsample_step
+    )
+
+    # Calculate center from the pattern
+    return calculate_diffraction_center(summed_dp)
+
+
+class FrameEmitter:
+    """
+    Manages iterating through frames of a SparseArray and generating BytesMessages for each frame.
+    """
+
+    def __init__(self, sparse_array: SparseArray, scan_number: int):
+        if not isinstance(sparse_array, SparseArray):
+            raise TypeError("sparse_array must be a stempy.io.SparseArray")
+        if not isinstance(scan_number, int):
+            raise TypeError("scan_number must be an integer")
+
+        self._sparse_array = sparse_array
+        self.scan_number = scan_number
+
+        # Calculate total frames considering multiple frames per position
+        self.total_positions = int(sparse_array.num_scans)
+        self.frames_per_position = (
+            sparse_array.data.shape[1] if sparse_array.data.size > 0 else 1
+        )
+        self.total_frames = self.total_positions * self.frames_per_position
+
+        # Indexes to track current position/frame (helps with test)
+        self._position_index = 0
+        self._frame_index = 0
+
+        self._frames_emitted = 0
+        self._iterator = self._frame_generator()
+        self._finished = False
+
+        logger.debug(
+            f"FrameEmitter initialized for Scan {self.scan_number} with {self.total_positions} positions, "
+            f"{self.frames_per_position} frames per position ({self.total_frames} total frames)."
+        )
+
+    def is_finished(self) -> bool:
+        return self._finished
+
+    def _create_frame_message(
+        self,
+        scan_position_index: int,
+        frame_index: int = 0,
+    ) -> BytesMessage:
+        """
+        Internal helper to create a single frame message.
+        Raises exceptions on failure instead of returning None.
+
+        Args:
+            scan_position_index: Flattened index of the scan position
+            frame_index: Index of frame at this position (default: 0)
+
+        Returns:
+            BytesMessage for the frame data
+        """
+        sparse_array = self._sparse_array
+        current_scan_number = self.scan_number
+
+        # Bounds check
+        if scan_position_index < 0 or scan_position_index >= self.total_positions:
+            raise IndexError(f"Invalid scan_position_index ({scan_position_index}).")
+
+        # Check frame index bounds
+        if frame_index < 0 or frame_index >= sparse_array.data.shape[1]:
+            raise IndexError(
+                f"Invalid frame_index {frame_index} for position {scan_position_index}. "
+                f"Valid range: 0 to {sparse_array.data.shape[1] - 1}"
+            )
+
+        # --- Frame Data Extraction ---
+        frame_data_sparse = sparse_array.data[scan_position_index, frame_index]
+
+        # Validate frame data exists and is the right type
+        if frame_data_sparse is None:
+            raise ValueError(
+                f"No data found for position {scan_position_index}, frame {frame_index}"
+            )
+
+        if not isinstance(frame_data_sparse, np.ndarray):
+            raise TypeError(
+                f"Expected ndarray for position {scan_position_index}, frame {frame_index}, "
+                f"got {type(frame_data_sparse)}"
+            )
+
+        # Ensure data is uint32
+        if frame_data_sparse.dtype != np.uint32:
+            frame_data_sparse = frame_data_sparse.astype(np.uint32, copy=False)
+
+        frame_data_bytes = frame_data_sparse.tobytes()
+
+        # --- Metadata and Header Creation ---
+        scan_shape = sparse_array.scan_shape
+        if not scan_shape or len(scan_shape) != 2:
+            raise ValueError(
+                f"Invalid scan_shape {scan_shape} in sparse_array for frame {scan_position_index}."
+            )
+
+        frame_shape = sparse_array.frame_shape
+        if not frame_shape or len(frame_shape) != 2:
+            raise ValueError(
+                f"Invalid frame_shape {frame_shape} in sparse_array for frame {scan_position_index}."
+            )
+
+        # Calculate 2D position
+        position_2d = np.unravel_index(scan_position_index, scan_shape)
+
+        header_meta = FrameHeader(
+            scan_number=current_scan_number,
+            nSTEM_positions_per_row_m1=scan_shape[1],
+            nSTEM_rows_m1=scan_shape[0],
+            STEM_x_position_in_row=int(position_2d[1]),
+            STEM_row_in_scan=int(position_2d[0]),
+            modules=sparse_array.metadata.get("modules", [0, 1, 2, 3]),
+            frame_shape=frame_shape,
+        )
+
+        # Create BytesMessage
+        output_message = BytesMessage(
+            header=MessageHeader(
+                subject=MessageSubject.BYTES, meta=header_meta.model_dump()
+            ),
+            data=frame_data_bytes,
+        )
+        return output_message
+
+    def _frame_generator(self) -> Generator[BytesMessage, None, None]:
+        """
+        Internal generator that yields valid BytesMessages.
+        Handles multiple frames per position and error skipping.
+        """
+        logger.debug(
+            f"FrameEmitter internal generator started for Scan {self.scan_number}."
+        )
+
+        for position_idx in range(self.total_positions):
+            for frame_idx in range(self.frames_per_position):
+                try:
+                    message = self._create_frame_message(
+                        scan_position_index=position_idx, frame_index=frame_idx
+                    )
+                    self._position_index = position_idx
+                    self._frame_index = frame_idx
+                    self._frames_emitted += 1
+                    yield message
+
+                except Exception as e:
+                    logger.error(
+                        f"Scan {self.scan_number}: Unexpected error at position {position_idx}, frame {frame_idx}: {str(e)}"
+                    )
+                    raise
+
+        logger.debug(
+            f"FrameEmitter internal generator finished for Scan {self.scan_number}. "
+            f"Emitted {self._frames_emitted}/{self.total_frames} frames."
+        )
+
+    def get_next_frame_message(self) -> BytesMessage:
+        """
+        Gets the next valid frame message from the internal generator.
+
+        Returns:
+            - BytesMessage: The next successfully processed frame message.
+
+        Raises:
+            - StopIteration: If all frames have already been sent or skipped due to errors.
+            - Exception: Any unexpected exceptions during frame processing will bubble up.
+        """
+        if self._finished:
+            raise StopIteration("FrameEmitter is finished.")
+
+        try:
+            next_item = next(self._iterator)
+            return next_item
+        except StopIteration:
+            self._finished = True
+            logger.debug(
+                f"FrameEmitter for Scan {self.scan_number}: Finished after emitting {self._frames_emitted} frames."
+            )
+            raise
