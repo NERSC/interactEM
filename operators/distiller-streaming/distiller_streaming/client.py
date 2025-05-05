@@ -12,7 +12,7 @@ import pandas as pd
 import zmq
 from pydantic import BaseModel, Field
 
-from distiller_pipeline.util import decode_str, parse_nested_dict
+from distiller_streaming.util import decode_str, parse_nested_dict
 from interactem.core.logger import get_logger
 
 logger = get_logger()

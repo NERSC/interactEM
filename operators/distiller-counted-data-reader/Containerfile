@@ -1,11 +1,11 @@
 FROM ghcr.io/nersc/interactem/operator
 
 WORKDIR /app
-COPY ./distiller-pipeline/pyproject.toml ./distiller-pipeline/poetry.lock ./distiller-pipeline/README.md /app/
+COPY ./distiller-streaming/pyproject.toml ./distiller-streaming/poetry.lock ./distiller-streaming/README.md /app/
 
 RUN poetry install --no-root
 
-COPY ./distiller-pipeline/distiller_pipeline/ /app/distiller_pipeline/
+COPY ./distiller-streaming/distiller_streaming/ /app/distiller_streaming/
 RUN poetry install
 
 COPY ./distiller-counted-data-reader/run.py /app/run.py

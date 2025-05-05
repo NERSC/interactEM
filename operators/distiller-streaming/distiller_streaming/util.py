@@ -7,7 +7,7 @@ import stempy.image as stim
 import zmq
 from stempy.io import SparseArray
 
-from distiller_pipeline.accumulator import FrameAccumulator
+from distiller_streaming.accumulator import FrameAccumulator
 from interactem.core.logger import get_logger
 
 logger = get_logger()

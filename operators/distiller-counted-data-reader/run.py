@@ -3,7 +3,7 @@ import time
 from typing import Any
 
 import stempy.io
-from distiller_pipeline.emitter import FrameEmitter
+from distiller_streaming.emitter import FrameEmitter
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage

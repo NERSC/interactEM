@@ -1,11 +1,11 @@
 from typing import Any
 
 import numpy as np
-from distiller_pipeline.accumulator import FrameAccumulator
-from distiller_pipeline.models import FrameHeader
+from distiller_streaming.accumulator import FrameAccumulator
+from distiller_streaming.models import FrameHeader
 
 # Import FrameAccumulator and FrameHeader
-from distiller_pipeline.util import (
+from distiller_streaming.util import (
     get_summed_diffraction_pattern,
 )
 

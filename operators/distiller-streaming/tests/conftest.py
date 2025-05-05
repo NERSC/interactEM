@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from distiller_pipeline.accumulator import FrameAccumulator
-from distiller_pipeline.models import FrameHeader
+from distiller_streaming.accumulator import FrameAccumulator
+from distiller_streaming.models import FrameHeader
 
 
 @pytest.fixture

@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from distiller_pipeline.util import (
+from distiller_streaming.util import (
     calculate_diffraction_center,
     get_diffraction_center,
     get_summed_diffraction_pattern,

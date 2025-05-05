@@ -3,9 +3,9 @@ from collections import deque
 from typing import Any
 
 import zmq
-from distiller_pipeline.client import SharedStateClient
-from distiller_pipeline.emitter import FrameEmitter
-from distiller_pipeline.util import (
+from distiller_streaming.client import SharedStateClient
+from distiller_streaming.emitter import FrameEmitter
+from distiller_streaming.util import (
     receive_and_unpack_sparse_array,
 )
 from stempy.io import SparseArray

@@ -1,5 +1,5 @@
 [project]
-name = "distiller_pipeline"
+name = "distiller_streaming"
 version = "0.1.0"
 description = ""
 authors = [
@@ -31,7 +31,7 @@ exclude = []
 exclude = []
 
 [tool.ruff.lint.isort]
-known-first-party = ["distiller_pipeline", "interactem"]
+known-first-party = ["distiller_streaming", "interactem"]
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.5"

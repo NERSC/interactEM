@@ -1,7 +1,7 @@
 import numpy as np
 from stempy.io import SparseArray
 
-from distiller_pipeline.models import FrameHeader
+from distiller_streaming.models import FrameHeader
 from interactem.core.logger import get_logger
 
 logger = get_logger()
