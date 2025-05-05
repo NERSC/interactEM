@@ -1,0 +1,74 @@
+{
+  "id": "fedcba98-7654-3210-abcd-ef0123456789",
+  "image": "ghcr.io/nersc/interactem/array-image-converter:latest", 
+  "label": "Array Image Converter", 
+  "description": "Converts raw NumPy array bytes (e.g., float, int) to displayable images (JPEG/PNG) with normalization and colormapping.", 
+  "inputs": [
+    {
+      "name": "in",
+      "label": "Input Array",
+      "type": "bytes",
+      "description": "Raw bytes of a NumPy array (requires 'shape' and 'dtype' in header meta)"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "out",
+      "label": "Display Image",
+      "type": "Image",
+      "description": "Image encoded as JPEG or PNG bytes"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "percentile_min",
+      "label": "Min Percentile Clip",
+      "type": "float",
+      "default": "0.5",
+      "description": "Lower percentile for intensity clipping (0-100)",
+      "required": false
+    },
+    {
+      "name": "percentile_max",
+      "label": "Max Percentile Clip",
+      "type": "float",
+      "default": "99.5",
+      "description": "Upper percentile for intensity clipping (0-100)",
+      "required": false
+    },
+    {
+      "name": "contrast",
+      "label": "Image Contrast",
+      "type": "float",
+      "default": "1.0",
+      "description": "Image contrast enhancement factor",
+      "required": false
+    },
+    {
+      "name": "brightness",
+      "label": "Image Brightness",
+      "type": "float",
+      "default": "1.0",
+      "description": "Image brightness enhancement factor",
+      "required": false
+    },
+    {
+      "name": "colormap",
+      "label": "Colormap",
+      "type": "str-enum",
+      "default": "viridis",
+      "description": "Colormap to apply",
+      "required": false,
+      "options": ["viridis", "plasma", "inferno", "magma", "cividis", "gray"]
+    },
+    {
+      "name": "image_format",
+      "label": "Output Format",
+      "type": "str-enum",
+      "default": "JPEG",
+      "description": "Output image encoding format",
+      "required": false,
+      "options": ["JPEG", "PNG"]
+    }
+  ]
+}
