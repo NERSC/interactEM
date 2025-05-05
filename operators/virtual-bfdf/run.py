@@ -2,9 +2,9 @@ from typing import Any
 
 import numpy as np
 import stempy.image as stim  # Import stim
-from distiller_pipeline import (
-    FrameAccumulator,
-    FrameHeader,
+from distiller_pipeline.accumulator import FrameAccumulator
+from distiller_pipeline.models import FrameHeader
+from distiller_pipeline.util import (
     calculate_diffraction_center,
     get_summed_diffraction_pattern,
 )

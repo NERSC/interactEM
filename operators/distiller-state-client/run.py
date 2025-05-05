@@ -2,7 +2,7 @@ import pickle
 import time
 from typing import Any
 
-from distiller_pipeline import SharedStateClient
+from distiller_pipeline.client import SharedStateClient
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject

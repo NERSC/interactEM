@@ -4,7 +4,9 @@ import numpy as np
 import pytest
 from stempy.io import SparseArray
 
-from distiller_pipeline import FrameAccumulator, FrameEmitter, FrameHeader
+from distiller_pipeline.accumulator import FrameAccumulator
+from distiller_pipeline.emitter import FrameEmitter
+from distiller_pipeline.models import FrameHeader
 from interactem.core.models.messages import BytesMessage
 
 
