@@ -6,13 +6,6 @@ variable "TAG" {
   default = "latest"
 }
 
-group "base" {
-  targets = [
-    "base",
-    "operator"
-  ]
-}
-
 group "operators" {
   targets = [
     "beam-compensation",
