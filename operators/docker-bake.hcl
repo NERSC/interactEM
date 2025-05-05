@@ -33,6 +33,10 @@ group "operators" {
     "table-display",
     "distiller-state-client",
     "distiller-grabber",
+    "distiller-counted-data-reader",
+    "diffraction-pattern-accumulator",
+    "array-image-converter",
+    "virtual-bfdf"
   ]
 }
 
@@ -179,4 +183,32 @@ target "distiller-grabber" {
   context = "operators/"
   dockerfile = "distiller-grabber/Containerfile"
   tags = ["${REGISTRY}/distiller-grabber:${TAG}"]
+}
+
+target "distiller-counted-data-reader" {
+  inherits = ["common"]
+  context = "operators/"
+  dockerfile = "distiller-counted-data-reader/Containerfile"
+  tags = ["${REGISTRY}/distiller-counted-data-reader:${TAG}"]
+}
+
+target "diffraction-pattern-accumulator" {
+  inherits = ["common"]
+  context = "operators/"
+  dockerfile = "diffraction-pattern-accumulator/Containerfile"
+  tags = ["${REGISTRY}/diffraction-pattern-accumulator:${TAG}"]
+}
+
+target "array-image-converter" {
+  inherits = ["common"]
+  context = "operators/array-image-converter"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/array-image-converter:${TAG}"]
+}
+
+target "virtual-bfdf" {
+  inherits = ["common"]
+  context = "operators"
+  dockerfile = "virtual-bfdf/Containerfile"
+  tags = ["${REGISTRY}/virtual-bfdf:${TAG}"]
 }
