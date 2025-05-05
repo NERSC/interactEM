@@ -7,6 +7,7 @@ cd $REPO_ROOT_DIR
 
 # Build all images using Docker Bake
 docker buildx bake base --file $REPO_ROOT_DIR/operators/docker-bake.hcl
+docker buildx bake operator --file $REPO_ROOT_DIR/operators/docker-bake.hcl
 docker buildx bake operators --file $REPO_ROOT_DIR/operators/docker-bake.hcl --provenance=false
 
 if [ $? -ne 0 ]; then
