@@ -1,0 +1,56 @@
+{
+  "id": "12d56033-1245-452b-a720-0e4a698af7fd",
+  "image": "ghcr.io/nersc/interactem/virtual-bfdf:latest",
+  "label": "Virtual BF/DF",
+  "description": "Calculates virtual bright field/dark field images from accumulated sparse frames.",
+  "inputs": [
+    {
+      "name": "counted_data",
+      "label": "Counted Data",
+      "type": "sparse_frame",
+      "description": "Sparse frame of counted data"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "image",
+      "label": "Virtual BF/DF Image",
+      "type": "image",
+      "description": "Calculated virtual bright field or dark field image"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "calculation_frequency",
+      "label": "Calculation Frequency",
+      "type": "int",
+      "default": "100",
+      "description": "Number of frames to accumulate before recalculating the center and emitting a BF image.",
+      "required": true
+    },
+    {
+      "name": "inner_radius",
+      "label": "BF Inner Radius (px)",
+      "type": "int",
+      "default": "0",
+      "description": "Inner radius of the vBF/vDF (vBF ~0, vDF ~255).",
+      "required": true
+    },
+    {
+      "name": "outer_radius",
+      "label": "BF Outer Radius (px)",
+      "type": "int",
+      "default": "75",
+      "description": "Outer radius of the vBF/vDF (vBF ~75, vDF ~288).",
+      "required": true
+    },
+     {
+      "name": "subsample_step_center",
+      "label": "Center Subsample Step",
+      "type": "int",
+      "default": "20",
+      "description": "Step size for subsampling scan positions when calculating the center.",
+      "required": true
+    }
+  ]
+}
