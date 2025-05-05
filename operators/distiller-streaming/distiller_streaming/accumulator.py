@@ -6,6 +6,7 @@ from interactem.core.logger import get_logger
 
 logger = get_logger()
 
+
 class FrameAccumulator(SparseArray):
     """Accumulates sparse frames for a single scan, tracking which frames have been added."""
 

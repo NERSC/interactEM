@@ -12,6 +12,7 @@ from interactem.core.logger import get_logger
 
 logger = get_logger()
 
+
 def get_summed_diffraction_pattern(
     accumulator: FrameAccumulator, subsample_step: int = 2
 ) -> np.ndarray:

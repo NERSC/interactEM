@@ -9,6 +9,7 @@ from interactem.core.models.messages import BytesMessage, MessageHeader, Message
 
 logger = get_logger()
 
+
 class FrameEmitter:
     """
     Manages iterating through frames of a SparseArray and generating BytesMessages for each frame.

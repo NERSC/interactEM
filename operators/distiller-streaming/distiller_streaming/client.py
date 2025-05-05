@@ -17,6 +17,7 @@ from interactem.core.logger import get_logger
 
 logger = get_logger()
 
+
 class MessagingStatus:
     IDLE = 0
     BEFORE_SEND_FRAMES = 1

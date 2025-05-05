@@ -1,4 +1,3 @@
-
 from pydantic import BaseModel
 
 
@@ -11,15 +10,3 @@ class FrameHeader(BaseModel):
     STEM_row_in_scan: int
     modules: list[int]
     frame_shape: tuple[int, int]
-
-
-
-
-
-
-
-
-
-
-
-
