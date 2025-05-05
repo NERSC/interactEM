@@ -15,7 +15,7 @@
     {
       "name": "pub_address",
       "label": "Publisher Address",
-      "type": "string",
+      "type": "str",
       "default": "tcp://localhost:7082",
       "description": "Address of the publisher",
       "required": true

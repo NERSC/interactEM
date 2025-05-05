@@ -1,171 +1,137 @@
-import asyncio
 import time
+from collections import deque
 from typing import Any
 
 import zmq
-import zmq.asyncio
 from distiller_pipeline import (
+    FrameEmitter,
     SharedStateClient,
+    receive_and_unpack_sparse_array,
 )
+from stempy.io import SparseArray
 
 from interactem.core.logger import get_logger
-from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
-from interactem.operators.operator import async_operator, dependencies
+from interactem.core.models.messages import BytesMessage
+from interactem.operators.operator import dependencies, operator
 
 logger = get_logger()
 
 # --- Operator State ---
-_state_client: SharedStateClient | None = None
-_zmq_context: zmq.asyncio.Context | None = None
-_data_pull_socket: zmq.asyncio.Socket | None = None
-_connected_node_id: str | None = None
-_current_pub_address: str | None = None
+state_client: SharedStateClient | None = None
+current_pub_address: str | None = None
+current_data_port: int = 17000
+
+DEFAULT_PUB_ADDRESS = "tcp://localhost:7082"
+DEFAULT_DATA_PORT = 17000
+DATA_CHECK_INTERVAL = 1.0
+
+emitter_cache: deque[FrameEmitter] = deque()
+active_emitter: FrameEmitter | None = None
+last_data_check_time: float = 0.0
 
 
 @dependencies
 def setup_and_teardown():
-    global _state_client, _current_pub_address, _zmq_context
-    global _data_pull_socket, _connected_node_id
+    global state_client, current_pub_address, current_data_port
+    global emitter_cache, active_emitter, last_data_check_time
 
-    # Initialize ZMQ Context
-    logger.info("Initializing async ZMQ context.")
-    _zmq_context = zmq.asyncio.Context()
-
-    # Initialize SharedStateClient
-    initial_pub_address = "tcp://localhost:7082"  # Default, will be updated
-    logger.info(f"Initializing SharedStateClient (pub: {initial_pub_address})...")
-    _state_client = SharedStateClient(pub_address=initial_pub_address)
-    _current_pub_address = initial_pub_address
-    _state_client.start()  # Note: Client's internal process is still synchronous
+    initial_pub_address = DEFAULT_PUB_ADDRESS
+    logger.info(
+        f"Initializing SharedStateClient (pub: {initial_pub_address}, data port: {DEFAULT_DATA_PORT})..."
+    )
+    state_client = SharedStateClient(pub_address=initial_pub_address)
+    current_pub_address = initial_pub_address
+    current_data_port = DEFAULT_DATA_PORT
+    last_data_check_time = 0.0
+    state_client.start()
     logger.info("SharedStateClient started.")
 
-    yield  # Let the operator run
+    yield
 
-    # --- Teardown ---
     logger.info("Shutting down operator dependencies...")
-    if _state_client:
+    if state_client:
         logger.info("Shutting down SharedStateClient...")
-        _state_client.shutdown()
-        _state_client = None
+        state_client.shutdown()
+        state_client = None
         logger.info("SharedStateClient shut down.")
 
-    if _data_pull_socket:
-        logger.info("Closing data pull socket...")
-        _data_pull_socket.close()
-        _data_pull_socket = None
-        logger.info("Data pull socket closed.")
-
-    if _zmq_context:
-        logger.info("Terminating async ZMQ context.")
-        # Context termination should happen after sockets are closed
-        time.sleep(1)
-        _zmq_context.term()
-        _zmq_context = None
-        logger.info("Async ZMQ context terminated.")
-
-    _connected_node_id = None
-    _current_pub_address = None
+    current_pub_address = None
+    emitter_cache.clear()
+    active_emitter = None
     logger.info("Operator dependencies shut down.")
 
-DATA_PORT = 15000
 
-# --- Operator Kernel ---
-@async_operator
-async def state_receiver(
+@operator
+def grabber(
     inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> BytesMessage | None:
-    global _state_client, _current_pub_address, _connected_node_id
-    global _zmq_context, _data_pull_socket
+    global state_client, current_pub_address, current_data_port
+    global emitter_cache, active_emitter, last_data_check_time
 
-    if not _state_client or not _zmq_context:
-        logger.error("SharedStateClient or ZMQ Context not initialized.")
-        await asyncio.sleep(1)
+    if not state_client:
+        logger.error("SharedStateClient not initialized.")
+        time.sleep(1)
         return None
 
-    # --- 1. Handle Parameter Updates ---
-    new_pub_address = parameters.get("pub_address", "tcp://localhost:7082")
-
-    if new_pub_address != _current_pub_address:
+    new_pub_address = str(parameters.get("pub_address", DEFAULT_PUB_ADDRESS))
+    if new_pub_address != current_pub_address:
         logger.info(
-            f"Pub address changed from '{_current_pub_address}' to '{new_pub_address}'. Updating client."
+            f"Pub address changed from '{current_pub_address}' to '{new_pub_address}'. Updating client."
         )
+        state_client.update_pub_address(new_pub_address)
+        current_pub_address = new_pub_address
+
+    if active_emitter is None and emitter_cache:
+        active_emitter = emitter_cache.popleft()
+        logger.info(
+            f"Starting to process cached emitter (Scan: {active_emitter.scan_number}, "
+            f"Frames: {active_emitter.total_frames})"
+        )
+
+    if active_emitter:
         try:
-            _state_client.update_pub_address(new_pub_address)
-            _current_pub_address = new_pub_address
-            # Reset connection state
-            if _data_pull_socket:
-                _data_pull_socket.close()
-                _data_pull_socket = None
-            _connected_node_id = None
-        except Exception as e:
-            logger.error(f"Failed to update client pub address: {e}")
+            result = active_emitter.get_next_frame_message()
+            return result
 
-    # --- 2. Check for Head Node Updates from Client ---
-    _state_client.receive_update(timeout_ms=0)
-    new_head_node_id = _state_client.get_current_head_node_id()
+        except StopIteration:
+            scan_num = active_emitter.scan_number
+            total_frames = active_emitter.total_frames
+            logger.info(
+                f"Finished sending all {total_frames} frames "
+                f"from emitter (Scan: {scan_num})."
+            )
+            active_emitter = None
 
-    # --- 3. Manage Data Pull Socket Connection ---
-    if new_head_node_id != _connected_node_id:
-        logger.info(
-            f"Head node change detected. Old: '{_connected_node_id}', New: '{new_head_node_id}'."
-        )
+    current_time = time.time()
+    if current_time - last_data_check_time < DATA_CHECK_INTERVAL:
+        return None
 
-        # Close existing connection if it exists
-        if _data_pull_socket:
-            logger.info(f"Closing connection to old head node '{_connected_node_id}'.")
-            _data_pull_socket.close()
-            _data_pull_socket = None
+    last_data_check_time = current_time
 
-        # Connect to new head node if specified
-        if new_head_node_id:
-            data_pull_addr = f"tcp://{new_head_node_id}.chn.perlmutter.nersc.gov:{DATA_PORT}"
-            logger.info(f"Attempting to connect PULL socket to {data_pull_addr}...")
-            try:
-                # Create and connect async ZMQ socket
-                _data_pull_socket = _zmq_context.socket(zmq.PULL)
-                # Set linger to 0 for faster close
-                _data_pull_socket.setsockopt(zmq.LINGER, 0)
-                _data_pull_socket.connect(data_pull_addr)
-                _connected_node_id = new_head_node_id
-                logger.info(f"Successfully connected PULL socket to {data_pull_addr}.")
-            except (zmq.ZMQError, OSError, Exception) as e:
-                logger.error(
-                    f"Failed to connect PULL socket to {data_pull_addr}: {type(e).__name__}: {e}"
+    data_socket = state_client.get_data_socket()
+    if data_socket:
+        try:
+            new_sparse_array: SparseArray = receive_and_unpack_sparse_array(data_socket)
+            scan_number = new_sparse_array.metadata.get("scan_number_received", 0)
+            logger.info(
+                f"Received new dataset (Scan: {scan_number}, "
+                f"Shape: {new_sparse_array.scan_shape}, Frames: {new_sparse_array.num_scans})."
+            )
+            emitter = FrameEmitter(
+                sparse_array=new_sparse_array, scan_number=scan_number
+            )
+            emitter_cache.append(emitter)
+
+            if active_emitter is None and emitter_cache:
+                active_emitter = emitter_cache.popleft()
+                logger.info(
+                    f"Starting to process new emitter (Scan: {active_emitter.scan_number}, "
+                    f"Frames: {active_emitter.total_frames})"
                 )
-                if _data_pull_socket:  # Ensure socket is closed on connect error
-                    _data_pull_socket.close()
-                _data_pull_socket = None
-                _connected_node_id = None
-        else:
-            # No new head node, ensure state reflects no connection
-            _connected_node_id = None
-            logger.info("Head node is None. No active data connection.")
+                try:
+                    return active_emitter.get_next_frame_message()
+                except StopIteration:
+                    active_emitter = None
 
-    # --- 4. Attempt to Pull Data ---
-    if _data_pull_socket:
-        try:
-            # Receive non-blockingly using await and NOBLOCK flag
-            msg = await _data_pull_socket.recv(flags=zmq.NOBLOCK)
-            logger.debug(f"Received {len(msg)} bytes from data pull socket.")
-            # --- 5. Return Data ---
-            return BytesMessage(
-                header=MessageHeader(subject=MessageSubject.BYTES, meta={}), data=msg
-            )
         except zmq.Again:
-            # Expected when no message is available with NOBLOCK
-            logger.debug("No data available on pull socket (zmq.Again).")
-            return None
-        except (zmq.ZMQError, asyncio.CancelledError, Exception) as e:
-            logger.error(
-                f"Error reading from data pull socket for '{_connected_node_id}': {type(e).__name__}: {e}"
-            )
-            # Assume connection is broken, close and clear state
-            if _data_pull_socket:
-                _data_pull_socket.close()
-            _data_pull_socket = None
-            _connected_node_id = None
-            return None
-    else:
-        # No active connection
-        logger.debug("No data pull connection active.")
-        return None
+            pass
