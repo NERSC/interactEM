@@ -1,0 +1,32 @@
+{
+  "id": "dedeba48-cb84-48dc-b6ca-4c11d94e9375",
+  "image": "ghcr.io/nersc/interactem/diffraction-pattern-accumulator:latest",
+  "label": "Diffraction Pattern Accumulator",
+  "description": "Accumulates diffraction patterns from sparse arrays.",
+  "inputs": [
+    {
+      "name": "counted_data",
+      "label": "Counted Data",
+      "type": "sparse_frame",
+      "description": "Sparse frame of counted data"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "image",
+      "label": "Output Image",
+      "type": "image",
+      "description": "Dense image"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "update_frequency",
+      "label": "Update Frequency",
+      "type": "int",
+      "default": "100",
+      "description": "The number of frames to accumulate before sending out a frame.",
+      "required": true
+    }
+  ]
+}
