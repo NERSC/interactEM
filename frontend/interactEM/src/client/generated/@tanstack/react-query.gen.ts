@@ -25,6 +25,7 @@ import {
   pipelinesReadPipelineRevision,
   pipelinesReadPipelines,
   pipelinesRunPipeline,
+  pipelinesStopPipeline,
   pipelinesUpdatePipeline,
   pipelinesUpdatePipelineRevision,
   usersCreateUser,
@@ -75,6 +76,9 @@ import type {
   PipelinesRunPipelineData,
   PipelinesRunPipelineError,
   PipelinesRunPipelineResponse,
+  PipelinesStopPipelineData,
+  PipelinesStopPipelineError,
+  PipelinesStopPipelineResponse,
   PipelinesUpdatePipelineData,
   PipelinesUpdatePipelineError,
   PipelinesUpdatePipelineResponse,
@@ -930,6 +934,47 @@ export const pipelinesRunPipelineMutation = (
   > = {
     mutationFn: async (localOptions) => {
       const { data } = await pipelinesRunPipeline({
+        ...options,
+        ...localOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
+}
+
+export const pipelinesStopPipelineQueryKey = (
+  options: Options<PipelinesStopPipelineData>,
+) => [createQueryKey("pipelinesStopPipeline", options)]
+
+export const pipelinesStopPipelineOptions = (
+  options: Options<PipelinesStopPipelineData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await pipelinesStopPipeline({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: pipelinesStopPipelineQueryKey(options),
+  })
+}
+
+export const pipelinesStopPipelineMutation = (
+  options?: Partial<Options<PipelinesStopPipelineData>>,
+) => {
+  const mutationOptions: UseMutationOptions<
+    PipelinesStopPipelineResponse,
+    AxiosError<PipelinesStopPipelineError>,
+    Options<PipelinesStopPipelineData>
+  > = {
+    mutationFn: async (localOptions) => {
+      const { data } = await pipelinesStopPipeline({
         ...options,
         ...localOptions,
         throwOnError: true,

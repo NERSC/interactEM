@@ -41,7 +41,7 @@ export default function InteractEM({
             </DnDProvider>
           </ReactFlowProvider>
           <ToastContainer
-            position="top-left"
+            position="top-center"
             autoClose={5000}
             hideProgressBar={false}
             newestOnTop

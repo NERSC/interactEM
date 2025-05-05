@@ -14,8 +14,14 @@ from interactem.core.constants import (
     BUCKET_PIPELINES,
     BUCKET_PIPELINES_TTL,
     STREAM_AGENTS,
+    SUBJECT_PIPELINES_RUN,
+    SUBJECT_PIPELINES_STOP,
 )
-from interactem.core.events.pipelines import PipelineRunEvent, PipelineRunVal
+from interactem.core.events.pipelines import (
+    PipelineRunEvent,
+    PipelineRunVal,
+    PipelineStopEvent,
+)
 from interactem.core.logger import get_logger
 from interactem.core.models.agent import AgentVal
 from interactem.core.models.base import IdType
@@ -30,6 +36,7 @@ from interactem.core.nats import (
     get_val,
     nc,
     publish_error,
+    publish_notification,
 )
 from interactem.core.nats.config import (
     AGENTS_STREAM_CONFIG,
@@ -457,6 +464,56 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
 
     logger.info(f"Pipeline run event for {valid_pipeline.id} processed.")
 
+async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
+    logger.info("Received pipeline stop event...")
+    await msg.ack()
+
+    try:
+        event = PipelineStopEvent.model_validate_json(msg.data)
+    except ValidationError as e:
+        logger.error(f"Invalid pipeline stop event message: {e}")
+        return
+
+    pipeline_id = event.id
+    logger.info(f"Processing stop request for pipeline {pipeline_id}")
+
+    if pipeline_id in pipelines:
+        del pipelines[pipeline_id]
+        logger.debug(f"Removed pipeline {pipeline_id} from local cache.")
+
+    await delete_pipeline_kv(js, pipeline_id)
+    logger.info(f"Deleted pipeline {pipeline_id} from KV store.")
+    publish_notification(js=js, msg="Pipeline stopped", task_refs=task_refs)
+
+    # Send stop command (empty assignment) to all agents
+    agents_bucket = await get_agents_bucket(js)
+    agent_keys = await get_keys(agents_bucket)
+
+    if not agent_keys:
+        logger.warning(
+            f"No agents found to send stop command for pipeline {pipeline_id}."
+        )
+        return
+
+    # Create a pipeline w/o operators for killing the pipeline
+    pipeline = PipelineJSON(id=pipeline_id, operators=[], edges=[])
+
+    stop_assignments = [
+        PipelineAssignment(
+            agent_id=UUID(agent_key),
+            operators_assigned=[],
+            pipeline=pipeline,
+        )
+        for agent_key in agent_keys
+    ]
+
+    publish_tasks = [
+        publish_assignment(js, assignment) for assignment in stop_assignments
+    ]
+    await asyncio.gather(*publish_tasks)
+
+    logger.info(f"Pipeline stop event for {pipeline_id} processed.")
+
 
 async def main():
     instance_id: UUID = uuid4()
@@ -479,16 +536,33 @@ async def main():
         await asyncio.gather(*startup_tasks)
         logger.info("NATS buckets and streams initialized/verified.")
 
-        pipeline_run_psub = await create_orchestrator_pipeline_consumer(js, instance_id)
+        pipeline_run_psub = await create_orchestrator_pipeline_consumer(
+            js, instance_id, subject=SUBJECT_PIPELINES_RUN
+        )
         logger.info("Pipeline run event consumer created.")
+
+        pipeline_stop_psub = await create_orchestrator_pipeline_consumer(
+            js, instance_id, subject=SUBJECT_PIPELINES_STOP
+        )
+        logger.info("Pipeline stop event consumer created.")
 
         update_task = asyncio.create_task(continuous_update_kv(js))
         task_refs.add(update_task)
 
+        run_consumer_task = asyncio.create_task(
+            consume_messages(pipeline_run_psub, handle_run_pipeline, js)
+        )
+        task_refs.add(run_consumer_task)
+
+        stop_consumer_task = asyncio.create_task(
+            consume_messages(pipeline_stop_psub, handle_stop_pipeline, js)
+        )
+        task_refs.add(stop_consumer_task)
+
         logger.info(
             f"Orchestrator instance {instance_id} running. Waiting for events..."
         )
-        await consume_messages(pipeline_run_psub, handle_run_pipeline, js)
+        await asyncio.gather(run_consumer_task, stop_consumer_task, update_task)
 
     finally:
         if nats_client and nats_client.is_connected:
