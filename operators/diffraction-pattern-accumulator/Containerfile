@@ -1,11 +1,3 @@
-FROM ghcr.io/nersc/interactem/operator
+FROM ghcr.io/nersc/interactem/distiller-streaming
 
-WORKDIR /app
-COPY ./distiller-streaming/pyproject.toml ./distiller-streaming/poetry.lock ./distiller-streaming/README.md /app/
-
-RUN poetry install --no-root
-
-COPY ./distiller-streaming/distiller_streaming/ /app/distiller_streaming/
-RUN poetry install
-
-COPY ./diffraction-pattern-accumulator/run.py /app/run.py
+COPY ./run.py /app/run.py

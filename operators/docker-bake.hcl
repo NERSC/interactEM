@@ -47,6 +47,13 @@ target "operator" {
   tags = ["${REGISTRY}/operator:${TAG}"]
 }
 
+target "distiller-streaming" {
+  context = "operators/distiller-streaming"
+  dockerfile = "Containerfile"
+  platforms = ["linux/amd64", "linux/arm64"]
+  tags = ["${REGISTRY}/distiller-streaming:${TAG}"]
+}
+
 target "common" {
   platforms = ["linux/amd64"]
   args = {}
@@ -166,29 +173,29 @@ target "table-display" {
 
 target "distiller-state-client" {
   inherits = ["common"]
-  context = "operators/"
-  dockerfile = "distiller-state-client/Containerfile"
+  context = "operators/distiller-state-client"
+  dockerfile = "Containerfile"
   tags = ["${REGISTRY}/distiller-state-client:${TAG}"]
 }
 
 target "distiller-grabber" {
   inherits = ["common"]
-  context = "operators/"
-  dockerfile = "distiller-grabber/Containerfile"
+  context = "operators/distiller-grabber"
+  dockerfile = "Containerfile"
   tags = ["${REGISTRY}/distiller-grabber:${TAG}"]
 }
 
 target "distiller-counted-data-reader" {
   inherits = ["common"]
-  context = "operators/"
-  dockerfile = "distiller-counted-data-reader/Containerfile"
+  context = "operators/distiller-counted-data-reader"
+  dockerfile = "Containerfile"
   tags = ["${REGISTRY}/distiller-counted-data-reader:${TAG}"]
 }
 
 target "diffraction-pattern-accumulator" {
   inherits = ["common"]
-  context = "operators/"
-  dockerfile = "diffraction-pattern-accumulator/Containerfile"
+  context = "operators/diffraction-pattern-accumulator"
+  dockerfile = "Containerfile"
   tags = ["${REGISTRY}/diffraction-pattern-accumulator:${TAG}"]
 }
 
@@ -201,7 +208,7 @@ target "array-image-converter" {
 
 target "virtual-bfdf" {
   inherits = ["common"]
-  context = "operators"
-  dockerfile = "virtual-bfdf/Containerfile"
+  context = "operators/virtual-bfdf"
+  dockerfile = "Containerfile"
   tags = ["${REGISTRY}/virtual-bfdf:${TAG}"]
 }

@@ -1,0 +1,9 @@
+FROM ghcr.io/nersc/interactem/operator
+
+WORKDIR /app
+COPY ./pyproject.toml ./poetry.lock ./README.md /app/
+
+RUN poetry install --no-root
+
+COPY ./distiller_streaming/ /app/distiller_streaming/
+RUN poetry install
