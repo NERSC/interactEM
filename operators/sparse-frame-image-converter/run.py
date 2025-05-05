@@ -3,18 +3,19 @@ from typing import Any
 
 import matplotlib.cm as cm
 import numpy as np
+from PIL import Image, ImageEnhance
+from pydantic import BaseModel, ValidationError
+
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
 from interactem.operators.operator import operator
-from PIL import Image, ImageEnhance
-from pydantic import BaseModel, ValidationError
 
 logger = get_logger()
 
 
 class FrameHeader(BaseModel):
     scan_number: int
-    frame_number: int
+    frame_number: int | None = None
     nSTEM_positions_per_row_m1: int
     nSTEM_rows_m1: int
     STEM_x_position_in_row: int

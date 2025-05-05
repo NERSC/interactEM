@@ -1,16 +1,16 @@
-import asyncio
 from pathlib import Path
 from typing import Any
 
 import ncempy
 import numpy as np
 import stempy.io as stio
-from interactem.core.logger import get_logger
-from interactem.core.models.messages import BytesMessage
-from interactem.operators.operator import DATA_DIRECTORY, operator
 from numpy.linalg import svd
 from pydantic import BaseModel, ValidationError
 from scipy import ndimage
+
+from interactem.core.logger import get_logger
+from interactem.core.models.messages import BytesMessage
+from interactem.operators.operator import DATA_DIRECTORY, operator
 
 logger = get_logger()
 
@@ -30,9 +30,9 @@ def planeFit(points):
     points = np.reshape(
         points, (np.shape(points)[0], -1)
     )  # Collapse trialing dimensions
-    assert (
-        points.shape[0] <= points.shape[1]
-    ), f"There are only {points.shape[1]} points in {points.shape[0]} dimensions."
+    assert points.shape[0] <= points.shape[1], (
+        f"There are only {points.shape[1]} points in {points.shape[0]} dimensions."
+    )
     ctr = points.mean(axis=1)
     x = points - ctr[:, np.newaxis]
     M = np.dot(x, x.T)  # Could also use np.cov(x) here.
@@ -41,7 +41,7 @@ def planeFit(points):
 
 class FrameHeader(BaseModel):
     scan_number: int
-    frame_number: int
+    frame_number: int | None = None
     nSTEM_positions_per_row_m1: int
     nSTEM_rows_m1: int
     STEM_x_position_in_row: int

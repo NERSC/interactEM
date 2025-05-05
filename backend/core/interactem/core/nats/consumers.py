@@ -14,7 +14,6 @@ from interactem.core.constants import (
     STREAM_PARAMETERS,
     STREAM_PIPELINES,
     STREAM_SFAPI,
-    SUBJECT_PIPELINES_RUN,
     SUBJECT_SFAPI_JOBS_SUBMIT,
 )
 from interactem.core.logger import get_logger
@@ -122,8 +121,8 @@ async def create_operator_pipeline_consumer(
 async def create_orchestrator_pipeline_consumer(
     js: JetStreamContext,
     orchestrator_id: UUID,
+    subject: str,
 ) -> JetStreamContext.PullSubscription:
-    subject = f"{SUBJECT_PIPELINES_RUN}"
     cfg = replace(
         PIPELINE_CONSUMER_CONFIG,
         description=f"orchestrator-{orchestrator_id}",

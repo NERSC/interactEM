@@ -6,13 +6,6 @@ variable "TAG" {
   default = "latest"
 }
 
-group "base" {
-  targets = [
-    "base",
-    "operator"
-  ]
-}
-
 group "operators" {
   targets = [
     "beam-compensation",
@@ -33,6 +26,10 @@ group "operators" {
     "table-display",
     "distiller-state-client",
     "distiller-grabber",
+    "distiller-counted-data-reader",
+    "diffraction-pattern-accumulator",
+    "array-image-converter",
+    "virtual-bfdf"
   ]
 }
 
@@ -48,6 +45,13 @@ target "operator" {
   dockerfile = "../docker/Dockerfile.operator"
   platforms = ["linux/amd64", "linux/arm64"]
   tags = ["${REGISTRY}/operator:${TAG}"]
+}
+
+target "distiller-streaming" {
+  context = "operators/distiller-streaming"
+  dockerfile = "Containerfile"
+  platforms = ["linux/amd64", "linux/arm64"]
+  tags = ["${REGISTRY}/distiller-streaming:${TAG}"]
 }
 
 target "common" {
@@ -169,14 +173,42 @@ target "table-display" {
 
 target "distiller-state-client" {
   inherits = ["common"]
-  context = "operators/"
-  dockerfile = "distiller-state-client/Containerfile"
+  context = "operators/distiller-state-client"
+  dockerfile = "Containerfile"
   tags = ["${REGISTRY}/distiller-state-client:${TAG}"]
 }
 
 target "distiller-grabber" {
   inherits = ["common"]
-  context = "operators/"
-  dockerfile = "distiller-grabber/Containerfile"
+  context = "operators/distiller-grabber"
+  dockerfile = "Containerfile"
   tags = ["${REGISTRY}/distiller-grabber:${TAG}"]
+}
+
+target "distiller-counted-data-reader" {
+  inherits = ["common"]
+  context = "operators/distiller-counted-data-reader"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/distiller-counted-data-reader:${TAG}"]
+}
+
+target "diffraction-pattern-accumulator" {
+  inherits = ["common"]
+  context = "operators/diffraction-pattern-accumulator"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/diffraction-pattern-accumulator:${TAG}"]
+}
+
+target "array-image-converter" {
+  inherits = ["common"]
+  context = "operators/array-image-converter"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/array-image-converter:${TAG}"]
+}
+
+target "virtual-bfdf" {
+  inherits = ["common"]
+  context = "operators/virtual-bfdf"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/virtual-bfdf:${TAG}"]
 }

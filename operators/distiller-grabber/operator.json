@@ -1,6 +1,6 @@
 {
   "id": "dc3dd857-31cb-4ba5-9f80-b7a1c4ef55c5",
-  "image": "ghcr.io/nersc/interactem/distiller-pipeline-grabber:latest",
+  "image": "ghcr.io/nersc/interactem/distiller-streaming-grabber:latest",
   "label": "Counted Data From Distiller",
   "description": "Client that connects to the streaming pipeline state server, grabs frames from the distiller pipeline, and sends out frames of data.",
   "outputs": [
@@ -15,7 +15,7 @@
     {
       "name": "pub_address",
       "label": "Publisher Address",
-      "type": "string",
+      "type": "str",
       "default": "tcp://localhost:7082",
       "description": "Address of the publisher",
       "required": true

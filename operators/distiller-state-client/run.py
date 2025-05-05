@@ -2,7 +2,7 @@ import pickle
 import time
 from typing import Any
 
-from distiller_pipeline import SharedStateClient
+from distiller_streaming.client import SharedStateClient
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
@@ -72,14 +72,8 @@ def state_monitor(
                 df_receivers,
                 _,
             ) = latest_state.get_receiver_dataframe_and_totals()
-            (
-                df_aggregators,
-                _,
-            ) = latest_state.get_aggregator_dataframe_and_totals()
-            (
-                df_node_groups,
-                _,
-            ) = latest_state.get_node_group_dataframe_and_totals()
+            df_aggregators = latest_state.get_aggregator_dataframe()
+            df_node_groups = latest_state.get_node_group_dataframe()
 
             state_data_for_display = {
                 "Receivers": df_receivers,
