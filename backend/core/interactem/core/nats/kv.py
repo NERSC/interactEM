@@ -57,6 +57,7 @@ ERRORS_THAT_REQUIRE_RECONNECT = (
     nats.errors.StaleConnectionError,
     nats.errors.UnexpectedEOF,
     nats.errors.ConnectionClosedError,
+    nats.errors.TimeoutError,
 )
 
 V = TypeVar("V", bound=BaseModel)
