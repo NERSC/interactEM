@@ -18,6 +18,12 @@ from nats.aio.client import Client as NATSClient
 from nats.js import JetStreamContext
 from podman.domain.containers import Container
 from pydantic import ValidationError
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from interactem.core.constants import (
     OPERATOR_ID_ENV_VAR,
@@ -181,6 +187,21 @@ class Agent:
             # Run the tasks concurrently
             await asyncio.gather(*tasks)
 
+    async def _nats_heartbeat(self):
+        """Regular heartbeat to keep NATS connection alive"""
+        while not self._shutdown_event.is_set():
+            if self.js:
+                try:
+                    # Send minimal ping every few seconds
+                    await self.nc.flush()
+                    # Update agent status every 5 seconds
+                    if self.agent_kv:
+                        await self.agent_kv.update_now()
+                except Exception as e:
+                    logger.warning(f"Heartbeat error: {e}")
+
+            await asyncio.sleep(5.0)
+
     async def run(self):
         logger.info(f"Starting agent with configuration: {cfg.model_dump()}")
         await asyncio.gather(
@@ -211,6 +232,7 @@ class Agent:
         await self.agent_kv.start()
 
         self.server_task = self.create_task(self.server_loop())
+        self.heartbeat_task = self.create_task(self._nats_heartbeat())
 
         await self._shutdown_event.wait()
         await self.shutdown()
@@ -237,12 +259,18 @@ class Agent:
         await self._cleanup_containers()
         await self._stop_podman_service()
 
+        if self.heartbeat_task:
+            self.heartbeat_task.cancel()
+            try:
+                await self.heartbeat_task
+            except asyncio.CancelledError:
+                pass
+
         if self.agent_kv:
             await self.agent_kv.stop()
 
         if self.nc:
             await self.nc.close()
-
 
         logger.info("Agent shut down successfully.")
 
@@ -256,58 +284,107 @@ class Agent:
             logger.error("KeyValueLoop not established. Exiting server loop.")
             return
 
-        psub = await create_agent_consumer(self.js, self.id)
+        psub = None
+        startup_task = None
+        consumer_retry_count = 0
+        max_consumer_retries = 5
+        consumer_backoff_time = 1.0
 
         while not self._shutdown_event.is_set():
-            try:
-                msgs = await psub.fetch(1)
-                [self.create_task(msg.ack()) for msg in msgs]
-            except nats.errors.TimeoutError:
+            # Try to create or verify the consumer if needed
+            if psub is None:
                 try:
-                    await psub.consumer_info()
-                except nats.js.errors.NotFoundError as e:
-                    self.agent_val.status = AgentStatus.ERROR
-                    _msg = f"Consumer not found: {e}"
-                    self.agent_val.add_error(_msg)
-                    logger.exception(_msg)
+                    psub = await create_agent_consumer(self.js, self.id)
+                    consumer_retry_count = 0  # Reset retry count on success
+                except Exception as e:
+                    consumer_retry_count += 1
+                    logger.error(
+                        f"Failed to create consumer (attempt {consumer_retry_count}): {e}"
+                    )
+                    if consumer_retry_count >= max_consumer_retries:
+                        self.agent_val.status = AgentStatus.ERROR
+                        _msg = f"Failed to create consumer after {max_consumer_retries} attempts"
+                        self.agent_val.add_error(_msg)
+                        logger.error(_msg)
+                        # Give the system time to recover before retrying
+                        await asyncio.sleep(
+                            consumer_backoff_time * consumer_retry_count
+                        )
+                    continue
+
+            # Fetch messages with timeout handling
+            try:
+                msgs = await psub.fetch(1, timeout=5.0)  # Set explicit timeout
+                for msg in msgs:
+                    self.create_task(msg.ack())  # Non-blocking acknowledgment
+
+                    try:
+                        event = PipelineAssignment.model_validate_json(msg.data)
+                        assert event.agent_id == self.id
+                        logger.info(f"Agent ID verified: {event.agent_id}")
+                    except (ValidationError, AssertionError) as e:
+                        self.agent_val.status = AgentStatus.ERROR
+                        _msg = f"Invalid assignment: {e}"
+                        self.agent_val.add_error(_msg)
+                        logger.exception(_msg)
+                        continue
+
+                    try:
+                        valid_pipeline = PipelineJSON.model_validate(event.pipeline)
+                        self.pipeline = Pipeline.from_pipeline(valid_pipeline)
+                        self.my_operator_ids = event.operators_assigned
+                        self.agent_val.operator_assignments = (
+                            event.operators_assigned
+                        )  # Set operator assignments
+                        logger.info(f"Operators assigned: {self.my_operator_ids}")
+                        self.agent_val.status = AgentStatus.BUSY
+                        self.agent_val.status_message = "Starting operators..."
+                        await self.agent_kv.update_now()
+
+                        # Create a task for starting operators instead of awaiting directly
+                        startup_task = self.create_task(self._handle_operator_startup())
+
+                    except Exception as e:
+                        self.agent_val.status = AgentStatus.ERROR
+                        _msg = f"Failed to prepare operators: {e}"
+                        self.agent_val.add_error(_msg)
+                        await self.agent_kv.update_now()
+                        publish_error(self.js, _msg, task_refs=self.task_refs)
+                        logger.exception(_msg)
+
+            except nats.errors.TimeoutError:
+                # This is normal, just continue the loop without verification
+                await asyncio.sleep(0.1)  # Small delay to avoid tight loop
+                continue
+            except nats.js.errors.NotFoundError:
+                logger.warning("Consumer not found, will recreate on next iteration")
+                psub = None
+                continue
+            except Exception as e:
+                logger.exception(f"Unexpected error in server loop: {e}")
+                # Try to re-establish the consumer on next iteration
+                psub = None
+                # Add a small delay to prevent tight loops in case of persistent errors
+                await asyncio.sleep(0.5)
                 continue
 
-            for msg in msgs:
-                try:
-                    event = PipelineAssignment.model_validate_json(msg.data)
-                    assert event.agent_id == self.id
-                    logger.info(f"Agent ID verified: {event.agent_id}")
-                except (ValidationError, AssertionError) as e:
-                    self.agent_val.status = AgentStatus.ERROR
-                    _msg = f"Invalid assignment: {e}"
-                    self.agent_val.add_error(_msg)
-                    logger.exception(_msg)
-                    continue
-
-                try:
-                    valid_pipeline = PipelineJSON.model_validate(event.pipeline)
-                    self.pipeline = Pipeline.from_pipeline(valid_pipeline)
-                    self.my_operator_ids = event.operators_assigned
-                    self.agent_val.operator_assignments = (
-                        event.operators_assigned
-                    )  # Set operator assignments
-                    logger.info(f"Operators assigned: {self.my_operator_ids}")
-                    self.agent_val.status = AgentStatus.BUSY
-                    self.agent_val.status_message = "Starting operators..."
-                    await self.agent_kv.update_now()
-                    await self.start_operators()
-                    self.agent_val.status_message = "Operators started..."
-                    self.agent_val.status = AgentStatus.IDLE
-                    await self.agent_kv.update_now()
-                except Exception as e:
-                    self.agent_val.status = AgentStatus.ERROR
-                    _msg = f"Failed to start operators: {e}"
-                    self.agent_val.add_error(_msg)
-                    await self.agent_kv.update_now()
-                    publish_error(self.js, _msg, task_refs=self.task_refs)
-                    logger.exception(_msg)
-                    continue
         logger.info("Server loop exiting")
+
+    async def _handle_operator_startup(self):
+        """Handles starting operators as a separate task to avoid blocking the main loop."""
+        try:
+            await self.start_operators()
+            self.agent_val.status_message = "Operators started..."
+            self.agent_val.status = AgentStatus.IDLE
+            await self.agent_kv.update_now()
+        except Exception as e:
+            self.agent_val.status = AgentStatus.ERROR
+            _msg = f"Failed to start operators: {e}"
+            self.agent_val.add_error(_msg)
+            await self.agent_kv.update_now()
+            if self.js:
+                publish_error(self.js, _msg, task_refs=self.task_refs)
+            logger.exception(_msg)
 
     async def setup_signal_handlers(self):
         logger.info("Setting up signal handlers...")
@@ -370,6 +447,25 @@ class Agent:
 
         return containers
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        retry=retry_if_exception_type(nats.errors.TimeoutError),
+        reraise=True,
+    )
+    async def _publish_operator_pipeline_with_retry(
+        self, operator_id: uuid.UUID, payload: bytes
+    ):
+        if not self.js:
+            # This should be caught before calling, but as a safeguard:
+            raise ValueError("JetStream context not available for publishing pipeline.")
+
+        subject = f"{STREAM_OPERATORS}.{operator_id}"
+        await self.js.publish(
+            subject=subject, payload=payload, timeout=5
+        )  # Added explicit timeout
+        logger.info(f"Successfully published pipeline for operator {operator_id}.")
+
     async def _start_operator(
         self, operator: OperatorJSON, client: PodmanClient
     ) -> tuple[OperatorJSON, Container]:
@@ -401,23 +497,33 @@ class Agent:
             operator,
             env,
         )
-        container.start()
+        # Consider if container.start() should be wrapped in asyncio.to_thread if it's blocking
+        # For now, focusing on the NATS publish retry as requested.
+        await asyncio.to_thread(container.start)
 
         if not self.js:
-            raise ValueError("No JetStream context")
+            raise ValueError("No JetStream context for publishing pipeline")
 
         # Publish pipeline to JetStream
         try:
-            await self.js.publish(
-                subject=f"{STREAM_OPERATORS}.{operator.id}",
-                payload=self.pipeline.to_json().model_dump_json().encode(),
+            pipeline_payload = self.pipeline.to_json().model_dump_json().encode()
+            await self._publish_operator_pipeline_with_retry(
+                operator.id, pipeline_payload
             )
-            logger.info(f"Published pipeline for operator {operator.id}")
-            logger.debug(f"Pipeline: {self.pipeline.to_json().model_dump_json()}")
+            logger.debug(
+                f"Pipeline for operator {operator.id}: {self.pipeline.to_json().model_dump_json()}"
+            )
+        except nats.errors.TimeoutError as e_timeout:
+            # This block is hit if all retries in _publish_operator_pipeline_with_retry fail
+            _msg = f"Failed to publish pipeline for operator {operator.id} after multiple retries due to NATS timeout: {e_timeout}"
+            logger.error(_msg)
+            # Propagate the error so start_operators can handle it as a failed operator start
+            raise ValueError(_msg) from e_timeout
         except Exception as e:
-            raise ValueError(
-                f"Failed to publish to JetStream for operator {operator.id}: {e}"
-            )
+            # Catches other exceptions
+            _msg = f"An unexpected error occurred while attempting to publish pipeline for operator {operator.id}: {e}"
+            logger.error(_msg)
+            raise ValueError(_msg) from e
 
         return operator, container
 
@@ -614,17 +720,32 @@ class Agent:
         await psub.unsubscribe()
 
     async def cancel_and_cleanup(self):
+        cancel_tasks = []
         for operator_id, task in self.watch_tasks.items():
             logger.info(
                 f"Cancelling existing container task for operator {operator_id}"
             )
             task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                logger.info(f"Container task for operator {operator_id} cancelled.")
+            cancel_tasks.append(task)
+
+        # Wait for task cancellations concurrently
+        if cancel_tasks:
+            await asyncio.gather(
+                *[self._safe_await_cancelled(task) for task in cancel_tasks]
+            )
+
         self.watch_tasks.clear()
         await self._cleanup_containers()
+
+    async def _safe_await_cancelled(self, task: asyncio.Task):
+        """Safely await a cancelled task."""
+        try:
+            await task
+        except asyncio.CancelledError:
+            # Expected behavior for cancelled tasks
+            pass
+        except Exception as e:
+            logger.warning(f"Error while awaiting cancelled task: {e}")
 
     def create_task(self, coro: Coroutine) -> asyncio.Task:
         return create_task_with_ref(self.task_refs, coro)
