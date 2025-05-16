@@ -145,6 +145,10 @@ def unpack_sparse_array(
         for j in range(frames_per_scan):
             data_array[scan_index + (j,)] = np.array(raw_data[i][j], dtype=np.uint32)
 
+    # Reshape data_array_nd to be 2D: (total_scan_positions, frames_per_scan)
+    # This is the shape SparseArray expects for its data argument.
+    data_array = data_array.reshape((expected_scan_positions, frames_per_scan))
+
     # --- Instantiate SparseArray ---
     sparse_array = SparseArray(
         data=data_array,
