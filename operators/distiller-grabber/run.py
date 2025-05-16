@@ -112,7 +112,7 @@ def grabber(
     if data_socket:
         try:
             new_sparse_array: SparseArray = receive_and_unpack_sparse_array(data_socket)
-            scan_number = new_sparse_array.metadata.get("scan_number_received", 0)
+            scan_number = new_sparse_array.metadata.get("scan_number", 0)
             logger.info(
                 f"Received new dataset (Scan: {scan_number}, "
                 f"Shape: {new_sparse_array.scan_shape}, Frames: {new_sparse_array.num_scans})."
