@@ -9,8 +9,8 @@ import {
 import { useCallback, useEffect, useRef } from "react"
 import InfiniteScroll from "react-infinite-scroll-component"
 import { useInfinitePipelines } from "../../hooks/usePipelinesQuery"
-import { NewPipelineButton } from "./newbutton"
 import { PipelineListItem } from "./listitem"
+import { NewPipelineButton } from "./newbutton"
 
 interface PipelineListProps {
   open: boolean
