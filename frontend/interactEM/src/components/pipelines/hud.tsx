@@ -18,16 +18,16 @@ import {
   pipelinesReadPipelineQueryKey,
   pipelinesReadPipelinesQueryKey,
   pipelinesUpdatePipelineMutation,
-} from "../client"
-import { useActivePipeline } from "../hooks/useActivePipeline"
-import { usePipelineContext } from "../hooks/usePipelineContext"
-import { usePipelineStore } from "../stores"
-import { LaunchPipelineButton } from "./launchpipelinebutton"
-import { DeletePipelineButton } from "./pipelinedeletebutton"
-import { PipelineEditDialog } from "./pipelineeditdialog"
-import { PipelineList } from "./pipelinelist"
+} from "../../client"
+import { useActivePipeline } from "../../hooks/useActivePipeline"
+import { usePipelineContext } from "../../hooks/usePipelineContext"
+import { usePipelineStore } from "../../stores"
+import { LaunchPipelineButton } from "./launchbutton"
+import { DeletePipelineButton } from "./deletebutton"
+import { PipelineEditDialog } from "./editdialog"
+import { PipelineList } from "./list"
 import { RevisionList } from "./revisionlist"
-import { StopPipelineButton } from "./stoppipelinebutton"
+import { StopPipelineButton } from "./stopbutton"
 
 export const PipelineHud: React.FC = () => {
   const queryClient = useQueryClient()

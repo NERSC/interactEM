@@ -1,9 +1,9 @@
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 import { styled } from "@mui/material/styles"
-import type { Agent } from "../types/agent"
-import AgentChip from "./agentchip"
-import { LaunchAgentButton } from "./launchagentbutton"
+import type { Agent } from "../../types/agent"
+import AgentChip from "./chip"
+import { LaunchAgentButton } from "./launchbutton"
 
 const ListItem = styled("li")(({ theme }) => ({
   margin: theme.spacing(0.5),

@@ -4,8 +4,8 @@ import { useMutation } from "@tanstack/react-query"
 import type React from "react"
 import { useState } from "react"
 import { toast } from "react-toastify"
-import { pipelinesRunPipelineMutation } from "../client"
-import { usePipelineStore } from "../stores"
+import { pipelinesRunPipelineMutation } from "../../client"
+import { usePipelineStore } from "../../stores"
 
 interface LaunchPipelineButtonProps {
   disabled?: boolean

@@ -18,8 +18,8 @@ import {
   pipelinesListPipelineRevisionsQueryKey,
   pipelinesReadPipelineQueryKey,
   pipelinesReadPipelinesQueryKey,
-} from "../client/generated/@tanstack/react-query.gen"
-import { usePipelineStore } from "../stores"
+} from "../../client/generated/@tanstack/react-query.gen"
+import { usePipelineStore } from "../../stores"
 
 interface DeletePipelineButtonProps {
   pipelineId: string

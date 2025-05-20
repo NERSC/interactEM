@@ -2,8 +2,8 @@ import InfoIcon from "@mui/icons-material/Info"
 import { IconButton, Tooltip } from "@mui/material"
 import { useNodesData } from "@xyflow/react"
 import type React from "react"
-import type { OperatorParameter, OperatorTag } from "../client"
-import type { OperatorNodeType } from "../types/nodes"
+import type { OperatorParameter, OperatorTag } from "../../client"
+import type { OperatorNodeType } from "../../types/nodes"
 import ParametersButton from "./parametersbutton"
 
 interface OperatorToolbarProps {

@@ -2,10 +2,10 @@ import { Typography } from "@mui/material"
 import type { NodeProps } from "@xyflow/react"
 import { NodeResizer, useReactFlow } from "@xyflow/react"
 import { useCallback } from "react"
-import { AgentStatus } from "../types/agent"
-import { type AgentNodeType, NodeType } from "../types/nodes"
-import AgentTooltip from "./agenttooltip"
-import { StatusDot } from "./statusdot"
+import { AgentStatus } from "../../types/agent"
+import { type AgentNodeType, NodeType } from "../../types/nodes"
+import AgentTooltip from "../agents/tooltip"
+import { StatusDot } from "../statusdot"
 
 const AgentNode = ({ data, id, selected }: NodeProps<AgentNodeType>) => {
   const shortId = data.uri.id.substring(0, 6)

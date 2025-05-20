@@ -14,12 +14,12 @@ import {
 import { useReactFlow } from "@xyflow/react"
 import type React from "react"
 import { memo, useEffect, useState } from "react"
-import type { OperatorParameter } from "../client"
-import { useParameterUpdate } from "../hooks/useParameterUpdate"
-import { useParameterValue } from "../hooks/useParameterValue"
-import { usePipelineContext } from "../hooks/usePipelineContext"
-import { useEditModeState } from "../stores/edit"
-import type { OperatorNodeType } from "../types/nodes"
+import type { OperatorParameter } from "../../client"
+import { useParameterUpdate } from "../../hooks/useParameterUpdate"
+import { useParameterValue } from "../../hooks/useParameterValue"
+import { usePipelineContext } from "../../hooks/usePipelineContext"
+import { useEditModeState } from "../../stores/edit"
+import type { OperatorNodeType } from "../../types/nodes"
 import ParameterInfoTooltip from "./parameterinfotooltip"
 
 const compareValues = (

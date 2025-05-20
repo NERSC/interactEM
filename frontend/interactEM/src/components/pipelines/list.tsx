@@ -8,9 +8,9 @@ import {
 } from "@mui/material"
 import { useCallback, useEffect, useRef } from "react"
 import InfiniteScroll from "react-infinite-scroll-component"
-import { useInfinitePipelines } from "../hooks/usePipelinesQuery"
-import { NewPipelineButton } from "./newpipelinebutton"
-import { PipelineListItem } from "./pipelinelistitem"
+import { useInfinitePipelines } from "../../hooks/usePipelinesQuery"
+import { NewPipelineButton } from "./newbutton"
+import { PipelineListItem } from "./listitem"
 
 interface PipelineListProps {
   open: boolean

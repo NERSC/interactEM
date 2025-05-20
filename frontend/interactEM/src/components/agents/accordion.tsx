@@ -1,8 +1,8 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import PeopleIcon from "@mui/icons-material/People"
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material"
-import type { Agent } from "../types/agent"
-import AgentsArray from "./agentsarray"
+import type { Agent } from "../../types/agent"
+import AgentsArray from "./array"
 
 interface AgentsAccordionProps {
   agents: Agent[]

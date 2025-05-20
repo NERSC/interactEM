@@ -1,10 +1,10 @@
 import type { NodeProps } from "@xyflow/react"
 import { useRef } from "react"
-import type { OperatorNodeType } from "../types/nodes"
+import type { OperatorNodeType } from "../../types/nodes"
 import Handles from "./handles"
-import OperatorHeader from "./operatorheader"
-import { withOperatorStatus } from "./operatorstatuscontrol"
-import OperatorToolbar from "./operatortoolbar"
+import OperatorHeader from "./header"
+import { withOperatorStatus } from "./statuscontrol"
+import OperatorToolbar from "./toolbar"
 
 interface OperatorNodeBaseProps extends NodeProps<OperatorNodeType> {
   className?: string

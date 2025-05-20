@@ -1,10 +1,10 @@
 import type { NodeProps } from "@xyflow/react"
 import { useRef } from "react"
-import { useImage } from "../hooks/useImage"
-import type { ImageNodeType } from "../types/nodes"
+import { useImage } from "../../hooks/useImage"
+import type { ImageNodeType } from "../../types/nodes"
+import Image from "../image"
 import Handles from "./handles"
-import Image from "./image"
-import { withOperatorStatus } from "./operatorstatuscontrol"
+import { withOperatorStatus } from "./statuscontrol"
 
 interface ImageNodeBaseProps extends NodeProps<ImageNodeType> {
   className?: string

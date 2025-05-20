@@ -1,5 +1,5 @@
 import type React from "react"
-import { useOperatorStatus } from "../hooks/useOperatorStatus"
+import { useOperatorStatus } from "../../hooks/useOperatorStatus"
 
 export const withOperatorStatus = <P extends { id: string }>(
   Component: React.ComponentType<P>,

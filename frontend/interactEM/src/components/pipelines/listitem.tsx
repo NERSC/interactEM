@@ -1,7 +1,7 @@
 import { ListItem, ListItemButton, ListItemText } from "@mui/material"
 import { formatDistanceToNow } from "date-fns"
-import type { PipelinePublic } from "../client"
-import { usePipelineStore } from "../stores"
+import type { PipelinePublic } from "../../client"
+import { usePipelineStore } from "../../stores"
 
 interface PipelineListItemProps {
   pipeline: PipelinePublic

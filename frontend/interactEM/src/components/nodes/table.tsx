@@ -1,11 +1,11 @@
 import { Box, Typography } from "@mui/material"
 import type { NodeProps } from "@xyflow/react"
 import { useRef } from "react"
-import { useTableData } from "../hooks/useTableData"
-import type { TableNodeType } from "../types/nodes"
+import { useTableData } from "../../hooks/useTableData"
+import type { TableNodeType } from "../../types/nodes"
+import TableView from "../table"
 import Handles from "./handles"
-import { withOperatorStatus } from "./operatorstatuscontrol"
-import TableView from "./table"
+import { withOperatorStatus } from "./statuscontrol"
 
 interface TableNodeBaseProps extends NodeProps<TableNodeType> {
   className?: string

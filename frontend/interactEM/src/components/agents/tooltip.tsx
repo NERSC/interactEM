@@ -1,5 +1,5 @@
 import { Box, Divider, List, ListItem, Typography } from "@mui/material"
-import type { Agent } from "../types/agent"
+import type { Agent } from "../../types/agent"
 
 interface AgentTooltipProps {
   data: Agent

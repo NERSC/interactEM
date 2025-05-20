@@ -1,8 +1,8 @@
 import { Box, CircularProgress, Divider, List, Typography } from "@mui/material"
 import { useRef } from "react"
 import InfiniteScroll from "react-infinite-scroll-component"
-import { useInfinitePipelineRevisions } from "../hooks/usePipelinesQuery"
-import { usePipelineStore } from "../stores"
+import { useInfinitePipelineRevisions } from "../../hooks/usePipelinesQuery"
+import { usePipelineStore } from "../../stores"
 import { RevisionListItem } from "./revisionlistitem"
 
 interface RevisionListProps {

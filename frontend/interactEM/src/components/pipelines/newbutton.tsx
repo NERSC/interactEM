@@ -2,12 +2,12 @@ import { Add as AddIcon } from "@mui/icons-material"
 import { IconButton, Tooltip } from "@mui/material"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "react-toastify"
-import type { PipelineCreate } from "../client"
+import type { PipelineCreate } from "../../client"
 import {
   pipelinesCreatePipelineMutation,
   pipelinesReadPipelinesQueryKey,
-} from "../client"
-import { usePipelineStore } from "../stores"
+} from "../../client"
+import { usePipelineStore } from "../../stores"
 
 interface NewPipelineButtonProps {
   size?: "small" | "medium" | "large"

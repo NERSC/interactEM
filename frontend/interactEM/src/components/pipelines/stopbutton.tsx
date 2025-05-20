@@ -3,8 +3,8 @@ import { CircularProgress, IconButton, Tooltip } from "@mui/material"
 import { useMutation } from "@tanstack/react-query"
 import type React from "react"
 import { toast } from "react-toastify"
-import { pipelinesStopPipelineMutation } from "../client/generated/@tanstack/react-query.gen"
-import { usePipelineStore } from "../stores"
+import { pipelinesStopPipelineMutation } from "../../client/generated/@tanstack/react-query.gen"
+import { usePipelineStore } from "../../stores"
 
 interface StopPipelineButtonProps {
   disabled?: boolean

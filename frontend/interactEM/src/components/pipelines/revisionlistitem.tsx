@@ -13,12 +13,12 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { formatDistanceToNow } from "date-fns"
 import type React from "react"
 import { useState } from "react"
-import type { PipelineRevisionPublic } from "../client"
+import type { PipelineRevisionPublic } from "../../client"
 import {
   pipelinesListPipelineRevisionsQueryKey,
   pipelinesUpdatePipelineRevisionMutation,
-} from "../client/generated/@tanstack/react-query.gen"
-import { usePipelineStore } from "../stores"
+} from "../../client/generated/@tanstack/react-query.gen"
+import { usePipelineStore } from "../../stores"
 
 interface RevisionListItemProps {
   revision: PipelineRevisionPublic
