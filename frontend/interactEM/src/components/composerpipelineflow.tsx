@@ -30,11 +30,11 @@ import {
   pipelinesReadPipelineQueryKey,
   pipelinesReadPipelinesQueryKey,
 } from "../client/generated/@tanstack/react-query.gen"
-import { useDnD } from "../dnd/dndcontext"
+import { useDnD } from "../hooks/useDnD"
 import useOperators from "../hooks/useOperators"
-import { layoutNodes } from "../utils/layout"
 import { usePipelineStore } from "../stores"
 import { NodeType, type OperatorNodeTypes } from "../types/nodes"
+import { layoutNodes } from "../utils/layout"
 import { fromPipelineJSON, toJSON } from "../utils/pipeline"
 import ImageNode from "./nodes/image"
 import OperatorNode from "./nodes/operator"

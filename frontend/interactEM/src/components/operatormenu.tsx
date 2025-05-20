@@ -1,7 +1,7 @@
 import type React from "react"
 import type { DragEvent } from "react"
 import type { Operator } from "../client/"
-import { useDnD } from "../dnd/dndcontext"
+import { useDnD } from "../hooks/useDnD"
 
 interface OperatorMenuProps {
   operators: Operator[]
