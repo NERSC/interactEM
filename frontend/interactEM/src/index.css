@@ -130,6 +130,22 @@ body,
   padding: 10px;
 }
 
+.operator-status-initializing {
+  border: 2px solid #ff9800 !important;
+}
+
+.operator-status-shutting-down {
+  border: 2px solid #d12626 !important;
+}
+
+.operator-status-running {
+  border: 2px solid #4caf50 !important;
+}
+
+.operator-status-offline {
+  border: 1.5px solid #000000 !important;
+}
+
 .parameter-item {
   margin-bottom: 10px;
   padding-bottom: 10px;

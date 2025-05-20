@@ -4,8 +4,13 @@ import { useImage } from "../hooks/useImage"
 import type { ImageNodeType } from "../types/nodes"
 import Handles from "./handles"
 import Image from "./image"
+import { withOperatorStatus } from "./operatorstatuscontrol"
 
-const ImageNode = ({ id, data }: NodeProps<ImageNodeType>) => {
+interface ImageNodeBaseProps extends NodeProps<ImageNodeType> {
+  className?: string
+}
+
+const ImageNodeBase = ({ id, data, className = "" }: ImageNodeBaseProps) => {
   const nodeRef = useRef<HTMLDivElement>(null)
   const imageData = useImage(id)
 
@@ -13,11 +18,13 @@ const ImageNode = ({ id, data }: NodeProps<ImageNodeType>) => {
 
   return (
     // TODO Should probably update the class
-    <div className="operator" ref={nodeRef}>
+    <div className={`operator ${className}`} ref={nodeRef}>
       <Handles inputs={data.inputs} outputs={data.outputs} />
       <Image imageData={imageData} />
     </div>
   )
 }
+
+const ImageNode = withOperatorStatus(ImageNodeBase)
 
 export default ImageNode

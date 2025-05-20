@@ -37,7 +37,9 @@ from interactem.core.models import CommBackend, OperatorJSON, PipelineJSON
 from interactem.core.models.messages import BytesMessage, OperatorTrackingMetadata
 from interactem.core.models.operators import (
     OperatorMetrics,
+    OperatorStatus,
     OperatorTiming,
+    OperatorVal,
     ParameterType,
 )
 from interactem.core.nats import (
@@ -144,6 +146,8 @@ class OperatorMixin(RunnableKernel):
         self.js: JetStreamContext | None = None
         self.messenger_task: asyncio.Task | None = None
         self.metrics_kv: KeyValueLoop[OperatorMetrics] | None = None
+        self.operator_kv: KeyValueLoop[OperatorVal]
+        self.val = OperatorVal(id=self.id, status=OperatorStatus.INITIALIZING)
         self.parameters: dict[str, Any] = {}
         self.metrics: OperatorMetrics = OperatorMetrics(
             id=self.id, timing=OperatorTiming()
@@ -176,6 +180,16 @@ class OperatorMixin(RunnableKernel):
         )
         self.metrics_kv.add_or_update_value(self.id, self.metrics)
         await self.metrics_kv.start()
+        self.operator_kv = KeyValueLoop[OperatorVal](
+            self.nc,
+            self.js,
+            shutdown_event=self._shutdown_event,
+            bucket=InteractemBucket.OPERATORS,
+            update_interval=5.0,
+            data_model=OperatorVal,
+        )
+        self.operator_kv.add_or_update_value(self.id, self.val)
+        await self.operator_kv.start()
         try:
             await self.initialize_pipeline()
         except ValueError as e:
@@ -253,6 +267,9 @@ class OperatorMixin(RunnableKernel):
                 p.name: p.value if p.value else p.default for p in self.info.parameters
             }
         logger.info(f"Operator {self.id} initialized with parameters {self.parameters}")
+        self.val.pipeline_id = self.pipeline.id
+        self.val.status = OperatorStatus.RUNNING
+        await self.operator_kv.update_now()
         asyncio.create_task(self.publish_parameters())
         if self.info is None:
             raise ValueError(f"Operator {self.id} not found in pipeline")
@@ -347,6 +364,8 @@ class OperatorMixin(RunnableKernel):
         logger.info(f"Initialized messenger {self.messenger}...")
 
     async def shutdown(self):
+        self.val.status = OperatorStatus.SHUTTING_DOWN
+        await self.operator_kv.update_now()
         logger.info(f"Shutting down operator {self.id}...")
 
         await self.execute_dependencies_teardown()
