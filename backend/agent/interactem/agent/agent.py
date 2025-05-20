@@ -171,24 +171,16 @@ class Agent:
 
         # Wait for the service to be ready before continuing
         with PodmanClient(base_url=self._podman_service_uri) as client:
-            tries = 10
-            while tries > 0:
-                try:
-                    client.version()
-                    break
-                except podman.errors.exceptions.APIError:
-                    logger.debug("Waiting for podman service to start")
-                    time.sleep(0.1)
-                    tries -= 1
+            await self._wait_for_podman(client)
 
-            if tries == 0 and create_process:
-                raise RuntimeError("Podman service didn't successfully start")
+        logger.info("Podman service started")
 
-            if tries == 0:
-                logger.warning("Podman is not running, trying to start it up...")
-                await self._start_podman_service(create_process=True)
-
-            logger.info("Podman service started")
+    async def _wait_for_podman(self, client: PodmanClient):
+        for attempt in stamina.retry_context(podman.errors.exceptions.APIError):
+            with attempt:
+                client.version()
+                return
+        raise RuntimeError("Podman service failed to start")
 
     async def _stop_podman_service(self):
         if self._podman_process is not None:
