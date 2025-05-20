@@ -32,7 +32,7 @@ import {
 } from "../client/generated/@tanstack/react-query.gen"
 import { useDnD } from "../dnd/dndcontext"
 import useOperators from "../hooks/useOperators"
-import { layoutNodes } from "../layout"
+import { layoutNodes } from "../utils/layout"
 import { usePipelineStore } from "../stores"
 import { NodeType, type OperatorNodeTypes } from "../types/nodes"
 import { fromPipelineJSON, toJSON } from "../utils/pipeline"
