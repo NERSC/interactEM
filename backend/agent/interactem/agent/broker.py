@@ -1,5 +1,3 @@
-from contextlib import asynccontextmanager
-
 from faststream import Context, ContextRepo, FastStream
 from faststream.nats import JStream, NatsBroker
 from nats.js.api import RetentionPolicy
@@ -47,11 +45,7 @@ logger = get_logger()
 AGENT_ID = cfg.ID
 broker = get_nats_broker(servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{AGENT_ID}")
 
-@asynccontextmanager
-async def lifespan(context: ContextRepo):
-    yield
-
-app = FastStream(broker=broker, lifespan=lifespan)
+app = FastStream(broker=broker)
 
 NOTIFICATIONS_JSTREAM = JStream(
     name=STREAM_NOTIFICATIONS,
@@ -88,6 +82,7 @@ AGENT_JSTREAM = JStream(
 
 agent_consumer_config = AGENT_CONSUMER_CONFIG
 agent_consumer_config.description = f"agent-{AGENT_ID}"
+
 
 @broker.subscriber(
     stream=AGENT_JSTREAM,
