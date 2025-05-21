@@ -30,16 +30,16 @@ import {
   pipelinesReadPipelineQueryKey,
   pipelinesReadPipelinesQueryKey,
 } from "../client/generated/@tanstack/react-query.gen"
-import { useDnD } from "../dnd/dndcontext"
-import useOperators from "../hooks/useOperators"
-import { layoutNodes } from "../layout"
-import { fromPipelineJSON, toJSON } from "../pipeline"
+import { useDnD } from "../contexts/dnd"
+import useOperators from "../hooks/api/useOperators"
 import { usePipelineStore } from "../stores"
 import { NodeType, type OperatorNodeTypes } from "../types/nodes"
-import ImageNode from "./imagenode"
+import { layoutNodes } from "../utils/layout"
+import { fromPipelineJSON, toJSON } from "../utils/pipeline"
+import ImageNode from "./nodes/image"
+import OperatorNode from "./nodes/operator"
+import TableNode from "./nodes/table"
 import type { OperatorMenuItemDragData } from "./operatormenu"
-import OperatorNode from "./operatornode"
-import TableNode from "./tablenode"
 
 export const edgeOptions = {
   type: "smoothstep",

@@ -1,6 +1,6 @@
 import type { Node } from "@xyflow/react"
-import type { OperatorNodeData } from "../pipeline"
 import type { Agent } from "./agent"
+import type { OperatorNodeData } from "./pipeline"
 
 export enum NodeType {
   operator = "operator",

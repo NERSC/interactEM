@@ -9,37 +9,44 @@ export enum AgentStatus {
   SHUTTING_DOWN = "shutting_down",
 }
 
-export enum URILocation {
+enum URILocation {
   operator = "operator",
   port = "port",
   agent = "agent",
   orchestrator = "orchestrator",
 }
 
-export const AgentSchema = z.object({
-  name: z.string().nullable().optional(),
-  uri: z.object({
-    id: z.string(),
-    location: z.nativeEnum(URILocation),
-    hostname: z.string(),
-    comm_backend: z.string(),
-    query: z.record(z.any()).optional(),
-  }),
-  status: z.nativeEnum(AgentStatus),
-  status_message: z.string().nullable().optional(),
-  tags: z.array(z.string()).default([]),
-  networks: z.array(z.string()).default([]),
-  pipeline_id: z.string().nullable().optional(),
-  operator_assignments: z.array(z.string()).nullable().optional(), // New nullable field
-  uptime: z.number(),
-  error_messages: z
-    .array(
-      z.object({
-        message: z.string(),
-        timestamp: z.number(),
-      }),
-    )
-    .default([]),
+enum CommBackend {
+  zmq = "zmq",
+  nats = "nats",
+  mpi = "mpi",
+}
+
+const URI = z.object({
+  id: z.string(),
+  location: z.nativeEnum(URILocation),
+  hostname: z.string(),
+  comm_backend: z.nativeEnum(CommBackend),
+  query: z.record(z.any()).optional(),
 })
 
-export type Agent = z.infer<typeof AgentSchema>
+const ErrorMessage = z.object({
+  message: z.string(),
+  timestamp: z.number(),
+})
+
+export const AgentValSchema = z.object({
+  name: z.string().nullable().optional(),
+  uri: URI,
+  status: z.nativeEnum(AgentStatus),
+  status_message: z.string().nullable().optional(),
+  tags: z.array(z.string()).default([]).optional(),
+  networks: z.array(z.string()).default([]).optional(),
+  pipeline_id: z.string().nullable().optional(),
+  operator_assignments: z.array(z.string()).nullable().optional(),
+  uptime: z.number(),
+  error_messages: z.array(ErrorMessage).default([]).optional(),
+})
+
+export type AgentVal = z.infer<typeof AgentValSchema>
+export type Agent = AgentVal

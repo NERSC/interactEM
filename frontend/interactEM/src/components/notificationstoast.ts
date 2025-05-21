@@ -10,8 +10,8 @@ import {
   NOTIFICATIONS_ERRORS_SUBJECT,
   NOTIFICATIONS_STREAM,
 } from "../constants/nats"
-import { useConsumeMessages } from "../hooks/useConsumeMessages"
-import { useConsumer } from "../hooks/useConsumer"
+import { useConsumeMessages } from "../hooks/nats/useConsumeMessages"
+import { useConsumer } from "../hooks/nats/useConsumer"
 
 export default function NotificationsToast() {
   const config = useMemo(
