@@ -1,3 +1,40 @@
+x-backend-base:
+  &backend-base
+    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+    build:
+      context: backend/
+      args:
+        INSTALL_DEV: ${INSTALL_DEV-false}
+      dockerfile: ../docker/Dockerfile.fastapi
+    env_file:
+      - .env
+    environment:
+      - DOMAIN=${DOMAIN}
+      - ENVIRONMENT=${ENVIRONMENT}
+      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
+      - SECRET_KEY=${SECRET_KEY?Variable not set}
+      - FIRST_SUPERUSER=${FIRST_SUPERUSER?Variable not set}
+      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - EMAILS_FROM_EMAIL=${EMAILS_FROM_EMAIL}
+      - POSTGRES_SERVER=db
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
+      - SENTRY_DSN=${SENTRY_DSN}
+      - NATS_CREDS_FILE=/backend.creds
+      - NATS_FRONTEND_CREDS=/frontend.creds
+      - NATS_SECURITY_MODE=creds
+      - GITHUB_USERNAME=${GITHUB_USERNAME?Variable not set}
+      - GITHUB_TOKEN=${GITHUB_TOKEN?Variable not set}
+    volumes:
+      - "./nats-conf/out_jwt/backend.creds:/backend.creds"
+      - "./nats-conf/out_jwt/frontend.creds:/frontend.creds"
+    platform: linux/amd64 # Patch for M1 Mac
+
 services:
   nats1:
     image: nats:latest
@@ -68,48 +105,25 @@ services:
       - POSTGRES_USER=${POSTGRES_USER?Variable not set}
       - POSTGRES_DB=${POSTGRES_DB?Variable not set}
 
+  prestart:
+    <<: *backend-base
+    depends_on:
+      db:
+        condition: service_started
+    command: bash prestart.sh
+
   backend:
-    image: '${DOCKER_IMAGE_BACKEND?Variable not set}:${TAG-latest}'
+    <<: *backend-base
     restart: always
     depends_on:
       db:
         condition: service_started
       nats-healthcheck:
         condition: service_healthy
+      prestart:
+        condition: service_completed_successfully
     ports:
       - "8080:8000"
-    env_file:
-      - .env
-    environment:
-      - DOMAIN=${DOMAIN}
-      - ENVIRONMENT=${ENVIRONMENT}
-      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
-      - SECRET_KEY=${SECRET_KEY?Variable not set}
-      - FIRST_SUPERUSER=${FIRST_SUPERUSER?Variable not set}
-      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
-      - SMTP_HOST=${SMTP_HOST}
-      - SMTP_USER=${SMTP_USER}
-      - SMTP_PASSWORD=${SMTP_PASSWORD}
-      - EMAILS_FROM_EMAIL=${EMAILS_FROM_EMAIL}
-      - POSTGRES_SERVER=db
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
-      - SENTRY_DSN=${SENTRY_DSN}
-      - NATS_CREDS_FILE=/backend.creds
-      - NATS_FRONTEND_CREDS=/frontend.creds
-      - NATS_SECURITY_MODE=creds
-      - GITHUB_USERNAME=${GITHUB_USERNAME?Variable not set}
-      - GITHUB_TOKEN=${GITHUB_TOKEN?Variable not set}
-    volumes:
-      - "./nats-conf/out_jwt/backend.creds:/backend.creds"
-      - "./nats-conf/out_jwt/frontend.creds:/frontend.creds"
-
-    build:
-      context: backend/
-      dockerfile: ../docker/Dockerfile.fastapi
-    platform: linux/amd64 # Patch for M1 Mac
 
   orchestrator:
     image: '${DOCKER_IMAGE_ORCHESTRATOR?Variable not set}:${TAG-latest}'
