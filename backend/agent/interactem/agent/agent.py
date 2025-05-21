@@ -108,8 +108,8 @@ class Agent:
     def __init__(self, id: uuid.UUID, broker: NatsBroker):
         self.id = id
         self.pipeline: Pipeline | None = None
-        self.my_operator_ids: list[uuid.UUID] = []
-        self.start_time = time.time()
+        self._my_operator_ids: list[uuid.UUID] = []
+        self._start_time = time.time()
 
         if PODMAN_SERVICE_URI:
             self._podman_service_uri = PODMAN_SERVICE_URI
@@ -147,8 +147,8 @@ class Agent:
         )
         self.agent_kv: KeyValueLoop[AgentVal]
         self.container_trackers: dict[uuid.UUID, ContainerTracker] = {}
-        self.container_monitor_task: asyncio.Task | None = None
-        self.task_refs: set[asyncio.Task] = set()
+        self._container_monitor_task: asyncio.Task | None = None
+        self._task_refs: set[asyncio.Task] = set()
 
     async def _start_podman_service(self, create_process=False):
         self._podman_process = None
@@ -220,17 +220,17 @@ class Agent:
         self.agent_kv.add_or_update_value(self.id, self.agent_val)
 
         await self.agent_kv.start()
-        self.container_monitor_task = await asyncio.create_task(
+        self._container_monitor_task = await asyncio.create_task(
             self.monitor_containers()
         )
 
     async def receive_assignment(self, assignment: PipelineAssignment):
         try:
             self.pipeline = Pipeline.from_pipeline(assignment.pipeline)
-            self.my_operator_ids = assignment.operators_assigned
+            self._my_operator_ids = assignment.operators_assigned
             self.agent_val.operator_assignments = assignment.operators_assigned
 
-            logger.info(f"Operators assigned: {self.my_operator_ids}")
+            logger.info(f"Operators assigned: {self._my_operator_ids}")
             self.agent_val.status = AgentStatus.BUSY
             self.agent_val.status_message = "Cleaning up containers..."
             await self.agent_kv.update_now()
@@ -250,8 +250,8 @@ class Agent:
             logger.exception(_msg)
 
     def _update_agent_state(self) -> None:
-        self.agent_val.operator_assignments = self.my_operator_ids
-        self.agent_val.uptime = time.time() - self.start_time
+        self.agent_val.operator_assignments = self._my_operator_ids
+        self.agent_val.uptime = time.time() - self._start_time
         self.agent_val.clear_old_errors()
 
     async def shutdown(self):
@@ -260,10 +260,10 @@ class Agent:
         if self.agent_kv:
             await self.agent_kv.update_now()
 
-        for task in self.task_refs:
+        for task in self._task_refs:
             task.cancel()
-        await asyncio.gather(*self.task_refs, return_exceptions=True)
-        self.task_refs.clear()
+        await asyncio.gather(*self._task_refs, return_exceptions=True)
+        self._task_refs.clear()
 
         await self._cleanup_containers()
         await self._stop_podman_service()
@@ -283,7 +283,7 @@ class Agent:
         with PodmanClient(base_url=self._podman_service_uri) as client:
             tasks: list[asyncio.Task] = []
             for op_id, op_info in self.pipeline.operators.items():
-                if op_id not in self.my_operator_ids:
+                if op_id not in self._my_operator_ids:
                     continue
                 # Create a task to start the operator
                 # and add it to the task list
@@ -453,7 +453,7 @@ class Agent:
             self.container_trackers[operator.id].container = new_container
 
     def create_task(self, coro: Coroutine) -> asyncio.Task:
-        return create_task_with_ref(self.task_refs, coro)
+        return create_task_with_ref(self._task_refs, coro)
 
 
 class NameConflictError(podman.errors.exceptions.APIError):
