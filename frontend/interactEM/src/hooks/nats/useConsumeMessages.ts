@@ -56,10 +56,9 @@ export const useConsumeMessages = ({
             await handlerRef.current(message)
           } catch (handlerError) {
             console.error("Error in message handler:", handlerError)
-          } finally {
-            // Always ack the message to prevent getting stuck
-            message.ack()
+            message.term()
           }
+          message.ack()
         }
       } catch (consumeError) {
         if (!aborted) {
