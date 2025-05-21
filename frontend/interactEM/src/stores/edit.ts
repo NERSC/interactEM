@@ -1,6 +1,6 @@
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
-import { usePipelineContext } from "../hooks/usePipelineContext"
+import { usePipelineContext } from "../contexts/pipeline"
 
 interface EditModeState {
   isEditMode: boolean

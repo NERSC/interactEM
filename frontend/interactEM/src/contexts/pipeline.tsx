@@ -1,6 +1,6 @@
 import { type ReactNode, createContext, useContext, useMemo } from "react"
+import { useRunningPipelines } from "../hooks/useRunningPipelines"
 import { usePipelineStore } from "../stores"
-import { useRunningPipelines } from "./useRunningPipelines"
 
 interface PipelineContextType {
   isCurrentPipelineRunning: boolean

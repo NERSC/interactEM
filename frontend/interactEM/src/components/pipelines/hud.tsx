@@ -19,8 +19,8 @@ import {
   pipelinesReadPipelinesQueryKey,
   pipelinesUpdatePipelineMutation,
 } from "../../client"
+import { usePipelineContext } from "../../contexts/pipeline"
 import { useActivePipeline } from "../../hooks/useActivePipeline"
-import { usePipelineContext } from "../../hooks/usePipelineContext"
 import { usePipelineStore } from "../../stores"
 import { DeletePipelineButton } from "./deletebutton"
 import { PipelineEditDialog } from "./editdialog"
