@@ -10,11 +10,7 @@ export const useConsumeMessages = ({
   consumer,
   handleMessage,
 }: UseConsumeMessagesOptions) => {
-  // store a ref to the handleMessage function
-  // instead of including it in the dependency array
-  // This way we dont have to worry about re-rendering
-  // and getting errors about consumer doing concurrent
-  // consumes.
+  const handlerRef = useRef(handleMessage)
 
   // We should be able to pass in memoized or non-memoized
   // functions and it should be fine...
@@ -35,33 +31,49 @@ export const useConsumeMessages = ({
   //   at flushPassiveEffectsImpl (chunk-XQLYTHWV.js?v=f913c564:19490:11)
   //   at flushPassiveEffects (chunk-XQLYTHWV.js?v=f913c564:19447:22)
 
-  const handleMessageRef = useRef(handleMessage)
+  // Update the ref when the handler changes
   useEffect(() => {
-    handleMessageRef.current = handleMessage
+    handlerRef.current = handleMessage
   }, [handleMessage])
 
+  // Set up the message consumption
   useEffect(() => {
     if (!consumer) return
 
-    let isCancelled = false
+    // Flag to handle cleanup
+    let aborted = false
 
+    // Start consuming messages
     const consumeMessages = async () => {
       try {
         const messages = await consumer.consume()
-        for await (const m of messages) {
-          if (isCancelled) break
-          await handleMessageRef.current(m)
-          m.ack()
+
+        for await (const message of messages) {
+          if (aborted) break
+
+          try {
+            // Use the current handler from ref
+            await handlerRef.current(message)
+          } catch (handlerError) {
+            console.error("Error in message handler:", handlerError)
+          } finally {
+            // Always ack the message to prevent getting stuck
+            message.ack()
+          }
         }
-      } catch (error) {
-        console.error("Error consuming messages:", error)
+      } catch (consumeError) {
+        if (!aborted) {
+          console.error("Error consuming messages:", consumeError)
+        }
       }
     }
 
+    // Start the consumer
     consumeMessages()
 
+    // Cleanup function
     return () => {
-      isCancelled = true
+      aborted = true
     }
-  }, [consumer])
+  }, [consumer]) // Only re-run when consumer changes
 }

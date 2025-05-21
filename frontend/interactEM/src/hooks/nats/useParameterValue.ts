@@ -1,13 +1,8 @@
-import type { JsMsg } from "@nats-io/jetstream"
-import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
-import { useCallback, useMemo, useState } from "react"
 import {
   PARAMETERS_STREAM,
   PARAMETERS_UPDATE_STREAM,
 } from "../../constants/nats"
-import { useConsumeMessages } from "./useConsumeMessages"
-import { useConsumer } from "./useConsumer"
-import { useStream } from "./useStream"
+import { useStreamMessage } from "./useStreamMessage"
 
 const streamConfig = {
   name: PARAMETERS_STREAM,
@@ -21,34 +16,16 @@ export const useParameterValue = (
 ): { actualValue: string; hasReceivedMessage: boolean } => {
   const subject = `${PARAMETERS_UPDATE_STREAM}.${operatorID}.${name}`
 
-  const config = useMemo(
-    () => ({
-      filter_subjects: [subject],
-      deliver_policy: DeliverPolicy.LastPerSubject,
-      ack_policy: AckPolicy.Explicit,
-      replay_policy: ReplayPolicy.Instant,
-    }),
-    [subject],
-  )
-
-  // ensure stream
-  useStream(streamConfig)
-
-  const consumer = useConsumer({
-    stream: PARAMETERS_STREAM,
-    config,
+  const { data, hasReceivedMessage } = useStreamMessage<string>({
+    streamName: PARAMETERS_STREAM,
+    streamConfig,
+    subject,
+    initialValue: defaultValue,
+    transform: (jsonData) => {
+      // Simple validation could be added here if needed
+      return jsonData as string
+    },
   })
 
-  const [actualValue, setActualValue] = useState<string>(defaultValue)
-  const [hasReceivedMessage, setHasReceivedMessage] = useState<boolean>(false)
-
-  const handleMessage = useCallback(async (m: JsMsg) => {
-    const value = m.json<string>()
-    setActualValue(value)
-    setHasReceivedMessage(true)
-  }, [])
-
-  useConsumeMessages({ consumer, handleMessage })
-
-  return { actualValue, hasReceivedMessage }
+  return { actualValue: data ?? defaultValue, hasReceivedMessage }
 }
