@@ -6,13 +6,11 @@ from pydantic import BaseModel, model_validator
 
 from interactem.core.models.base import IdType
 
-from .uri import URI
-
 
 class OperatorStatus(str, Enum):
     INITIALIZING = "initializing"
-    IDLE = "idle"
-    BUSY = "busy"
+    RUNNING = "running"
+    SHUTTING_DOWN = "shutting_down"
 
 
 class OperatorTiming(BaseModel):
@@ -77,9 +75,9 @@ class OperatorMetrics(BaseModel):
 
 
 class OperatorVal(BaseModel):
-    uri: URI
+    id: IdType
     status: OperatorStatus
-    pipeline_id: str | None = None
+    pipeline_id: IdType | None = None
 
 
 class OperatorInput(BaseModel):

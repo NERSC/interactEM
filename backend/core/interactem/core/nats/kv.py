@@ -135,7 +135,13 @@ class KeyValueLoop(Generic[V]):
                 logger.exception(f"Unexpected error in KeyValueLoop: {e}")
                 raise
 
-        logger.info(f"Exiting key-value update loop for {self._bucket_type.value}")
+        # If we exited the loop because of shutdown event but we're still running,
+        # we should delete keys and perform cleanup
+        if self._shutdown_event.is_set() and self._running:
+            logger.info(
+                f"Shutdown event detected for {self._bucket_type.value}, cleaning up keys"
+            )
+            await self.delete_keys()
 
     async def _run_callbacks(self) -> None:
         for callback in self.before_update_callbacks:

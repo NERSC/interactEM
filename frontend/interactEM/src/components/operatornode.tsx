@@ -3,13 +3,22 @@ import { useRef } from "react"
 import type { OperatorNodeType } from "../types/nodes"
 import Handles from "./handles"
 import OperatorHeader from "./operatorheader"
+import { withOperatorStatus } from "./operatorstatuscontrol"
 import OperatorToolbar from "./operatortoolbar"
 
-const OperatorNode = ({ id, data }: NodeProps<OperatorNodeType>) => {
+interface OperatorNodeBaseProps extends NodeProps<OperatorNodeType> {
+  className?: string
+}
+
+const OperatorNodeBase = ({
+  id,
+  data,
+  className = "",
+}: OperatorNodeBaseProps) => {
   const nodeRef = useRef<HTMLDivElement>(null)
 
   return (
-    <div className="operator" ref={nodeRef}>
+    <div className={`operator ${className}`} ref={nodeRef}>
       <OperatorHeader id={id} label={data.label} />
       <Handles inputs={data.inputs} outputs={data.outputs} />
       <OperatorToolbar
@@ -21,5 +30,7 @@ const OperatorNode = ({ id, data }: NodeProps<OperatorNodeType>) => {
     </div>
   )
 }
+
+const OperatorNode = withOperatorStatus(OperatorNodeBase)
 
 export default OperatorNode
