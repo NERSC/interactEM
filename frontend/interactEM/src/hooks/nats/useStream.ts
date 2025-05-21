@@ -6,7 +6,7 @@ import {
 } from "@nats-io/jetstream"
 import type { WithRequired } from "@nats-io/nats-core/internal"
 import { useEffect, useState } from "react"
-import { useNats } from "../contexts/nats"
+import { useNats } from "../../contexts/nats"
 
 export const useStream = (
   config: WithRequired<Partial<StreamConfig>, "name">,

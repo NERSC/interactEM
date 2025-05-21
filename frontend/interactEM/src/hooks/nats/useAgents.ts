@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { AGENTS_BUCKET } from "../constants/nats"
-import { type Agent, AgentSchema } from "../types/agent"
+import { AGENTS_BUCKET } from "../../constants/nats"
+import { type Agent, AgentSchema } from "../../types/agent"
 import { useBucket } from "./useBucket"
 
 const isValidAgent = (data: unknown): data is Agent => {

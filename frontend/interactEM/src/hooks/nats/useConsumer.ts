@@ -5,7 +5,7 @@ import {
   JetStreamError,
 } from "@nats-io/jetstream"
 import { useEffect, useRef, useState } from "react"
-import { useNats } from "../contexts/nats"
+import { useNats } from "../../contexts/nats"
 
 interface UseConsumerOptions {
   stream: string

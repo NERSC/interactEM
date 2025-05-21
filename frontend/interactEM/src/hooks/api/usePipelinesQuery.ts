@@ -4,23 +4,22 @@ import {
   useInfiniteQuery,
 } from "@tanstack/react-query"
 import type { AxiosError } from "axios"
-import {
-  pipelinesListPipelineRevisions,
-  pipelinesReadPipelines,
-} from "../client"
-import { zPipelinePublic, zPipelinesPublic } from "../client"
-import {
-  pipelinesListPipelineRevisionsQueryKey,
-  pipelinesReadPipelinesQueryKey,
-} from "../client"
 import type {
   PipelinePublic,
   PipelineRevisionPublic,
   PipelinesListPipelineRevisionsError,
   PipelinesPublic,
   PipelinesReadPipelinesError,
-} from "../client"
-import { zPipelineRevisionPublic } from "../client/generated/zod.gen"
+} from "../../client"
+import {
+  pipelinesListPipelineRevisions,
+  pipelinesListPipelineRevisionsQueryKey,
+  pipelinesReadPipelines,
+  pipelinesReadPipelinesQueryKey,
+  zPipelinePublic,
+  zPipelinesPublic,
+} from "../../client"
+import { zPipelineRevisionPublic } from "../../client/generated/zod.gen"
 
 const DEFAULT_LIMIT = 20
 

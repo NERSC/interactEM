@@ -1,6 +1,6 @@
 import type { NodeProps } from "@xyflow/react"
 import { useRef } from "react"
-import { useImage } from "../../hooks/useImage"
+import { useImage } from "../../hooks/nats/useImage"
 import type { ImageNodeType } from "../../types/nodes"
 import Image from "../image"
 import Handles from "./handles"

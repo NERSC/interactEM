@@ -13,7 +13,7 @@ import type React from "react"
 import type {
   TablePayload,
   TableRow as TableRowData,
-} from "../hooks/useTableData"
+} from "../hooks/nats/useTableData"
 
 interface TableViewProps {
   tablePayload: TablePayload | null

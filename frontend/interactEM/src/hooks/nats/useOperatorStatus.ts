@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { z } from "zod"
-import { OPERATORS_BUCKET } from "../constants/nats"
+import { OPERATORS_BUCKET } from "../../constants/nats"
 import { useBucket } from "./useBucket"
 import { useRunningPipelines } from "./useRunningPipelines"
 

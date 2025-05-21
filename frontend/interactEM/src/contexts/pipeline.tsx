@@ -1,5 +1,5 @@
 import { type ReactNode, createContext, useContext, useMemo } from "react"
-import { useRunningPipelines } from "../hooks/useRunningPipelines"
+import { useRunningPipelines } from "../hooks/nats/useRunningPipelines"
 import { usePipelineStore } from "../stores"
 
 interface PipelineContextType {

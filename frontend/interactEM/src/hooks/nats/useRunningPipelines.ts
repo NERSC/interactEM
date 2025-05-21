@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { z } from "zod"
-import { PIPELINES_BUCKET } from "../constants/nats"
+import { PIPELINES_BUCKET } from "../../constants/nats"
 import { useBucket } from "./useBucket"
 
 const PipelineRunVal = z.object({

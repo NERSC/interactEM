@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { operatorsReadOperators } from "../client"
-import type { Operator } from "../client"
+import type { Operator } from "../../client"
+import { operatorsReadOperators } from "../../client"
 
 const useOperators = () => {
   const [operators, setOperators] = useState<Operator[] | null>(null)

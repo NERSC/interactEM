@@ -5,7 +5,7 @@ import {
   ReplayPolicy,
 } from "@nats-io/jetstream"
 import { useCallback, useMemo, useState } from "react"
-import { TABLES_STREAM } from "../constants/nats" // Ensure this constant matches the stream name used by the operator
+import { TABLES_STREAM } from "../../constants/nats" // Ensure this constant matches the stream name used by the operator
 import { useConsumeMessages } from "./useConsumeMessages"
 import { useConsumer } from "./useConsumer"
 import { useStream } from "./useStream"

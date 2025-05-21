@@ -20,7 +20,7 @@ import {
   pipelinesUpdatePipelineMutation,
 } from "../../client"
 import { usePipelineContext } from "../../contexts/pipeline"
-import { useActivePipeline } from "../../hooks/useActivePipeline"
+import { useActivePipeline } from "../../hooks/api/useActivePipeline"
 import { usePipelineStore } from "../../stores"
 import { DeletePipelineButton } from "./deletebutton"
 import { PipelineEditDialog } from "./editdialog"

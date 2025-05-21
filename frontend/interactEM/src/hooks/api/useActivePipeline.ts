@@ -2,8 +2,8 @@ import { useQuery } from "@tanstack/react-query"
 import {
   pipelinesReadPipelineOptions,
   pipelinesReadPipelineRevisionOptions,
-} from "../client/generated/@tanstack/react-query.gen"
-import { usePipelineStore } from "../stores"
+} from "../../client/generated/@tanstack/react-query.gen"
+import { usePipelineStore } from "../../stores"
 
 export function useActivePipeline() {
   const { currentPipelineId, currentRevisionId } = usePipelineStore()

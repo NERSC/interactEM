@@ -1,7 +1,7 @@
 import { Box, Typography } from "@mui/material"
 import type { NodeProps } from "@xyflow/react"
 import { useRef } from "react"
-import { useTableData } from "../../hooks/useTableData"
+import { useTableData } from "../../hooks/nats/useTableData"
 import type { TableNodeType } from "../../types/nodes"
 import TableView from "../table"
 import Handles from "./handles"
