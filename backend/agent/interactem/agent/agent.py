@@ -259,6 +259,7 @@ class Agent:
         self.agent_val.status = AgentStatus.SHUTTING_DOWN
         if self.agent_kv:
             await self.agent_kv.update_now()
+        self._shutdown_event.set()
 
         for task in self._task_refs:
             task.cancel()

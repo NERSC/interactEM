@@ -70,7 +70,6 @@ async def after_startup(context: ContextRepo, broker: NatsBroker = Context()):
 
 @app.on_shutdown
 async def on_shutdown(agent: Agent = Context()):
-    agent._shutdown_event.set()
     await agent.shutdown()
 
 
