@@ -69,7 +69,7 @@ class ContainerRegistry:
     async def images(self, namespace: str) -> list[str]:
         # Special case for GitHub Container Registry, it currently doesn't support
         # the _catalog endpoint
-        if "ghcr.io" in self._url:
+        if urllib.parse.urlparse(self._url).hostname == "ghcr.io":
             return await self._ghcr_images(namespace)
 
         headers = await self._headers()
