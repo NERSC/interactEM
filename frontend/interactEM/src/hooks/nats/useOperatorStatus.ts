@@ -1,20 +1,8 @@
 import { useMemo } from "react"
-import { z } from "zod"
 import { OPERATORS_BUCKET } from "../../constants/nats"
+import { type OperatorVal, OperatorValSchema } from "../../types/operator"
 import { useBucketWatch } from "./useBucketWatch"
 import { useRunningPipelines } from "./useRunningPipelines"
-
-// Schema for operator status validation
-const OperatorStatusEnum = z.enum(["initializing", "running", "shutting_down"])
-export type OperatorStatus = z.infer<typeof OperatorStatusEnum>
-
-const OperatorValSchema = z.object({
-  id: z.string().uuid(),
-  status: OperatorStatusEnum,
-  pipeline_id: z.string().uuid().nullable(),
-})
-
-export type OperatorVal = z.infer<typeof OperatorValSchema>
 
 export const useOperatorStatus = (operatorID: string) => {
   const { items: operatorStatuses, isLoading } = useBucketWatch<OperatorVal>({

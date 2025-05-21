@@ -1,3 +1,4 @@
+import { z } from "zod"
 import type { OperatorParameter, OperatorTag } from "../client"
 import type { NodeType } from "./nodes"
 
@@ -50,3 +51,10 @@ export interface PipelineData {
 export interface PipelineJSON {
   data: PipelineData
 }
+
+export const PipelineRunSchema = z.object({
+  id: z.string().uuid(),
+  revision_id: z.number().int(),
+})
+
+export type PipelineRun = z.infer<typeof PipelineRunSchema>

@@ -1,13 +1,6 @@
-import { z } from "zod"
 import { PIPELINES_BUCKET } from "../../constants/nats"
+import { type PipelineRun, PipelineRunSchema } from "../../types/pipeline"
 import { useBucketWatch } from "./useBucketWatch"
-
-const PipelineRunSchema = z.object({
-  id: z.string().uuid(),
-  revision_id: z.number().int(),
-})
-
-export type PipelineRun = z.infer<typeof PipelineRunSchema>
 
 export const useRunningPipelines = () => {
   const { items: pipelines, error } = useBucketWatch<PipelineRun>({
