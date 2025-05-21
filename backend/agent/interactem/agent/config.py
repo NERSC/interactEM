@@ -1,7 +1,8 @@
+import uuid
 from pathlib import Path
 
 import netifaces
-from pydantic import AnyWebsocketUrl, NatsDsn, model_validator
+from pydantic import AnyWebsocketUrl, Field, NatsDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from interactem.core.logger import get_logger
@@ -11,6 +12,7 @@ logger = get_logger()
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    ID: uuid.UUID = Field(default_factory=uuid.uuid4)
     LOCAL: bool = False
     DOCKER_COMPATIBILITY_MODE: bool = False
     PODMAN_SERVICE_URI: str | None = None

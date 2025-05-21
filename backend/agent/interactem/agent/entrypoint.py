@@ -1,12 +1,11 @@
 import asyncio
 
-from interactem.agent.agent import Agent, logger
+from interactem.agent.broker import app, logger
 
 
 async def main():
-    agent = Agent()
     try:
-        await agent.run()
+        await app.run()
     except KeyboardInterrupt:
         pass
     except Exception as e:
