@@ -20,14 +20,19 @@ packages = [{ include = "interactem" }]
 python = "^3.10"
 interactem-core = {path = "../core", develop = true}
 podman = "^5.0.0"
-podman-hpc = "^1.1.4"
-podman-hpc-py = {path = "thirdparty/podman-hpc-py"}
 pydantic-settings = "^2.4"
 nkeys = "^0.2.1"
 aiohttp = "^3.11.12"
 netifaces2 = "^0.0.22"
 faststream = {version="^0.5.40", extras=["nats", "cli"]}
 stamina = "^25.1.0"
+
+[tool.poetry.group.hpc]
+optional = true
+
+[tool.poetry.group.hpc.dependencies]
+podman-hpc = "^1.1.4"
+podman-hpc-py = {path = "thirdparty/podman-hpc-py"}
 
 [build-system]
 requires = ["poetry-core"]
