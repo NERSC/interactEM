@@ -1,0 +1,26 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: interactEM
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Samuel
+    family-names: Welborn
+    email: swelborn@lbl.gov
+    affiliation: 'NERSC, Lawrence Berkeley National Laboratory'
+    orcid: 'https://orcid.org/0000-0002-7697-6347'
+  - given-names: Chris
+    family-names: Harris
+    email: cjh@lbl.gov
+    affiliation: 'NERSC, Lawrence Berkeley National Laboratory'
+    orcid: 'https://orcid.org/0000-0002-1113-3728'
+repository-code: 'https://github.com/NERSC/interactEM'
+keywords:
+  - streaming
+  - flow-based programming
+  - hpc
+license: BSD-3-Clause-LBNL
