@@ -4,11 +4,10 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlmodel import Session, delete
 
-from interactem.app.core.config import settings
 from interactem.app.core.db import engine, init_db
 from interactem.app.main import app
 from interactem.app.models import Pipeline, User
-from interactem.app.tests.utils.user import authentication_token_from_email
+from interactem.app.tests.utils.user import authentication_token_from_username
 from interactem.app.tests.utils.utils import get_superuser_token_headers
 
 
@@ -37,6 +36,6 @@ def superuser_token_headers(client: TestClient) -> dict[str, str]:
 
 @pytest.fixture(scope="module")
 def normal_user_token_headers(client: TestClient, db: Session) -> dict[str, str]:
-    return authentication_token_from_email(
-        client=client, email=settings.EMAIL_TEST_USER, db=db
+    return authentication_token_from_username(
+        client=client, username="test_user", db=db
     )
