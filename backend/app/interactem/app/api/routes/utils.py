@@ -1,31 +1,11 @@
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic.networks import EmailStr
+from fastapi import APIRouter, HTTPException
 
-from interactem.app.api.deps import CurrentUser, get_current_active_superuser
-from interactem.app.models import Message, Pipeline
-from interactem.app.utils import generate_test_email, send_email
+from interactem.app.api.deps import CurrentUser
+from interactem.app.models import Pipeline
 
 router = APIRouter()
-
-
-@router.post(
-    "/test-email/",
-    dependencies=[Depends(get_current_active_superuser)],
-    status_code=201,
-)
-def test_email(email_to: EmailStr) -> Message:
-    """
-    Test emails.
-    """
-    email_data = generate_test_email(email_to=email_to)
-    send_email(
-        email_to=email_to,
-        subject=email_data.subject,
-        html_content=email_data.html_content,
-    )
-    return Message(message="Test email sent")
 
 
 def check_present_and_authorized(

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 import sqlalchemy as sa
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from sqlmodel import (
     JSON,
     Column,
@@ -22,7 +22,7 @@ from interactem.core.models.spec import OperatorSpec
 
 # Shared properties
 class UserBase(SQLModel):
-    email: EmailStr = Field(unique=True, index=True, max_length=255)
+    username: str = Field(unique=True, index=True, max_length=255)
     is_active: bool = True
     is_superuser: bool = False
     is_external: bool = False
@@ -35,20 +35,20 @@ class UserCreate(UserBase):
 
 
 class UserRegister(SQLModel):
-    email: EmailStr = Field(max_length=255)
+    username: str = Field(max_length=255)
     password: str = Field(min_length=8, max_length=40)
     full_name: str | None = Field(default=None, max_length=255)
 
 
 # Properties to receive via API on update, all are optional
 class UserUpdate(UserBase):
-    email: EmailStr | None = Field(default=None, max_length=255)  # type: ignore
+    username: str | None = Field(default=None, max_length=255)  # type: ignore
     password: str | None = Field(default=None, min_length=8, max_length=40)
 
 
 class UserUpdateMe(SQLModel):
     full_name: str | None = Field(default=None, max_length=255)
-    email: EmailStr | None = Field(default=None, max_length=255)
+    username: str | None = Field(default=None, max_length=255)
 
 
 class UpdatePassword(SQLModel):
@@ -95,11 +95,6 @@ class TokenPayload(SQLModel):
 class ExternalTokenPayload(SQLModel):
     username: str
     exp: int
-
-
-class NewPassword(SQLModel):
-    token: str
-    new_password: str = Field(min_length=8, max_length=40)
 
 
 class PipelineBase(SQLModel):
