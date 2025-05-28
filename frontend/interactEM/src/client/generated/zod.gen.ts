@@ -111,11 +111,6 @@ export const zMessage = z.object({
   message: z.string(),
 })
 
-export const zNewPassword = z.object({
-  token: z.string(),
-  new_password: z.string().min(8).max(40),
-})
-
 export const zNodeType = z.enum(["operator", "port"])
 
 export const zOperatorSpec = z.object({
@@ -311,7 +306,7 @@ export const zUpdatePassword = z.object({
 })
 
 export const zUserCreate = z.object({
-  email: z.string().email().max(255),
+  username: z.string().max(255),
   is_active: z.boolean().optional().default(true),
   is_superuser: z.boolean().optional().default(false),
   is_external: z.boolean().optional().default(false),
@@ -320,7 +315,7 @@ export const zUserCreate = z.object({
 })
 
 export const zUserPublic = z.object({
-  email: z.string().email().max(255),
+  username: z.string().max(255),
   is_active: z.boolean().optional().default(true),
   is_superuser: z.boolean().optional().default(false),
   is_external: z.boolean().optional().default(false),
@@ -328,14 +323,8 @@ export const zUserPublic = z.object({
   id: z.string().uuid(),
 })
 
-export const zUserRegister = z.object({
-  email: z.string().email().max(255),
-  password: z.string().min(8).max(40),
-  full_name: z.union([z.string().max(255), z.null()]).optional(),
-})
-
 export const zUserUpdate = z.object({
-  email: z.union([z.string().email().max(255), z.null()]).optional(),
+  username: z.union([z.string().max(255), z.null()]).optional(),
   is_active: z.boolean().optional().default(true),
   is_superuser: z.boolean().optional().default(false),
   is_external: z.boolean().optional().default(false),
@@ -345,7 +334,7 @@ export const zUserUpdate = z.object({
 
 export const zUserUpdateMe = z.object({
   full_name: z.union([z.string().max(255), z.null()]).optional(),
-  email: z.union([z.string().email().max(255), z.null()]).optional(),
+  username: z.union([z.string().max(255), z.null()]).optional(),
 })
 
 export const zUsersPublic = z.object({
@@ -365,12 +354,6 @@ export const zLoginLoginWithExternalTokenResponse = zToken
 
 export const zLoginTestTokenResponse = zUserPublic
 
-export const zLoginRecoverPasswordResponse = zMessage
-
-export const zLoginResetPasswordResponse = zMessage
-
-export const zLoginRecoverPasswordHtmlContentResponse = z.string()
-
 export const zUsersReadUsersResponse = zUsersPublic
 
 export const zUsersCreateUserResponse = zUserPublic
@@ -383,15 +366,11 @@ export const zUsersUpdateUserMeResponse = zUserPublic
 
 export const zUsersUpdatePasswordMeResponse = zMessage
 
-export const zUsersRegisterUserResponse = zUserPublic
-
 export const zUsersDeleteUserResponse = zMessage
 
 export const zUsersReadUserByIdResponse = zUserPublic
 
 export const zUsersUpdateUserResponse = zUserPublic
-
-export const zUtilsTestEmailResponse = zMessage
 
 export const zPipelinesReadPipelinesResponse = zPipelinesPublic
 
