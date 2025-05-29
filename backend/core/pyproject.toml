@@ -21,6 +21,7 @@ networkx = "^3.3"
 nats-py = "^2.10.0"
 nkeys = "^0.2.1"
 tenacity = "^9.0.0"
+faststream = "^0.5"
 
 [build-system]
 requires = ["poetry-core"]
