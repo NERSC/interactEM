@@ -12,25 +12,47 @@ https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08
 
 ## Running locally
 
-First generate `auth.conf` for the NATS cluster and various `.creds` and `.nk` files for NATS authentication:
+### Prerequisites
+- **Docker Desktop** and **Podman Desktop** (recommended for easiest setup)
+- **NATS Tools**: Command-line utilities for interacting with [NATS](https://github.com/nats-io/natscli?tab=readme-ov-file#installation)
 
-```bash
-cd nats-conf
-./generate-auth-jwt.sh
-```
+### Configuration
 
-Generate the images using
+1. **Set up Environment Variables**  
+    Add Github and personal token information in `.env` file.
 
-```bash
-cd docker
-./build.sh
-```
+    ```makefile
+    GITHUB_USERNAME=your_github_username
+    GITHUB_TOKEN=your_personal_token
+   ```
 
-Then, bring up services using docker compose (this will also build things):
+1. **Generate NATS Authentication Files**  
+    Generate `auth.conf` for the NATS cluster and various `.creds` and `.nk` files for NATS authentication.
 
-```bash
-docker compose up --force-recreate --remove-orphans --build -d
-```
+    ```bash
+    cd nats-conf
+    ./generate-auth-jwt.sh
+    ```
+
+### Building Docker Images and starting services
+
+1. **Build the Required Images**  
+    Use one of the following methods.
+
+    ```bash
+    docker/build.sh
+    ```
+    or
+    ```bash
+    docker/bake.sh
+    ```
+
+1. **Bring up Services**  
+    Use docker compose:
+
+    ```bash
+    docker compose up --force-recreate --remove-orphans --build -d
+    ```
 
 ## License
 
