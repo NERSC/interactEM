@@ -2,7 +2,8 @@ import uuid
 from pathlib import Path
 
 import netifaces
-from pydantic import AnyWebsocketUrl, Field, NatsDsn, model_validator
+from podman import api as podman_api
+from pydantic import AnyWebsocketUrl, Field, NatsDsn, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from interactem.core.logger import get_logger
@@ -29,6 +30,20 @@ class Settings(BaseSettings):
     # ZMQ configuration
     ZMQ_BIND_HOSTNAME: str = ""
     ZMQ_BIND_INTERFACE: str
+
+    @field_validator("PODMAN_SERVICE_URI", mode="before")
+    @classmethod
+    def check_and_normalize_podman_service_uri(cls, v):
+        if v is None:
+            return None
+        try:
+            normalized = podman_api.APIClient._normalize_url(v)
+            # Convert ParseResult to string
+            if hasattr(normalized, "geturl"):
+                normalized = normalized.geturl()
+            return normalized
+        except Exception as e:
+            raise ValueError(str(e))
 
     @model_validator(mode="after")
     def ensure_operator_creds_file(self) -> "Settings":
