@@ -1,7 +1,7 @@
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined"
 import { Box, IconButton, Paper, Tooltip, Typography } from "@mui/material"
 import type React from "react"
-import type { OperatorParameter } from "../client/generated/types.gen"
+import type { OperatorParameter } from "../../client/generated/types.gen"
 
 interface ParameterInfoTooltipProps {
   parameter: OperatorParameter
