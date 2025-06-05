@@ -12,9 +12,6 @@ import {
   agentsLaunchAgent,
   loginLoginAccessToken,
   loginLoginWithExternalToken,
-  loginRecoverPassword,
-  loginRecoverPasswordHtmlContent,
-  loginResetPassword,
   loginTestToken,
   operatorsReadOperators,
   pipelinesAddPipelineRevision,
@@ -34,11 +31,9 @@ import {
   usersReadUserById,
   usersReadUserMe,
   usersReadUsers,
-  usersRegisterUser,
   usersUpdatePasswordMe,
   usersUpdateUser,
   usersUpdateUserMe,
-  utilsTestEmail,
 } from "../sdk.gen"
 import type {
   AgentsLaunchAgentData,
@@ -48,15 +43,6 @@ import type {
   LoginLoginAccessTokenResponse,
   LoginLoginWithExternalTokenData,
   LoginLoginWithExternalTokenResponse,
-  LoginRecoverPasswordData,
-  LoginRecoverPasswordError,
-  LoginRecoverPasswordHtmlContentData,
-  LoginRecoverPasswordHtmlContentError,
-  LoginRecoverPasswordHtmlContentResponse,
-  LoginRecoverPasswordResponse,
-  LoginResetPasswordData,
-  LoginResetPasswordError,
-  LoginResetPasswordResponse,
   LoginTestTokenData,
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
@@ -96,9 +82,6 @@ import type {
   UsersReadUserByIdData,
   UsersReadUserMeData,
   UsersReadUsersData,
-  UsersRegisterUserData,
-  UsersRegisterUserError,
-  UsersRegisterUserResponse,
   UsersUpdatePasswordMeData,
   UsersUpdatePasswordMeError,
   UsersUpdatePasswordMeResponse,
@@ -108,9 +91,6 @@ import type {
   UsersUpdateUserMeError,
   UsersUpdateUserMeResponse,
   UsersUpdateUserResponse,
-  UtilsTestEmailData,
-  UtilsTestEmailError,
-  UtilsTestEmailResponse,
 } from "../types.gen"
 
 type QueryKey<TOptions extends Options> = [
@@ -270,129 +250,6 @@ export const loginTestTokenMutation = (
   return mutationOptions
 }
 
-export const loginRecoverPasswordQueryKey = (
-  options: Options<LoginRecoverPasswordData>,
-) => [createQueryKey("loginRecoverPassword", options)]
-
-export const loginRecoverPasswordOptions = (
-  options: Options<LoginRecoverPasswordData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await loginRecoverPassword({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: loginRecoverPasswordQueryKey(options),
-  })
-}
-
-export const loginRecoverPasswordMutation = (
-  options?: Partial<Options<LoginRecoverPasswordData>>,
-) => {
-  const mutationOptions: UseMutationOptions<
-    LoginRecoverPasswordResponse,
-    AxiosError<LoginRecoverPasswordError>,
-    Options<LoginRecoverPasswordData>
-  > = {
-    mutationFn: async (localOptions) => {
-      const { data } = await loginRecoverPassword({
-        ...options,
-        ...localOptions,
-        throwOnError: true,
-      })
-      return data
-    },
-  }
-  return mutationOptions
-}
-
-export const loginResetPasswordQueryKey = (
-  options: Options<LoginResetPasswordData>,
-) => [createQueryKey("loginResetPassword", options)]
-
-export const loginResetPasswordOptions = (
-  options: Options<LoginResetPasswordData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await loginResetPassword({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: loginResetPasswordQueryKey(options),
-  })
-}
-
-export const loginResetPasswordMutation = (
-  options?: Partial<Options<LoginResetPasswordData>>,
-) => {
-  const mutationOptions: UseMutationOptions<
-    LoginResetPasswordResponse,
-    AxiosError<LoginResetPasswordError>,
-    Options<LoginResetPasswordData>
-  > = {
-    mutationFn: async (localOptions) => {
-      const { data } = await loginResetPassword({
-        ...options,
-        ...localOptions,
-        throwOnError: true,
-      })
-      return data
-    },
-  }
-  return mutationOptions
-}
-
-export const loginRecoverPasswordHtmlContentQueryKey = (
-  options: Options<LoginRecoverPasswordHtmlContentData>,
-) => [createQueryKey("loginRecoverPasswordHtmlContent", options)]
-
-export const loginRecoverPasswordHtmlContentOptions = (
-  options: Options<LoginRecoverPasswordHtmlContentData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await loginRecoverPasswordHtmlContent({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: loginRecoverPasswordHtmlContentQueryKey(options),
-  })
-}
-
-export const loginRecoverPasswordHtmlContentMutation = (
-  options?: Partial<Options<LoginRecoverPasswordHtmlContentData>>,
-) => {
-  const mutationOptions: UseMutationOptions<
-    LoginRecoverPasswordHtmlContentResponse,
-    AxiosError<LoginRecoverPasswordHtmlContentError>,
-    Options<LoginRecoverPasswordHtmlContentData>
-  > = {
-    mutationFn: async (localOptions) => {
-      const { data } = await loginRecoverPasswordHtmlContent({
-        ...options,
-        ...localOptions,
-        throwOnError: true,
-      })
-      return data
-    },
-  }
-  return mutationOptions
-}
-
 export const usersReadUsersQueryKey = (
   options?: Options<UsersReadUsersData>,
 ) => [createQueryKey("usersReadUsers", options)]
@@ -536,47 +393,6 @@ export const usersUpdatePasswordMeMutation = (
   return mutationOptions
 }
 
-export const usersRegisterUserQueryKey = (
-  options: Options<UsersRegisterUserData>,
-) => [createQueryKey("usersRegisterUser", options)]
-
-export const usersRegisterUserOptions = (
-  options: Options<UsersRegisterUserData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await usersRegisterUser({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: usersRegisterUserQueryKey(options),
-  })
-}
-
-export const usersRegisterUserMutation = (
-  options?: Partial<Options<UsersRegisterUserData>>,
-) => {
-  const mutationOptions: UseMutationOptions<
-    UsersRegisterUserResponse,
-    AxiosError<UsersRegisterUserError>,
-    Options<UsersRegisterUserData>
-  > = {
-    mutationFn: async (localOptions) => {
-      const { data } = await usersRegisterUser({
-        ...options,
-        ...localOptions,
-        throwOnError: true,
-      })
-      return data
-    },
-  }
-  return mutationOptions
-}
-
 export const usersDeleteUserMutation = (
   options?: Partial<Options<UsersDeleteUserData>>,
 ) => {
@@ -628,45 +444,6 @@ export const usersUpdateUserMutation = (
   > = {
     mutationFn: async (localOptions) => {
       const { data } = await usersUpdateUser({
-        ...options,
-        ...localOptions,
-        throwOnError: true,
-      })
-      return data
-    },
-  }
-  return mutationOptions
-}
-
-export const utilsTestEmailQueryKey = (
-  options: Options<UtilsTestEmailData>,
-) => [createQueryKey("utilsTestEmail", options)]
-
-export const utilsTestEmailOptions = (options: Options<UtilsTestEmailData>) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await utilsTestEmail({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: utilsTestEmailQueryKey(options),
-  })
-}
-
-export const utilsTestEmailMutation = (
-  options?: Partial<Options<UtilsTestEmailData>>,
-) => {
-  const mutationOptions: UseMutationOptions<
-    UtilsTestEmailResponse,
-    AxiosError<UtilsTestEmailError>,
-    Options<UtilsTestEmailData>
-  > = {
-    mutationFn: async (localOptions) => {
-      const { data } = await utilsTestEmail({
         ...options,
         ...localOptions,
         throwOnError: true,

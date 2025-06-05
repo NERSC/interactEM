@@ -15,15 +15,6 @@ import type {
   LoginLoginAccessTokenResponse,
   LoginLoginWithExternalTokenData,
   LoginLoginWithExternalTokenResponse,
-  LoginRecoverPasswordData,
-  LoginRecoverPasswordError,
-  LoginRecoverPasswordHtmlContentData,
-  LoginRecoverPasswordHtmlContentError,
-  LoginRecoverPasswordHtmlContentResponse,
-  LoginRecoverPasswordResponse,
-  LoginResetPasswordData,
-  LoginResetPasswordError,
-  LoginResetPasswordResponse,
   LoginTestTokenData,
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
@@ -77,9 +68,6 @@ import type {
   UsersReadUsersData,
   UsersReadUsersError,
   UsersReadUsersResponse,
-  UsersRegisterUserData,
-  UsersRegisterUserError,
-  UsersRegisterUserResponse,
   UsersUpdatePasswordMeData,
   UsersUpdatePasswordMeError,
   UsersUpdatePasswordMeResponse,
@@ -89,9 +77,6 @@ import type {
   UsersUpdateUserMeError,
   UsersUpdateUserMeResponse,
   UsersUpdateUserResponse,
-  UtilsTestEmailData,
-  UtilsTestEmailError,
-  UtilsTestEmailResponse,
 } from "./types.gen"
 
 export type Options<
@@ -177,70 +162,6 @@ export const loginTestToken = <ThrowOnError extends boolean = false>(
       },
     ],
     url: "/api/v1/login/test-token",
-    ...options,
-  })
-}
-
-/**
- * Recover Password
- * Password Recovery
- */
-export const loginRecoverPassword = <ThrowOnError extends boolean = false>(
-  options: Options<LoginRecoverPasswordData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    LoginRecoverPasswordResponse,
-    LoginRecoverPasswordError,
-    ThrowOnError
-  >({
-    url: "/api/v1/password-recovery/{email}",
-    ...options,
-  })
-}
-
-/**
- * Reset Password
- * Reset password
- */
-export const loginResetPassword = <ThrowOnError extends boolean = false>(
-  options: Options<LoginResetPasswordData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    LoginResetPasswordResponse,
-    LoginResetPasswordError,
-    ThrowOnError
-  >({
-    url: "/api/v1/reset-password/",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  })
-}
-
-/**
- * Recover Password Html Content
- * HTML Content for Password Recovery
- */
-export const loginRecoverPasswordHtmlContent = <
-  ThrowOnError extends boolean = false,
->(
-  options: Options<LoginRecoverPasswordHtmlContentData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    LoginRecoverPasswordHtmlContentResponse,
-    LoginRecoverPasswordHtmlContentError,
-    ThrowOnError
-  >({
-    responseType: "text",
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
-    url: "/api/v1/password-recovery-html-content/{email}",
     ...options,
   })
 }
@@ -396,27 +317,6 @@ export const usersUpdatePasswordMe = <ThrowOnError extends boolean = false>(
 }
 
 /**
- * Register User
- * Create new user without the need to be logged in.
- */
-export const usersRegisterUser = <ThrowOnError extends boolean = false>(
-  options: Options<UsersRegisterUserData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    UsersRegisterUserResponse,
-    UsersRegisterUserError,
-    ThrowOnError
-  >({
-    url: "/api/v1/users/signup",
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options?.headers,
-    },
-  })
-}
-
-/**
  * Delete User
  * Delete a user.
  */
@@ -486,29 +386,6 @@ export const usersUpdateUser = <ThrowOnError extends boolean = false>(
       "Content-Type": "application/json",
       ...options?.headers,
     },
-  })
-}
-
-/**
- * Test Email
- * Test emails.
- */
-export const utilsTestEmail = <ThrowOnError extends boolean = false>(
-  options: Options<UtilsTestEmailData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    UtilsTestEmailResponse,
-    UtilsTestEmailError,
-    ThrowOnError
-  >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
-    url: "/api/v1/utils/test-email/",
-    ...options,
   })
 }
 
