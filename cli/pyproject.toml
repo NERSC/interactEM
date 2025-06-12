@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "interactem-cli"
+version = "0.1.0"
+description = "Command-line interface for InteractEM pipeline management"
+authors = ["Rajat Bhattarai <basistharajat@gmail.com>"]
+readme = "README.md"
+packages = [{include = "interactem"}]
+
+[tool.poetry.scripts]
+interactem = "interactem.cli.main:app"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+interactem-core = {path = "../backend/core", develop = true}
+typer = "^0.16.0"
+rich = "^13.7.1"
+httpx = "^0.28.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
