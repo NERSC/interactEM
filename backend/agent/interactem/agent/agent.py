@@ -204,7 +204,8 @@ class Agent:
 
     async def run(self):
         logger.info(f"Starting agent with configuration: {cfg.model_dump()}")
-        await self._start_podman_service()
+        create_process = not PODMAN_SERVICE_URI
+        await self._start_podman_service(create_process=create_process)
 
         self.agent_val.status = AgentStatus.IDLE
 
