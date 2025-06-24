@@ -1,5 +1,7 @@
-from faststream import Context, ContextRepo, FastStream
-from faststream.nats import JStream, NatsBroker
+import asyncio
+
+from faststream import Context, ContextRepo, Depends, FastStream
+from faststream.nats import JStream, NatsBroker, NatsMessage
 from nats.js.api import RetentionPolicy
 
 from interactem.core.config import cfg as nats_cfg
@@ -34,6 +36,7 @@ def get_nats_broker(servers: list[str], name: str) -> NatsBroker:
     return NatsBroker(
         servers=servers,
         name=name,
+        allow_reconnect=True,
         reconnected_cb=reconnected_cb,
         disconnected_cb=disconnected_cb,
         closed_cb=closed_cb,
@@ -83,11 +86,28 @@ agent_consumer_config = AGENT_CONSUMER_CONFIG
 agent_consumer_config.description = f"agent-{AGENT_ID}"
 
 
+PROGRESS_UPDATE_INTERVAL = 1 # sec
+# Since receiving assignments can take a while, use dep to tell nats connection not to die.
+async def progress(message: NatsMessage):
+    async def in_progress_task():
+        while True:
+            await asyncio.sleep(PROGRESS_UPDATE_INTERVAL)
+            await message.in_progress()
+
+    task = asyncio.create_task(in_progress_task())
+    yield
+    task.cancel()
+
+
+progress_dep = Depends(progress)
+
+
 @broker.subscriber(
     stream=AGENT_JSTREAM,
     subject=f"{STREAM_AGENTS}.{AGENT_ID}",
     config=agent_consumer_config,
     pull_sub=True,
+    dependencies=[progress_dep],
 )
 async def assignment_handler(assignment: PipelineAssignment, agent: Agent = Context()):
     await agent.receive_assignment(assignment)
