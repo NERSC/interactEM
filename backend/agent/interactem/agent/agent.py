@@ -29,7 +29,9 @@ from interactem.core.models.operators import (
     ParameterType,
 )
 from interactem.core.models.pipeline import (
+    MountDoesntExistError,
     OperatorJSON,
+    OperatorWithMounts,
     PipelineAssignment,
     PodmanMount,
     PodmanMountType,
@@ -84,7 +86,7 @@ class ContainerTracker:
     def __init__(
         self,
         container: Container,
-        operator: OperatorJSON,
+        operator: OperatorWithMounts,
     ):
         self.container = container
         self.operator = operator
@@ -295,7 +297,7 @@ class Agent:
                 tasks.append(self.create_task(self._start_operator(op_info, client)))
 
             results: list[
-                tuple[OperatorJSON, Container] | BaseException
+                tuple[OperatorWithMounts, Container] | BaseException
             ] = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in results:
@@ -316,13 +318,15 @@ class Agent:
                         if not param.type == ParameterType.MOUNT:
                             continue
                         tracker.add_parameter_task(
-                            asyncio.create_task(self.parameter_task(tracker, param))
+                            asyncio.create_task(self.remount_task(tracker, param))
                         )
 
     async def _start_operator(
         self, operator: OperatorJSON, client: PodmanClient
-    ) -> tuple[OperatorJSON, Container]:
+    ) -> tuple[OperatorWithMounts, Container]:
         logger.info(f"Starting operator {operator.id} with image {operator.image}")
+
+        operator = OperatorWithMounts(**operator.model_dump())
 
         if self.pipeline is None:
             raise ValueError("No pipeline configuration found")
@@ -333,21 +337,20 @@ class Agent:
         env = GLOBAL_ENV.copy()
         env.update(operator.env)
         env.update({OPERATOR_ID_ENV_VAR: str(operator.id)})
-
-        # Mount in the operator credentials
-        if OPERATOR_CREDS_MOUNT not in operator.mounts:
-            operator.mounts.append(OPERATOR_CREDS_MOUNT)
         env.update(
             {"NATS_CREDS_FILE": OPERATOR_CREDS_TARGET, "NATS_SECURITY_MODE": "creds"}
         )
+        operator.env = env
 
+        # Mount in the operator credentials
+        operator.add_internal_mount(OPERATOR_CREDS_MOUNT)
+
+        # For local dev, we can mount in the core/operators
         if cfg.MOUNT_LOCAL_REPO:
-            if CORE_MOUNT not in operator.mounts:
-                operator.mounts.append(CORE_MOUNT)
-            if OPERATORS_MOUNT not in operator.mounts:
-                operator.mounts.append(OPERATORS_MOUNT)
+            operator.add_internal_mount(CORE_MOUNT)
+            operator.add_internal_mount(OPERATORS_MOUNT)
 
-        container = await create_container(self.id, client, operator, env)
+        container = await create_container(self.id, client, operator)
         if not container:
             raise RuntimeError(f"Failed to create container for operator {operator.id}")
         container.start()
@@ -357,12 +360,12 @@ class Agent:
             subject=f"{STREAM_OPERATORS}.{operator.id}",
             message=self.pipeline.to_json().model_dump_json(),
         )
-        logger.info(f"Published pipeline for operator {operator.id}")
+        logger.debug(f"Published pipeline for operator {operator.id}")
         logger.debug(f"Pipeline: {self.pipeline.to_json().model_dump_json()}")
 
         return operator, container
 
-    async def parameter_task(
+    async def remount_task(
         self, tracker: ContainerTracker, parameter: OperatorParameter
     ):
         operator = tracker.operator
@@ -381,22 +384,20 @@ class Agent:
 
         async def handler(msg: dict[str, Any]):
             new_val = msg.get(parameter.name, "")
+            if new_val == parameter.value:
+                return
             logger.info(
                 f"Received new value for parameter '{parameter.name}': {new_val}"
             )
-            if new_val == parameter.value:
-                return
 
-            # Validate the new value before updating
-            if not operator.validate_mount_for_parameter(parameter, new_val):
-                logger.error(
-                    f"Invalid mount path for parameter '{parameter.name}': {new_val}"
-                )
-                await self.error_publisher.publish("Path does not exist")
-                return
+            operator.update_parameter_value(parameter.name, new_val)
 
-            parameter.value = new_val
-            operator.update_mounts_for_parameter(parameter)
+            try:
+                operator.update_param_mounts(use_default=False)
+            except MountDoesntExistError as e:
+                logger.exception(e)
+                await self.error_publisher.publish(str(e))
+                return
 
             # Mark for a restart (handled in the monitor loop)
             tracker.mark()
@@ -432,20 +433,21 @@ class Agent:
                     continue
                 try:
                     tracker.container.reload()
-                    if tracker.container.status != "running":
-                        if tracker.num_restarts >= ContainerTracker.MAX_RESTARTS:
-                            _msg = f"Container {tracker.container.name} reached maximum restart attempts."
-                            logger.error(_msg)
-                            await self.error_publisher.publish(
-                                f"Operator {tracker.operator.image} failed to start after 3 attempts."
-                            )
-                            del self.container_trackers[tracker.operator.id]
-                            continue
-                        logger.info(
-                            f"Container {tracker.container.name} stopped. Restarting..."
+                    if tracker.container.status == "running":
+                        continue
+                    if tracker.num_restarts >= ContainerTracker.MAX_RESTARTS:
+                        _msg = f"Container {tracker.container.name} reached maximum restart attempts."
+                        logger.error(_msg)
+                        await self.error_publisher.publish(
+                            f"Operator {tracker.operator.image} failed to start after {ContainerTracker.MAX_RESTARTS} attempts."
                         )
-                        await self.restart_operator(tracker)
-                        tracker.num_restarts += 1
+                        del self.container_trackers[tracker.operator.id]
+                        continue
+                    logger.info(
+                        f"Container {tracker.container.name} stopped. Restarting..."
+                    )
+                    await self.restart_operator(tracker)
+                    tracker.num_restarts += 1
 
                 except podman.errors.exceptions.NotFound:
                     logger.warning(
@@ -464,7 +466,8 @@ class Agent:
         logger.info(f"Restarting operator {tracker.operator.id}")
         await stop_and_remove_container(container)
         with PodmanClient(base_url=self._podman_service_uri) as client:
-            _, new_container = await self._start_operator(operator, client)
+            new_container = await create_container(self.id, client, operator)
+            new_container.start()
             self.container_trackers[operator.id].container = new_container
 
     def create_task(self, coro: Coroutine) -> asyncio.Task:
@@ -488,8 +491,7 @@ def is_name_conflict_error(exc: Exception) -> bool:
 async def create_container(
     agent_id: uuid.UUID,
     client: PodmanClient,
-    operator: OperatorJSON,
-    env: dict[str, Any],
+    operator: OperatorWithMounts,
 ) -> Container:
     name = f"operator-{operator.id}"
     network_mode = operator.network_mode or "host"
@@ -514,14 +516,12 @@ async def create_container(
     for attempt in stamina.retry_context(on=is_name_conflict_error):
         # Expand users
         # This should only be done at the agent (where data resides)
-        for mount in operator.mounts:
-            mount.resolve()
         with attempt:
             if attempt.num > 1:
                 await handle_name_conflict(client, name)
             return client.containers.create(
                 image=operator.image,
-                environment=env,
+                environment=operator.env,
                 name=name,
                 command=operator.command,
                 detach=True,
@@ -531,7 +531,7 @@ async def create_container(
                 network_mode=network_mode,
                 remove=True,
                 labels={"agent.id": str(agent_id)},
-                mounts=[mount.model_dump() for mount in operator.mounts],
+                mounts=[mount.model_dump() for mount in operator.all_mounts],
             )
 
     raise RuntimeError(

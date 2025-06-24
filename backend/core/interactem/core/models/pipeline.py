@@ -7,7 +7,7 @@ from pydantic import BaseModel, model_validator
 
 from ..constants import MOUNT_DIR
 from .base import IdType, NodeType, OperatorID, PortID, PortType
-from .operators import OperatorParameter, OperatorTag, ParameterType
+from .operators import OperatorParameter, OperatorTag, ParameterName, ParameterType
 
 """
 Pipelines are a DAG of Operators and Ports
@@ -45,6 +45,10 @@ class NetworkMode(str, Enum):
     def __str__(self):
         return self.value
 
+class MountDoesntExistError(Exception):
+    def __init__(self, source: pathlib.Path):
+        self.source = source
+        super().__init__(f"Mount {source} does not exist")
 
 class PodmanMount(BaseModel):
     type: PodmanMountType
@@ -53,15 +57,40 @@ class PodmanMount(BaseModel):
     # TODO: figure out a way to change this in frontend
     read_only: bool = False
 
-    def resolve(self) -> bool:
-        src = pathlib.Path(self.source)
-        self.source = str(src.expanduser())
+    def resolve(self) -> "PodmanMount":
+        src = pathlib.Path(self.source).expanduser()
+        self.source = str(src)
         target = pathlib.Path(self.target)
         self.target = str(target)
-        if src.exists():
-            return True
-        return False
 
+        if not src.exists():
+            raise MountDoesntExistError(src)
+
+        return self
+
+    @classmethod
+    def from_mount_param(
+        cls, parameter: OperatorParameter, use_default=True
+    ) -> "PodmanMount":
+        if not parameter.type == ParameterType.MOUNT:
+            raise ValueError("Parameter must be of type MOUNT")
+
+        if not use_default:
+            if not parameter.value:
+                raise ValueError(
+                    "Parameter value is required when use_default is False"
+                )
+            src = parameter.value
+        else:
+            src = parameter.default
+
+        target = f"{MOUNT_DIR}/{parameter.name}"
+
+        return cls(
+            type=PodmanMountType.bind,
+            source=src,
+            target=target,
+        )
 
 # Nodes are Operators/Ports
 class PipelineNodeJSON(BaseModel):
@@ -93,76 +122,59 @@ class OperatorJSON(PipelineNodeJSON):
     inputs: list[PortID] = []
     outputs: list[PortID] = []
     tags: list[OperatorTag] = []  # Tags for agent matching
-    mounts: list[PodmanMount] = []  # Container mounts
     env: dict[str, str] = {}  # Environment variables to pass to the container
     command: str | list[str] = []  # Command to pass to the container
     network_mode: NetworkMode | None = None  # Network mode for the container
 
-    def validate_mount_for_parameter(
-        self, parameter: OperatorParameter, value: str
-    ) -> bool:
-        if parameter.type != ParameterType.MOUNT:
-            return True  # Non-mount parameters don't need this validation
+    def update_parameter_value(self, name: str, value: str | None) -> None:
+        for parameter in self.parameters or []:
+            if parameter.name == name:
+                parameter.value = value
+                return
+        raise ValueError(f"Parameter '{name}' not found in operator.")
 
-        src = value if value is not None else parameter.default
-        # Validate that the source exists
-        if not src or not pathlib.Path(src).exists():
-            return False
-        return True
 
-    def update_mounts_for_parameter(self, parameter: OperatorParameter):
-        if parameter.type != ParameterType.MOUNT:
+class OperatorWithMounts(OperatorJSON):
+    param_mounts: dict[ParameterName, PodmanMount] = {}  # Container mounts
+    internal_mounts: list[PodmanMount] = []  # Other mounts not tied to parameters
+
+    def update_param_mounts(self, use_default: bool = True):
+        """
+        Update the parameter mounts based on the current parameters.
+        If use_default is True, it will use the default value of the parameter.
+        """
+        if not self.parameters:
             return
-
-        src = parameter.value if parameter.value is not None else parameter.default
-        target = f"{MOUNT_DIR}/{parameter.name}"
-
-        self.mounts = [mount for mount in self.mounts if mount.target != target]
-
-        self.mounts.append(
-            PodmanMount(
-                type=PodmanMountType.bind,
-                source=src,
-                target=target,
-            )
-        )
-
-    @model_validator(mode="after")
-    def parameter_to_mount(self):
-        if self.parameters is None:
-            return self
 
         for parameter in self.parameters:
             if not parameter.type == ParameterType.MOUNT:
                 continue
+            mount = PodmanMount.from_mount_param(parameter, use_default)
+            mount = mount.resolve()  # raises MountDoesntExistError
+            self.param_mounts[parameter.name] = mount
 
-            if parameter.value:
-                src = parameter.value
-            else:
-                src = parameter.default
+    @model_validator(mode="after")
+    def coerce_params_into_mounts(self) -> "OperatorWithMounts":
+        if not self.parameters:
+            return self
 
-            # Skip if the mount is already there
-            src_exists = src in [mount.source for mount in self.mounts]
-            target_exists = f"{MOUNT_DIR}/{parameter.name}" in [
-                mount.target for mount in self.mounts
-            ]
-            if src_exists and target_exists:
-                continue
-
-            if target_exists:
-                self.mounts.pop(
-                    [mount.target for mount in self.mounts].index(
-                        f"{MOUNT_DIR}/{parameter.name}"
-                    )
-                )
-            self.mounts.append(
-                PodmanMount(
-                    type=PodmanMountType.bind,
-                    source=src,
-                    target=f"{MOUNT_DIR}/{parameter.name}",
-                )
-            )
+        # On instantiation, use default values for mounts
+        try:
+            self.update_param_mounts(use_default=True)
+        except MountDoesntExistError as e:
+            raise ValueError(
+                f"Invalid mount in operator {self.image}: {e.source}"
+            ) from e
         return self
+
+    def add_internal_mount(self, mount: PodmanMount) -> None:
+        if mount in self.internal_mounts:
+            return  # Avoid duplicates
+        self.internal_mounts.append(mount)
+
+    @property
+    def all_mounts(self) -> list[PodmanMount]:
+        return list(self.param_mounts.values()) + self.internal_mounts
 
 
 class EdgeJSON(BaseModel):
