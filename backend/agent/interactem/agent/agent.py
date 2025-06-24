@@ -79,6 +79,8 @@ OPERATOR_CREDS_MOUNT = PodmanMount(
 
 
 class ContainerTracker:
+    MAX_RESTARTS: int = 3
+
     def __init__(
         self,
         container: Container,
@@ -88,6 +90,7 @@ class ContainerTracker:
         self.operator = operator
         self.marked_for_restart = False
         self.mount_parameter_tasks: list[asyncio.Task] = []
+        self.num_restarts = 0
 
     def mark(self):
         self.marked_for_restart = True
@@ -430,10 +433,20 @@ class Agent:
                 try:
                     tracker.container.reload()
                     if tracker.container.status != "running":
+                        if tracker.num_restarts >= ContainerTracker.MAX_RESTARTS:
+                            _msg = f"Container {tracker.container.name} reached maximum restart attempts."
+                            logger.error(_msg)
+                            await self.error_publisher.publish(
+                                f"Operator {tracker.operator.image} failed to start after 3 attempts."
+                            )
+                            del self.container_trackers[tracker.operator.id]
+                            continue
                         logger.info(
                             f"Container {tracker.container.name} stopped. Restarting..."
                         )
                         await self.restart_operator(tracker)
+                        tracker.num_restarts += 1
+
                 except podman.errors.exceptions.NotFound:
                     logger.warning(
                         f"Container {tracker.container.name} not found during monitoring"
