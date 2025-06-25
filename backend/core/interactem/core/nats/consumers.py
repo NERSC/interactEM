@@ -23,7 +23,7 @@ from interactem.core.models.pipeline import OperatorJSON
 logger = get_logger()
 
 AGENT_CONSUMER_CONFIG = ConsumerConfig(
-    deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
+    deliver_policy=DeliverPolicy.NEW,
     inactive_threshold=30,
 )
 
