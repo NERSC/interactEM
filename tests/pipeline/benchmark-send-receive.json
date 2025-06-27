@@ -1,0 +1,55 @@
+{
+  "data": {
+    "operators": [
+      {
+        "id": "3d95fc79-1234-4ca6-a011-d01ada81f5fc",
+        "label": "Benchmark Sender",
+        "image": "ghcr.io/nersc/interactem/benchmark-sender:latest",
+        "outputs": ["dc190de2-abcd-4a15-aadc-367727879868"],
+        "parameters": [
+          {
+            "name": "interval",
+            "label": "Interval",
+            "type": "int",
+            "default": "2",
+            "description": "The interval at which to send the frame",
+            "required": true
+          }
+        ],
+        "tags": [],
+        "type": "operator"
+      },
+      {
+        "id": "5f823986-12ab-4ad1-bedb-b355e5216f77",
+        "label": "Benchmark Receiver",
+        "image": "ghcr.io/nersc/interactem/benchmark-receiver:latest",
+        "inputs": ["e16aa883-4701-abcd-9904-a071277b76d9"],
+        "tags": [],
+        "type": "operator"
+      }
+    ],
+    "ports": [
+      {
+        "node_type": "port",
+        "id": "dc190de2-abcd-4a15-aadc-367727879868",
+        "operator_id": "3d95fc79-1234-4ca6-a011-d01ada81f5fc",
+        "portkey": "dc190de2-abcd-4a15-aadc-367727879868",
+        "port_type": "output"
+      },
+      {
+        "node_type": "port",
+        "id": "e16aa883-4701-abcd-9904-a071277b76d9",
+        "operator_id": "5f823986-12ab-4ad1-bedb-b355e5216f77",
+        "portkey": "e16aa883-4701-abcd-9904-a071277b76d9",
+        "port_type": "input"
+      }
+    ],
+    "edges": [
+      {
+        "input_id": "dc190de2-abcd-4a15-aadc-367727879868",
+        "output_id": "e16aa883-4701-abcd-9904-a071277b76d9",
+        "num_connections": 1
+      }
+    ]
+  }
+}

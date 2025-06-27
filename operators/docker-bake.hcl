@@ -29,7 +29,9 @@ group "operators" {
     "distiller-counted-data-reader",
     "diffraction-pattern-accumulator",
     "array-image-converter",
-    "virtual-bfdf"
+    "virtual-bfdf",
+    "benchmark-sender",
+    "benchmark-receiver"
   ]
 }
 
@@ -211,4 +213,18 @@ target "virtual-bfdf" {
   context = "operators/virtual-bfdf"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/virtual-bfdf:${TAG}"]
+}
+
+target "benchmark-sender" {
+  inherits = ["common"]
+  context = "operators/benchmark-sender"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/benchmark-sender:${TAG}"]
+}
+
+target "benchmark-receiver" {
+  inherits = ["common"]
+  context = "operators/benchmark-receiver"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/benchmark-receiver:${TAG}"]
 }
