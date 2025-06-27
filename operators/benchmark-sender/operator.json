@@ -1,0 +1,24 @@
+{
+  "id": "648d6b2f-badc-42a6-b60b-cc1d195fc5af",
+  "image": "ghcr.io/nersc/interactem/benchmark-sender:latest",
+  "label": "Benchmark Sender",
+  "description": "Sends random frames for benchmarking",
+  "outputs": [
+    {
+      "name": "out",
+      "label": "The output",
+      "type": "partial frame",
+      "description": "Partial frame"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "interval",
+      "label": "Interval",
+      "type": "int",
+      "default": "2",
+      "description": "The interval at which to send the frame",
+      "required": true
+    }
+  ]
+}
