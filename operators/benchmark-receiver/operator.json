@@ -1,0 +1,14 @@
+{
+    "id": "648d6b2f-badc-42a6-b60b-cc1d195fc5af",
+    "image": "ghcr.io/nersc/interactem/benchmark-receiver:latest",
+    "label": "Benchmark Receiver",
+    "description": "Receive random frames for benchmarking",
+    "inputs": [
+      {
+        "name": "in",
+        "label": "The input",
+        "type": "partial frame",
+        "description": "Partial frame"
+      }
+    ]
+  }

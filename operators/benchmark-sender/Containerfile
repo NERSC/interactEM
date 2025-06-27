@@ -1,0 +1,5 @@
+FROM ghcr.io/nersc/interactem/operator
+
+RUN pip install numpy
+
+COPY ./run.py /app/run.py

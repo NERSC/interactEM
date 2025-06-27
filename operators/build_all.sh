@@ -51,6 +51,8 @@ build_dirs=(
     "pvapy-ad-sim-server"
     "random-image"
     "sparse-frame-image-converter"
+    "benchmark-sender"
+    "benchmark-receiver"
 )
 
 # Function to check if a directory is in the build_dirs array
