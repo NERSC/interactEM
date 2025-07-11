@@ -147,10 +147,11 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
           const updatedParameters = n.data.parameters?.map((p) => {
             if (p.name === parameter.name) {
               if (isCurrentPipelineRunning) {
+                // Update value only when running
                 return { ...p, value: inputValue }
               }
-              // Only update default if not running and in edit mode
-              return { ...p, default: inputValue }
+              // Set both default and value when not running
+              return { ...p, default: inputValue, value: inputValue }
             }
             return p
           })
