@@ -79,6 +79,8 @@ OPERATOR_CREDS_MOUNT = PodmanMount(
     target=OPERATOR_CREDS_TARGET,
 )
 
+INTERACTEM_IMAGE_REGISTRY = "ghcr.io/nersc/interactem/"
+
 
 class ContainerTracker:
     MAX_RESTARTS: int = 3
@@ -505,6 +507,10 @@ async def create_container(
         logger.debug(f"Image {operator.image} is already available")
     except podman.errors.exceptions.ImageNotFound:
         logger.info(f"Image {operator.image} not found locally, attempting to pull...")
+        if not operator.image.startswith(INTERACTEM_IMAGE_REGISTRY):
+            _msg = f"Image {operator.image} is not from the interactem registry ({INTERACTEM_IMAGE_REGISTRY})."
+            logger.error(_msg)
+            raise RuntimeError(_msg)
         try:
             client.images.pull(operator.image)
             logger.info(f"Successfully pulled image {operator.image}")
