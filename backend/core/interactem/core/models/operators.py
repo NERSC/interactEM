@@ -118,6 +118,15 @@ class OperatorTag(BaseModel):
     description: str | None = None
 
 
+class ParallelType(str, Enum):
+    NONE = "none"
+    EMBARASSING = "embarrassing"
+
+
+class ParallelConfig(BaseModel):
+    type: ParallelType = ParallelType.NONE
+
+
 class Operator(BaseModel):
     id: IdType
     label: str  # Human readable name of the operator
@@ -127,3 +136,4 @@ class Operator(BaseModel):
     outputs: list[OperatorOutput] | None = None  # List of outputs
     parameters: list[OperatorParameter] | None = None  # List of parameters
     tags: list[OperatorTag] | None = None  # List of tags to match on
+    parallel_config: ParallelConfig | None = None  # Parallel execution config
