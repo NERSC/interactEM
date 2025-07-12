@@ -1,7 +1,7 @@
 from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import UUID
 
-from pydantic import BaseModel, model_validator
+from pydantic import AnyUrl, BaseModel, UrlConstraints, model_validator
 from typing_extensions import Self
 
 from ..logger import get_logger
@@ -152,6 +152,207 @@ class ZMQAddress(BaseModel):
         current_addresses.append(address_str)
         uri.query["address"] = current_addresses
         return True
+
+
+class PipelineUrl(AnyUrl):
+    # Chose for this to only be a path... since we don't have a "host" for a pipeline
+    _constraints = UrlConstraints(
+        allowed_schemes=["pipeline"],
+        host_required=False,
+    )
+
+
+class OperatorUrl(AnyUrl):
+    # We DO have a host for operators, which is the agent
+    _constraints = UrlConstraints(
+        allowed_schemes=["operator"],
+        host_required=True,
+    )
+
+
+class PortUrl(AnyUrl):
+    # and also a host for ports, which is the agent
+    _constraints = UrlConstraints(
+        allowed_schemes=["port"],
+        host_required=True,
+    )
+
+
+class PipelineURI(BaseModel):
+    """Format: pipeline:///pipeline-uuid/revision-id/runtime-id"""
+
+    pipeline_id: UUID
+    revision_id: int
+    runtime_id: int
+
+    def to_uri(self) -> PipelineUrl:
+        uri_str = f"pipeline:///{self.pipeline_id}/{self.revision_id}/{self.runtime_id}"
+        return PipelineUrl(uri_str)
+
+    @classmethod
+    def from_uri(cls, uri: str | PipelineUrl) -> "PipelineURI":
+        uri = PipelineUrl(uri) if isinstance(uri, str) else uri
+
+        # Parse path components
+        if not uri.path:
+            raise ValueError("Pipeline URI path is missing")
+        path_parts = uri.path.strip("/").split("/")
+        if len(path_parts) < 3:
+            raise ValueError(
+                "Invalid pipeline URI format - expected pipeline_id/revision_id/runtime_id in path"
+            )
+
+        try:
+            pipeline_id = UUID(path_parts[0])
+            revision_id = int(path_parts[1])
+            runtime_id = int(path_parts[2])
+        except (ValueError, IndexError) as e:
+            raise ValueError(f"Invalid pipeline URI format: {e}") from e
+
+        return cls(
+            pipeline_id=pipeline_id, revision_id=revision_id, runtime_id=runtime_id
+        )
+
+
+class OperatorURI(BaseModel):
+    """Format: operator://agent-uuid/pipeline-uuid/revision-id/runtime-id/operator-uuid/parallel-index"""
+
+    pipeline_id: UUID
+    revision_id: int
+    runtime_id: int
+    operator_id: UUID
+    parallel_index: int
+    agent_id: UUID
+
+    def to_uri(self) -> OperatorUrl:
+        uri_str = (
+            f"operator://{self.agent_id}/"
+            f"{self.pipeline_id}/"
+            f"{self.revision_id}/"
+            f"{self.runtime_id}/"
+            f"{self.operator_id}/"
+            f"{self.parallel_index}"
+        )
+        return OperatorUrl(uri_str)
+
+    @classmethod
+    def from_uri(cls, uri: str | OperatorUrl) -> "OperatorURI":
+        uri = OperatorUrl(uri) if isinstance(uri, str) else uri
+        agent_id = UUID(uri.host)
+
+        # Parse path components
+        if not uri.path:
+            raise ValueError("Operator URI path is missing")
+        path_parts = uri.path.strip("/").split("/")
+        if len(path_parts) < 5:
+            raise ValueError(
+                "Invalid operator URI format - expected "
+                "pipeline_id/revision_id/runtime_id/operator_id/parallel_index in path"
+            )
+
+        try:
+            pipeline_id = UUID(path_parts[0])
+            revision_id = int(path_parts[1])
+            runtime_id = int(path_parts[2])
+            operator_id = UUID(path_parts[3])
+            parallel_index = int(path_parts[4])
+        except (ValueError, IndexError) as e:
+            raise ValueError(f"Invalid operator URI format: {e}") from e
+
+        return cls(
+            pipeline_id=pipeline_id,
+            revision_id=revision_id,
+            runtime_id=runtime_id,
+            operator_id=operator_id,
+            parallel_index=parallel_index,
+            agent_id=agent_id,
+        )
+
+    @property
+    def pipeline_uri(self) -> PipelineURI:
+        return PipelineURI(
+            pipeline_id=self.pipeline_id,
+            revision_id=self.revision_id,
+            runtime_id=self.runtime_id,
+        )
+
+
+class PortURI(BaseModel):
+    """Format: port://agent-uuid/pipeline-uuid/revision-id/runtime-id/operator-uuid/parallel-index/port-uuid"""
+
+    pipeline_id: UUID
+    revision_id: int
+    runtime_id: int
+    operator_id: UUID
+    parallel_index: int
+    port_id: UUID
+    agent_id: UUID
+
+    def to_uri(self) -> PortUrl:
+        uri_str = (
+            f"port://{self.agent_id}/"
+            f"{self.pipeline_id}/"
+            f"{self.revision_id}/"
+            f"{self.runtime_id}/"
+            f"{self.operator_id}/"
+            f"{self.parallel_index}/"
+            f"{self.port_id}"
+        )
+        return PortUrl(uri_str)
+
+    @classmethod
+    def from_uri(cls, uri: str | PortUrl) -> "PortURI":
+        uri = PortUrl(uri) if isinstance(uri, str) else uri
+        agent_id = UUID(uri.host)
+
+        # Parse path components
+        if not uri.path:
+            raise ValueError("Port URI path is missing")
+        path_parts = uri.path.strip("/").split("/")
+        if len(path_parts) < 6:
+            raise ValueError(
+                "Invalid port URI format - expected "
+                "pipeline_id/revision_id/runtime_id/operator_id/parallel_index/port_id in path"
+            )
+
+        try:
+            pipeline_id = UUID(path_parts[0])
+            revision_id = int(path_parts[1])
+            runtime_id = int(path_parts[2])
+            operator_id = UUID(path_parts[3])
+            parallel_index = int(path_parts[4])
+            port_id = UUID(path_parts[5])
+        except (ValueError, IndexError) as e:
+            raise ValueError(f"Invalid port URI format: {e}") from e
+
+        return cls(
+            pipeline_id=pipeline_id,
+            revision_id=revision_id,
+            runtime_id=runtime_id,
+            operator_id=operator_id,
+            parallel_index=parallel_index,
+            port_id=port_id,
+            agent_id=agent_id,
+        )
+
+    @property
+    def operator_uri(self) -> OperatorURI:
+        return OperatorURI(
+            pipeline_id=self.pipeline_id,
+            revision_id=self.revision_id,
+            runtime_id=self.runtime_id,
+            operator_id=self.operator_id,
+            parallel_index=self.parallel_index,
+            agent_id=self.agent_id,
+        )
+
+    @property
+    def pipeline_uri(self) -> PipelineURI:
+        return PipelineURI(
+            pipeline_id=self.pipeline_id,
+            revision_id=self.revision_id,
+            runtime_id=self.runtime_id,
+        )
 
 
 # TODO: Probably could subclass AnyUrl instead of BaseModel, get rid of some boilerplate
