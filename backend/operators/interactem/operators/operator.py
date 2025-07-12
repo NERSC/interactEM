@@ -71,7 +71,8 @@ BACKEND_TO_MESSENGER: dict[CommBackend, type[BaseMessenger]] = {
     CommBackend.ZMQ: ZmqMessenger,
 }
 
-OPERATOR_ID = os.getenv(OPERATOR_ID_ENV_VAR)
+OPERATOR_ID = UUID(os.getenv(OPERATOR_ID_ENV_VAR))
+assert OPERATOR_ID, "Operator ID not set in environment variables"
 
 
 dependencies_funcs: list[Callable[[], Generator[None, None, None]]] = []
@@ -84,14 +85,14 @@ def dependencies(
     return func
 
 
-async def receive_pipeline(msg: NATSMsg) -> Pipeline | None:
+async def receive_pipeline(msg: NATSMsg) -> Pipeline:
     await msg.ack()
 
     try:
         event = PipelineJSON.model_validate_json(msg.data)
     except ValidationError:
         logger.error("Invalid message")
-        return None
+        raise
     return Pipeline.from_pipeline(event)
 
 
@@ -136,9 +137,7 @@ class OperatorInterface(RunnableKernel):
 
 class OperatorMixin(RunnableKernel):
     def __init__(self):
-        self.id = UUID(OPERATOR_ID)
-        if not self.id:
-            raise ValueError("Operator ID not set")
+        self.id = OPERATOR_ID
         self.messenger: BaseMessenger | None = None
         self.pipeline: Pipeline | None = None
         self.info: OperatorJSON | None = None
@@ -170,6 +169,16 @@ class OperatorMixin(RunnableKernel):
         await self.execute_dependencies_startup()
         await self.setup_signal_handlers()
         self.nc, self.js = await self.connect_to_nats()
+
+        # Initialize pipeline/operator information
+        await self.initialize_pipeline()
+        assert self.pipeline, "Pipeline not initialized"
+        await self.initialize_operator()
+        assert self.info, "Operator info not initialized"
+        await self.initialize_parameters()
+        asyncio.create_task(self.publish_parameters())
+
+        # Setup KV stores
         self.metrics_kv = KeyValueLoop[OperatorMetrics](
             self.nc,
             self.js,
@@ -188,19 +197,18 @@ class OperatorMixin(RunnableKernel):
             update_interval=5.0,
             data_model=OperatorVal,
         )
+        self.val.pipeline_id = self.pipeline.id
+        self.val.status = OperatorStatus.RUNNING
         self.operator_kv.add_or_update_value(self.id, self.val)
         await self.operator_kv.start()
-        try:
-            await self.initialize_pipeline()
-        except ValueError as e:
-            logger.error(e)
-            self._shutdown_event.set()
-            return
+        await self.operator_kv.update_now()
+
+        # Initialize messenger
         await self.initialize_messenger()
-        if not self.messenger:
-            raise ValueError("Messenger not initialized")
+        assert self.messenger, "Messenger not initialized"
         await self.messenger.start(self.pipeline)
 
+        # Start ur engines
         self._tracking_timer_task = asyncio.create_task(self._tracking_timer())
         self.run_task = asyncio.create_task(self.run())
         self.consume_params_task = asyncio.create_task(self.consume_params())
@@ -256,23 +264,27 @@ class OperatorMixin(RunnableKernel):
         try:
             msg = await psub.fetch(1)
         except nats.errors.TimeoutError:
-            raise ValueError("No pipeline message received")
+            raise RuntimeError("No pipeline message received")
         self.pipeline = await receive_pipeline(msg[0])
-        if self.pipeline is None:
-            raise ValueError("Pipeline not found")
         await psub.unsubscribe()
+
+    async def initialize_operator(self):
+        if not self.pipeline:
+            raise ValueError("Pipeline not initialized.")
+
         self.info = self.pipeline.get_operator(self.id)
+        if self.info is None:
+            raise ValueError(f"Operator {self.id} not found in pipeline")
+
+    async def initialize_parameters(self):
+        if not self.info:
+            raise ValueError("Operator info not initialized.")
+
         if self.info.parameters is not None:
             self.parameters = {
                 p.name: p.value if p.value else p.default for p in self.info.parameters
             }
         logger.info(f"Operator {self.id} initialized with parameters {self.parameters}")
-        self.val.pipeline_id = self.pipeline.id
-        self.val.status = OperatorStatus.RUNNING
-        await self.operator_kv.update_now()
-        asyncio.create_task(self.publish_parameters())
-        if self.info is None:
-            raise ValueError(f"Operator {self.id} not found in pipeline")
 
     async def publish_parameters(self):
         if not self.js:
@@ -308,18 +320,28 @@ class OperatorMixin(RunnableKernel):
         if not self.js:
             raise ValueError("JetStream context not initialized")
         while not self._shutdown_event.is_set():
-            try:
-                await self.params_psub.consumer_info()
-            except Exception as e:
-                logger.error(f"Consumer info error: {e}")
-                logger.info("Initializing a new consumer...")
-                self.params_psub = await create_operator_parameter_consumer(
-                    self.js, self.id
-                )
-                continue
+            msgs = None
             try:
                 msgs = await self.params_psub.fetch(20, timeout=1)
-            except nats.errors.TimeoutError:
+            except nats.js.errors.FetchTimeoutError:
+                # If we can't get any messages, we just continue
+                continue
+            except nats.errors.Error:
+                # If we can't fetch messages for a nats error, then we
+                # try to reinitialize the consumer
+                # TODO: this could be done elsewhere...
+                # note, we want to make sure we aren't doing this every loop.
+                try:
+                    await self.params_psub.consumer_info()
+                except Exception as e:
+                    logger.error(f"Consumer info error: {e}")
+                    logger.info("Initializing a new consumer...")
+                    self.params_psub = await create_operator_parameter_consumer(
+                        self.js, self.id
+                    )
+                continue
+            except Exception as e:
+                logger.error(f"Error fetching parameter messages: {e}")
                 continue
 
             if not msgs:
