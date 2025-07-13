@@ -10,6 +10,18 @@ import { client as _heyApiClient } from "./client.gen"
 import type {
   AgentsLaunchAgentData,
   AgentsLaunchAgentError,
+  DeploymentsCreatePipelineDeploymentData,
+  DeploymentsCreatePipelineDeploymentError,
+  DeploymentsCreatePipelineDeploymentResponse,
+  DeploymentsListPipelineDeploymentsData,
+  DeploymentsListPipelineDeploymentsError,
+  DeploymentsListPipelineDeploymentsResponse,
+  DeploymentsReadPipelineDeploymentData,
+  DeploymentsReadPipelineDeploymentError,
+  DeploymentsReadPipelineDeploymentResponse,
+  DeploymentsUpdatePipelineDeploymentData,
+  DeploymentsUpdatePipelineDeploymentError,
+  DeploymentsUpdatePipelineDeploymentResponse,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenError,
   LoginLoginAccessTokenResponse,
@@ -37,6 +49,12 @@ import type {
   PipelinesDeletePipelineData,
   PipelinesDeletePipelineError,
   PipelinesDeletePipelineResponse,
+  PipelinesListPipelineDeploymentsData,
+  PipelinesListPipelineDeploymentsError,
+  PipelinesListPipelineDeploymentsResponse,
+  PipelinesListPipelineRevisionDeploymentsData,
+  PipelinesListPipelineRevisionDeploymentsError,
+  PipelinesListPipelineRevisionDeploymentsResponse,
   PipelinesListPipelineRevisionsData,
   PipelinesListPipelineRevisionsError,
   PipelinesListPipelineRevisionsResponse,
@@ -49,12 +67,6 @@ import type {
   PipelinesReadPipelinesData,
   PipelinesReadPipelinesError,
   PipelinesReadPipelinesResponse,
-  PipelinesRunPipelineData,
-  PipelinesRunPipelineError,
-  PipelinesRunPipelineResponse,
-  PipelinesStopPipelineData,
-  PipelinesStopPipelineError,
-  PipelinesStopPipelineResponse,
   PipelinesUpdatePipelineData,
   PipelinesUpdatePipelineError,
   PipelinesUpdatePipelineResponse,
@@ -744,15 +756,17 @@ export const pipelinesUpdatePipelineRevision = <
 }
 
 /**
- * Run Pipeline
- * Run a specific revision of a pipeline.
+ * List Pipeline Deployments
+ * List deployments for a pipeline.
  */
-export const pipelinesRunPipeline = <ThrowOnError extends boolean = false>(
-  options: Options<PipelinesRunPipelineData, ThrowOnError>,
+export const pipelinesListPipelineDeployments = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesListPipelineDeploymentsData, ThrowOnError>,
 ) => {
-  return (options.client ?? _heyApiClient).post<
-    PipelinesRunPipelineResponse,
-    PipelinesRunPipelineError,
+  return (options.client ?? _heyApiClient).get<
+    PipelinesListPipelineDeploymentsResponse,
+    PipelinesListPipelineDeploymentsError,
     ThrowOnError
   >({
     security: [
@@ -761,21 +775,23 @@ export const pipelinesRunPipeline = <ThrowOnError extends boolean = false>(
         type: "http",
       },
     ],
-    url: "/api/v1/pipelines/{id}/revisions/{revision_id}/run",
+    url: "/api/v1/pipelines/{id}/deployments",
     ...options,
   })
 }
 
 /**
- * Stop Pipeline
- * Request to stop a running pipeline associated with a specific revision.
+ * List Pipeline Revision Deployments
+ * List all deployments for a specific pipeline revision.
  */
-export const pipelinesStopPipeline = <ThrowOnError extends boolean = false>(
-  options: Options<PipelinesStopPipelineData, ThrowOnError>,
+export const pipelinesListPipelineRevisionDeployments = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesListPipelineRevisionDeploymentsData, ThrowOnError>,
 ) => {
-  return (options.client ?? _heyApiClient).post<
-    PipelinesStopPipelineResponse,
-    PipelinesStopPipelineError,
+  return (options.client ?? _heyApiClient).get<
+    PipelinesListPipelineRevisionDeploymentsResponse,
+    PipelinesListPipelineRevisionDeploymentsError,
     ThrowOnError
   >({
     security: [
@@ -784,8 +800,117 @@ export const pipelinesStopPipeline = <ThrowOnError extends boolean = false>(
         type: "http",
       },
     ],
-    url: "/api/v1/pipelines/{id}/revisions/{revision_id}/stop",
+    url: "/api/v1/pipelines/{id}/revisions/{revision_id}/deployments",
     ...options,
+  })
+}
+
+/**
+ * List Pipeline Deployments
+ * Get all pipeline deployments accessible to the current user with pagination.
+ * Optionally filter by state.
+ */
+export const deploymentsListPipelineDeployments = <
+  ThrowOnError extends boolean = false,
+>(
+  options?: Options<DeploymentsListPipelineDeploymentsData, ThrowOnError>,
+) => {
+  return (options?.client ?? _heyApiClient).get<
+    DeploymentsListPipelineDeploymentsResponse,
+    DeploymentsListPipelineDeploymentsError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/deployments/",
+    ...options,
+  })
+}
+
+/**
+ * Create Pipeline Deployment
+ * Create a new pipeline deployment and trigger execution.
+ */
+export const deploymentsCreatePipelineDeployment = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<DeploymentsCreatePipelineDeploymentData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).post<
+    DeploymentsCreatePipelineDeploymentResponse,
+    DeploymentsCreatePipelineDeploymentError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/deployments/",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  })
+}
+
+/**
+ * Read Pipeline Deployment
+ * Get pipeline deployment by ID.
+ */
+export const deploymentsReadPipelineDeployment = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<DeploymentsReadPipelineDeploymentData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).get<
+    DeploymentsReadPipelineDeploymentResponse,
+    DeploymentsReadPipelineDeploymentError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/deployments/{id}",
+    ...options,
+  })
+}
+
+/**
+ * Update Pipeline Deployment
+ * Update a pipeline deployment state with proper transition logic and event publishing.
+ */
+export const deploymentsUpdatePipelineDeployment = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<DeploymentsUpdatePipelineDeploymentData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).patch<
+    DeploymentsUpdatePipelineDeploymentResponse,
+    DeploymentsUpdatePipelineDeploymentError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/deployments/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
   })
 }
 

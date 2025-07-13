@@ -544,14 +544,14 @@
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
-            "name": "skip",
+            "name": "offset",
             "in": "query",
             "required": false,
             "schema": {
               "type": "integer",
               "minimum": 0,
               "default": 0,
-              "title": "Skip"
+              "title": "Offset"
             }
           },
           {
@@ -744,14 +744,14 @@
             "schema": { "type": "string", "format": "uuid", "title": "Id" }
           },
           {
-            "name": "skip",
+            "name": "offset",
             "in": "query",
             "required": false,
             "schema": {
               "type": "integer",
               "minimum": 0,
               "default": 0,
-              "title": "Skip"
+              "title": "Offset"
             }
           },
           {
@@ -932,12 +932,12 @@
         }
       }
     },
-    "/api/v1/pipelines/{id}/revisions/{revision_id}/run": {
-      "post": {
+    "/api/v1/pipelines/{id}/deployments": {
+      "get": {
         "tags": ["pipelines"],
-        "summary": "Run Pipeline",
-        "description": "Run a specific revision of a pipeline.",
-        "operationId": "pipelines-run_pipeline",
+        "summary": "List Pipeline Deployments",
+        "description": "List deployments for a pipeline.",
+        "operationId": "pipelines-list_pipeline_deployments",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
@@ -947,10 +947,27 @@
             "schema": { "type": "string", "format": "uuid", "title": "Id" }
           },
           {
-            "name": "revision_id",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer", "title": "Revision Id" }
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
           }
         ],
         "responses": {
@@ -959,7 +976,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PipelineRevisionPublic"
+                  "$ref": "#/components/schemas/PipelineDeploymentsPublic"
                 }
               }
             }
@@ -975,12 +992,12 @@
         }
       }
     },
-    "/api/v1/pipelines/{id}/revisions/{revision_id}/stop": {
-      "post": {
+    "/api/v1/pipelines/{id}/revisions/{revision_id}/deployments": {
+      "get": {
         "tags": ["pipelines"],
-        "summary": "Stop Pipeline",
-        "description": "Request to stop a running pipeline associated with a specific revision.",
-        "operationId": "pipelines-stop_pipeline",
+        "summary": "List Pipeline Revision Deployments",
+        "description": "List all deployments for a specific pipeline revision.",
+        "operationId": "pipelines-list_pipeline_revision_deployments",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
@@ -994,6 +1011,29 @@
             "in": "path",
             "required": true,
             "schema": { "type": "integer", "title": "Revision Id" }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
           }
         ],
         "responses": {
@@ -1001,7 +1041,210 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Message" }
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineDeploymentsPublic"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/deployments/": {
+      "get": {
+        "tags": ["deployments"],
+        "summary": "List Pipeline Deployments",
+        "description": "Get all pipeline deployments accessible to the current user with pagination.\nOptionally filter by state.",
+        "operationId": "deployments-list_pipeline_deployments",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "states",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PipelineDeploymentState"
+                  }
+                },
+                { "type": "null" }
+              ],
+              "title": "States"
+            }
+          },
+          {
+            "name": "pipeline_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "type": "string", "format": "uuid" },
+                { "type": "null" }
+              ],
+              "title": "Pipeline Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineDeploymentsPublic"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["deployments"],
+        "summary": "Create Pipeline Deployment",
+        "description": "Create a new pipeline deployment and trigger execution.",
+        "operationId": "deployments-create_pipeline_deployment",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PipelineDeploymentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineDeploymentPublic"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/deployments/{id}": {
+      "get": {
+        "tags": ["deployments"],
+        "summary": "Read Pipeline Deployment",
+        "description": "Get pipeline deployment by ID.",
+        "operationId": "deployments-read_pipeline_deployment",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineDeploymentPublic"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["deployments"],
+        "summary": "Update Pipeline Deployment",
+        "description": "Update a pipeline deployment state with proper transition logic and event publishing.",
+        "operationId": "deployments-update_pipeline_deployment",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PipelineDeploymentUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineDeploymentPublic"
+                }
               }
             }
           },
@@ -1293,6 +1536,79 @@
         "required": ["data"],
         "title": "PipelineCreate"
       },
+      "PipelineDeploymentCreate": {
+        "properties": {
+          "pipeline_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pipeline Id"
+          },
+          "revision_id": { "type": "integer", "title": "Revision Id" }
+        },
+        "type": "object",
+        "required": ["pipeline_id", "revision_id"],
+        "title": "PipelineDeploymentCreate"
+      },
+      "PipelineDeploymentPublic": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "pipeline_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Pipeline Id"
+          },
+          "revision_id": { "type": "integer", "title": "Revision Id" },
+          "state": { "$ref": "#/components/schemas/PipelineDeploymentState" },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "pipeline_id",
+          "revision_id",
+          "state",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "PipelineDeploymentPublic"
+      },
+      "PipelineDeploymentState": {
+        "type": "string",
+        "enum": ["pending", "failed_to_start", "running", "cancelled"],
+        "title": "PipelineDeploymentState"
+      },
+      "PipelineDeploymentUpdate": {
+        "properties": {
+          "state": { "$ref": "#/components/schemas/PipelineDeploymentState" }
+        },
+        "type": "object",
+        "required": ["state"],
+        "title": "PipelineDeploymentUpdate"
+      },
+      "PipelineDeploymentsPublic": {
+        "properties": {
+          "data": {
+            "items": {
+              "$ref": "#/components/schemas/PipelineDeploymentPublic"
+            },
+            "type": "array",
+            "title": "Data"
+          },
+          "count": { "type": "integer", "title": "Count" }
+        },
+        "type": "object",
+        "required": ["data", "count"],
+        "title": "PipelineDeploymentsPublic"
+      },
       "PipelinePublic": {
         "properties": {
           "name": {
@@ -1307,11 +1623,6 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Data"
-          },
-          "running": {
-            "type": "boolean",
-            "title": "Running",
-            "default": false
           },
           "id": { "type": "string", "format": "uuid", "title": "Id" },
           "owner_id": {
