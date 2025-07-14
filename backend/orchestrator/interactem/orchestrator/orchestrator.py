@@ -92,6 +92,7 @@ async def update_pipeline_kv(
         pipeline = PipelineRunVal(
             id=pipeline.id,
             revision_id=pipeline.revision_id,
+            data=pipeline.data
         )
     pipeline_bucket = await get_pipelines_bucket(js)
     await pipeline_bucket.put(str(pipeline.id), pipeline.model_dump_json().encode())
