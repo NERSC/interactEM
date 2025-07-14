@@ -66,7 +66,7 @@ export const useInfinitePipelines = () => {
     number
   >({
     queryKey: pipelinesReadPipelinesQueryKey({
-      query: { skip: 0, limit: DEFAULT_LIMIT },
+      query: { offset: 0, limit: DEFAULT_LIMIT },
     }),
     queryFn: queryFn,
     initialPageParam: 0,
@@ -146,7 +146,7 @@ export const useInfinitePipelineRevisions = (pipelineId: string | null) => {
   >({
     queryKey: pipelinesListPipelineRevisionsQueryKey({
       path: { id: pipelineId ?? "no-pipeline" },
-      query: { skip: 0, limit: DEFAULT_LIMIT },
+      query: { offset: 0, limit: DEFAULT_LIMIT },
     }),
     queryFn: queryFn,
     initialPageParam: 0,
