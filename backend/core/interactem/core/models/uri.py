@@ -6,11 +6,8 @@ from typing_extensions import Self
 
 from ..logger import get_logger
 from .base import (
-    AgentID,
     CommBackend,
-    OperatorID,
-    OrchestratorID,
-    PortID,
+    IdType,
     Protocol,
     URILocation,
 )
@@ -357,7 +354,7 @@ class PortURI(BaseModel):
 
 # TODO: Probably could subclass AnyUrl instead of BaseModel, get rid of some boilerplate
 class URI(BaseModel):
-    id: PortID | OperatorID | AgentID | OrchestratorID
+    id: IdType
     location: URILocation
     hostname: str
     comm_backend: CommBackend
