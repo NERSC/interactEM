@@ -1,0 +1,52 @@
+{
+    "folders": [
+        {
+            "name": "Root",
+            "path": "."
+        },
+        {
+            "name": "Agent",
+            "path": "backend/agent"
+        },
+        {
+            "name": "App",
+            "path": "backend/app"
+        },
+        {
+            "name": "Callout",
+            "path": "backend/callout"
+        },
+        {
+            "name": "Core",
+            "path": "backend/core"
+        },
+        {
+            "name": "Launcher",
+            "path": "backend/launcher"
+        },
+        {
+            "name": "Metrics",
+            "path": "backend/metrics"
+        },
+        {
+            "name": "Operators",
+            "path": "backend/operators"
+        },
+        {
+            "name": "Orchestrator",
+            "path": "backend/orchestrator"
+        },
+        {
+            "name": "SFAPI Models",
+            "path": "backend/sfapi_models"
+        },
+        {
+            "name": "CLI",
+            "path": "cli"
+        },
+        {
+            "name": "Frontend",
+            "path": "frontend"
+        }
+    ]
+}
