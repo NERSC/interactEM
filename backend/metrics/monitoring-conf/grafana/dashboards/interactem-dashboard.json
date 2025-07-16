@@ -27,7 +27,7 @@
           "legendFormat": "{{service}}"
         }
       ],
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 1 },
+      "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -48,25 +48,7 @@
     },
     {
       "id": 3,
-      "title": "Service Uptime",
-      "type": "stat",
-      "targets": [
-        {
-          "expr": "interactem_service_uptime_seconds",
-          "legendFormat": "{{service}}"
-        }
-      ],
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 1 },
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s",
-          "color": { "mode": "palette-classic" }
-        }
-      }
-    },
-    {
-      "id": 4,
-      "title": "Active Pipelines",
+      "title": "Monitored Pipelines",
       "type": "stat",
       "targets": [
         {
@@ -74,10 +56,10 @@
           "legendFormat": "Pipelines"
         }
       ],
-      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 1 }
+      "gridPos": { "h": 4, "w": 8, "x": 8, "y": 1 }
     },
     {
-      "id": 5,
+      "id": 4,
       "title": "Collection Errors",
       "type": "stat",
       "targets": [
@@ -86,7 +68,7 @@
           "legendFormat": "{{error_type}}"
         }
       ],
-      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 1 },
+      "gridPos": { "h": 4, "w": 8, "x": 16, "y": 1 },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -115,7 +97,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "interactem_port_throughput_send_mbps",
+          "expr": "clamp_min(interactem_port_throughput_send_mbps, 0)",
           "legendFormat": "{{port_id}} ({{operator_type}}): {{interval}}"
         }
       ],
@@ -132,7 +114,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "interactem_port_throughput_recv_mbps",
+          "expr": "clamp_min(interactem_port_throughput_recv_mbps, 0)",
           "legendFormat": "{{port_id}} ({{operator_type}}): {{interval}}"
         }
       ],
@@ -149,7 +131,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "interactem_port_message_rate_send",
+          "expr": "clamp_min(interactem_port_message_rate_send, 0)",
           "legendFormat": "{{port_id}} ({{operator_type}}): {{interval}}"
         }
       ],
@@ -166,7 +148,7 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "interactem_port_message_rate_recv",
+          "expr": "clamp_min(interactem_port_message_rate_recv, 0)",
           "legendFormat": "{{port_id}} ({{operator_type}}): {{interval}}"
         }
       ],
@@ -277,7 +259,7 @@
       "collapsed": false
     },
     {
-      "id": 34,
+      "id": 31,
       "title": "Operator Processing Time (Latest/Real-time)",
       "type": "timeseries",
       "targets": [
@@ -342,7 +324,7 @@
       }
     },
     {
-      "id": 31,
+      "id": 32,
       "title": "Operator Processing Time (P95)",
       "type": "timeseries",
       "targets": [
@@ -359,7 +341,7 @@
       }
     },
     {
-      "id": 32,
+      "id": 33,
       "title": "Operator Processing Time (Average)",
       "type": "timeseries",
       "targets": [
@@ -376,7 +358,7 @@
       }
     },
     {
-      "id": 33,
+      "id": 34,
       "title": "Processing Time Distribution",
       "type": "heatmap",
       "targets": [

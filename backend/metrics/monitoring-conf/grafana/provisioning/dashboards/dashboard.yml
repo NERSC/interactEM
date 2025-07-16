@@ -6,7 +6,7 @@ providers:
     folder: 'InteractEM'
     type: file
     disableDeletion: false
-    updateIntervalSeconds: 10
-    allowUiUpdates: true
+    updateIntervalSeconds: 0
+    allowUiUpdates: false
     options:
       path: /var/lib/grafana/dashboards
