@@ -25,6 +25,7 @@ pydantic-settings = "^2.10.1"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
+pydantic-to-typescript = "^2.0.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -34,7 +35,7 @@ build-backend = "poetry.core.masonry.api"
 target-version = "py310"
 
 [tool.ruff.lint]
-exclude = ["**/__init__.py", "thirdparty/**", "conftest.py"]
+exclude = ["**/__init__.py", "thirdparty/**", "conftest.py", "**/_export.py"]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings
