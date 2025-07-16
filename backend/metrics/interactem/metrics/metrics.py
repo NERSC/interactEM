@@ -39,7 +39,26 @@ from interactem.core.nats import (
 from interactem.core.nats.config import METRICS_STREAM_CONFIG
 from interactem.core.nats.consumers import create_metrics_consumer
 from interactem.core.pipeline import Pipeline
-from interactem.metrics.prometheus_metrics import InteractemPrometheusMetrics
+from interactem.metrics.prometheus_metrics import (
+    CollectionDuration,
+    ErrorType,
+    OperatorProcessingTime,
+    PipelineInfoData,
+    PipelineStatus,
+    PortRates,
+    ServiceStatus,
+    record_collection_duration,
+    record_collection_error,
+    record_operator_processing_time,
+    update_edge_metrics,
+    update_pipeline_info,
+    update_pipeline_status,
+    update_port_metrics,
+    update_port_rates,
+    update_service_status,
+)
+from interactem.metrics.prometheus_metrics import EdgeMetrics as PrometheusEdgeMetrics
+from interactem.metrics.prometheus_metrics import PortMetrics as PrometheusPortMetrics
 
 from .config import cfg
 
@@ -193,8 +212,7 @@ class PortMovingAverages:
 
 
 async def metrics_watch(
-    js: JetStreamContext, intervals: list[int], update_interval: int, prometheus_metrics: InteractemPrometheusMetrics
-):
+    js: JetStreamContext, intervals: list[int], update_interval: int):
     moving_averages: dict[str, PortMovingAverages] = {}
     metrics_bucket = await get_metrics_bucket(js)
     pipeline_bucket = await get_pipelines_bucket(js)
@@ -205,20 +223,20 @@ async def metrics_watch(
         try:
             pipeline_keys = await get_keys(pipeline_bucket)
             if not pipeline_keys:
-                prometheus_metrics.record_collection_error("no_pipelines")
+                record_collection_error(ErrorType(error_type="no_pipelines"))
                 logger.info("No pipelines found...")
                 await asyncio.sleep(update_interval)
                 continue
 
             if len(pipeline_keys) > 1:
-                prometheus_metrics.record_collection_error("multiple_pipelines")
+                record_collection_error(ErrorType(error_type="multiple_pipelines"))
                 logger.error("More than one pipeline found...")
                 await asyncio.sleep(update_interval)
                 continue
 
             pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineRunVal)
             if not pipeline:
-                prometheus_metrics.record_collection_error("no_pipeline_data")
+                record_collection_error(ErrorType(error_type="no_pipeline_data"))
                 logger.info("No pipeline found...")
                 await asyncio.sleep(update_interval)
                 continue
@@ -230,13 +248,13 @@ async def metrics_watch(
             pipeline_data = PipelineJSON.model_validate(pipeline_data_with_id)
 
             pipeline_id = str(pipeline_data.id)
-            pipeline_info = {
+            pipeline_info_data = PipelineInfoData(info_data={
                 'pipeline_id': pipeline_id,
                 'operator_count': str(len(pipeline_data.operators)),
                 'port_count': str(len(pipeline_data.ports)),
                 'edge_count': str(len(pipeline_data.edges))
-            }
-            prometheus_metrics.update_pipeline_info(pipeline_info)
+            })
+            update_pipeline_info(pipeline_info_data)
 
             keys = await get_keys(metrics_bucket)
             if not keys:
@@ -245,7 +263,6 @@ async def metrics_watch(
 
             operator_keys = [key for key in keys if "." not in key]
             port_keys = [key for key in keys if "." in key]
-            edge_metrics: list[EdgeMetric] = []
 
             operator_futs = [
                 get_val(metrics_bucket, key, OperatorMetrics) for key in operator_keys
@@ -264,7 +281,7 @@ async def metrics_watch(
 
                 operator_type = get_operator_type_for_port(metric.id, pipeline_data)
 
-                prometheus_metrics.update_port_metrics(
+                port_metrics_data = PrometheusPortMetrics(
                     port_id=key,
                     pipeline_id=pipeline_id,
                     operator_type=operator_type,
@@ -273,6 +290,7 @@ async def metrics_watch(
                     send_bytes=metric.send_bytes,
                     recv_bytes=metric.recv_bytes
                 )
+                update_port_metrics(port_metrics_data)
 
                 if key not in moving_averages:
                     moving_averages[key] = PortMovingAverages(intervals, update_interval)
@@ -285,7 +303,7 @@ async def metrics_watch(
                     send_msg_rate = moving_averages[key].send_num_msgs[interval_key].average_msgs()
                     recv_msg_rate = moving_averages[key].recv_num_msgs[interval_key].average_msgs()
 
-                    prometheus_metrics.update_port_rates(
+                    port_rates_data = PortRates(
                         port_id=key,
                         pipeline_id=pipeline_id,
                         operator_type=operator_type,
@@ -295,6 +313,7 @@ async def metrics_watch(
                         send_msg_rate=send_msg_rate,
                         recv_msg_rate=recv_msg_rate
                     )
+                    update_port_rates(port_rates_data)
 
             # Match edges to port metrics
             for edge in pipeline_data.edges:
@@ -308,10 +327,8 @@ async def metrics_watch(
                         edge_metric = EdgeMetric.from_io_and_moving_average(
                             input_metric, output_metric, input_moving_avg, output_moving_avg
                         )
-                        edge_metrics.append(edge_metric)
-
                         differences = edge_metric.calculate_differences()
-                        prometheus_metrics.update_edge_metrics(
+                        edge_metrics_data = PrometheusEdgeMetrics(
                             input_port_id=str(edge.input_id),
                             output_port_id=str(edge.output_id),
                             pipeline_id=pipeline_id,
@@ -319,12 +336,14 @@ async def metrics_watch(
                             byte_diff=differences["byte_diff"],
                             throughput_diff=differences["throughput_diff"]
                         )
+                        update_edge_metrics(edge_metrics_data)
 
-            prometheus_metrics.update_pipeline_status(
+            pipeline_status_data = PipelineStatus(
                 pipeline_id=pipeline_id,
                 active_ports=len(port_metrics_map),
                 active_operators=len(operator_keys)
             )
+            update_pipeline_status(pipeline_status_data)
 
             for fut in asyncio.as_completed(operator_futs):
                 metric = await fut
@@ -337,25 +356,30 @@ async def metrics_watch(
                     if processing_time > 0:
                         operator_type = get_operator_type_for_id(metric.id, pipeline_data)
 
-                        prometheus_metrics.record_operator_processing_time(
+                        processing_time_data = OperatorProcessingTime(
                             operator_id=str(metric.id),
                             pipeline_id=pipeline_id,
                             operator_type=operator_type,
                             processing_time_us=processing_time
                         )
+                        record_operator_processing_time(processing_time_data)
                     metric.timing.print_timing_info(logger)
                 else:
                     logger.debug(f"Operator {metric.id} has incomplete timing data")
 
             collection_duration = time.time() - start_time
-            prometheus_metrics.record_collection_duration(collection_duration)
-            prometheus_metrics.update_service_status(is_active=True)
+            duration_data = CollectionDuration(duration_seconds=collection_duration)
+            record_collection_duration(duration_data)
+
+            service_status_data = ServiceStatus(is_active=True)
+            update_service_status(service_status_data)
+
             logger.debug(f"Metrics collection completed in {collection_duration:.3f}s")
 
         except Exception as e:
             logger.error(f"Error in metrics collection: {e}")
-            prometheus_metrics.record_collection_error("collection_exception")
-            prometheus_metrics.update_service_status(is_active=False)
+            record_collection_error(ErrorType(error_type="collection_exception"))
+            update_service_status(ServiceStatus(is_active=False))
 
         await asyncio.sleep(update_interval)
 
@@ -487,8 +511,6 @@ async def main():
     update_interval = 1  # Time difference between entries in seconds
     prometheus_port = cfg.METRICS_PORT
 
-    prometheus_metrics = InteractemPrometheusMetrics()
-
     nats_client: NATSClient = await nc(
         servers=[str(cfg.NATS_SERVER_URL)], name="metrics"
     )
@@ -506,7 +528,7 @@ async def main():
         metrics_psub = await create_metrics_consumer(js)
 
     metrics_watch_task = asyncio.create_task(
-        metrics_watch(js, intervals, update_interval, prometheus_metrics)
+        metrics_watch(js, intervals, update_interval)
     )
     consume_messages_task = asyncio.create_task(
         consume_messages(metrics_psub, handler=handle_metrics, js=js)
