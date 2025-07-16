@@ -1,22 +1,8 @@
-FROM python:3.12-slim-bookworm
-
-RUN apt-get update && \
-    apt-get install -y curl && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm -rf /var/cache/apt/archives/* 
-
-# Install Poetry
-RUN curl -sSL https://install.python-poetry.org | POETRY_HOME=/opt/poetry python && \
-    cd /usr/local/bin && \
-    ln -s /opt/poetry/bin/poetry && \
-    poetry config virtualenvs.create false
+FROM ghcr.io/nersc/interactem/interactem:latest
 
 WORKDIR /interactem/metrics/
 
 COPY ./metrics/README.md ./metrics/pyproject.toml ./metrics/poetry.lock* ./
-
-COPY ./core/ /interactem/core/
 
 RUN poetry install --no-root
 
