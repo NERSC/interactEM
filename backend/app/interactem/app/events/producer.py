@@ -19,7 +19,7 @@ from interactem.core.constants import (
     SUBJECT_PIPELINES_STOP,
     SUBJECT_SFAPI_JOBS_SUBMIT,
 )
-from interactem.core.events.pipelines import PipelineRunEvent, PipelineStopEvent
+from interactem.core.events.pipelines import PipelineDeploymentEvent, PipelineStopEvent
 from interactem.core.nats import create_or_update_stream, nc
 from interactem.core.nats.config import PIPELINES_STREAM_CONFIG, SFAPI_STREAM_CONFIG
 from interactem.sfapi_models import AgentCreateEvent, StatusRequest
@@ -54,6 +54,7 @@ async def start():
 async def stop():
     if nats_client:
         await nats_client.close()
+
 
 async def publish_jetstream_event(
     stream: str,
@@ -109,8 +110,9 @@ async def nats_req_rep(
     return rep
 
 
-async def publish_pipeline_run_event(event: PipelineRunEvent) -> None:
+async def publish_pipeline_run_event(event: PipelineDeploymentEvent) -> None:
     await publish_jetstream_event(STREAM_PIPELINES, SUBJECT_PIPELINES_RUN, event)
+
 
 async def publish_pipeline_stop_event(event: PipelineStopEvent) -> None:
     await publish_jetstream_event(STREAM_PIPELINES, SUBJECT_PIPELINES_STOP, event)
@@ -122,6 +124,7 @@ async def request_machine_status(payload: StatusRequest) -> NatsMessage:
         payload,
         timeout=NATS_REQ_TIMEOUT_SFAPI,  # longer timeout for sfapi calls
     )
+
 
 async def publish_sfapi_submit_event(event: AgentCreateEvent) -> None:
     await publish_jetstream_event(STREAM_SFAPI, SUBJECT_SFAPI_JOBS_SUBMIT, event)

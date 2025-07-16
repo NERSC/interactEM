@@ -23,7 +23,7 @@ from interactem.app.models import (
     PipelineDeploymentUpdate,
     PipelineRevision,
 )
-from interactem.core.events.pipelines import PipelineRunEvent, PipelineStopEvent
+from interactem.core.events.pipelines import PipelineDeploymentEvent, PipelineStopEvent
 from interactem.core.logger import get_logger
 
 logger = get_logger()
@@ -74,7 +74,7 @@ class PipelineDeploymentStateMachine:
         }
 
     async def start(self, deployment: PipelineDeployment) -> None:
-        event = PipelineRunEvent(
+        event = PipelineDeploymentEvent(
             pipeline_id=deployment.pipeline_id,
             data=deployment.revision.data,
             revision_id=deployment.revision_id,

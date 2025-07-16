@@ -16,7 +16,7 @@ class PipelineEvent(BaseModel):
     type: PipelineEventType
 
 
-class PipelineRunEvent(PipelineEvent):
+class PipelineDeploymentEvent(PipelineEvent):
     type: PipelineEventType = PipelineEventType.PIPELINE_RUN
     pipeline_id: CanonicalPipelineID
     revision_id: int
