@@ -1,4 +1,4 @@
-import asyncio.subprocess
+import asyncio
 import json
 import os
 import tempfile
@@ -23,19 +23,19 @@ from interactem.core.constants import (
 )
 from interactem.core.constants.mounts import CORE_MOUNT, OPERATORS_MOUNT
 from interactem.core.logger import get_logger
-from interactem.core.models.agent import AgentStatus, AgentVal
-from interactem.core.models.operators import (
-    OperatorParameter,
-    ParameterType,
-)
-from interactem.core.models.pipeline import (
+from interactem.core.models.containers import (
     MountDoesntExistError,
-    OperatorJSON,
-    OperatorWithMounts,
-    PipelineAssignment,
     PodmanMount,
     PodmanMountType,
 )
+from interactem.core.models.kvs import AgentStatus, AgentVal
+from interactem.core.models.runtime import (
+    AgentRuntimeOperator,
+    PipelineAssignment,
+    RuntimeOperator,
+    RuntimeOperatorID,
+)
+from interactem.core.models.spec import OperatorSpecParameter, ParameterSpecType
 from interactem.core.models.uri import URI, CommBackend, URILocation
 from interactem.core.nats.consumers import PARAMETER_CONSUMER_CONFIG
 from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
@@ -88,7 +88,7 @@ class ContainerTracker:
     def __init__(
         self,
         container: Container,
-        operator: OperatorWithMounts,
+        operator: AgentRuntimeOperator,
     ):
         self.container = container
         self.operator = operator
@@ -153,7 +153,7 @@ class Agent:
             networks=cfg.AGENT_NETWORKS,
         )
         self.agent_kv: KeyValueLoop[AgentVal]
-        self.container_trackers: dict[uuid.UUID, ContainerTracker] = {}
+        self.container_trackers: dict[RuntimeOperatorID, ContainerTracker] = {}
         self._container_monitor_task: asyncio.Task | None = None
         self._task_refs: set[asyncio.Task] = set()
 
@@ -299,7 +299,7 @@ class Agent:
                 tasks.append(self.create_task(self._start_operator(op_info, client)))
 
             results: list[
-                tuple[OperatorWithMounts, Container] | BaseException
+                tuple[AgentRuntimeOperator, Container] | BaseException
             ] = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in results:
@@ -317,18 +317,18 @@ class Agent:
                     if not operator.parameters:
                         continue
                     for param in operator.parameters:
-                        if not param.type == ParameterType.MOUNT:
+                        if not param.type == ParameterSpecType.MOUNT:
                             continue
                         tracker.add_parameter_task(
                             asyncio.create_task(self.remount_task(tracker, param))
                         )
 
     async def _start_operator(
-        self, operator: OperatorJSON, client: PodmanClient
-    ) -> tuple[OperatorWithMounts, Container]:
+        self, operator: RuntimeOperator, client: PodmanClient
+    ) -> tuple[AgentRuntimeOperator, Container]:
         logger.info(f"Starting operator {operator.id} with image {operator.image}")
 
-        operator = OperatorWithMounts(**operator.model_dump())
+        operator = AgentRuntimeOperator(**operator.model_dump())
 
         if self.pipeline is None:
             raise ValueError("No pipeline configuration found")
@@ -360,15 +360,15 @@ class Agent:
         # Publish pipeline to JetStream
         await self.broker.publish(
             subject=f"{STREAM_OPERATORS}.{operator.id}",
-            message=self.pipeline.to_json().model_dump_json(),
+            message=self.pipeline.to_runtime().model_dump_json(),
         )
         logger.debug(f"Published pipeline for operator {operator.id}")
-        logger.debug(f"Pipeline: {self.pipeline.to_json().model_dump_json()}")
+        logger.debug(f"Pipeline: {self.pipeline.to_runtime().model_dump_json()}")
 
         return operator, container
 
     async def remount_task(
-        self, tracker: ContainerTracker, parameter: OperatorParameter
+        self, tracker: ContainerTracker, parameter: OperatorSpecParameter
     ):
         operator = tracker.operator
         sub = self.broker.subscriber(
@@ -493,7 +493,7 @@ def is_name_conflict_error(exc: Exception) -> bool:
 async def create_container(
     agent_id: uuid.UUID,
     client: PodmanClient,
-    operator: OperatorWithMounts,
+    operator: AgentRuntimeOperator,
 ) -> Container:
     name = f"operator-{operator.id}"
     network_mode = operator.network_mode or "host"

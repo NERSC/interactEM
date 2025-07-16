@@ -7,7 +7,7 @@ from nats.js.api import RetentionPolicy
 from interactem.core.config import cfg as nats_cfg
 from interactem.core.constants import STREAM_AGENTS, STREAM_NOTIFICATIONS
 from interactem.core.logger import get_logger
-from interactem.core.models.pipeline import PipelineAssignment
+from interactem.core.models.runtime import PipelineAssignment
 from interactem.core.nats.consumers import AGENT_CONSUMER_CONFIG
 
 from .agent import Agent, cfg
@@ -40,7 +40,7 @@ def get_nats_broker(servers: list[str], name: str) -> NatsBroker:
         reconnected_cb=reconnected_cb,
         disconnected_cb=disconnected_cb,
         closed_cb=closed_cb,
-        **options,
+        **options,  # type: ignore[call-arg]
     )
 
 
