@@ -13,7 +13,7 @@ from sqlmodel import (
     SQLModel,
 )
 
-from interactem.core.models.operators import Operator
+from interactem.core.models.spec import OperatorSpec
 
 
 # Shared properties
@@ -260,4 +260,4 @@ class PipelineDeploymentsPublic(SQLModel):
 
 
 class Operators(BaseModel):
-    data: list[Operator]
+    data: list[OperatorSpec]

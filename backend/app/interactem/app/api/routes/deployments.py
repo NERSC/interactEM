@@ -75,7 +75,7 @@ class PipelineDeploymentStateMachine:
 
     async def start(self, deployment: PipelineDeployment) -> None:
         event = PipelineRunEvent(
-            id=deployment.pipeline_id,
+            pipeline_id=deployment.pipeline_id,
             data=deployment.revision.data,
             revision_id=deployment.revision_id,
             deployment_id=deployment.id,
@@ -104,8 +104,6 @@ class PipelineDeploymentStateMachine:
 
     async def _handle_cancellation(self, deployment: PipelineDeployment) -> None:
         event = PipelineStopEvent(
-            id=deployment.pipeline_id,
-            revision_id=deployment.revision_id,
             deployment_id=deployment.id,
         )
         await publish_pipeline_stop_event(event)

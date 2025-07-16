@@ -7,7 +7,7 @@ from jsonpath_ng import parse
 
 from interactem.app.core.config import settings
 from interactem.app.operators.registry import ContainerRegistry
-from interactem.core.models.operators import Operator
+from interactem.core.models.spec import OperatorSpec
 from interactem.core.logger import get_logger
 
 OPERATOR_SPEC_KEY = "interactem.operator.spec"
@@ -75,7 +75,7 @@ async def _fetch_operator(
     return None
 
 
-async def fetch_operators() -> list[Operator]:
+async def fetch_operators() -> list[OperatorSpec]:
     async with ContainerRegistry(
         str(settings.CONTAINER_REGISTRY_URL),
         settings.GITHUB_USERNAME,
@@ -91,4 +91,4 @@ async def fetch_operators() -> list[Operator]:
 
         ops = await asyncio.gather(*fetch_operator_tasks)
 
-        return [Operator(**op) for op in ops if op]
+        return [OperatorSpec(**op) for op in ops if op]
