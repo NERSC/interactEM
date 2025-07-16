@@ -83,11 +83,20 @@ target "frontend" {
   ]
 }
 
+target "metrics" {
+  inherits = ["platform"]
+  context = "backend/"
+  dockerfile = "../docker/Dockerfile.metrics"
+  tags = [
+    "${REGISTRY}/metrics:${TAG}",
+    "${REGISTRY}/metrics:latest",
+  ]
+}
 
 group "base" {
   targets = ["base"]
 }
 
 group "prod" {
-  targets = ["operator", "callout", "fastapi", "launcher", "orchestrator", "frontend"]
+  targets = ["operator", "callout", "fastapi", "launcher", "orchestrator", "frontend", "metrics"]
 }

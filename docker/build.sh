@@ -49,9 +49,9 @@ if [ $? -ne 0 ]; then
 fi
 
 # Define services, their Dockerfiles, and build contexts
-SERVICES="operator callout fastapi launcher orchestrator frontend"
-DOCKERFILES="Dockerfile.operator Dockerfile.callout Dockerfile.fastapi Dockerfile.launcher Dockerfile.orchestrator Dockerfile.frontend"
-CONTEXTS="$ROOT_DIR/backend $ROOT_DIR/backend $ROOT_DIR/backend $ROOT_DIR/backend $ROOT_DIR/backend $ROOT_DIR/frontend"
+SERVICES="operator callout fastapi launcher orchestrator frontend metrics"
+DOCKERFILES="Dockerfile.operator Dockerfile.callout Dockerfile.fastapi Dockerfile.launcher Dockerfile.orchestrator Dockerfile.frontend Dockerfile.metrics"
+CONTEXTS="$ROOT_DIR/backend $ROOT_DIR/backend $ROOT_DIR/backend $ROOT_DIR/backend $ROOT_DIR/backend $ROOT_DIR/frontend $ROOT_DIR/backend"
 
 # Start all builds in parallel
 i=0

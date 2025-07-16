@@ -1,4 +1,5 @@
 import asyncio
+import time
 from collections import deque
 from enum import Enum
 from uuid import UUID
@@ -7,9 +8,12 @@ import networkx
 from nats.aio.client import Client as NATSClient
 from nats.aio.msg import Msg as NATSMsg
 from nats.js import JetStreamContext
+from nats.js.errors import NotFoundError
 from networkx.readwrite.text import generate_network_text
+from prometheus_client import start_http_server
 from pydantic import BaseModel
 
+from interactem.core.events.pipelines import PipelineRunVal
 from interactem.core.logger import get_logger
 from interactem.core.models.base import IdType
 from interactem.core.models.messages import (
@@ -25,14 +29,36 @@ from interactem.core.models.pipeline import PipelineJSON
 from interactem.core.models.ports import PortMetrics
 from interactem.core.nats import (
     consume_messages,
+    create_or_update_stream,
     get_keys,
     get_metrics_bucket,
     get_pipelines_bucket,
     get_val,
     nc,
 )
+from interactem.core.nats.config import METRICS_STREAM_CONFIG
 from interactem.core.nats.consumers import create_metrics_consumer
 from interactem.core.pipeline import Pipeline
+from interactem.metrics.prometheus_metrics import (
+    CollectionDuration,
+    ErrorType,
+    OperatorProcessingTime,
+    PipelineInfoData,
+    PipelineStatus,
+    PortRates,
+    ServiceStatus,
+    record_collection_duration,
+    record_collection_error,
+    record_operator_processing_time,
+    update_edge_metrics,
+    update_pipeline_info,
+    update_pipeline_status,
+    update_port_metrics,
+    update_port_rates,
+    update_service_status,
+)
+from interactem.metrics.prometheus_metrics import EdgeMetrics as PrometheusEdgeMetrics
+from interactem.metrics.prometheus_metrics import PortMetrics as PrometheusPortMetrics
 
 from .config import cfg
 
@@ -186,85 +212,174 @@ class PortMovingAverages:
 
 
 async def metrics_watch(
-    js: JetStreamContext, intervals: list[int], update_interval: int
-):
+    js: JetStreamContext, intervals: list[int], update_interval: int):
     moving_averages: dict[str, PortMovingAverages] = {}
     metrics_bucket = await get_metrics_bucket(js)
     pipeline_bucket = await get_pipelines_bucket(js)
 
     while True:
-        pipeline_keys = await get_keys(pipeline_bucket)
-        if not pipeline_keys:
-            logger.info("No pipelines found...")
-            await asyncio.sleep(update_interval)
-            continue
+        start_time = time.time()
 
-        if len(pipeline_keys) > 1:
-            logger.error("More than one pipeline found...")
-            await asyncio.sleep(update_interval)
-            continue
-
-        pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineJSON)
-        if not pipeline:
-            logger.info("No pipeline found...")
-            await asyncio.sleep(update_interval)
-            continue
-
-        keys = await get_keys(metrics_bucket)
-        if not keys:
-            await asyncio.sleep(update_interval)
-            continue
-
-        operator_keys = [key for key in keys if "." not in key]
-        port_keys = [key for key in keys if "." in key]
-        edge_metrics: list[EdgeMetric] = []
-
-        operator_futs = [
-            get_val(metrics_bucket, key, OperatorMetrics) for key in operator_keys
-        ]
-        port_metrics_map = {}
-        port_futs = [get_val(metrics_bucket, key, PortMetrics) for key in port_keys]
-
-        current_time = asyncio.get_event_loop().time()
-
-        for fut in asyncio.as_completed(port_futs):
-            metric = await fut
-            if not metric:
+        try:
+            pipeline_keys = await get_keys(pipeline_bucket)
+            if not pipeline_keys:
+                record_collection_error(ErrorType(error_type="no_pipelines"))
+                logger.info("No pipelines found...")
+                await asyncio.sleep(update_interval)
                 continue
-            key = str(metric.id)
-            port_metrics_map[key] = metric
 
-            if key not in moving_averages:
-                moving_averages[key] = PortMovingAverages(intervals, update_interval)
+            if len(pipeline_keys) > 1:
+                record_collection_error(ErrorType(error_type="multiple_pipelines"))
+                logger.error("More than one pipeline found...")
+                await asyncio.sleep(update_interval)
+                continue
 
-            moving_averages[key].add_metrics(current_time, metric)
-            # moving_averages[key].log_averages(key)
+            pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineRunVal)
+            if not pipeline:
+                record_collection_error(ErrorType(error_type="no_pipeline_data"))
+                logger.info("No pipeline found...")
+                await asyncio.sleep(update_interval)
+                continue
 
-        # Match edges to port metrics
-        for edge in pipeline.edges:
-            input_metric = port_metrics_map.get(str(edge.input_id))
-            output_metric = port_metrics_map.get(str(edge.output_id))
-            if input_metric and output_metric:
-                input_moving_avg = moving_averages.get(str(edge.input_id))
-                output_moving_avg = moving_averages.get(str(edge.output_id))
+            pipeline_data_with_id = {
+                "id": pipeline.id,
+                **pipeline.data
+            }
+            pipeline_data = PipelineJSON.model_validate(pipeline_data_with_id)
 
-                if input_moving_avg and output_moving_avg:
-                    edge_metric = EdgeMetric.from_io_and_moving_average(
-                        input_metric, output_metric, input_moving_avg, output_moving_avg
+            pipeline_id = str(pipeline_data.id)
+            pipeline_info_data = PipelineInfoData(info_data={
+                'pipeline_id': pipeline_id,
+                'operator_count': str(len(pipeline_data.operators)),
+                'port_count': str(len(pipeline_data.ports)),
+                'edge_count': str(len(pipeline_data.edges))
+            })
+            update_pipeline_info(pipeline_info_data)
+
+            keys = await get_keys(metrics_bucket)
+            if not keys:
+                await asyncio.sleep(update_interval)
+                continue
+
+            operator_keys = [key for key in keys if "." not in key]
+            port_keys = [key for key in keys if "." in key]
+
+            operator_futs = [
+                get_val(metrics_bucket, key, OperatorMetrics) for key in operator_keys
+            ]
+            port_metrics_map = {}
+            port_futs = [get_val(metrics_bucket, key, PortMetrics) for key in port_keys]
+
+            current_time = asyncio.get_event_loop().time()
+
+            for fut in asyncio.as_completed(port_futs):
+                metric = await fut
+                if not metric:
+                    continue
+                key = str(metric.id)
+                port_metrics_map[key] = metric
+
+                operator_type = get_operator_type_for_port(metric.id, pipeline_data)
+
+                port_metrics_data = PrometheusPortMetrics(
+                    port_id=key,
+                    pipeline_id=pipeline_id,
+                    operator_type=operator_type,
+                    send_count=metric.send_count,
+                    recv_count=metric.recv_count,
+                    send_bytes=metric.send_bytes,
+                    recv_bytes=metric.recv_bytes
+                )
+                update_port_metrics(port_metrics_data)
+
+                if key not in moving_averages:
+                    moving_averages[key] = PortMovingAverages(intervals, update_interval)
+
+                moving_averages[key].add_metrics(current_time, metric)
+                for interval in intervals:
+                    interval_key = f"{interval}s"
+                    send_throughput = moving_averages[key].send_bytes[interval_key].average_throughput()
+                    recv_throughput = moving_averages[key].recv_bytes[interval_key].average_throughput()
+                    send_msg_rate = moving_averages[key].send_num_msgs[interval_key].average_msgs()
+                    recv_msg_rate = moving_averages[key].recv_num_msgs[interval_key].average_msgs()
+
+                    port_rates_data = PortRates(
+                        port_id=key,
+                        pipeline_id=pipeline_id,
+                        operator_type=operator_type,
+                        interval=interval_key,
+                        send_throughput=send_throughput,
+                        recv_throughput=recv_throughput,
+                        send_msg_rate=send_msg_rate,
+                        recv_msg_rate=recv_msg_rate
                     )
-                    edge_metrics.append(edge_metric)
+                    update_port_rates(port_rates_data)
 
-        # for edge_metric in edge_metrics:
-        #     # edge_metric.log_metrics()
-        #     pass
+            # Match edges to port metrics
+            for edge in pipeline_data.edges:
+                input_metric = port_metrics_map.get(str(edge.input_id))
+                output_metric = port_metrics_map.get(str(edge.output_id))
+                if input_metric and output_metric:
+                    input_moving_avg = moving_averages.get(str(edge.input_id))
+                    output_moving_avg = moving_averages.get(str(edge.output_id))
 
-        for fut in asyncio.as_completed(operator_futs):
-            metric = await fut
-            if not metric:
-                logger.warning("Operator metric not found...")
-                continue
-            # logger.info(f"Operator Key: {metric.id}")
-            # metric.timing.print_timing_info(logger)
+                    if input_moving_avg and output_moving_avg:
+                        edge_metric = EdgeMetric.from_io_and_moving_average(
+                            input_metric, output_metric, input_moving_avg, output_moving_avg
+                        )
+                        differences = edge_metric.calculate_differences()
+                        edge_metrics_data = PrometheusEdgeMetrics(
+                            input_port_id=str(edge.input_id),
+                            output_port_id=str(edge.output_id),
+                            pipeline_id=pipeline_id,
+                            message_diff=differences["message_diff"],
+                            byte_diff=differences["byte_diff"],
+                            throughput_diff=differences["throughput_diff"]
+                        )
+                        update_edge_metrics(edge_metrics_data)
+
+            pipeline_status_data = PipelineStatus(
+                pipeline_id=pipeline_id,
+                active_ports=len(port_metrics_map),
+                active_operators=len(operator_keys)
+            )
+            update_pipeline_status(pipeline_status_data)
+
+            for fut in asyncio.as_completed(operator_futs):
+                metric = await fut
+                if not metric:
+                    logger.warning("Operator metric not found...")
+                    continue
+
+                if metric.timing and metric.timing.after_kernel and metric.timing.before_kernel:
+                    processing_time = (metric.timing.after_kernel - metric.timing.before_kernel).microseconds
+                    if processing_time > 0:
+                        operator_type = get_operator_type_for_id(metric.id, pipeline_data)
+
+                        processing_time_data = OperatorProcessingTime(
+                            operator_id=str(metric.id),
+                            pipeline_id=pipeline_id,
+                            operator_type=operator_type,
+                            processing_time_us=processing_time
+                        )
+                        record_operator_processing_time(processing_time_data)
+                    metric.timing.print_timing_info(logger)
+                else:
+                    logger.debug(f"Operator {metric.id} has incomplete timing data")
+
+            collection_duration = time.time() - start_time
+            duration_data = CollectionDuration(duration_seconds=collection_duration)
+            record_collection_duration(duration_data)
+
+            service_status_data = ServiceStatus(is_active=True)
+            update_service_status(service_status_data)
+
+            logger.debug(f"Metrics collection completed in {collection_duration:.3f}s")
+
+        except Exception as e:
+            logger.error(f"Error in metrics collection: {e}")
+            record_collection_error(ErrorType(error_type="collection_exception"))
+            update_service_status(ServiceStatus(is_active=False))
 
         await asyncio.sleep(update_interval)
 
@@ -279,8 +394,22 @@ def log_comparison(header: MessageHeader, pipeline: PipelineJSON):
     # Create a dictionary to map node IDs to their tracking metadata
     tracking_dict = {meta.id: meta for meta in tracking}
 
-    pipeline_obj = Pipeline.from_pipeline(pipeline)
-    pipeline_obj = Pipeline.from_upstream_subgraph(pipeline_obj, last_id)
+    try:
+        pipeline_obj = Pipeline.from_pipeline(pipeline)
+        # Check if last_id exists in the pipeline before creating subgraph
+        if last_id not in pipeline_obj.nodes():
+            logger.warning(f"Node {last_id} from tracking not found in pipeline graph. Available nodes: {list(pipeline_obj.nodes())}")
+            return
+
+        pipeline_obj = Pipeline.from_upstream_subgraph(pipeline_obj, last_id)
+    except networkx.exception.NetworkXError as e:
+        logger.error(f"NetworkX Error while creating pipeline subgraph: {e}")
+        logger.error(f"last_id: {last_id}")
+        logger.error(f"Available nodes in pipeline: {list(Pipeline.from_pipeline(pipeline).nodes()) if pipeline else 'No pipeline'}")
+        return
+    except Exception as e:
+        logger.error(f"Unexpected error while creating pipeline subgraph: {e}")
+        return
 
     previous_node_id = None
     previous_metadata = None
@@ -344,33 +473,59 @@ async def handle_metrics(msg: NATSMsg, js: JetStreamContext):
     if len(pipeline_keys) > 1:
         logger.error("More than one pipeline found...")
         return
-    pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineJSON)
+    pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineRunVal)
     if not pipeline:
         logger.info("No pipeline found...")
         return
 
+    pipeline_data_with_id = {
+        "id": pipeline.id,
+        **pipeline.data
+    }
+    pipeline_data = PipelineJSON.model_validate(pipeline_data_with_id)
+
     data = MessageHeader.model_validate_json(msg.data.decode("utf-8"))
     try:
-        log_comparison(data, pipeline)
-    except networkx.exception.NetworkXError:
-        logger.warning("Failed to log comparison...")
-    # for port_id, metrics in data.items():
-    #     port_metrics = PortMetrics.model_validate_json(metrics)
-    #     logger.info(f"Received metrics for port {port_id}: {port_metrics}")
+        log_comparison(data, pipeline_data)
+    except networkx.exception.NetworkXError as e:
+        logger.warning(f"Failed to log comparison... {str(e)}")
+
+
+def get_operator_type_for_port(port_id: UUID, pipeline: PipelineJSON) -> str:
+    for port in pipeline.ports:
+        if port.id == port_id:
+            for operator in pipeline.operators:
+                if operator.id == port.operator_id:
+                    return operator.image
+    return "unknown"
+
+def get_operator_type_for_id(operator_id: UUID, pipeline: PipelineJSON) -> str:
+    for operator in pipeline.operators:
+        if operator.id == operator_id:
+            return operator.image
+    return "unknown"
 
 
 async def main():
     intervals = [2, 5, 30]  # List of intervals in seconds
     update_interval = 1  # Time difference between entries in seconds
+    prometheus_port = cfg.METRICS_PORT
 
     nats_client: NATSClient = await nc(
         servers=[str(cfg.NATS_SERVER_URL)], name="metrics"
     )
     js: JetStreamContext = nats_client.jetstream()
 
-    logger.info("Metrics microservice is running...")
+    logger.info("Metrics microservice with Prometheus is starting...")
 
-    metrics_psub = await create_metrics_consumer(js)
+    start_http_server(prometheus_port)
+    logger.info(f"Prometheus server started successfully on port {prometheus_port}")
+
+    try:
+        metrics_psub = await create_metrics_consumer(js)
+    except NotFoundError:
+        await create_or_update_stream(METRICS_STREAM_CONFIG, js)
+        metrics_psub = await create_metrics_consumer(js)
 
     metrics_watch_task = asyncio.create_task(
         metrics_watch(js, intervals, update_interval)
