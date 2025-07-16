@@ -2,17 +2,17 @@ import uuid
 
 import pytest
 
-from interactem.core.models.agent import AgentStatus, AgentVal
 from interactem.core.models.base import CommBackend, IdType, PortType, URILocation
-from interactem.core.models.operators import OperatorTag
-from interactem.core.models.pipeline import (
-    EdgeJSON,
-    InputJSON,
-    OperatorJSON,
-    OutputJSON,
-    PipelineAssignment,
-    PipelineJSON,
+from interactem.core.models.canonical import (
+    CanonicalEdge,
+    CanonicalInput,
+    CanonicalOperator,
+    CanonicalOutput,
+    CanonicalPipeline,
 )
+from interactem.core.models.kvs import AgentStatus, AgentVal
+from interactem.core.models.runtime import PipelineAssignment
+from interactem.core.models.spec import OperatorSpecTag
 from interactem.core.models.uri import URI
 from interactem.core.pipeline import Pipeline
 from interactem.orchestrator.orchestrator import (
@@ -30,11 +30,19 @@ def get_assigned_ops(
     for assignment in assignments:
         if assignment.agent_id == agent_id:
             # Ensure operators_assigned is not None before creating a set
-            return (
-                set(assignment.operators_assigned)
-                if assignment.operators_assigned
-                else set()
-            )
+            if not assignment.operators_assigned:
+                return set()
+
+            # Map runtime IDs back to canonical IDs for test comparison
+            runtime_pipeline = assignment.pipeline
+            canonical_id_map = {
+                op.id: op.canonical_id for op in runtime_pipeline.operators
+            }
+            canonical_ids = [
+                canonical_id_map.get(op_id, op_id)
+                for op_id in assignment.operators_assigned
+            ]
+            return set(canonical_ids)
     return set()
 
 
@@ -50,47 +58,50 @@ def test_simple_tag_match():
     port_b_out_id = uuid.uuid4()
     port_c_in_id = uuid.uuid4()
 
-    op_a = OperatorJSON(
+    op_a = CanonicalOperator(
         id=op_a_id,
         image="op-a-img",
-        tags=[OperatorTag(value="gpu")],
+        tags=[OperatorSpecTag(value="gpu")],
         outputs=[port_a_out_id],
     )
-    op_b = OperatorJSON(
+    op_b = CanonicalOperator(
         id=op_b_id,
         image="op-b-img",
-        tags=[OperatorTag(value="cpu")],
+        tags=[OperatorSpecTag(value="cpu")],
         inputs=[port_b_in_id],
         outputs=[port_b_out_id],
     )
-    op_c = OperatorJSON(id=op_c_id, image="op-c-img", inputs=[port_c_in_id])  # No tags
+    op_c = CanonicalOperator(
+        id=op_c_id, image="op-c-img", inputs=[port_c_in_id]
+    )  # No tags
 
     # 2. Define Ports
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
-    port_b_out = OutputJSON(
+    port_b_out = CanonicalOutput(
         id=port_b_out_id, operator_id=op_b_id, portkey="out", port_type=PortType.output
     )
-    port_c_in = InputJSON(
+    port_c_in = CanonicalInput(
         id=port_c_in_id, operator_id=op_c_id, portkey="in", port_type=PortType.input
     )
 
     # 3. Define Edges
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
-    edge_bc = EdgeJSON(input_id=port_b_out_id, output_id=port_c_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_bc = CanonicalEdge(input_id=port_b_out_id, output_id=port_c_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b, op_c],
         ports=[port_a_out, port_b_in, port_b_out, port_c_in],
         edges=[edge_ab, edge_bc],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents
     agent_gpu_id = uuid.uuid4()
@@ -161,43 +172,44 @@ def test_network_preference_no_crossing():
     port_b_out_id = uuid.uuid4()
     port_c_in_id = uuid.uuid4()
 
-    op_a = OperatorJSON(
+    op_a = CanonicalOperator(
         id=op_a_id,
         image="op-a-img",
         outputs=[port_a_out_id],
-        tags=[OperatorTag(value="net1_feature")],
+        tags=[OperatorSpecTag(value="net1_feature")],
     )
-    op_b = OperatorJSON(
+    op_b = CanonicalOperator(
         id=op_b_id, image="op-b-img", inputs=[port_b_in_id], outputs=[port_b_out_id]
     )
-    op_c = OperatorJSON(id=op_c_id, image="op-c-img", inputs=[port_c_in_id])
+    op_c = CanonicalOperator(id=op_c_id, image="op-c-img", inputs=[port_c_in_id])
 
     # 2. Define Ports
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
-    port_b_out = OutputJSON(
+    port_b_out = CanonicalOutput(
         id=port_b_out_id, operator_id=op_b_id, portkey="out", port_type=PortType.output
     )
-    port_c_in = InputJSON(
+    port_c_in = CanonicalInput(
         id=port_c_in_id, operator_id=op_c_id, portkey="in", port_type=PortType.input
     )
 
     # 3. Define Edges
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
-    edge_bc = EdgeJSON(input_id=port_b_out_id, output_id=port_c_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_bc = CanonicalEdge(input_id=port_b_out_id, output_id=port_c_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b, op_c],
         ports=[port_a_out, port_b_in, port_b_out, port_c_in],
         edges=[edge_ab, edge_bc],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents
     agent_net1_a_id = uuid.uuid4()
@@ -266,47 +278,50 @@ def test_network_forced_crossing():
     port_b_out_id = uuid.uuid4()
     port_c_in_id = uuid.uuid4()
 
-    op_a = OperatorJSON(
+    op_a = CanonicalOperator(
         id=op_a_id,
         image="op-a-img",
-        tags=[OperatorTag(value="net1_feature")],
+        tags=[OperatorSpecTag(value="net1_feature")],
         outputs=[port_a_out_id],
     )
-    op_b = OperatorJSON(
+    op_b = CanonicalOperator(
         id=op_b_id,
         image="op-b-img",
-        tags=[OperatorTag(value="net2_feature")],
+        tags=[OperatorSpecTag(value="net2_feature")],
         inputs=[port_b_in_id],
         outputs=[port_b_out_id],
     )
-    op_c = OperatorJSON(id=op_c_id, image="op-c-img", inputs=[port_c_in_id])  # No tags
+    op_c = CanonicalOperator(
+        id=op_c_id, image="op-c-img", inputs=[port_c_in_id]
+    )  # No tags
 
     # 2. Define Ports
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
-    port_b_out = OutputJSON(
+    port_b_out = CanonicalOutput(
         id=port_b_out_id, operator_id=op_b_id, portkey="out", port_type=PortType.output
     )
-    port_c_in = InputJSON(
+    port_c_in = CanonicalInput(
         id=port_c_in_id, operator_id=op_c_id, portkey="in", port_type=PortType.input
     )
 
     # 3. Define Edges
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
-    edge_bc = EdgeJSON(input_id=port_b_out_id, output_id=port_c_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_bc = CanonicalEdge(input_id=port_b_out_id, output_id=port_c_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b, op_c],
         ports=[port_a_out, port_b_in, port_b_out, port_c_in],
         edges=[edge_ab, edge_bc],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents
     agent_net1_id = uuid.uuid4()
@@ -362,47 +377,50 @@ def test_tag_and_network_preference():
     port_b_out_id = uuid.uuid4()
     port_c_in_id = uuid.uuid4()
 
-    op_a = OperatorJSON(
+    op_a = CanonicalOperator(
         id=op_a_id,
         image="op-a-img",
-        tags=[OperatorTag(value="gpu")],
+        tags=[OperatorSpecTag(value="gpu")],
         outputs=[port_a_out_id],
     )
-    op_b = OperatorJSON(
+    op_b = CanonicalOperator(
         id=op_b_id,
         image="op-b-img",
-        tags=[OperatorTag(value="cpu")],
+        tags=[OperatorSpecTag(value="cpu")],
         inputs=[port_b_in_id],
         outputs=[port_b_out_id],
     )
-    op_c = OperatorJSON(id=op_c_id, image="op-c-img", inputs=[port_c_in_id])  # No tags
+    op_c = CanonicalOperator(
+        id=op_c_id, image="op-c-img", inputs=[port_c_in_id]
+    )  # No tags
 
     # 2. Define Ports
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
-    port_b_out = OutputJSON(
+    port_b_out = CanonicalOutput(
         id=port_b_out_id, operator_id=op_b_id, portkey="out", port_type=PortType.output
     )
-    port_c_in = InputJSON(
+    port_c_in = CanonicalInput(
         id=port_c_in_id, operator_id=op_c_id, portkey="in", port_type=PortType.input
     )
 
     # 3. Define Edges
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
-    edge_bc = EdgeJSON(input_id=port_b_out_id, output_id=port_c_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_bc = CanonicalEdge(input_id=port_b_out_id, output_id=port_c_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b, op_c],
         ports=[port_a_out, port_b_in, port_b_out, port_c_in],
         edges=[edge_ab, edge_bc],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents
     agent_gpu_net1_id = uuid.uuid4()
@@ -503,48 +521,49 @@ def test_load_balancing_same_network():
     port_c_out_id = uuid.uuid4()
     port_d_in_id = uuid.uuid4()
 
-    op_a = OperatorJSON(id=op_a_id, image="op-a-img", outputs=[port_a_out_id])
-    op_b = OperatorJSON(
+    op_a = CanonicalOperator(id=op_a_id, image="op-a-img", outputs=[port_a_out_id])
+    op_b = CanonicalOperator(
         id=op_b_id, image="op-b-img", inputs=[port_b_in_id], outputs=[port_b_out_id]
     )
-    op_c = OperatorJSON(
+    op_c = CanonicalOperator(
         id=op_c_id, image="op-c-img", inputs=[port_c_in_id], outputs=[port_c_out_id]
     )
-    op_d = OperatorJSON(id=op_d_id, image="op-d-img", inputs=[port_d_in_id])
+    op_d = CanonicalOperator(id=op_d_id, image="op-d-img", inputs=[port_d_in_id])
 
     # 2. Define Ports (simple linear chain A->B->C->D)
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
-    port_b_out = OutputJSON(
+    port_b_out = CanonicalOutput(
         id=port_b_out_id, operator_id=op_b_id, portkey="out", port_type=PortType.output
     )
-    port_c_in = InputJSON(
+    port_c_in = CanonicalInput(
         id=port_c_in_id, operator_id=op_c_id, portkey="in", port_type=PortType.input
     )
-    port_c_out = OutputJSON(
+    port_c_out = CanonicalOutput(
         id=port_c_out_id, operator_id=op_c_id, portkey="out", port_type=PortType.output
     )
-    port_d_in = InputJSON(
+    port_d_in = CanonicalInput(
         id=port_d_in_id, operator_id=op_d_id, portkey="in", port_type=PortType.input
     )
 
     # 3. Define Edges
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
-    edge_bc = EdgeJSON(input_id=port_b_out_id, output_id=port_c_in_id)
-    edge_cd = EdgeJSON(input_id=port_c_out_id, output_id=port_d_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_bc = CanonicalEdge(input_id=port_b_out_id, output_id=port_c_in_id)
+    edge_cd = CanonicalEdge(input_id=port_c_out_id, output_id=port_d_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b, op_c, op_d],
         ports=[port_a_out, port_b_in, port_b_out, port_c_in, port_c_out, port_d_in],
         edges=[edge_ab, edge_bc, edge_cd],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents (two identical agents on the same network)
     agent_net1_a_id = uuid.uuid4()
@@ -600,35 +619,36 @@ def test_unassignable_operator_missing_tags():
     port_a_out_id = uuid.uuid4()
     port_b_in_id = uuid.uuid4()
 
-    op_a = OperatorJSON(
+    op_a = CanonicalOperator(
         id=op_a_id,
         image="op-a-img",
-        tags=[OperatorTag(value="required_feature")],
+        tags=[OperatorSpecTag(value="required_feature")],
         outputs=[port_a_out_id],
     )
-    op_b = OperatorJSON(
+    op_b = CanonicalOperator(
         id=op_b_id, image="op-b-img", inputs=[port_b_in_id]
     )  # Assignable
 
     # 2. Define Ports
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
 
     # 3. Define Edge
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b],
         ports=[port_a_out, port_b_in],
         edges=[edge_ab],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents (None have the required tag)
     agent_1_id = uuid.uuid4()
@@ -660,28 +680,29 @@ def test_no_agents_available():
     port_a_out_id = uuid.uuid4()
     port_b_in_id = uuid.uuid4()
 
-    op_a = OperatorJSON(id=op_a_id, image="op-a-img", outputs=[port_a_out_id])
-    op_b = OperatorJSON(id=op_b_id, image="op-b-img", inputs=[port_b_in_id])
+    op_a = CanonicalOperator(id=op_a_id, image="op-a-img", outputs=[port_a_out_id])
+    op_b = CanonicalOperator(id=op_b_id, image="op-b-img", inputs=[port_b_in_id])
 
     # 2. Define Ports
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
 
     # 3. Define Edge
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b],
         ports=[port_a_out, port_b_in],
         edges=[edge_ab],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents (Empty list)
     agents = []
@@ -699,38 +720,39 @@ def test_multiple_tags_required():
     port_a_out_id = uuid.uuid4()
     port_b_in_id = uuid.uuid4()
 
-    op_a = OperatorJSON(
+    op_a = CanonicalOperator(
         id=op_a_id,
         image="op-a-img",
-        tags=[OperatorTag(value="gpu"), OperatorTag(value="fast_io")],
+        tags=[OperatorSpecTag(value="gpu"), OperatorSpecTag(value="fast_io")],
         outputs=[port_a_out_id],
     )
-    op_b = OperatorJSON(
+    op_b = CanonicalOperator(
         id=op_b_id,
         image="op-b-img",
-        tags=[OperatorTag(value="gpu")],
+        tags=[OperatorSpecTag(value="gpu")],
         inputs=[port_b_in_id],
     )  # Only needs gpu
 
     # 2. Define Ports
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
 
     # 3. Define Edge
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b],
         ports=[port_a_out, port_b_in],
         edges=[edge_ab],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents
     agent_gpu_fast_id = uuid.uuid4()
@@ -802,39 +824,40 @@ def test_pipeline_with_cycle():
     port_b_out_id = uuid.uuid4()
     port_a_in_id = uuid.uuid4()  # Input for cycle
 
-    op_a = OperatorJSON(
+    op_a = CanonicalOperator(
         id=op_a_id, image="op-a-img", inputs=[port_a_in_id], outputs=[port_a_out_id]
     )
-    op_b = OperatorJSON(
+    op_b = CanonicalOperator(
         id=op_b_id, image="op-b-img", inputs=[port_b_in_id], outputs=[port_b_out_id]
     )
 
     # 2. Define Ports
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
-    port_b_out = OutputJSON(
+    port_b_out = CanonicalOutput(
         id=port_b_out_id, operator_id=op_b_id, portkey="out", port_type=PortType.output
     )
-    port_a_in = InputJSON(
+    port_a_in = CanonicalInput(
         id=port_a_in_id, operator_id=op_a_id, portkey="in", port_type=PortType.input
     )  # Input for cycle
 
     # 3. Define Edges (A -> B and B -> A)
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
-    edge_ba = EdgeJSON(input_id=port_b_out_id, output_id=port_a_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_ba = CanonicalEdge(input_id=port_b_out_id, output_id=port_a_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b],
         ports=[port_a_out, port_b_in, port_b_out, port_a_in],
         edges=[edge_ab, edge_ba],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents (content doesn't matter as error should occur before assignment)
     agent_id = uuid.uuid4()
@@ -867,30 +890,31 @@ def test_disconnected_operators():
     port_a_out_id = uuid.uuid4()
     port_b_in_id = uuid.uuid4()
 
-    op_a = OperatorJSON(id=op_a_id, image="op-a-img", outputs=[port_a_out_id])
-    op_b = OperatorJSON(id=op_b_id, image="op-b-img", inputs=[port_b_in_id])
-    op_c = OperatorJSON(id=op_c_id, image="op-c-img")  # Disconnected
+    op_a = CanonicalOperator(id=op_a_id, image="op-a-img", outputs=[port_a_out_id])
+    op_b = CanonicalOperator(id=op_b_id, image="op-b-img", inputs=[port_b_in_id])
+    op_c = CanonicalOperator(id=op_c_id, image="op-c-img")  # Disconnected
 
     # 2. Define Ports (only for A -> B)
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
     # Op C has no ports defined in this simple case
 
     # 3. Define Edge (only A -> B)
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b, op_c],
         ports=[port_a_out, port_b_in],  # Only ports for connected part
         edges=[edge_ab],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents (two generic agents)
     agent_1_id = uuid.uuid4()
@@ -944,33 +968,34 @@ def test_network_preference_over_load():
     port_a_out_id = uuid.uuid4()
     port_b_in_id = uuid.uuid4()
 
-    op_a = OperatorJSON(
+    op_a = CanonicalOperator(
         id=op_a_id,
         image="op-a-img",
         outputs=[port_a_out_id],
-        tags=[OperatorTag(value="net1_feature")],
+        tags=[OperatorSpecTag(value="net1_feature")],
     )
-    op_b = OperatorJSON(id=op_b_id, image="op-b-img", inputs=[port_b_in_id])
+    op_b = CanonicalOperator(id=op_b_id, image="op-b-img", inputs=[port_b_in_id])
 
     # 2. Define Ports
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
 
     # 3. Define Edge
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b],
         ports=[port_a_out, port_b_in],
         edges=[edge_ab],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents
     agent_net1_a_id = uuid.uuid4()
@@ -1046,61 +1071,62 @@ def test_tie_breaking_load():
     port_c_out_id = uuid.uuid4()
     port_d_in_id = uuid.uuid4()
 
-    common_tag = OperatorTag(value="common_tag")
-    op_a = OperatorJSON(
+    common_tag = OperatorSpecTag(value="common_tag")
+    op_a = CanonicalOperator(
         id=op_a_id, image="op-a-img", tags=[common_tag], outputs=[port_a_out_id]
     )
-    op_b = OperatorJSON(
+    op_b = CanonicalOperator(
         id=op_b_id,
         image="op-b-img",
         tags=[common_tag],
         inputs=[port_b_in_id],
         outputs=[port_b_out_id],
     )
-    op_c = OperatorJSON(
+    op_c = CanonicalOperator(
         id=op_c_id,
         image="op-c-img",
         tags=[common_tag],
         inputs=[port_c_in_id],
         outputs=[port_c_out_id],
     )
-    op_d = OperatorJSON(
+    op_d = CanonicalOperator(
         id=op_d_id, image="op-d-img", tags=[common_tag], inputs=[port_d_in_id]
     )
 
     # 2. Define Ports (simple linear chain A->B->C->D)
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
-    port_b_out = OutputJSON(
+    port_b_out = CanonicalOutput(
         id=port_b_out_id, operator_id=op_b_id, portkey="out", port_type=PortType.output
     )
-    port_c_in = InputJSON(
+    port_c_in = CanonicalInput(
         id=port_c_in_id, operator_id=op_c_id, portkey="in", port_type=PortType.input
     )
-    port_c_out = OutputJSON(
+    port_c_out = CanonicalOutput(
         id=port_c_out_id, operator_id=op_c_id, portkey="out", port_type=PortType.output
     )
-    port_d_in = InputJSON(
+    port_d_in = CanonicalInput(
         id=port_d_in_id, operator_id=op_d_id, portkey="in", port_type=PortType.input
     )
 
     # 3. Define Edges
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
-    edge_bc = EdgeJSON(input_id=port_b_out_id, output_id=port_c_in_id)
-    edge_cd = EdgeJSON(input_id=port_c_out_id, output_id=port_d_in_id)
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
+    edge_bc = CanonicalEdge(input_id=port_b_out_id, output_id=port_c_in_id)
+    edge_cd = CanonicalEdge(input_id=port_c_out_id, output_id=port_d_in_id)
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b, op_c, op_d],
         ports=[port_a_out, port_b_in, port_b_out, port_c_in, port_c_out, port_d_in],
         edges=[edge_ab, edge_bc, edge_cd],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents (two identical agents matching network and tags)
     agent_1_id = uuid.uuid4()
@@ -1153,10 +1179,10 @@ def test_empty_pipeline():
     edges = []
 
     # 4. Create Pipeline
-    pipeline_json = PipelineJSON(
-        id=uuid.uuid4(), operators=operators, ports=ports, edges=edges
+    pipeline_json = CanonicalPipeline(
+        id=uuid.uuid4(), revision_id=0, operators=operators, ports=ports, edges=edges
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
 
     # 5. Define Agents (at least one agent)
     agent_1_id = uuid.uuid4()
@@ -1192,22 +1218,23 @@ def test_agent_with_multiple_networks():
     op_b_id = uuid.uuid4()
     port_a_out_id = uuid.uuid4()
     port_b_in_id = uuid.uuid4()
-    op_a = OperatorJSON(id=op_a_id, image="op-a", outputs=[port_a_out_id])
-    op_b = OperatorJSON(id=op_b_id, image="op-b", inputs=[port_b_in_id])
-    port_a_out = OutputJSON(
+    op_a = CanonicalOperator(id=op_a_id, image="op-a", outputs=[port_a_out_id])
+    op_b = CanonicalOperator(id=op_b_id, image="op-b", inputs=[port_b_in_id])
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
-    pipeline_json = PipelineJSON(
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b],
         ports=[port_a_out, port_b_in],
         edges=[edge_ab],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
     agent_multi_id = uuid.uuid4()
     agent_net1_id = uuid.uuid4()
     agent_net2_id = uuid.uuid4()
@@ -1249,8 +1276,20 @@ def test_agent_with_multiple_networks():
     assigner = PipelineAssigner(agents, pipeline)
     assignments = assigner.assign()
     # All operators should be assigned to a single network, and the agent with both networks is eligible
-    all_assigned = [op for a in assignments for op in a.operators_assigned]
-    assert set(all_assigned) == {op_a_id, op_b_id}
+    all_assigned = set()
+    for assignment in assignments:
+        if assignment.operators_assigned:
+            # Map runtime IDs back to canonical IDs for test comparison
+            runtime_pipeline = assignment.pipeline
+            canonical_id_map = {
+                op.id: op.canonical_id for op in runtime_pipeline.operators
+            }
+            canonical_ids = [
+                canonical_id_map.get(op_id, op_id)
+                for op_id in assignment.operators_assigned
+            ]
+            all_assigned.update(canonical_ids)
+    assert all_assigned == {op_a_id, op_b_id}
 
 
 def test_operators_with_overlapping_tags():
@@ -1259,32 +1298,33 @@ def test_operators_with_overlapping_tags():
     op_b_id = uuid.uuid4()
     port_a_out_id = uuid.uuid4()
     port_b_in_id = uuid.uuid4()
-    op_a = OperatorJSON(
+    op_a = CanonicalOperator(
         id=op_a_id,
         image="op-a",
-        tags=[OperatorTag(value="gpu")],
+        tags=[OperatorSpecTag(value="gpu")],
         outputs=[port_a_out_id],
     )
-    op_b = OperatorJSON(
+    op_b = CanonicalOperator(
         id=op_b_id,
         image="op-b",
-        tags=[OperatorTag(value="gpu"), OperatorTag(value="ssd")],
+        tags=[OperatorSpecTag(value="gpu"), OperatorSpecTag(value="ssd")],
         inputs=[port_b_in_id],
     )
-    port_a_out = OutputJSON(
+    port_a_out = CanonicalOutput(
         id=port_a_out_id, operator_id=op_a_id, portkey="out", port_type=PortType.output
     )
-    port_b_in = InputJSON(
+    port_b_in = CanonicalInput(
         id=port_b_in_id, operator_id=op_b_id, portkey="in", port_type=PortType.input
     )
-    edge_ab = EdgeJSON(input_id=port_a_out_id, output_id=port_b_in_id)
-    pipeline_json = PipelineJSON(
+    edge_ab = CanonicalEdge(input_id=port_a_out_id, output_id=port_b_in_id)
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op_a, op_b],
         ports=[port_a_out, port_b_in],
         edges=[edge_ab],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
     agent_gpu_id = uuid.uuid4()
     agent_gpu_ssd_id = uuid.uuid4()
     agents = [
@@ -1321,19 +1361,20 @@ def test_agent_with_superset_tags():
     """Agent with superset of required tags is eligible for assignment."""
     op_id = uuid.uuid4()
     port_out_id = uuid.uuid4()
-    op = OperatorJSON(
-        id=op_id, image="op", tags=[OperatorTag(value="cpu")], outputs=[port_out_id]
+    op = CanonicalOperator(
+        id=op_id, image="op", tags=[OperatorSpecTag(value="cpu")], outputs=[port_out_id]
     )
-    port_out = OutputJSON(
+    port_out = CanonicalOutput(
         id=port_out_id, operator_id=op_id, portkey="out", port_type=PortType.output
     )
-    pipeline_json = PipelineJSON(
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op],
         ports=[port_out],
         edges=[],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
     agent_exact_id = uuid.uuid4()
     agent_superset_id = uuid.uuid4()
     agents = [
@@ -1372,14 +1413,15 @@ def test_agent_with_superset_tags():
 def test_isolated_operator_assignment():
     """Operators with no inputs or outputs (isolated) are assigned."""
     op_id = uuid.uuid4()
-    op = OperatorJSON(id=op_id, image="op")
-    pipeline_json = PipelineJSON(
+    op = CanonicalOperator(id=op_id, image="op")
+    pipeline_json = CanonicalPipeline(
         id=uuid.uuid4(),
+        revision_id=0,
         operators=[op],
         ports=[],
         edges=[],
     )
-    pipeline = Pipeline.from_pipeline(pipeline_json)
+    pipeline = Pipeline.from_pipeline(pipeline_json, uuid.uuid4())
     agent_id = uuid.uuid4()
     agents = [
         AgentVal(
