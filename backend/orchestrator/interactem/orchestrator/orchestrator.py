@@ -18,7 +18,7 @@ from interactem.core.constants import (
     SUBJECT_PIPELINES_STOP,
 )
 from interactem.core.events.pipelines import (
-    PipelineRunEvent,
+    PipelineDeploymentEvent,
     PipelineRunVal,
     PipelineStopEvent,
 )
@@ -50,7 +50,7 @@ from .config import cfg
 
 logger = get_logger()
 
-pipelines: dict[IdType, PipelineRunEvent] = {}
+pipelines: dict[IdType, PipelineDeploymentEvent] = {}
 
 task_refs: set[asyncio.Task] = set()
 
@@ -86,9 +86,9 @@ async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
 
 
 async def update_pipeline_kv(
-    js: JetStreamContext, pipeline: PipelineRunVal | PipelineRunEvent
+    js: JetStreamContext, pipeline: PipelineRunVal | PipelineDeploymentEvent
 ):
-    if isinstance(pipeline, PipelineRunEvent):
+    if isinstance(pipeline, PipelineDeploymentEvent):
         pipeline = PipelineRunVal(
             id=pipeline.id,
             revision_id=pipeline.revision_id,
@@ -369,7 +369,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     await msg.ack()
 
     try:
-        event = PipelineRunEvent.model_validate_json(msg.data)
+        event = PipelineDeploymentEvent.model_validate_json(msg.data)
     except ValidationError as e:
         logger.error(f"Invalid pipeline run event message: {e}")
         return

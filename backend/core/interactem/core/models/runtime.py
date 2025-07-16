@@ -13,7 +13,7 @@ from interactem.core.models.canonical import (
     CanonicalPortID,
 )
 from interactem.core.models.containers import MountMixin, NetworkMode
-from interactem.core.models.uri import OperatorURI, PipelineURI, PortURI
+from interactem.core.models.spec import OperatorSpecParameter
 
 """
 These models represent the runtime form of a pipeline. They are converted from canonical form.
@@ -26,15 +26,25 @@ RuntimeOperatorID = IdType
 RuntimePipelineID = IdType
 RuntimePortID = IdType
 
+class RuntimeOperatorParameter(OperatorSpecParameter):
+    value: str | None = None  # Value of the parameter at runtime
+
 
 class RuntimeOperator(CanonicalOperator):
     id: RuntimeOperatorID
     canonical_id: CanonicalOperatorID
-    uri: OperatorURI | None = None
     parallel_index: int = 0
+    parameters: list[RuntimeOperatorParameter] | None = None  # Runtime parameters
     env: dict[str, str] = {}  # Environment variables to pass to the container
     command: str | list[str] = []  # Command to pass to the container
     network_mode: NetworkMode | None = None  # Network mode for the container
+
+    def update_parameter_value(self, name: str, value: str | None) -> None:
+        for parameter in self.parameters or []:
+            if parameter.name == name:
+                parameter.value = value
+                return
+        raise ValueError(f"Parameter '{name}' not found in operator.")
 
     @classmethod
     def from_canonical(
@@ -42,31 +52,17 @@ class RuntimeOperator(CanonicalOperator):
         canonical_operator: CanonicalOperator,
         runtime_id: RuntimeOperatorID,
         parallel_index: int = 0,
-        uri: OperatorURI | None = None,
     ) -> "RuntimeOperator":
         return cls(
             id=runtime_id,
             canonical_id=canonical_operator.id,
-            uri=uri,
             parallel_index=parallel_index,
-            # Canonical fields
-            image=canonical_operator.image,
-            parameters=canonical_operator.parameters,
-            inputs=canonical_operator.inputs,
-            outputs=canonical_operator.outputs,
-            tags=canonical_operator.tags,
-            parallel_config=canonical_operator.parallel_config,
+            **canonical_operator.model_dump(exclude={"id"}),
         )
 
     def to_canonical(self) -> CanonicalOperator:
         return CanonicalOperator(
-            id=self.canonical_id,
-            image=self.image,
-            parameters=self.parameters,
-            inputs=self.inputs,
-            outputs=self.outputs,
-            tags=self.tags,
-            parallel_config=self.parallel_config,
+            id=self.canonical_id, **self.model_dump(exclude={"id"})
         )
 
 
@@ -80,7 +76,6 @@ class RuntimePort(CanonicalPort):
     canonical_id: CanonicalPortID
     operator_id: RuntimeOperatorID  # The operator this port belongs to
     canonical_operator_id: CanonicalOperatorID
-    uri: PortURI | None = None
 
     @classmethod
     def from_canonical(
@@ -88,25 +83,16 @@ class RuntimePort(CanonicalPort):
         canonical_port: CanonicalPort,
         runtime_id: RuntimePortID,
         runtime_operator_id: RuntimeOperatorID,
-        uri: PortURI | None = None,
     ) -> "RuntimePort":
         return cls(
             id=runtime_id,
             canonical_id=canonical_port.id,
             operator_id=runtime_operator_id,
-            canonical_operator_id=canonical_port.operator_id,
-            uri=uri,
-            port_type=canonical_port.port_type,
-            portkey=canonical_port.portkey,
+            **canonical_port.model_dump(exclude={"id"}),
         )
 
     def to_canonical(self) -> CanonicalPort:
-        return CanonicalPort(
-            id=self.canonical_id,
-            operator_id=self.canonical_operator_id,
-            port_type=self.port_type,
-            portkey=self.portkey,
-        )
+        return CanonicalPort(id=self.canonical_id, **self.model_dump(exclude={"id"}))
 
 
 class RuntimeInput(RuntimePort):
@@ -124,7 +110,6 @@ class RuntimeEdge(CanonicalEdge):
 class RuntimePipeline(CanonicalPipeline):
     id: RuntimePipelineID  # ID of the pipeline run
     canonical_id: CanonicalPipelineID
-    uri: PipelineURI | None = None
     operators: Sequence[RuntimeOperator] = []
     ports: Sequence[RuntimePort] = []
     edges: Sequence[RuntimeEdge] = []

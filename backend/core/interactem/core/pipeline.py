@@ -184,7 +184,6 @@ class Pipeline(nx.DiGraph):
                 canonical_operator=operator,
                 runtime_id=runtime_op_id,
                 parallel_index=parallel_index,
-                uri=None,  # Will be assigned during agent assignment
             )
 
             runtime_operators.append(runtime_op)
@@ -200,11 +199,11 @@ class Pipeline(nx.DiGraph):
 
         for canonical_port in ports:
             # Get the runtime operators for this port's canonical operator
-            runtime_ops = operator_mapping.get(canonical_port.operator_id, [])
+            runtime_ops = operator_mapping.get(canonical_port.canonical_operator_id, [])
 
             if not runtime_ops:
                 logger.warning(
-                    f"No runtime operators found for canonical operator {canonical_port.operator_id}"
+                    f"No runtime operators found for canonical operator {canonical_port.canonical_operator_id}"
                 )
                 continue
 
@@ -217,7 +216,6 @@ class Pipeline(nx.DiGraph):
                     canonical_port=canonical_port,
                     runtime_id=runtime_port_id,
                     runtime_operator_id=runtime_op.id,
-                    uri=None,  # Will be assigned during agent assignment
                 )
 
                 runtime_ports.append(runtime_port)

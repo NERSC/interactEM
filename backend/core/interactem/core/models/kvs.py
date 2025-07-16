@@ -14,7 +14,7 @@ from interactem.core.models.runtime import (
     RuntimePipelineID,
     RuntimePortID,
 )
-from interactem.core.models.uri import URI, OperatorURI
+from interactem.core.models.uri import URI
 
 
 class AgentErrorMessage(BaseModel):
@@ -83,10 +83,9 @@ class OperatorStatus(str, Enum):
 class OperatorVal(BaseModel):
     id: RuntimeOperatorID
     canonical_id: CanonicalOperatorID
-    uri: OperatorURI
     status: OperatorStatus
-    pipeline_id: CanonicalPipelineID | None = None
-    runtime_pipeline_id: RuntimePipelineID | None = None
+    canonical_pipeline_id: CanonicalPipelineID
+    runtime_pipeline_id: RuntimePipelineID
 
 
 class PortStatus(str, Enum):

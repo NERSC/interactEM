@@ -1,14 +1,19 @@
 import pathlib
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, model_validator
 
 from interactem.core.constants import MOUNT_DIR
 from interactem.core.models.spec import (
-    OperatorSpecParameter,
     ParameterName,
     ParameterSpecType,
 )
+
+if TYPE_CHECKING:
+    from interactem.core.models.runtime import RuntimeOperatorParameter
+else:
+    RuntimeOperatorParameter = BaseModel
 
 
 class NetworkMode(str, Enum):
@@ -57,7 +62,7 @@ class PodmanMount(BaseModel):
 
     @classmethod
     def from_mount_param(
-        cls, parameter: OperatorSpecParameter, use_default=True
+        cls, parameter: RuntimeOperatorParameter, use_default=True
     ) -> "PodmanMount":
         if not parameter.type == ParameterSpecType.MOUNT:
             raise ValueError("Parameter must be of type MOUNT")
@@ -81,7 +86,7 @@ class PodmanMount(BaseModel):
 
 
 class MountMixin(BaseModel):
-    parameters: list[OperatorSpecParameter] | None = None
+    parameters: list[RuntimeOperatorParameter] | None = None
     param_mounts: dict[ParameterName, PodmanMount] = {}  # Container mounts
     internal_mounts: list[PodmanMount] = []  # Other mounts not tied to parameters
 
