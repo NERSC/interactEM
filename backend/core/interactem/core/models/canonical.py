@@ -10,6 +10,12 @@ from interactem.core.models.spec import (
     ParallelConfig,
 )
 
+"""
+These models represent the canonical form a pipeline. This is what is stored in the db
+as json data. Frontend sends this data to app from wired up operators.
+"""
+
+
 CanonicalOperatorID = OperatorSpecID
 CanonicalPortID = IdType
 CanonicalPipelineID = IdType

@@ -15,6 +15,13 @@ from interactem.core.models.canonical import (
 from interactem.core.models.containers import MountMixin, NetworkMode
 from interactem.core.models.uri import OperatorURI, PipelineURI, PortURI
 
+"""
+These models represent the runtime form of a pipeline. They are converted from canonical form.
+Their primary keys are runtime IDs. Our system will chat at runtime about these IDs, rather
+than the canonical IDs, since we don't want to clobber.
+"""
+
+
 RuntimeOperatorID = IdType
 RuntimePipelineID = IdType
 RuntimePortID = IdType

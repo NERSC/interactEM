@@ -6,6 +6,11 @@ from interactem.core.models.base import IdType
 
 OperatorSpecID = IdType
 
+"""
+Models for operator specification. These are implemented by the user and attached
+to the container labels.
+"""
+
 
 class OperatorSpecInput(BaseModel):
     label: str  # Human readable name of the input
