@@ -33,15 +33,15 @@ from interactem.core.events.operators import (
     OperatorRunningEvent,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models import CommBackend, OperatorJSON, PipelineJSON
-from interactem.core.models.messages import BytesMessage, OperatorTrackingMetadata
-from interactem.core.models.operators import (
-    OperatorMetrics,
+from interactem.core.models import CommBackend
+from interactem.core.models.kvs import (
     OperatorStatus,
-    OperatorTiming,
     OperatorVal,
-    ParameterType,
 )
+from interactem.core.models.messages import BytesMessage, OperatorTrackingMetadata
+from interactem.core.models.metrics import OperatorMetrics, OperatorTiming
+from interactem.core.models.runtime import RuntimeOperator, RuntimePipeline
+from interactem.core.models.spec import ParameterSpecType
 from interactem.core.nats import (
     create_or_update_stream,
     nc,
@@ -89,7 +89,7 @@ async def receive_pipeline(msg: NATSMsg) -> Pipeline:
     await msg.ack()
 
     try:
-        event = PipelineJSON.model_validate_json(msg.data)
+        event = RuntimePipeline.model_validate_json(msg.data)
     except ValidationError:
         logger.error("Invalid message")
         raise
@@ -140,17 +140,15 @@ class OperatorMixin(RunnableKernel):
         self.id = OPERATOR_ID
         self.messenger: BaseMessenger | None = None
         self.pipeline: Pipeline | None = None
-        self.info: OperatorJSON | None = None
+        self.info: RuntimeOperator | None = None
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
         self.messenger_task: asyncio.Task | None = None
         self.metrics_kv: KeyValueLoop[OperatorMetrics] | None = None
-        self.operator_kv: KeyValueLoop[OperatorVal]
-        self.val = OperatorVal(id=self.id, status=OperatorStatus.INITIALIZING)
+        self.operator_kv: KeyValueLoop[OperatorVal] | None = None
+        self.val: OperatorVal | None = None
         self.parameters: dict[str, Any] = {}
-        self.metrics: OperatorMetrics = OperatorMetrics(
-            id=self.id, timing=OperatorTiming()
-        )
+        self.metrics: OperatorMetrics | None = None
         self.run_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self._dependencies = []
@@ -173,7 +171,7 @@ class OperatorMixin(RunnableKernel):
         # Initialize pipeline/operator information
         await self.initialize_pipeline()
         assert self.pipeline, "Pipeline not initialized"
-        await self.initialize_operator()
+        self.info = await self.initialize_operator()
         assert self.info, "Operator info not initialized"
         await self.initialize_parameters()
         asyncio.create_task(self.publish_parameters())
@@ -187,6 +185,11 @@ class OperatorMixin(RunnableKernel):
             update_interval=1.0,
             data_model=OperatorMetrics,
         )
+        self.metrics = OperatorMetrics(
+            id=self.id,
+            canonical_id=self.info.canonical_id,
+            timing=OperatorTiming(),
+        )
         self.metrics_kv.add_or_update_value(self.id, self.metrics)
         await self.metrics_kv.start()
         self.operator_kv = KeyValueLoop[OperatorVal](
@@ -197,8 +200,16 @@ class OperatorMixin(RunnableKernel):
             update_interval=5.0,
             data_model=OperatorVal,
         )
-        self.val.pipeline_id = self.pipeline.id
-        self.val.status = OperatorStatus.RUNNING
+        if self.info.uri is None:
+            raise ValueError("Operator URI must be set in the pipeline")
+        self.val = OperatorVal(
+            id=self.id,
+            canonical_id=self.info.canonical_id,
+            status=OperatorStatus.INITIALIZING,
+            uri=self.info.uri,
+            runtime_pipeline_id=self.pipeline.id,
+            canonical_pipeline_id=self.pipeline.canonical_id,
+        )
         self.operator_kv.add_or_update_value(self.id, self.val)
         await self.operator_kv.start()
         await self.operator_kv.update_now()
@@ -212,6 +223,8 @@ class OperatorMixin(RunnableKernel):
         self._tracking_timer_task = asyncio.create_task(self._tracking_timer())
         self.run_task = asyncio.create_task(self.run())
         self.consume_params_task = asyncio.create_task(self.consume_params())
+        self.val.status = OperatorStatus.RUNNING
+        await self.operator_kv.update_now()
         await self._shutdown_event.wait()
         await self.shutdown()
 
@@ -268,13 +281,15 @@ class OperatorMixin(RunnableKernel):
         self.pipeline = await receive_pipeline(msg[0])
         await psub.unsubscribe()
 
-    async def initialize_operator(self):
+    async def initialize_operator(self) -> RuntimeOperator:
         if not self.pipeline:
             raise ValueError("Pipeline not initialized.")
 
         self.info = self.pipeline.get_operator(self.id)
         if self.info is None:
             raise ValueError(f"Operator {self.id} not found in pipeline")
+
+        return self.info
 
     async def initialize_parameters(self):
         if not self.info:
@@ -301,7 +316,7 @@ class OperatorMixin(RunnableKernel):
             param = next((p for p in self.info.parameters if p.name == name), None)
 
             # Agent will handle the mount parameter publishing
-            if param and param.type == ParameterType.MOUNT:
+            if param and param.type == ParameterSpecType.MOUNT:
                 continue
             logger.info(
                 f"Publishing {name}, {val} on subject: {STREAM_PARAMETERS_UPDATE}.{self.id}.{name}"
@@ -443,6 +458,8 @@ class OperatorMixin(RunnableKernel):
     async def run(self):
         if not self.messenger:
             raise ValueError("Messenger not initialized")
+        if not self.metrics:
+            raise ValueError("Metrics not initialized")
         has_input = True if len(self.messenger.input_ports) > 0 else False
         error_count, max_retries, error_state = 0, 10, False
         await self._publish_running()
