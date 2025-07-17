@@ -19,13 +19,13 @@ from interactem.core.constants import (
 )
 from interactem.core.events.pipelines import (
     PipelineDeploymentEvent,
-    PipelineRunVal,
     PipelineStopEvent,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models.agent import AgentVal
 from interactem.core.models.base import IdType
-from interactem.core.models.pipeline import PipelineAssignment, PipelineJSON
+from interactem.core.models.canonical import CanonicalPipeline
+from interactem.core.models.kvs import AgentVal, PipelineRunVal
+from interactem.core.models.runtime import PipelineAssignment, RuntimeOperator
 from interactem.core.nats import (
     consume_messages,
     create_bucket_if_doesnt_exist,
@@ -44,7 +44,7 @@ from interactem.core.nats.config import (
     PIPELINES_STREAM_CONFIG,
 )
 from interactem.core.nats.consumers import create_orchestrator_pipeline_consumer
-from interactem.core.pipeline import OperatorJSON, Pipeline
+from interactem.core.pipeline import Pipeline
 
 from .config import cfg
 
@@ -90,8 +90,9 @@ async def update_pipeline_kv(
 ):
     if isinstance(pipeline, PipelineDeploymentEvent):
         pipeline = PipelineRunVal(
-            id=pipeline.id,
-            revision_id=pipeline.revision_id,
+            id=pipeline.deployment_id,
+            canonical_id=pipeline.canonical_id,
+            canonical_revision_id=pipeline.revision_id,
         )
     pipeline_bucket = await get_pipelines_bucket(js)
     await pipeline_bucket.put(str(pipeline.id), pipeline.model_dump_json().encode())
@@ -101,11 +102,13 @@ async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
     while True:
         for pipeline in pipelines.values():
             await update_pipeline_kv(js, pipeline)
-        logger.info(f"Updated {len(pipelines)} pipelines in KV store.")
+        logger.debug(f"Updated {len(pipelines)} pipelines in KV store.")
         await asyncio.sleep(interval)
 
 
-async def clean_up_old_pipelines(js: JetStreamContext, valid_pipeline: PipelineJSON):
+async def clean_up_old_pipelines(
+    js: JetStreamContext, valid_pipeline: CanonicalPipeline
+):
     pipelines_bucket = await get_pipelines_bucket(js)
     current_pipeline_keys = await get_keys(pipelines_bucket)
     delete_tasks = []
@@ -125,7 +128,7 @@ async def clean_up_old_pipelines(js: JetStreamContext, valid_pipeline: PipelineJ
 
 
 class AssignmentState(BaseModel):
-    assignments: dict[IdType, list[OperatorJSON]]
+    assignments: dict[IdType, list[RuntimeOperator]]
     operator_networks: dict[IdType, set[str]]
 
 
@@ -219,23 +222,26 @@ class PipelineAssigner:
                 )
 
         final_assignments = []
-        final_assignments = []
+        runtime_pipeline = self.pipeline.to_runtime()
+
         for agent in self.agent_infos:
             agent_id = agent.uri.id
             # we want to assign blank operators to agents that are not assigned any
             # so that they will shut down their operators (one pipeline at a time)
-            assigned_operators = state.assignments.get(agent_id, [])
+            assigned_runtime_operators = state.assignments.get(agent_id, [])
+            # The assigned operators are already runtime operators with runtime IDs
+            assigned_runtime_ids = [op.id for op in assigned_runtime_operators]
             assignment = PipelineAssignment(
                 agent_id=agent_id,
-                operators_assigned=[op.id for op in assigned_operators],
-                pipeline=self.pipeline.to_json(),
+                operators_assigned=assigned_runtime_ids,
+                pipeline=runtime_pipeline,
             )
             final_assignments.append(assignment)
 
         self.log_assignments(final_assignments)
         return final_assignments
 
-    def _find_agents_matching_tags(self, operator: OperatorJSON) -> list[AgentVal]:
+    def _find_agents_matching_tags(self, operator: RuntimeOperator) -> list[AgentVal]:
         op_tag_values = {tag.value for tag in operator.tags}
         if not op_tag_values:
             return self.agent_infos
@@ -295,7 +301,7 @@ class PipelineAssigner:
         self,
         state: AssignmentState,
         op_id: IdType,
-        operator: OperatorJSON,
+        operator: RuntimeOperator,
         agent: AgentVal,
         allowed_networks: set[str] | None,
     ):
@@ -358,7 +364,14 @@ class PipelineAssigner:
                     else "(No tags)"
                 )
                 op_image_str = f"{op.image} " if op else ""
-                log_lines.append(f"  - Operator {op_image_str}({op_id}) {op_tags_str}")
+                canonical_id_str = (
+                    f" (canonical: {op.canonical_id})"
+                    if op and hasattr(op, "canonical_id")
+                    else ""
+                )
+                log_lines.append(
+                    f"  - Operator {op_image_str}({op_id}){canonical_id_str} {op_tags_str}"
+                )
 
         log_lines.append("-" * (40 + len(f" Assignment Summary: {log_context} ")))
         logger.info("\n".join(log_lines))
@@ -366,29 +379,35 @@ class PipelineAssigner:
 
 async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info("Received pipeline run event...")
-    await msg.ack()
 
     try:
         event = PipelineDeploymentEvent.model_validate_json(msg.data)
     except ValidationError as e:
         logger.error(f"Invalid pipeline run event message: {e}")
+        await msg.term()
         return
 
     try:
-        valid_pipeline = PipelineJSON(id=event.id, **event.data)
+        valid_pipeline = CanonicalPipeline(
+            id=event.canonical_id, revision_id=event.revision_id, **event.data
+        )
     except ValidationError as e:
         logger.error(
-            f"Invalid pipeline definition received for ID {str(event.id)}: {e}"
+            f"Invalid pipeline definition received for ID {str(event.canonical_id)}: {e}"
         )
         publish_error(
             js,
             "Pipeline cannot be assigned: Invalid pipeline definition.",
             task_refs=task_refs,
         )
+        await msg.term()
         return
 
     logger.info(f"Validated pipeline: {valid_pipeline.id}")
-    pipeline = Pipeline.from_pipeline(valid_pipeline)
+    await msg.ack()
+    pipeline = Pipeline.from_pipeline(
+        valid_pipeline, runtime_pipeline_id=event.deployment_id
+    )
     bucket = await get_agents_bucket(js)
 
     agent_keys = await get_keys(bucket)
@@ -397,17 +416,6 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
         *[get_val(bucket, agent, AgentVal) for agent in agent_keys]
     )
     agent_vals = [agent_info for agent_info in agent_vals if agent_info]
-
-    if not agent_vals:
-        logger.warning(
-            f"No agents available to run pipeline {pipeline.id}. Assignment skipped."
-        )
-        publish_error(
-            js,
-            "Pipeline cannot be assigned: no agents available.",
-            task_refs=task_refs,
-        )
-        return
 
     try:
         assigner = PipelineAssigner(agent_vals, pipeline)
@@ -474,15 +482,15 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
         logger.error(f"Invalid pipeline stop event message: {e}")
         return
 
-    pipeline_id = event.id
-    logger.info(f"Processing stop request for pipeline {pipeline_id}")
+    deployment_id = event.deployment_id
+    logger.info(f"Processing stop request for pipeline {deployment_id}")
 
-    if pipeline_id in pipelines:
-        del pipelines[pipeline_id]
-        logger.debug(f"Removed pipeline {pipeline_id} from local cache.")
+    if deployment_id in pipelines:
+        del pipelines[deployment_id]
+        logger.debug(f"Removed pipeline {deployment_id} from local cache.")
 
-    await delete_pipeline_kv(js, pipeline_id)
-    logger.info(f"Deleted pipeline {pipeline_id} from KV store.")
+    await delete_pipeline_kv(js, deployment_id)
+    logger.info(f"Deleted pipeline {deployment_id} from KV store.")
     publish_notification(js=js, msg="Pipeline stopped", task_refs=task_refs)
 
     # Send stop command (empty assignment) to all agents
@@ -491,18 +499,28 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
 
     if not agent_keys:
         logger.warning(
-            f"No agents found to send stop command for pipeline {pipeline_id}."
+            f"No agents found to send stop command for pipeline {deployment_id}."
         )
         return
 
-    # Create a pipeline w/o operators for killing the pipeline
-    pipeline = PipelineJSON(id=pipeline_id, operators=[], edges=[])
+    # Create a runtime pipeline w/o operators for killing the pipelin
+
+    # TODO: for now, we use a blank pipeline to stop things
+    # we should probably have a more explicit "stop" pipeline message
+    canonical_pipeline = CanonicalPipeline(
+        id=event.deployment_id, revision_id=0, operators=[], edges=[]
+    )
+
+    # Convert to runtime pipeline for assignment
+    runtime_pipeline = Pipeline.from_pipeline(
+        canonical_pipeline, runtime_pipeline_id=deployment_id
+    ).to_runtime()
 
     stop_assignments = [
         PipelineAssignment(
             agent_id=UUID(agent_key),
             operators_assigned=[],
-            pipeline=pipeline,
+            pipeline=runtime_pipeline,
         )
         for agent_key in agent_keys
     ]
@@ -512,7 +530,7 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
     ]
     await asyncio.gather(*publish_tasks)
 
-    logger.info(f"Pipeline stop event for {pipeline_id} processed.")
+    logger.info(f"Pipeline stop event for {deployment_id} processed.")
 
 
 async def main():
