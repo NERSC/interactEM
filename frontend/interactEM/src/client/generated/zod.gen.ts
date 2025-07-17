@@ -142,10 +142,39 @@ export const zPipelineCreate = z.object({
   data: z.object({}),
 })
 
+export const zPipelineDeploymentCreate = z.object({
+  pipeline_id: z.string().uuid(),
+  revision_id: z.number().int(),
+})
+
+export const zPipelineDeploymentPublic = z.object({
+  id: z.string().uuid(),
+  pipeline_id: z.string().uuid(),
+  revision_id: z.number().int(),
+  state: z.enum(["pending", "failed_to_start", "running", "cancelled"]),
+  created_at: z.string().datetime(),
+  updated_at: z.string().datetime(),
+})
+
+export const zPipelineDeploymentState = z.enum([
+  "pending",
+  "failed_to_start",
+  "running",
+  "cancelled",
+])
+
+export const zPipelineDeploymentUpdate = z.object({
+  state: zPipelineDeploymentState,
+})
+
+export const zPipelineDeploymentsPublic = z.object({
+  data: z.array(zPipelineDeploymentPublic),
+  count: z.number().int(),
+})
+
 export const zPipelinePublic = z.object({
   name: z.union([z.string().max(128), z.null()]).optional(),
   data: z.object({}),
-  running: z.boolean().optional().default(false),
   id: z.string().uuid(),
   owner_id: z.string().uuid(),
   updated_at: z.string().datetime(),
@@ -294,8 +323,22 @@ export const zPipelinesReadPipelineRevisionResponse = zPipelineRevisionPublic
 
 export const zPipelinesUpdatePipelineRevisionResponse = zPipelineRevisionPublic
 
-export const zPipelinesRunPipelineResponse = zPipelineRevisionPublic
+export const zPipelinesListPipelineDeploymentsResponse =
+  zPipelineDeploymentsPublic
 
-export const zPipelinesStopPipelineResponse = zMessage
+export const zPipelinesListPipelineRevisionDeploymentsResponse =
+  zPipelineDeploymentsPublic
+
+export const zDeploymentsListPipelineDeploymentsResponse =
+  zPipelineDeploymentsPublic
+
+export const zDeploymentsCreatePipelineDeploymentResponse =
+  zPipelineDeploymentPublic
+
+export const zDeploymentsReadPipelineDeploymentResponse =
+  zPipelineDeploymentPublic
+
+export const zDeploymentsUpdatePipelineDeploymentResponse =
+  zPipelineDeploymentPublic
 
 export const zOperatorsReadOperatorsResponse = zOperators

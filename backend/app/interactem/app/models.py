@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime, timezone
+from enum import Enum
 from typing import Any
 
 import sqlalchemy as sa
@@ -86,6 +87,7 @@ class Token(SQLModel):
 class TokenPayload(SQLModel):
     sub: str | None = None
 
+
 class ExternalTokenPayload(SQLModel):
     username: str
     exp: int
@@ -101,7 +103,6 @@ class PipelineBase(SQLModel):
         index=True, max_length=128, default="New Pipeline", nullable=True
     )
     data: dict[str, Any] = Field(sa_column=Column(JSON))
-    running: bool = False
 
 
 class Pipeline(PipelineBase, table=True):
@@ -151,6 +152,9 @@ class PipelineRevision(SQLModel, table=True):
         sa_type=sa.DateTime(timezone=True),  # type: ignore
     )
     pipeline: "Pipeline" = Relationship(back_populates="revisions")
+    deployments: list["PipelineDeployment"] = Relationship(
+        back_populates="revision", cascade_delete=True
+    )
 
 
 class PipelineCreate(SQLModel):
@@ -188,6 +192,71 @@ class PipelineRevisionPublic(SQLModel):
     data: dict[str, Any]
     tag: str | None
     created_at: datetime
+
+
+class PipelineDeploymentState(str, Enum):
+    PENDING = "pending"
+    FAILED_TO_START = "failed_to_start"
+    RUNNING = "running"
+    CANCELLED = "cancelled"
+
+
+class PipelineDeployment(SQLModel, table=True):
+    """Represents a single deployment of a pipeline, related to a specific revision."""
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    pipeline_id: uuid.UUID = Field(index=True)
+    revision_id: int = Field(index=True)
+    state: PipelineDeploymentState = Field(
+        default=PipelineDeploymentState.PENDING, index=True
+    )
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        nullable=False,
+        sa_type=sa.DateTime(timezone=True),  # type: ignore
+    )
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column_kwargs={
+            "onupdate": lambda: datetime.now(timezone.utc),
+        },
+        nullable=False,
+        sa_type=sa.DateTime(timezone=True),  # type: ignore
+    )
+
+    # Foreign key to PipelineRevision (needed for composite key)
+    __table_args__ = (
+        sa.ForeignKeyConstraint(
+            ["pipeline_id", "revision_id"],
+            ["pipelinerevision.pipeline_id", "pipelinerevision.revision_id"],
+            ondelete="CASCADE",
+        ),
+    )
+
+    revision: "PipelineRevision" = Relationship(back_populates="deployments")
+
+
+class PipelineDeploymentCreate(SQLModel):
+    pipeline_id: uuid.UUID
+    revision_id: int
+
+
+class PipelineDeploymentUpdate(SQLModel):
+    state: PipelineDeploymentState
+
+
+class PipelineDeploymentPublic(SQLModel):
+    id: uuid.UUID
+    pipeline_id: uuid.UUID
+    revision_id: int
+    state: PipelineDeploymentState
+    created_at: datetime
+    updated_at: datetime
+
+
+class PipelineDeploymentsPublic(SQLModel):
+    data: list[PipelineDeploymentPublic]
+    count: int
 
 
 class Operators(BaseModel):

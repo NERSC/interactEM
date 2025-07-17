@@ -1,21 +1,21 @@
+from .canonical import (
+    CanonicalOperator,
+    CanonicalPipeline,
+    CanonicalEdge,
+    CanonicalPort,
+)
+from .runtime import (
+    RuntimeOperator,
+    RuntimePipeline,
+    RuntimeEdge,
+    RuntimePort,
+)
 from .base import (
     CommBackend,
     IdType,
     NodeType,
-    OperatorID,
-    PortID,
-    PortKey,
     PortType,
     Protocol,
     URILocation,
-)
-from .pipeline import (
-    EdgeJSON,
-    InputJSON,
-    OperatorJSON,
-    OutputJSON,
-    PipelineJSON,
-    PipelineNodeJSON,
-    PortJSON,
 )
 from .uri import URI, ZMQAddress

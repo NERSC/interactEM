@@ -89,12 +89,40 @@ export type PipelineCreate = {
   }
 }
 
+export type PipelineDeploymentCreate = {
+  pipeline_id: string
+  revision_id: number
+}
+
+export type PipelineDeploymentPublic = {
+  id: string
+  pipeline_id: string
+  revision_id: number
+  state: PipelineDeploymentState
+  created_at: string
+  updated_at: string
+}
+
+export type PipelineDeploymentState =
+  | "pending"
+  | "failed_to_start"
+  | "running"
+  | "cancelled"
+
+export type PipelineDeploymentUpdate = {
+  state: PipelineDeploymentState
+}
+
+export type PipelineDeploymentsPublic = {
+  data: Array<PipelineDeploymentPublic>
+  count: number
+}
+
 export type PipelinePublic = {
   name?: string | null
   data: {
     [key: string]: unknown
   }
-  running?: boolean
   id: string
   owner_id: string
   updated_at: string
@@ -631,7 +659,7 @@ export type PipelinesReadPipelinesData = {
   body?: never
   path?: never
   query?: {
-    skip?: number
+    offset?: number
     limit?: number
   }
   url: "/api/v1/pipelines/"
@@ -777,7 +805,7 @@ export type PipelinesListPipelineRevisionsData = {
     id: string
   }
   query?: {
-    skip?: number
+    offset?: number
     limit?: number
   }
   url: "/api/v1/pipelines/{id}/revisions"
@@ -892,65 +920,187 @@ export type PipelinesUpdatePipelineRevisionResponses = {
 export type PipelinesUpdatePipelineRevisionResponse =
   PipelinesUpdatePipelineRevisionResponses[keyof PipelinesUpdatePipelineRevisionResponses]
 
-export type PipelinesRunPipelineData = {
+export type PipelinesListPipelineDeploymentsData = {
   body?: never
   path: {
     id: string
-    revision_id: number
   }
-  query?: never
-  url: "/api/v1/pipelines/{id}/revisions/{revision_id}/run"
+  query?: {
+    offset?: number
+    limit?: number
+  }
+  url: "/api/v1/pipelines/{id}/deployments"
 }
 
-export type PipelinesRunPipelineErrors = {
+export type PipelinesListPipelineDeploymentsErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError
 }
 
-export type PipelinesRunPipelineError =
-  PipelinesRunPipelineErrors[keyof PipelinesRunPipelineErrors]
+export type PipelinesListPipelineDeploymentsError =
+  PipelinesListPipelineDeploymentsErrors[keyof PipelinesListPipelineDeploymentsErrors]
 
-export type PipelinesRunPipelineResponses = {
+export type PipelinesListPipelineDeploymentsResponses = {
   /**
    * Successful Response
    */
-  200: PipelineRevisionPublic
+  200: PipelineDeploymentsPublic
 }
 
-export type PipelinesRunPipelineResponse =
-  PipelinesRunPipelineResponses[keyof PipelinesRunPipelineResponses]
+export type PipelinesListPipelineDeploymentsResponse =
+  PipelinesListPipelineDeploymentsResponses[keyof PipelinesListPipelineDeploymentsResponses]
 
-export type PipelinesStopPipelineData = {
+export type PipelinesListPipelineRevisionDeploymentsData = {
   body?: never
   path: {
     id: string
     revision_id: number
   }
-  query?: never
-  url: "/api/v1/pipelines/{id}/revisions/{revision_id}/stop"
+  query?: {
+    offset?: number
+    limit?: number
+  }
+  url: "/api/v1/pipelines/{id}/revisions/{revision_id}/deployments"
 }
 
-export type PipelinesStopPipelineErrors = {
+export type PipelinesListPipelineRevisionDeploymentsErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError
 }
 
-export type PipelinesStopPipelineError =
-  PipelinesStopPipelineErrors[keyof PipelinesStopPipelineErrors]
+export type PipelinesListPipelineRevisionDeploymentsError =
+  PipelinesListPipelineRevisionDeploymentsErrors[keyof PipelinesListPipelineRevisionDeploymentsErrors]
 
-export type PipelinesStopPipelineResponses = {
+export type PipelinesListPipelineRevisionDeploymentsResponses = {
   /**
    * Successful Response
    */
-  200: Message
+  200: PipelineDeploymentsPublic
 }
 
-export type PipelinesStopPipelineResponse =
-  PipelinesStopPipelineResponses[keyof PipelinesStopPipelineResponses]
+export type PipelinesListPipelineRevisionDeploymentsResponse =
+  PipelinesListPipelineRevisionDeploymentsResponses[keyof PipelinesListPipelineRevisionDeploymentsResponses]
+
+export type DeploymentsListPipelineDeploymentsData = {
+  body?: never
+  path?: never
+  query?: {
+    offset?: number
+    limit?: number
+    states?: Array<PipelineDeploymentState> | null
+    pipeline_id?: string | null
+  }
+  url: "/api/v1/deployments/"
+}
+
+export type DeploymentsListPipelineDeploymentsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type DeploymentsListPipelineDeploymentsError =
+  DeploymentsListPipelineDeploymentsErrors[keyof DeploymentsListPipelineDeploymentsErrors]
+
+export type DeploymentsListPipelineDeploymentsResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelineDeploymentsPublic
+}
+
+export type DeploymentsListPipelineDeploymentsResponse =
+  DeploymentsListPipelineDeploymentsResponses[keyof DeploymentsListPipelineDeploymentsResponses]
+
+export type DeploymentsCreatePipelineDeploymentData = {
+  body: PipelineDeploymentCreate
+  path?: never
+  query?: never
+  url: "/api/v1/deployments/"
+}
+
+export type DeploymentsCreatePipelineDeploymentErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type DeploymentsCreatePipelineDeploymentError =
+  DeploymentsCreatePipelineDeploymentErrors[keyof DeploymentsCreatePipelineDeploymentErrors]
+
+export type DeploymentsCreatePipelineDeploymentResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelineDeploymentPublic
+}
+
+export type DeploymentsCreatePipelineDeploymentResponse =
+  DeploymentsCreatePipelineDeploymentResponses[keyof DeploymentsCreatePipelineDeploymentResponses]
+
+export type DeploymentsReadPipelineDeploymentData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/api/v1/deployments/{id}"
+}
+
+export type DeploymentsReadPipelineDeploymentErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type DeploymentsReadPipelineDeploymentError =
+  DeploymentsReadPipelineDeploymentErrors[keyof DeploymentsReadPipelineDeploymentErrors]
+
+export type DeploymentsReadPipelineDeploymentResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelineDeploymentPublic
+}
+
+export type DeploymentsReadPipelineDeploymentResponse =
+  DeploymentsReadPipelineDeploymentResponses[keyof DeploymentsReadPipelineDeploymentResponses]
+
+export type DeploymentsUpdatePipelineDeploymentData = {
+  body: PipelineDeploymentUpdate
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/api/v1/deployments/{id}"
+}
+
+export type DeploymentsUpdatePipelineDeploymentErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type DeploymentsUpdatePipelineDeploymentError =
+  DeploymentsUpdatePipelineDeploymentErrors[keyof DeploymentsUpdatePipelineDeploymentErrors]
+
+export type DeploymentsUpdatePipelineDeploymentResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelineDeploymentPublic
+}
+
+export type DeploymentsUpdatePipelineDeploymentResponse =
+  DeploymentsUpdatePipelineDeploymentResponses[keyof DeploymentsUpdatePipelineDeploymentResponses]
 
 export type OperatorsReadOperatorsData = {
   body?: never

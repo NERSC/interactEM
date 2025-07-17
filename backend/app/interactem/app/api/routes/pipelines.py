@@ -6,14 +6,14 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlmodel import col, func, select
 
 from interactem.app.api.deps import CurrentUser, SessionDep
-from interactem.app.events.producer import (
-    publish_pipeline_run_event,
-    publish_pipeline_stop_event,
-)
+from interactem.app.api.routes.utils import check_present_and_authorized
 from interactem.app.models import (
     Message,
     Pipeline,
     PipelineCreate,
+    PipelineDeployment,
+    PipelineDeploymentPublic,
+    PipelineDeploymentsPublic,
     PipelinePublic,
     PipelineRevision,
     PipelineRevisionCreate,
@@ -22,27 +22,17 @@ from interactem.app.models import (
     PipelinesPublic,
     PipelineUpdate,
 )
-from interactem.core.events.pipelines import PipelineRunEvent, PipelineStopEvent
 from interactem.core.logger import get_logger
 
 logger = get_logger()
 router = APIRouter()
 
 
-def check_present_and_authorized(
-    pipeline: Pipeline, current_user: CurrentUser, id: uuid.UUID
-) -> None:
-    if not pipeline:
-        raise HTTPException(status_code=404, detail="Pipeline not found")
-    if not current_user.is_superuser and (pipeline.owner_id != current_user.id):
-        raise HTTPException(status_code=404, detail="Pipeline not found")
-
-
 @router.get("/", response_model=PipelinesPublic)
 def read_pipelines(
     session: SessionDep,
     current_user: CurrentUser,
-    skip: int = Query(0, ge=0),
+    offset: int = Query(0, ge=0),
     limit: int = Query(100, ge=1, le=200),
 ) -> PipelinesPublic:
     """
@@ -56,7 +46,7 @@ def read_pipelines(
         count_query = count_query.where(Pipeline.owner_id == current_user.id)
 
     count = session.exec(count_query).one()
-    pipelines_db = session.exec(common_query.offset(skip).limit(limit)).all()
+    pipelines_db = session.exec(common_query.offset(offset).limit(limit)).all()
 
     # Validate data before returning - ensures name is included
     pipelines_public = [PipelinePublic.model_validate(p) for p in pipelines_db]
@@ -70,7 +60,7 @@ def read_pipeline(session: SessionDep, current_user: CurrentUser, id: uuid.UUID)
     Get pipeline by ID.
     """
     pipeline = session.get(Pipeline, id)
-    check_present_and_authorized(pipeline, current_user, id)
+    pipeline = check_present_and_authorized(pipeline, current_user, id)
     return PipelinePublic.model_validate(pipeline)
 
 
@@ -86,7 +76,7 @@ def update_pipeline(
     Update a pipeline's name.
     """
     pipeline = session.get(Pipeline, id)
-    check_present_and_authorized(pipeline, current_user, id)
+    pipeline = check_present_and_authorized(pipeline, current_user, id)
 
     if not update.name:
         raise HTTPException(status_code=400, detail="Pipeline name is required")
@@ -104,7 +94,7 @@ def list_pipeline_revisions(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    skip: int = Query(0, ge=0),
+    offset: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
 ):
     """
@@ -118,7 +108,7 @@ def list_pipeline_revisions(
         select(PipelineRevision)
         .where(col(PipelineRevision.pipeline_id) == id)
         .order_by(col(PipelineRevision.revision_id).desc())
-        .offset(skip)
+        .offset(offset)
         .limit(limit)
     )
 
@@ -142,7 +132,7 @@ def add_pipeline_revision(
     if not revision_in.data:
         raise HTTPException(status_code=400, detail="Revision data is required")
     pipeline = session.get(Pipeline, id)
-    check_present_and_authorized(pipeline, current_user, id)
+    pipeline = check_present_and_authorized(pipeline, current_user, id)
 
     # Get latest revision_id
     statement = (
@@ -263,78 +253,64 @@ def delete_pipeline(
     return Message(message="Pipeline deleted successfully")
 
 
-@router.post("/{id}/revisions/{revision_id}/run", response_model=PipelineRevisionPublic)
-async def run_pipeline(
+@router.get("/{id}/deployments", response_model=PipelineDeploymentsPublic)
+def list_pipeline_deployments(
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    offset: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+) -> PipelineDeploymentsPublic:
+    """
+    List deployments for a pipeline.
+    """
+    pipeline = session.get(Pipeline, id)
+    pipeline = check_present_and_authorized(pipeline, current_user, id)
+
+    all_deployments: list[PipelineDeployment] = []
+    for revision in pipeline.revisions:
+        all_deployments.extend(revision.deployments)
+
+    all_deployments.sort(key=lambda deployment: deployment.created_at, reverse=True)
+
+    total_count = len(all_deployments)
+    paginated_deployments = all_deployments[offset : offset + limit]
+
+    deployments_public = [
+        PipelineDeploymentPublic.model_validate(r) for r in paginated_deployments
+    ]
+    return PipelineDeploymentsPublic(data=deployments_public, count=total_count)
+
+
+@router.get(
+    "/{id}/revisions/{revision_id}/deployments",
+    response_model=PipelineDeploymentsPublic,
+)
+def list_pipeline_revision_deployments(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
     revision_id: int,
-) -> PipelineRevisionPublic:
+    offset: int = Query(0, ge=0),
+    limit: int = Query(20, ge=1, le=100),
+) -> PipelineDeploymentsPublic:
     """
-    Run a specific revision of a pipeline.
+    List all deployments for a specific pipeline revision.
     """
-    pipeline_id: uuid.UUID = id
+    pipeline = session.get(Pipeline, id)
+    pipeline = check_present_and_authorized(pipeline, current_user, id)
 
     revision = session.get(PipelineRevision, (id, revision_id))
     if not revision:
         raise HTTPException(status_code=404, detail="Pipeline revision not found")
 
-    pipeline = revision.pipeline
-    check_present_and_authorized(pipeline, current_user, id)
+    all_deployments = revision.deployments
+    all_deployments.sort(key=lambda deployment: deployment.created_at, reverse=True)
 
-    run_event_data = {
-        "id": revision.pipeline_id,
-        "data": revision.data,
-        "revision_id": revision.revision_id,
-    }
+    total_count = len(all_deployments)
+    paginated_deployments = all_deployments[offset : offset + limit]
 
-    try:
-        event_to_publish = PipelineRunEvent(**run_event_data)
-        await publish_pipeline_run_event(event_to_publish)
-        logger.info(
-            f"Sent publish pipeline run event for pipeline {pipeline_id} using revision {revision_id}"
-        )
-    except Exception as e:
-        logger.error(
-            f"Failed to publish run event for pipeline {pipeline_id} revision {revision_id}: {e}"
-        )
-        raise HTTPException(status_code=500, detail=f"Failed to run pipeline: {e}")
-
-    return PipelineRevisionPublic.model_validate(revision)
-
-@router.post("/{id}/revisions/{revision_id}/stop", response_model=Message)
-async def stop_pipeline(
-    session: SessionDep,
-    current_user: CurrentUser,
-    id: uuid.UUID,
-    revision_id: int,
-) -> Message:
-    """
-    Request to stop a running pipeline associated with a specific revision.
-    """
-    pipeline_id: uuid.UUID = id
-
-    revision = session.get(PipelineRevision, (id, revision_id))
-    if not revision:
-        raise HTTPException(status_code=404, detail="Pipeline revision not found")
-
-    pipeline = revision.pipeline
-    check_present_and_authorized(pipeline, current_user, id)
-
-    try:
-        event_to_publish = PipelineStopEvent(
-            id=revision.pipeline_id, revision_id=revision.revision_id
-        )
-        await publish_pipeline_stop_event(event_to_publish)
-        logger.info(
-            f"Sent publish pipeline stop event for pipeline {pipeline_id} using revision {revision_id}"
-        )
-    except Exception as e:
-        logger.exception(
-            f"Failed to publish stop event for pipeline {pipeline_id} revision {revision_id}: {e}"
-        )
-        raise HTTPException(
-            status_code=500, detail=f"Failed to request pipeline stop: {e}"
-        )
-
-    return Message(message="Pipeline stop request sent.")
+    deployments_public = [
+        PipelineDeploymentPublic.model_validate(r) for r in paginated_deployments
+    ]
+    return PipelineDeploymentsPublic(data=deployments_public, count=total_count)

@@ -1,16 +1,22 @@
 from datetime import datetime, timedelta
-from enum import Enum
 from logging import Logger
 
 from pydantic import BaseModel, model_validator
 
 from interactem.core.models.base import IdType
+from interactem.core.models.canonical import CanonicalOperatorID
+from interactem.core.models.runtime import RuntimeOperatorID
 
 
-class OperatorStatus(str, Enum):
-    INITIALIZING = "initializing"
-    RUNNING = "running"
-    SHUTTING_DOWN = "shutting_down"
+class PortMetrics(BaseModel):
+    id: IdType
+    canonical_id: IdType
+    send_count: int = 0
+    send_bytes: int = 0
+    send_timeouts: int = 0
+    recv_count: int = 0
+    recv_bytes: int = 0
+    recv_timeouts: int = 0
 
 
 class OperatorTiming(BaseModel):
@@ -70,60 +76,6 @@ class OperatorTiming(BaseModel):
 
 
 class OperatorMetrics(BaseModel):
-    id: IdType
+    id: RuntimeOperatorID
+    canonical_id: CanonicalOperatorID
     timing: OperatorTiming
-
-
-class OperatorVal(BaseModel):
-    id: IdType
-    status: OperatorStatus
-    pipeline_id: IdType | None = None
-
-
-class OperatorInput(BaseModel):
-    label: str  # Human readable name of the input
-    description: str  # Human readable description of the input
-
-
-class OperatorOutput(BaseModel):
-    label: str  # Human readable name of the output
-    description: str  # Human readable description of the output
-
-
-class ParameterType(str, Enum):
-    STRING = "str"
-    INTEGER = "int"
-    FLOAT = "float"
-    BOOLEAN = "bool"
-    MOUNT = "mount"
-    STR_ENUM = "str-enum"
-
-
-ParameterName = str
-
-
-class OperatorParameter(BaseModel):
-    name: ParameterName  # Name of the parameter
-    label: str  # Human readable name of the parameter
-    description: str  # Human readable description of the parameter
-    type: ParameterType  # Type of the parameter
-    default: str  # Default value of the parameter
-    required: bool  # If the parameter is required
-    value: str | None = None  # Value of the parameter
-    options: list[str] | None = None  # List of options for STR_ENUM
-
-
-class OperatorTag(BaseModel):
-    value: str  # The actual tag value (e.g., "gpu", "ncem-4dstem")
-    description: str | None = None
-
-
-class Operator(BaseModel):
-    id: IdType
-    label: str  # Human readable name of the operator
-    description: str  # Human readable description of the operator
-    image: str  # Contain image for operator
-    inputs: list[OperatorInput] | None = None  # List of inputs
-    outputs: list[OperatorOutput] | None = None  # List of outputs
-    parameters: list[OperatorParameter] | None = None  # List of parameters
-    tags: list[OperatorTag] | None = None  # List of tags to match on

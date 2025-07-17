@@ -19,15 +19,15 @@ import {
   pipelinesReadPipelinesQueryKey,
   pipelinesUpdatePipelineMutation,
 } from "../../client"
-import { usePipelineContext } from "../../contexts/pipeline"
 import { useActivePipeline } from "../../hooks/api/useActivePipeline"
+import { useInfiniteActiveDeployments } from "../../hooks/api/useDeploymentsQuery"
 import { usePipelineStore } from "../../stores"
 import { DeletePipelineButton } from "./deletebutton"
+import { DeploymentManagementButton, DeploymentManagementPanel } from "./deploymentmanagementpanel"
 import { PipelineEditDialog } from "./editdialog"
 import { LaunchPipelineButton } from "./launchbutton"
 import { PipelineList } from "./list"
 import { RevisionList } from "./revisionlist"
-import { StopPipelineButton } from "./stopbutton"
 
 export const PipelineHud: React.FC = () => {
   const queryClient = useQueryClient()
@@ -36,11 +36,17 @@ export const PipelineHud: React.FC = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isRevisionPopoverOpen, setIsRevisionPopoverOpen] = useState(false)
   const [isPipelineDrawerOpen, setIsPipelineDrawerOpen] = useState(false)
+  const [isDeploymentManagementOpen, setIsDeploymentManagementOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const revisionButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const { pipeline, isLoading } = useActivePipeline()
-  const { isCurrentPipelineRunning } = usePipelineContext()
+  const { data } = useInfiniteActiveDeployments()
+
+  // Check if there are active deployments for the current pipeline
+  const hasActiveDeployments = currentPipelineId
+    ? data?.pages.some((page) => page.data.length > 0)
+    : false
 
   // Pipeline List Drawer handlers
   const handleTogglePipelineDrawer = useCallback(() => {
@@ -101,6 +107,21 @@ export const PipelineHud: React.FC = () => {
   }
 
   const isMutating = updatePipelineMutation.isPending || isDeleting
+
+  // Deployment Management handlers
+  const handleOpenDeploymentManagement = () => {
+    setIsDeploymentManagementOpen(true)
+  }
+
+  const handleCloseDeploymentManagement = () => {
+    setIsDeploymentManagementOpen(false)
+  }
+
+  const handleRevisionClick = (_pipelineId: string, revisionId: number) => {
+    // Switch to the selected pipeline and revision
+    setCurrentRevisionId(revisionId)
+    handleCloseDeploymentManagement()
+  }
 
   // Pipeline content rendering
   const pipelineDisplayContent = () => {
@@ -169,23 +190,15 @@ export const PipelineHud: React.FC = () => {
             </IconButton>
           </span>
         </Tooltip>
-        {!isCurrentPipelineRunning && (
-          <DeletePipelineButton
-            pipelineId={pipeline.id}
-            pipelineName={displayName}
-            disabled={isMutating && !isDeleting}
-            onDeleteStarted={() => setIsDeleting(true)}
-            onDeleteFinished={() => setIsDeleting(false)}
-          />
-        )}
-        {isCurrentPipelineRunning ? (
-          <StopPipelineButton disabled={isMutating} />
-        ) : (
-          <LaunchPipelineButton disabled={isMutating} />
-        )}
-        {!isCurrentPipelineRunning && (
-          <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-        )}
+        <DeletePipelineButton
+          pipelineId={pipeline.id}
+          pipelineName={displayName}
+          disabled={isMutating && !isDeleting}
+          onDeleteStarted={() => setIsDeleting(true)}
+          onDeleteFinished={() => setIsDeleting(false)}
+        />
+        <LaunchPipelineButton disabled={isMutating} />
+        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
         <Tooltip title="Revision History">
           <span>
             <IconButton
@@ -226,6 +239,12 @@ export const PipelineHud: React.FC = () => {
             <ListIcon fontSize="small" />
           </IconButton>
         </Tooltip>
+
+        {/* Deployment Management Button */}
+        <DeploymentManagementButton
+          onClick={handleOpenDeploymentManagement}
+          hasActiveDeployments={hasActiveDeployments}
+        />
 
         {/* Show separating divider */}
         <Divider orientation="vertical" flexItem sx={{ mr: 1 }} />
@@ -268,6 +287,13 @@ export const PipelineHud: React.FC = () => {
           isSaving={updatePipelineMutation.isPending}
         />
       )}
+
+      {/* Deployment Management Panel */}
+      <DeploymentManagementPanel
+        open={isDeploymentManagementOpen}
+        onClose={handleCloseDeploymentManagement}
+        onRevisionClick={handleRevisionClick}
+      />
     </>
   )
 }
