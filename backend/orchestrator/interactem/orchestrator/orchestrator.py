@@ -102,7 +102,7 @@ async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
     while True:
         for pipeline in pipelines.values():
             await update_pipeline_kv(js, pipeline)
-        logger.info(f"Updated {len(pipelines)} pipelines in KV store.")
+        logger.debug(f"Updated {len(pipelines)} pipelines in KV store.")
         await asyncio.sleep(interval)
 
 
