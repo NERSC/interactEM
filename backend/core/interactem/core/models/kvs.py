@@ -4,13 +4,16 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-from interactem.core.models.canonical import CanonicalPipelineID, CanonicalPortID
+from interactem.core.models.canonical import (
+    CanonicalOperatorID,
+    CanonicalPipelineID,
+    CanonicalPortID,
+)
 from interactem.core.models.runtime import (
     RuntimeOperatorID,
     RuntimePipelineID,
     RuntimePortID,
 )
-from interactem.core.models.spec import OperatorSpecID
 from interactem.core.models.uri import URI, OperatorURI
 
 
@@ -78,8 +81,8 @@ class OperatorStatus(str, Enum):
 
 
 class OperatorVal(BaseModel):
-    runtime_id: RuntimeOperatorID
-    id: OperatorSpecID
+    id: RuntimeOperatorID
+    canonical_id: CanonicalOperatorID
     uri: OperatorURI
     status: OperatorStatus
     pipeline_id: CanonicalPipelineID | None = None
@@ -93,8 +96,8 @@ class PortStatus(str, Enum):
 
 
 class PortVal(BaseModel):
-    runtime_id: RuntimePortID
-    id: CanonicalPortID
+    id: RuntimePortID
+    canonical_id: CanonicalPortID
     uri: URI | None = None
     status: PortStatus | None = None
 
