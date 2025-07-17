@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from enum import Enum
 from uuid import uuid4
 
 import networkx as nx
@@ -9,6 +10,7 @@ from .models.canonical import (
     CanonicalEdge,
     CanonicalOperator,
     CanonicalPipeline,
+    CanonicalPipelineID,
     CanonicalPort,
 )
 from .models.runtime import (
@@ -17,6 +19,7 @@ from .models.runtime import (
     RuntimeOperator,
     RuntimeOutput,
     RuntimePipeline,
+    RuntimePipelineID,
     RuntimePort,
 )
 from .models.spec import ParallelType
@@ -25,6 +28,10 @@ logger = get_logger()
 
 DEFAULT_PARALLEL_FACTOR = 2
 
+class IdName(str, Enum):
+    RUNTIME = "id"
+    CANONICAL = "canonical_id"
+    REVISION = "revision_id"
 
 class Pipeline(nx.DiGraph):
     def __init__(self, **attr):
@@ -32,16 +39,27 @@ class Pipeline(nx.DiGraph):
         self._operator_graph = nx.DiGraph()
         self._needs_rebuild = True
 
-    @property
-    def id(self) -> IdType:
-        """Returns the ID of the pipeline graph stored in graph attributes."""
+    def _try_get_id(self, id: IdName):
+        """Helper to safely get the ID from the graph attributes."""
         try:
-            return self.graph["id"]
+            return self.graph[id.value]
         except KeyError:
-            # This case should ideally not happen if constructed via from_pipeline
-            # or if id is always provided.
-            logger.error("Pipeline graph object missing 'id' attribute in self.graph.")
-            raise AttributeError("Pipeline graph object has no 'id' attribute.")
+            raise AttributeError(f"Graph object has no '{id}' attribute.")
+
+    @property
+    def id(self) -> RuntimePipelineID:
+        """Returns the ID of the pipeline graph stored in graph attributes."""
+        return self._try_get_id(IdName.RUNTIME)
+
+    @property
+    def canonical_id(self) -> CanonicalPipelineID:
+        """Returns the canonical ID of the pipeline graph."""
+        return self._try_get_id(IdName.CANONICAL)
+
+    @property
+    def revision_id(self) -> int:
+        """Returns the revision ID of the pipeline graph."""
+        return self._try_get_id(IdName.REVISION)
 
     @classmethod
     def from_pipeline(
