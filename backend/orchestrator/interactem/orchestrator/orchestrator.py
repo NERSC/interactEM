@@ -385,6 +385,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
         event = PipelineDeploymentEvent.model_validate_json(msg.data)
     except ValidationError as e:
         logger.error(f"Invalid pipeline run event message: {e}")
+        await msg.term()
         return
 
     try:
@@ -400,9 +401,11 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
             "Pipeline cannot be assigned: Invalid pipeline definition.",
             task_refs=task_refs,
         )
+        await msg.term()
         return
 
     logger.info(f"Validated pipeline: {valid_pipeline.id}")
+    await msg.ack()
     pipeline = Pipeline.from_pipeline(
         valid_pipeline, runtime_pipeline_id=event.deployment_id
     )
