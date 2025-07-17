@@ -18,7 +18,7 @@ class PipelineEvent(BaseModel):
 
 class PipelineDeploymentEvent(PipelineEvent):
     type: PipelineEventType = PipelineEventType.PIPELINE_RUN
-    pipeline_id: CanonicalPipelineID
+    canonical_id: CanonicalPipelineID
     revision_id: int
     deployment_id: RuntimePipelineID
     data: dict[str, Any]

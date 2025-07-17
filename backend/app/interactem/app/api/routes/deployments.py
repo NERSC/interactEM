@@ -75,7 +75,7 @@ class PipelineDeploymentStateMachine:
 
     async def start(self, deployment: PipelineDeployment) -> None:
         event = PipelineDeploymentEvent(
-            pipeline_id=deployment.pipeline_id,
+            canonical_id=deployment.pipeline_id,
             data=deployment.revision.data,
             revision_id=deployment.revision_id,
             deployment_id=deployment.id,
