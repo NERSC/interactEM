@@ -3,7 +3,7 @@ import type { NodeProps } from "@xyflow/react"
 import { NodeResizer, useReactFlow } from "@xyflow/react"
 import { useCallback } from "react"
 import { AgentStatus } from "../../types/agent"
-import { type AgentNodeType, NodeType } from "../../types/nodes"
+import { type AgentNodeType, DisplayNodeType } from "../../types/nodes"
 import AgentTooltip from "../agents/tooltip"
 import { StatusDot } from "../statusdot"
 
@@ -15,7 +15,7 @@ const AgentNode = ({ data, id, selected }: NodeProps<AgentNodeType>) => {
   const childNodes = getNodes().filter(
     (node) =>
       node.parentId === id &&
-      (node.type === NodeType.image || node.type === NodeType.operator),
+      (node.type === DisplayNodeType.image || node.type === DisplayNodeType.operator),
   )
 
   const operatorCount =

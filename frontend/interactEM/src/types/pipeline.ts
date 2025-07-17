@@ -1,6 +1,6 @@
 import { z } from "zod"
 import type { OperatorParameter, OperatorTag } from "../client"
-import type { NodeType } from "./nodes"
+import type { DisplayNodeType } from "./nodes"
 
 export interface PipelineWithID {
   id: string
@@ -14,7 +14,7 @@ export type OperatorNodeData = {
   outputs?: string[]
   parameters?: OperatorParameter[]
   tags?: OperatorTag[]
-  type: NodeType
+  type: DisplayNodeType
 }
 
 export interface OperatorJSON extends OperatorNodeData {

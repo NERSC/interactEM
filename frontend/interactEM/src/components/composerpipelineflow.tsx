@@ -33,7 +33,7 @@ import {
 import { useDnD } from "../contexts/dnd"
 import useOperators from "../hooks/api/useOperators"
 import { usePipelineStore } from "../stores"
-import { NodeType, type OperatorNodeTypes } from "../types/nodes"
+import { DisplayNodeType, type OperatorNodeTypes } from "../types/nodes"
 import { layoutNodes } from "../utils/layout"
 import { fromPipelineJSON, toJSON } from "../utils/pipeline"
 import ImageNode from "./nodes/image"
@@ -196,13 +196,13 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       const position = screenToFlowPosition(screenPosition)
 
       const labelToNodeTypeMap: {
-        [key: string]: NodeType.image | NodeType.table
+        [key: string]: DisplayNodeType.image | DisplayNodeType.table
       } = {
-        Image: NodeType.image,
-        Table: NodeType.table,
+        Image: DisplayNodeType.image,
+        Table: DisplayNodeType.table,
       }
       const nodeType: OperatorNodeTypes["type"] =
-        labelToNodeTypeMap[op.label] ?? NodeType.operator
+        labelToNodeTypeMap[op.label] ?? DisplayNodeType.operator
 
       const newNode: OperatorNodeTypes = {
         id: generateID(),
