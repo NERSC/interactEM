@@ -4,13 +4,13 @@ from logging import Logger
 from pydantic import BaseModel, model_validator
 
 from interactem.core.models.base import IdType
-from interactem.core.models.canonical import CanonicalPipelineID
+from interactem.core.models.canonical import CanonicalOperatorID
 from interactem.core.models.runtime import RuntimeOperatorID
 
 
 class PortMetrics(BaseModel):
-    runtime_id: IdType
-    user_id: IdType
+    id: IdType
+    canonical_id: IdType
     send_count: int = 0
     send_bytes: int = 0
     send_timeouts: int = 0
@@ -76,6 +76,6 @@ class OperatorTiming(BaseModel):
 
 
 class OperatorMetrics(BaseModel):
-    runtime_id: RuntimeOperatorID
-    id: CanonicalPipelineID
+    id: RuntimeOperatorID
+    canonical_id: CanonicalOperatorID
     timing: OperatorTiming
