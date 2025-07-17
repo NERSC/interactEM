@@ -1,12 +1,13 @@
-import { type Edge, type Node, Position, type XYPosition } from "@xyflow/react"
+import { type Edge, Position, type XYPosition } from "@xyflow/react"
+import type { CanonicalEdge, CanonicalOperator, CanonicalPort } from "../client"
+import { zCanonicalPipelineData } from "../client/generated/zod.gen"
 import { edgeOptions } from "../components/composerpipelineflow"
-import type {
-  EdgeJSON,
-  OperatorJSON,
-  OperatorNodeData,
-  PipelineJSON,
-  PortJSON,
-} from "../types/pipeline"
+import { NodeType, PortType } from "../types/gen"
+import {
+  type OperatorNodeTypes,
+  displayNodeTypeFromImage,
+} from "../types/nodes"
+import type { PipelineJSON } from "../types/pipeline"
 
 const position: XYPosition = {
   x: 0,
@@ -14,27 +15,31 @@ const position: XYPosition = {
 }
 
 export const fromPipelineJSON = (pipelineJSON: PipelineJSON) => {
-  const pipelineNodes: Node<OperatorNodeData>[] = []
+  const pipelineNodes: OperatorNodeTypes[] = []
   const pipelineEdges: Edge[] = []
-  const portByID: Map<string, PortJSON> = new Map()
+  const portByID: Map<string, CanonicalPort> = new Map()
 
-  for (const port of pipelineJSON.data.ports) {
+  for (const port of pipelineJSON.data.ports ?? []) {
     portByID.set(port.id, port)
   }
 
-  for (const operatorJSON of pipelineJSON.data.operators) {
-    const node: Node<OperatorNodeData> = {
+  for (const operatorJSON of pipelineJSON.data.operators ?? []) {
+    const displayType = displayNodeTypeFromImage(operatorJSON.image)
+    const node: OperatorNodeTypes = {
       id: operatorJSON.id,
-      type: operatorJSON.type,
+      type: displayType,
       position,
       data: {
-        label: operatorJSON.label ?? operatorJSON.image,
+        label: operatorJSON.label,
+        description: operatorJSON.description,
         image: operatorJSON.image,
         inputs: operatorJSON.inputs,
         outputs: operatorJSON.outputs,
-        tags: operatorJSON.tags,
-        type: operatorJSON.type,
         parameters: operatorJSON.parameters,
+        tags: operatorJSON.tags,
+        parallel_config: operatorJSON.parallel_config,
+        spec_id: operatorJSON.spec_id,
+        node_type: NodeType.operator,
       },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
@@ -44,7 +49,7 @@ export const fromPipelineJSON = (pipelineJSON: PipelineJSON) => {
     pipelineNodes.push(node)
   }
 
-  for (const edge of pipelineJSON.data.edges) {
+  for (const edge of pipelineJSON.data.edges ?? []) {
     const inputPort = portByID.get(edge.input_id)
     const outputPort = portByID.get(edge.output_id)
 
@@ -54,8 +59,8 @@ export const fromPipelineJSON = (pipelineJSON: PipelineJSON) => {
 
     pipelineEdges.push({
       id: `${edge.input_id}->${edge.output_id}`,
-      source: inputPort.operator_id,
-      target: outputPort.operator_id,
+      source: inputPort.canonical_operator_id,
+      target: outputPort.canonical_operator_id,
       sourceHandle: edge.input_id,
       targetHandle: edge.output_id,
       ...edgeOptions,
@@ -65,10 +70,10 @@ export const fromPipelineJSON = (pipelineJSON: PipelineJSON) => {
   return { nodes: pipelineNodes, edges: pipelineEdges }
 }
 
-export const toJSON = (nodes: Node<OperatorNodeData>[], edges: Edge[]) => {
-  const operatorsJSON: OperatorJSON[] = []
-  const portsJSON: PortJSON[] = []
-  const edgesJSON: EdgeJSON[] = []
+export const toJSON = (nodes: OperatorNodeTypes[], edges: Edge[]) => {
+  const operatorsJSON: CanonicalOperator[] = []
+  const portsJSON: CanonicalPort[] = []
+  const edgesJSON: CanonicalEdge[] = []
   const portIDs: Set<string> = new Set<string>()
 
   // Generate the ports and operators
@@ -86,12 +91,12 @@ export const toJSON = (nodes: Node<OperatorNodeData>[], edges: Edge[]) => {
       }
       portIDs.add(portID)
 
-      const port: PortJSON = {
-        node_type: "port",
+      const port: CanonicalPort = {
         id: portID,
-        operator_id: node.id,
+        node_type: NodeType.port,
+        canonical_operator_id: node.id,
         portkey: portID,
-        port_type: "input",
+        port_type: PortType.input,
       }
       portsJSON.push(port)
     }
@@ -102,26 +107,27 @@ export const toJSON = (nodes: Node<OperatorNodeData>[], edges: Edge[]) => {
       }
       portIDs.add(portID)
 
-      const port: PortJSON = {
-        node_type: "port",
+      const port: CanonicalPort = {
         id: portID,
-        operator_id: node.id,
+        node_type: NodeType.port,
+        canonical_operator_id: node.id,
         portkey: portID,
-        port_type: "output",
+        port_type: PortType.output,
       }
       portsJSON.push(port)
     }
 
     // Operators
-    const op: OperatorJSON = {
+    const op: CanonicalOperator = {
       id: node.id,
       label: data.label,
+      description: data.description,
+      spec_id: data.spec_id,
       image: node.data.image,
       inputs: inputs,
       outputs: outputs,
       parameters: parameters,
       tags: tags,
-      type: node.data.type,
     }
     operatorsJSON.push(op)
   }
@@ -139,15 +145,12 @@ export const toJSON = (nodes: Node<OperatorNodeData>[], edges: Edge[]) => {
     edgesJSON.push({
       input_id: edge.sourceHandle,
       output_id: edge.targetHandle,
-      num_connections: 1,
     })
   }
 
-  return {
-    data: {
-      operators: operatorsJSON,
-      ports: portsJSON,
-      edges: edgesJSON,
-    },
-  }
+  return zCanonicalPipelineData.parse({
+    operators: operatorsJSON,
+    ports: portsJSON,
+    edges: edgesJSON,
+  })
 }

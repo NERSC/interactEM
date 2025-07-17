@@ -1,18 +1,17 @@
-export enum OperatorEventType {
-  RUNNING = "running",
-  STOPPED = "stopped",
-  ERROR = "error",
-}
+import { type ZodType, z } from "zod"
+import {
+  type OperatorErrorEvent,
+  OperatorErrorType,
+  OperatorEventType,
+} from "./gen"
 
-export interface OperatorEvent {
-  type: OperatorEventType
-  operator_id: string
-}
+export const zOperatorEventType = z.nativeEnum(OperatorEventType)
 
-export type OperatorErrorType = "processing"
+export const zOperatorErrorType = z.nativeEnum(OperatorErrorType)
 
-export interface OperatorErrorEvent extends OperatorEvent {
-  type: OperatorEventType.ERROR
-  error_type: OperatorErrorType
-  message: string
-}
+export const OperatorErrorEventSchema = z.object({
+  type: zOperatorEventType.default(OperatorEventType.error).optional(),
+  operator_id: z.string().uuid(),
+  error_type: zOperatorErrorType,
+  message: z.string().optional().nullable(),
+}) satisfies ZodType<OperatorErrorEvent>

@@ -1,18 +1,18 @@
-import { AgentStatus } from "../types/agent"
+import { AgentStatus } from "../types/gen"
 
 export function getAgentStatusColor(
   status: AgentStatus,
 ): "info" | "success" | "warning" | "error" | "default" {
   switch (status) {
-    case AgentStatus.INITIALIZING:
+    case AgentStatus.initializing:
       return "info"
-    case AgentStatus.IDLE:
+    case AgentStatus.idle:
       return "success"
-    case AgentStatus.BUSY:
+    case AgentStatus.busy:
       return "warning"
-    case AgentStatus.ERROR:
+    case AgentStatus.error:
       return "error"
-    case AgentStatus.SHUTTING_DOWN:
+    case AgentStatus.shutting_down:
       return "default"
     default:
       return "default"

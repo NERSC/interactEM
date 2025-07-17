@@ -4,12 +4,12 @@ import SettingsIcon from "@mui/icons-material/Settings"
 import { Box, IconButton, Modal } from "@mui/material"
 import type React from "react"
 import { useState } from "react"
-import type { OperatorParameter } from "../../client"
+import type { OperatorSpecParameter } from "../../client"
 import ParameterUpdater from "./parameterupdater"
 
 interface ParametersButtonProps {
   operatorID: string
-  parameters: OperatorParameter[]
+  parameters: OperatorSpecParameter[]
   nodeRef: React.RefObject<HTMLDivElement>
 }
 

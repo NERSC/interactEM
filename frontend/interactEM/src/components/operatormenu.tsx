@@ -1,18 +1,18 @@
 import type React from "react"
 import type { DragEvent } from "react"
-import type { Operator } from "../client/"
+import type { OperatorSpec } from "../client/"
 import { useDnD } from "../contexts/dnd"
 
 interface OperatorMenuProps {
-  operators: Operator[]
+  operators: OperatorSpec[]
 }
 
 interface OperatorMenuItemProps {
-  operator: Operator
+  operator: OperatorSpec
 }
 
 export interface OperatorMenuItemDragData {
-  operatorID: string
+  specID: string
   offsetX: number
   offsetY: number
 }
@@ -24,7 +24,7 @@ const OperatorMenuItem: React.FC<OperatorMenuItemProps> = ({ operator }) => {
     if (setValue !== null) {
       const rect = event.currentTarget.getBoundingClientRect()
       setValue({
-        operatorID: operator.id,
+        specID: operator.id,
         offsetX: event.clientX - rect.left,
         offsetY: event.clientY - rect.top,
       })
@@ -49,7 +49,7 @@ export const OperatorMenu: React.FC<OperatorMenuProps> = ({ operators }) => {
     <aside>
       <div className="description">Drag your operators into your pipeline!</div>
 
-      {operators.map((operator: Operator) => (
+      {operators.map((operator: OperatorSpec) => (
         <OperatorMenuItem operator={operator} key={operator.id} />
       ))}
     </aside>

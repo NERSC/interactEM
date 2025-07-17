@@ -1,11 +1,11 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import PeopleIcon from "@mui/icons-material/People"
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material"
-import type { Agent } from "../../types/agent"
+import type { AgentVal } from "../../types/gen"
 import AgentsArray from "./array"
 
 interface AgentsAccordionProps {
-  agents: Agent[]
+  agents: AgentVal[]
 }
 
 export default function AgentsAccordion({ agents }: AgentsAccordionProps) {

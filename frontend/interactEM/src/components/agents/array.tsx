@@ -1,7 +1,7 @@
 import Paper from "@mui/material/Paper"
 import Typography from "@mui/material/Typography"
 import { styled } from "@mui/material/styles"
-import type { Agent } from "../../types/agent"
+import type { AgentVal } from "../../types/gen"
 import AgentChip from "./chip"
 import { LaunchAgentButton } from "./launchbutton"
 
@@ -10,7 +10,7 @@ const ListItem = styled("li")(({ theme }) => ({
 }))
 
 interface AgentsArrayProps {
-  agents: Agent[]
+  agents: AgentVal[]
   direction?: "horizontal" | "vertical"
   hideTitle?: boolean
 }

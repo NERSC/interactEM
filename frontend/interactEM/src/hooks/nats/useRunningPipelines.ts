@@ -1,11 +1,13 @@
-import { PIPELINES_BUCKET } from "../../constants/nats"
-import { type PipelineRun, PipelineRunSchema } from "../../types/pipeline"
+import { BUCKET_STATUS, PIPELINES } from "../../constants/nats"
+import type { PipelineRunVal } from "../../types/gen"
+import { PipelineRunValSchema } from "../../types/pipeline"
 import { useBucketWatch } from "./useBucketWatch"
 
 export const useRunningPipelines = () => {
-  const { items: pipelines, error } = useBucketWatch<PipelineRun>({
-    bucketName: PIPELINES_BUCKET,
-    schema: PipelineRunSchema,
+  const { items: pipelines, error } = useBucketWatch<PipelineRunVal>({
+    bucketName: BUCKET_STATUS,
+    schema: PipelineRunValSchema,
+    keyFilter: `${PIPELINES}.>`,
   })
 
   return { pipelines, error }

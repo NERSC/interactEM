@@ -33,7 +33,10 @@ import {
 import { useDnD } from "../contexts/dnd"
 import useOperators from "../hooks/api/useOperators"
 import { usePipelineStore } from "../stores"
-import { NodeType, type OperatorNodeTypes } from "../types/nodes"
+import {
+  type OperatorNodeTypes,
+  displayNodeTypeFromLabel,
+} from "../types/nodes"
 import { layoutNodes } from "../utils/layout"
 import { fromPipelineJSON, toJSON } from "../utils/pipeline"
 import ImageNode from "./nodes/image"
@@ -104,7 +107,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       const pipelineJson = toJSON(currentNodes, currentEdges)
       addRevisionMutation.mutate({
         path: { id: currentPipelineId },
-        body: { data: pipelineJson.data },
+        body: { data: pipelineJson },
       })
     },
     [currentPipelineId, addRevisionMutation, isEditMode],
@@ -118,9 +121,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       return
     }
 
-    // TODO: type pipeline data!
     const { nodes: importedNodes, edges: importedEdges } =
-      // @ts-expect-error Ignore type mismatch between PipelineRevisionPublic and PipelineJSON
       fromPipelineJSON(pipelineData)
 
     let layoutedNodes = importedNodes
@@ -182,10 +183,10 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       }
       if (!operatorDropData) return
 
-      const { operatorID, offsetX, offsetY } = operatorDropData
-      const op = operators?.find((op) => op.id === operatorID)
+      const { specID, offsetX, offsetY } = operatorDropData
+      const op = operators?.find((op) => op.id === specID)
       if (!op) {
-        console.error(`Operator type not found: ${operatorID}`)
+        console.error(`Operator type not found: ${specID}`)
         return
       }
 
@@ -195,14 +196,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       }
       const position = screenToFlowPosition(screenPosition)
 
-      const labelToNodeTypeMap: {
-        [key: string]: NodeType.image | NodeType.table
-      } = {
-        Image: NodeType.image,
-        Table: NodeType.table,
-      }
-      const nodeType: OperatorNodeTypes["type"] =
-        labelToNodeTypeMap[op.label] ?? NodeType.operator
+      const nodeType = displayNodeTypeFromLabel(op.label)
 
       const newNode: OperatorNodeTypes = {
         id: generateID(),
@@ -210,7 +204,9 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         position,
         zIndex: 1,
         data: {
+          spec_id: op.id,
           label: op.label,
+          description: op.description,
           image: op.image,
           inputs: op.inputs?.map(() => uuidv4()),
           outputs: op.outputs?.map(() => uuidv4()),
@@ -219,7 +215,8 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
             value: param.default,
           })),
           tags: op.tags ?? [],
-          type: nodeType,
+          node_type: "operator",
+          parallel_config: op.parallel_config,
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,

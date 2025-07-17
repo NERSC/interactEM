@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react"
-import type { Operator } from "../../client"
+import type { OperatorSpec } from "../../client"
 import { operatorsReadOperators } from "../../client"
 
 const useOperators = () => {
-  const [operators, setOperators] = useState<Operator[] | null>(null)
+  const [operators, setOperators] = useState<OperatorSpec[] | null>(null)
   const [error, setError] = useState<Error | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
 
@@ -13,7 +13,7 @@ const useOperators = () => {
       try {
         const response = await operatorsReadOperators()
         if (response.data) {
-          setOperators((response.data.data as Operator[]) ?? null)
+          setOperators((response.data.data as OperatorSpec[]) ?? null)
         }
       } catch (err) {
         setError(err as Error)
