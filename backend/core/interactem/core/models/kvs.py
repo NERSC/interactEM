@@ -85,8 +85,8 @@ class OperatorVal(BaseModel):
     canonical_id: CanonicalOperatorID
     uri: OperatorURI
     status: OperatorStatus
-    pipeline_id: CanonicalPipelineID | None = None
-    runtime_pipeline_id: RuntimePipelineID | None = None
+    canonical_pipeline_id: CanonicalPipelineID
+    runtime_pipeline_id: RuntimePipelineID
 
 
 class PortStatus(str, Enum):
