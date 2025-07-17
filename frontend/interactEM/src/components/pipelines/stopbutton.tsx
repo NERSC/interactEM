@@ -1,38 +1,51 @@
 import { Stop } from "@mui/icons-material"
 import { CircularProgress, IconButton, Tooltip } from "@mui/material"
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type React from "react"
 import { toast } from "react-toastify"
-import { pipelinesStopPipelineMutation } from "../../client/generated/@tanstack/react-query.gen"
-import { usePipelineStore } from "../../stores"
+import {
+  deploymentsListPipelineDeploymentsQueryKey,
+  deploymentsUpdatePipelineDeploymentMutation,
+  pipelinesListPipelineDeploymentsQueryKey,
+} from "../../client/generated/@tanstack/react-query.gen"
 
 interface StopPipelineButtonProps {
+  deploymentId: string
   disabled?: boolean
 }
 
 export const StopPipelineButton: React.FC<StopPipelineButtonProps> = ({
   disabled = false,
+  deploymentId,
 }) => {
-  const { currentPipelineId, currentRevisionId } = usePipelineStore()
+  const queryClient = useQueryClient()
 
-  const stopPipeline = useMutation({
-    ...pipelinesStopPipelineMutation(),
+  const cancelDeployment = useMutation({
+    ...deploymentsUpdatePipelineDeploymentMutation(),
     onSuccess: (data) => {
-      toast.success(data.message)
+      // Invalidate all deployment queries
+      queryClient.invalidateQueries({
+        queryKey: deploymentsListPipelineDeploymentsQueryKey({}),
+      })
+
+      // Use the pipeline_id from the response to invalidate pipeline-specific queries
+      queryClient.invalidateQueries({
+        queryKey: pipelinesListPipelineDeploymentsQueryKey({
+          path: { id: data.pipeline_id },
+        }),
+      })
+
+      toast.success("Pipeline deployment cancelled")
     },
-    onError: (data) => {
-      toast.error(data.message)
+    onError: () => {
+      toast.error("Failed to cancel pipeline deployment")
     },
   })
 
   const handleStopClick = () => {
-    if (!currentPipelineId || !currentRevisionId) {
-      toast.error("No pipeline or revision selected")
-      return
-    }
-
-    stopPipeline.mutate({
-      path: { id: currentPipelineId, revision_id: currentRevisionId },
+    cancelDeployment.mutate({
+      path: { id: deploymentId },
+      body: { state: "cancelled" },
     })
   }
 
@@ -42,16 +55,11 @@ export const StopPipelineButton: React.FC<StopPipelineButtonProps> = ({
         <IconButton
           size="small"
           onClick={handleStopClick}
-          disabled={
-            disabled ||
-            stopPipeline.isPending ||
-            !currentPipelineId ||
-            !currentRevisionId
-          }
+          disabled={disabled || cancelDeployment.isPending}
           color="error"
           sx={{ mr: 0.5 }}
         >
-          {stopPipeline.isPending ? (
+          {cancelDeployment.isPending ? (
             <CircularProgress size={20} color="error" />
           ) : (
             <Stop fontSize="small" />

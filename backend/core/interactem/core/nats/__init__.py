@@ -16,9 +16,6 @@ from interactem.core.constants import (
     SUBJECT_NOTIFICATIONS_ERRORS,
     SUBJECT_NOTIFICATIONS_INFO,
 )
-from interactem.core.models.agent import AgentVal
-from interactem.core.models.operators import OperatorMetrics, OperatorVal
-from interactem.core.models.ports import PortMetrics, PortVal
 from nats.js import JetStreamContext
 from nats.js.api import KeyValueConfig
 from nats.js.errors import BucketNotFoundError, KeyNotFoundError, NoKeysError

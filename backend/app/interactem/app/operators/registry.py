@@ -1,13 +1,17 @@
 import urllib.parse
 from typing import Any
 
-from httpx import AsyncClient
+from httpx import AsyncClient, Limits, Timeout
 from jsonpath_ng import parse
 
 GITHUB_API_URL = "https://api.github.com"
 MANIFEST_MIME_TYPE = "application/vnd.oci.image.manifest.v1+json"
 GITHUB_API_MIME_TYPE = "application/vnd.github.v3+json"
 BLOB_MIME_TYPE = "application/vnd.docker.distribution.manifest.v2+json"
+
+MAX_CONNECTIONS = 20
+READ_TIMEOUT = 30
+CONNECT_TIMEOUT = 10
 
 
 class ContainerRegistry:
@@ -23,7 +27,9 @@ class ContainerRegistry:
         self._token_ = None
 
     async def __aenter__(self):
-        self._client = AsyncClient(base_url=self._url)
+        timeout = Timeout(timeout=READ_TIMEOUT, connect=CONNECT_TIMEOUT)
+        limits = Limits(max_connections=MAX_CONNECTIONS)
+        self._client = AsyncClient(base_url=self._url, timeout=timeout, limits=limits)
 
         return self
 

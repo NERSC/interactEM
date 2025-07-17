@@ -20,9 +20,5 @@ class PipelineRunEvent(PipelineEvent):
     type: PipelineEventType = PipelineEventType.PIPELINE_RUN
     data: dict[str, Any]
 
-class PipelineRunVal(BaseModel):
-    id: uuid.UUID
-    revision_id: int
-
 class PipelineStopEvent(PipelineEvent):
     type: PipelineEventType = PipelineEventType.PIPELINE_STOP

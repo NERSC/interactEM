@@ -4,7 +4,7 @@ import { useMutation } from "@tanstack/react-query"
 import type React from "react"
 import { useState } from "react"
 import { toast } from "react-toastify"
-import { pipelinesRunPipelineMutation } from "../../client"
+import { deploymentsCreatePipelineDeploymentMutation } from "../../client"
 import { usePipelineStore } from "../../stores"
 
 interface LaunchPipelineButtonProps {
@@ -18,7 +18,7 @@ export const LaunchPipelineButton: React.FC<LaunchPipelineButtonProps> = ({
   const [isLaunching, setIsLaunching] = useState(false)
 
   const launchPipeline = useMutation({
-    ...pipelinesRunPipelineMutation(),
+    ...deploymentsCreatePipelineDeploymentMutation(),
     onMutate: () => {
       setIsLaunching(true)
     },
@@ -39,7 +39,10 @@ export const LaunchPipelineButton: React.FC<LaunchPipelineButtonProps> = ({
     }
 
     launchPipeline.mutate({
-      path: { id: currentPipelineId, revision_id: currentRevisionId },
+      body: {
+        pipeline_id: currentPipelineId,
+        revision_id: currentRevisionId,
+      },
     })
   }
 

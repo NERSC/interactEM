@@ -21,6 +21,10 @@ networkx = "^3.3"
 nats-py = "^2.10.0"
 nkeys = "^0.2.1"
 tenacity = "^9.0.0"
+pydantic-settings = "^2.10.1"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.3"
 
 [build-system]
 requires = ["poetry-core"]
@@ -47,7 +51,7 @@ ignore = [
     "B904", # Allow raising exceptions without from e, for HTTPException
 ]
 
-isort = { known-first-party = ['operators', 'core'] }
+isort = { known-first-party = ['interactem'] }
 
 [tool.ruff.lint.pyupgrade]
 # Preserve types, even if a file imports `from __future__ import annotations`.
