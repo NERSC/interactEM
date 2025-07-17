@@ -19,7 +19,7 @@ from .models.runtime import (
     RuntimePipeline,
     RuntimePort,
 )
-from .models.user import ParallelType
+from .models.spec import ParallelType
 
 logger = get_logger()
 
