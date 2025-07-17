@@ -2,7 +2,9 @@
 
 import {
   type DefaultError,
+  type InfiniteData,
   type UseMutationOptions,
+  infiniteQueryOptions,
   queryOptions,
 } from "@tanstack/react-query"
 import type { AxiosError } from "axios"
@@ -10,6 +12,10 @@ import { client as _heyApiClient } from "../client.gen"
 import {
   type Options,
   agentsLaunchAgent,
+  deploymentsCreatePipelineDeployment,
+  deploymentsListPipelineDeployments,
+  deploymentsReadPipelineDeployment,
+  deploymentsUpdatePipelineDeployment,
   loginLoginAccessToken,
   loginLoginWithExternalToken,
   loginRecoverPassword,
@@ -20,12 +26,12 @@ import {
   pipelinesAddPipelineRevision,
   pipelinesCreatePipeline,
   pipelinesDeletePipeline,
+  pipelinesListPipelineDeployments,
+  pipelinesListPipelineRevisionDeployments,
   pipelinesListPipelineRevisions,
   pipelinesReadPipeline,
   pipelinesReadPipelineRevision,
   pipelinesReadPipelines,
-  pipelinesRunPipeline,
-  pipelinesStopPipeline,
   pipelinesUpdatePipeline,
   pipelinesUpdatePipelineRevision,
   usersCreateUser,
@@ -43,6 +49,16 @@ import {
 import type {
   AgentsLaunchAgentData,
   AgentsLaunchAgentError,
+  DeploymentsCreatePipelineDeploymentData,
+  DeploymentsCreatePipelineDeploymentError,
+  DeploymentsCreatePipelineDeploymentResponse,
+  DeploymentsListPipelineDeploymentsData,
+  DeploymentsListPipelineDeploymentsError,
+  DeploymentsListPipelineDeploymentsResponse,
+  DeploymentsReadPipelineDeploymentData,
+  DeploymentsUpdatePipelineDeploymentData,
+  DeploymentsUpdatePipelineDeploymentError,
+  DeploymentsUpdatePipelineDeploymentResponse,
   LoginLoginAccessTokenData,
   LoginLoginAccessTokenError,
   LoginLoginAccessTokenResponse,
@@ -69,16 +85,20 @@ import type {
   PipelinesDeletePipelineData,
   PipelinesDeletePipelineError,
   PipelinesDeletePipelineResponse,
+  PipelinesListPipelineDeploymentsData,
+  PipelinesListPipelineDeploymentsError,
+  PipelinesListPipelineDeploymentsResponse,
+  PipelinesListPipelineRevisionDeploymentsData,
+  PipelinesListPipelineRevisionDeploymentsError,
+  PipelinesListPipelineRevisionDeploymentsResponse,
   PipelinesListPipelineRevisionsData,
+  PipelinesListPipelineRevisionsError,
+  PipelinesListPipelineRevisionsResponse,
   PipelinesReadPipelineData,
   PipelinesReadPipelineRevisionData,
   PipelinesReadPipelinesData,
-  PipelinesRunPipelineData,
-  PipelinesRunPipelineError,
-  PipelinesRunPipelineResponse,
-  PipelinesStopPipelineData,
-  PipelinesStopPipelineError,
-  PipelinesStopPipelineResponse,
+  PipelinesReadPipelinesError,
+  PipelinesReadPipelinesResponse,
   PipelinesUpdatePipelineData,
   PipelinesUpdatePipelineError,
   PipelinesUpdatePipelineResponse,
@@ -698,6 +718,89 @@ export const pipelinesReadPipelinesOptions = (
   })
 }
 
+const createInfiniteParams = <
+  K extends Pick<QueryKey<Options>[0], "body" | "headers" | "path" | "query">,
+>(
+  queryKey: QueryKey<Options>,
+  page: K,
+) => {
+  const params = queryKey[0]
+  if (page.body) {
+    params.body = {
+      ...(queryKey[0].body as any),
+      ...(page.body as any),
+    }
+  }
+  if (page.headers) {
+    params.headers = {
+      ...queryKey[0].headers,
+      ...page.headers,
+    }
+  }
+  if (page.path) {
+    params.path = {
+      ...(queryKey[0].path as any),
+      ...(page.path as any),
+    }
+  }
+  if (page.query) {
+    params.query = {
+      ...(queryKey[0].query as any),
+      ...(page.query as any),
+    }
+  }
+  return params as unknown as typeof page
+}
+
+export const pipelinesReadPipelinesInfiniteQueryKey = (
+  options?: Options<PipelinesReadPipelinesData>,
+): QueryKey<Options<PipelinesReadPipelinesData>> => [
+  createQueryKey("pipelinesReadPipelines", options, true),
+]
+
+export const pipelinesReadPipelinesInfiniteOptions = (
+  options?: Options<PipelinesReadPipelinesData>,
+) => {
+  return infiniteQueryOptions<
+    PipelinesReadPipelinesResponse,
+    AxiosError<PipelinesReadPipelinesError>,
+    InfiniteData<PipelinesReadPipelinesResponse>,
+    QueryKey<Options<PipelinesReadPipelinesData>>,
+    | number
+    | Pick<
+        QueryKey<Options<PipelinesReadPipelinesData>>[0],
+        "body" | "headers" | "path" | "query"
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<PipelinesReadPipelinesData>>[0],
+          "body" | "headers" | "path" | "query"
+        > =
+          typeof pageParam === "object"
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              }
+        const params = createInfiniteParams(queryKey, page)
+        const { data } = await pipelinesReadPipelines({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        })
+        return data
+      },
+      queryKey: pipelinesReadPipelinesInfiniteQueryKey(options),
+    },
+  )
+}
+
 export const pipelinesCreatePipelineQueryKey = (
   options: Options<PipelinesCreatePipelineData>,
 ) => [createQueryKey("pipelinesCreatePipeline", options)]
@@ -821,6 +924,55 @@ export const pipelinesListPipelineRevisionsOptions = (
   })
 }
 
+export const pipelinesListPipelineRevisionsInfiniteQueryKey = (
+  options: Options<PipelinesListPipelineRevisionsData>,
+): QueryKey<Options<PipelinesListPipelineRevisionsData>> => [
+  createQueryKey("pipelinesListPipelineRevisions", options, true),
+]
+
+export const pipelinesListPipelineRevisionsInfiniteOptions = (
+  options: Options<PipelinesListPipelineRevisionsData>,
+) => {
+  return infiniteQueryOptions<
+    PipelinesListPipelineRevisionsResponse,
+    AxiosError<PipelinesListPipelineRevisionsError>,
+    InfiniteData<PipelinesListPipelineRevisionsResponse>,
+    QueryKey<Options<PipelinesListPipelineRevisionsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<PipelinesListPipelineRevisionsData>>[0],
+        "body" | "headers" | "path" | "query"
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<PipelinesListPipelineRevisionsData>>[0],
+          "body" | "headers" | "path" | "query"
+        > =
+          typeof pageParam === "object"
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              }
+        const params = createInfiniteParams(queryKey, page)
+        const { data } = await pipelinesListPipelineRevisions({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        })
+        return data
+      },
+      queryKey: pipelinesListPipelineRevisionsInfiniteQueryKey(options),
+    },
+  )
+}
+
 export const pipelinesAddPipelineRevisionQueryKey = (
   options: Options<PipelinesAddPipelineRevisionData>,
 ) => [createQueryKey("pipelinesAddPipelineRevision", options)]
@@ -903,16 +1055,16 @@ export const pipelinesUpdatePipelineRevisionMutation = (
   return mutationOptions
 }
 
-export const pipelinesRunPipelineQueryKey = (
-  options: Options<PipelinesRunPipelineData>,
-) => [createQueryKey("pipelinesRunPipeline", options)]
+export const pipelinesListPipelineDeploymentsQueryKey = (
+  options: Options<PipelinesListPipelineDeploymentsData>,
+) => [createQueryKey("pipelinesListPipelineDeployments", options)]
 
-export const pipelinesRunPipelineOptions = (
-  options: Options<PipelinesRunPipelineData>,
+export const pipelinesListPipelineDeploymentsOptions = (
+  options: Options<PipelinesListPipelineDeploymentsData>,
 ) => {
   return queryOptions({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await pipelinesRunPipeline({
+      const { data } = await pipelinesListPipelineDeployments({
         ...options,
         ...queryKey[0],
         signal,
@@ -920,20 +1072,231 @@ export const pipelinesRunPipelineOptions = (
       })
       return data
     },
-    queryKey: pipelinesRunPipelineQueryKey(options),
+    queryKey: pipelinesListPipelineDeploymentsQueryKey(options),
   })
 }
 
-export const pipelinesRunPipelineMutation = (
-  options?: Partial<Options<PipelinesRunPipelineData>>,
+export const pipelinesListPipelineDeploymentsInfiniteQueryKey = (
+  options: Options<PipelinesListPipelineDeploymentsData>,
+): QueryKey<Options<PipelinesListPipelineDeploymentsData>> => [
+  createQueryKey("pipelinesListPipelineDeployments", options, true),
+]
+
+export const pipelinesListPipelineDeploymentsInfiniteOptions = (
+  options: Options<PipelinesListPipelineDeploymentsData>,
+) => {
+  return infiniteQueryOptions<
+    PipelinesListPipelineDeploymentsResponse,
+    AxiosError<PipelinesListPipelineDeploymentsError>,
+    InfiniteData<PipelinesListPipelineDeploymentsResponse>,
+    QueryKey<Options<PipelinesListPipelineDeploymentsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<PipelinesListPipelineDeploymentsData>>[0],
+        "body" | "headers" | "path" | "query"
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<PipelinesListPipelineDeploymentsData>>[0],
+          "body" | "headers" | "path" | "query"
+        > =
+          typeof pageParam === "object"
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              }
+        const params = createInfiniteParams(queryKey, page)
+        const { data } = await pipelinesListPipelineDeployments({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        })
+        return data
+      },
+      queryKey: pipelinesListPipelineDeploymentsInfiniteQueryKey(options),
+    },
+  )
+}
+
+export const pipelinesListPipelineRevisionDeploymentsQueryKey = (
+  options: Options<PipelinesListPipelineRevisionDeploymentsData>,
+) => [createQueryKey("pipelinesListPipelineRevisionDeployments", options)]
+
+export const pipelinesListPipelineRevisionDeploymentsOptions = (
+  options: Options<PipelinesListPipelineRevisionDeploymentsData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await pipelinesListPipelineRevisionDeployments({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: pipelinesListPipelineRevisionDeploymentsQueryKey(options),
+  })
+}
+
+export const pipelinesListPipelineRevisionDeploymentsInfiniteQueryKey = (
+  options: Options<PipelinesListPipelineRevisionDeploymentsData>,
+): QueryKey<Options<PipelinesListPipelineRevisionDeploymentsData>> => [
+  createQueryKey("pipelinesListPipelineRevisionDeployments", options, true),
+]
+
+export const pipelinesListPipelineRevisionDeploymentsInfiniteOptions = (
+  options: Options<PipelinesListPipelineRevisionDeploymentsData>,
+) => {
+  return infiniteQueryOptions<
+    PipelinesListPipelineRevisionDeploymentsResponse,
+    AxiosError<PipelinesListPipelineRevisionDeploymentsError>,
+    InfiniteData<PipelinesListPipelineRevisionDeploymentsResponse>,
+    QueryKey<Options<PipelinesListPipelineRevisionDeploymentsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<PipelinesListPipelineRevisionDeploymentsData>>[0],
+        "body" | "headers" | "path" | "query"
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<PipelinesListPipelineRevisionDeploymentsData>>[0],
+          "body" | "headers" | "path" | "query"
+        > =
+          typeof pageParam === "object"
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              }
+        const params = createInfiniteParams(queryKey, page)
+        const { data } = await pipelinesListPipelineRevisionDeployments({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        })
+        return data
+      },
+      queryKey:
+        pipelinesListPipelineRevisionDeploymentsInfiniteQueryKey(options),
+    },
+  )
+}
+
+export const deploymentsListPipelineDeploymentsQueryKey = (
+  options?: Options<DeploymentsListPipelineDeploymentsData>,
+) => [createQueryKey("deploymentsListPipelineDeployments", options)]
+
+export const deploymentsListPipelineDeploymentsOptions = (
+  options?: Options<DeploymentsListPipelineDeploymentsData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await deploymentsListPipelineDeployments({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: deploymentsListPipelineDeploymentsQueryKey(options),
+  })
+}
+
+export const deploymentsListPipelineDeploymentsInfiniteQueryKey = (
+  options?: Options<DeploymentsListPipelineDeploymentsData>,
+): QueryKey<Options<DeploymentsListPipelineDeploymentsData>> => [
+  createQueryKey("deploymentsListPipelineDeployments", options, true),
+]
+
+export const deploymentsListPipelineDeploymentsInfiniteOptions = (
+  options?: Options<DeploymentsListPipelineDeploymentsData>,
+) => {
+  return infiniteQueryOptions<
+    DeploymentsListPipelineDeploymentsResponse,
+    AxiosError<DeploymentsListPipelineDeploymentsError>,
+    InfiniteData<DeploymentsListPipelineDeploymentsResponse>,
+    QueryKey<Options<DeploymentsListPipelineDeploymentsData>>,
+    | number
+    | Pick<
+        QueryKey<Options<DeploymentsListPipelineDeploymentsData>>[0],
+        "body" | "headers" | "path" | "query"
+      >
+  >(
+    // @ts-ignore
+    {
+      queryFn: async ({ pageParam, queryKey, signal }) => {
+        // @ts-ignore
+        const page: Pick<
+          QueryKey<Options<DeploymentsListPipelineDeploymentsData>>[0],
+          "body" | "headers" | "path" | "query"
+        > =
+          typeof pageParam === "object"
+            ? pageParam
+            : {
+                query: {
+                  offset: pageParam,
+                },
+              }
+        const params = createInfiniteParams(queryKey, page)
+        const { data } = await deploymentsListPipelineDeployments({
+          ...options,
+          ...params,
+          signal,
+          throwOnError: true,
+        })
+        return data
+      },
+      queryKey: deploymentsListPipelineDeploymentsInfiniteQueryKey(options),
+    },
+  )
+}
+
+export const deploymentsCreatePipelineDeploymentQueryKey = (
+  options: Options<DeploymentsCreatePipelineDeploymentData>,
+) => [createQueryKey("deploymentsCreatePipelineDeployment", options)]
+
+export const deploymentsCreatePipelineDeploymentOptions = (
+  options: Options<DeploymentsCreatePipelineDeploymentData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await deploymentsCreatePipelineDeployment({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: deploymentsCreatePipelineDeploymentQueryKey(options),
+  })
+}
+
+export const deploymentsCreatePipelineDeploymentMutation = (
+  options?: Partial<Options<DeploymentsCreatePipelineDeploymentData>>,
 ) => {
   const mutationOptions: UseMutationOptions<
-    PipelinesRunPipelineResponse,
-    AxiosError<PipelinesRunPipelineError>,
-    Options<PipelinesRunPipelineData>
+    DeploymentsCreatePipelineDeploymentResponse,
+    AxiosError<DeploymentsCreatePipelineDeploymentError>,
+    Options<DeploymentsCreatePipelineDeploymentData>
   > = {
     mutationFn: async (localOptions) => {
-      const { data } = await pipelinesRunPipeline({
+      const { data } = await deploymentsCreatePipelineDeployment({
         ...options,
         ...localOptions,
         throwOnError: true,
@@ -944,16 +1307,16 @@ export const pipelinesRunPipelineMutation = (
   return mutationOptions
 }
 
-export const pipelinesStopPipelineQueryKey = (
-  options: Options<PipelinesStopPipelineData>,
-) => [createQueryKey("pipelinesStopPipeline", options)]
+export const deploymentsReadPipelineDeploymentQueryKey = (
+  options: Options<DeploymentsReadPipelineDeploymentData>,
+) => [createQueryKey("deploymentsReadPipelineDeployment", options)]
 
-export const pipelinesStopPipelineOptions = (
-  options: Options<PipelinesStopPipelineData>,
+export const deploymentsReadPipelineDeploymentOptions = (
+  options: Options<DeploymentsReadPipelineDeploymentData>,
 ) => {
   return queryOptions({
     queryFn: async ({ queryKey, signal }) => {
-      const { data } = await pipelinesStopPipeline({
+      const { data } = await deploymentsReadPipelineDeployment({
         ...options,
         ...queryKey[0],
         signal,
@@ -961,20 +1324,20 @@ export const pipelinesStopPipelineOptions = (
       })
       return data
     },
-    queryKey: pipelinesStopPipelineQueryKey(options),
+    queryKey: deploymentsReadPipelineDeploymentQueryKey(options),
   })
 }
 
-export const pipelinesStopPipelineMutation = (
-  options?: Partial<Options<PipelinesStopPipelineData>>,
+export const deploymentsUpdatePipelineDeploymentMutation = (
+  options?: Partial<Options<DeploymentsUpdatePipelineDeploymentData>>,
 ) => {
   const mutationOptions: UseMutationOptions<
-    PipelinesStopPipelineResponse,
-    AxiosError<PipelinesStopPipelineError>,
-    Options<PipelinesStopPipelineData>
+    DeploymentsUpdatePipelineDeploymentResponse,
+    AxiosError<DeploymentsUpdatePipelineDeploymentError>,
+    Options<DeploymentsUpdatePipelineDeploymentData>
   > = {
     mutationFn: async (localOptions) => {
-      const { data } = await pipelinesStopPipeline({
+      const { data } = await deploymentsUpdatePipelineDeployment({
         ...options,
         ...localOptions,
         throwOnError: true,

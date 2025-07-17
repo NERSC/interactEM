@@ -17,8 +17,8 @@ from interactem.core.constants import (
     SUBJECT_SFAPI_JOBS_SUBMIT,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models.operators import OperatorParameter
-from interactem.core.models.pipeline import OperatorJSON
+from interactem.core.models.runtime import RuntimeOperator
+from interactem.core.models.spec import OperatorSpecParameter
 
 logger = get_logger()
 
@@ -63,8 +63,8 @@ async def create_agent_consumer(
 async def create_agent_parameter_consumer(
     js: JetStreamContext,
     agent_id: UUID,
-    operator: OperatorJSON,
-    parameter: OperatorParameter,
+    operator: RuntimeOperator,
+    parameter: OperatorSpecParameter,
 ) -> JetStreamContext.PullSubscription:
     subject = f"{STREAM_PARAMETERS}.{operator.id}.{parameter.name}"
     cfg = replace(

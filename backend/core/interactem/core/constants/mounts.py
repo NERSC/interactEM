@@ -1,5 +1,5 @@
 from ..config import cfg
-from ..models.pipeline import PodmanMount, PodmanMountType
+from ..models.containers import PodmanMount, PodmanMountType
 from . import PACKAGE_DIR_IN_CONTAINER
 
 CORE_MOUNT = PodmanMount(
