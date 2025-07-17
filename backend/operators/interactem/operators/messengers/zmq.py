@@ -10,10 +10,11 @@ import nats.js.errors
 import nats.js.kv
 import zmq
 from nats.js import JetStreamContext
+from pydantic import BaseModel
 
 from interactem.core.logger import get_logger
-from interactem.core.models import PortJSON, PortType
-from interactem.core.models.base import IdType, OperatorID, PortID, Protocol
+from interactem.core.models.base import IdType, Protocol
+from interactem.core.models.kvs import PortStatus, PortVal
 from interactem.core.models.messages import (
     BytesMessage,
     InputPortTrackingMetadata,
@@ -21,8 +22,14 @@ from interactem.core.models.messages import (
     MessageSubject,
     OutputPortTrackingMetadata,
 )
-from interactem.core.models.pipeline import InputJSON, OutputJSON
-from interactem.core.models.ports import PortMetrics, PortStatus, PortVal
+from interactem.core.models.metrics import PortMetrics
+from interactem.core.models.runtime import (
+    RuntimeInput,
+    RuntimeOperatorID,
+    RuntimeOutput,
+    RuntimePort,
+    RuntimePortID,
+)
 from interactem.core.models.uri import URI, CommBackend, URILocation, ZMQAddress
 from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
 from interactem.core.pipeline import Pipeline
@@ -35,39 +42,60 @@ from .base import (
 
 logger = get_logger()
 
+UpstreamPortID = RuntimePortID
+ThisOperatorPortID = RuntimePortID
+
+
+class PortValKey(BaseModel):
+    """This goes on the OPERATORS bucket, which also has plain OPERATORS
+    so we need to uniquely identify the port on a runtime operator"""
+
+    id: ThisOperatorPortID
+    operator_id: RuntimeOperatorID
+
+    def __str__(self):
+        return f"{self.operator_id}.{self.id}"
+
+    @classmethod
+    def from_str(cls, key_str: str) -> "PortValKey":
+        operator_id, port_id = key_str.split(".")
+        return cls(
+            id=RuntimePortID(port_id), operator_id=RuntimeOperatorID(operator_id)
+        )
+
 
 class ZmqMessenger(BaseMessenger):
     def __init__(
         self,
-        operator_id: OperatorID,
+        operator_id: RuntimeOperatorID,
         js: JetStreamContext,
     ):
-        self.input_infos: dict[PortID, InputJSON] = {}
-        self.input_sockets: dict[PortID, Socket] = {}
-        self.output_infos: dict[PortID, OutputJSON] = {}
-        self.output_sockets: dict[PortID, Socket] = {}
-        self.port_vals: dict[PortID, PortVal] = {}
+        self._input_ports: dict[RuntimePortID, RuntimeInput] = {}
+        self.input_sockets: dict[RuntimePortID, Socket] = {}
+        self._output_ports: dict[RuntimePortID, RuntimeOutput] = {}
+        self.output_sockets: dict[RuntimePortID, Socket] = {}
+        self.port_vals: dict[RuntimePortID, PortVal] = {}
         # Upstream Port -> these ports
-        self.upstream_port_map: dict[PortID, list[PortID]] = {}
+        self.upstream_port_map: dict[UpstreamPortID, list[ThisOperatorPortID]] = {}
         self._context: Context = Context.instance()
-        self._id: OperatorID = operator_id
+        self._id: RuntimeOperatorID = operator_id
         self.js: JetStreamContext = js
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self.recv_queue: asyncio.Queue[BytesMessage] = asyncio.Queue()
-        self.port_kv: KeyValueLoop[PortVal] | None = None
-        self.metrics_kv_loop: KeyValueLoop[PortMetrics] | None = None
+        self.port_kv_loop: KeyValueLoop[PortVal] | None = None
+        self.port_metrics_kv_loop: KeyValueLoop[PortMetrics] | None = None
 
     def __del__(self):
         # TODO: implement cleanup
         pass
 
     @property
-    def input_ports(self) -> list[InputJSON]:
-        return list(self.input_infos.values())
+    def input_ports(self) -> list[RuntimeInput]:
+        return list(self._input_ports.values())
 
     @property
-    def output_ports(self) -> list[OutputJSON]:
-        return list(self.output_infos.values())
+    def output_ports(self) -> list[RuntimeOutput]:
+        return list(self._output_ports.values())
 
     @property
     def type(self):
@@ -141,25 +169,27 @@ class ZmqMessenger(BaseMessenger):
         msg_parts = await socket.recv_multipart()
         socket.metrics.recv_count += 1
         socket.metrics.recv_bytes += sum(len(part) for part in msg_parts)
-        return socket.info.parent_id, msg_parts
+        return socket.info.port_id, msg_parts
 
     async def send(self, message: BytesMessage):
         msg_futures = []
+        data = message.data
+        should_copy_header = len(self.output_ports) > 1
+        time_before_send = datetime.now()
         for socket in self.output_sockets.values():
-            if message.header.tracking is not None:
+            # need to copy to send same message to multple sockets
+            # otherwise we will continue to append to the same header
+            if should_copy_header:
+                header = message.header.model_copy(deep=True)
+            else:
+                header = message.header
+            if header.tracking is not None:
                 meta = OutputPortTrackingMetadata(
-                    id=socket.info.parent_id, time_before_send=datetime.now()
+                    id=socket.info.port_id, time_before_send=time_before_send
                 )
-                message.header.tracking.append(meta)
-
-            data = message.data
-            header = message.header.model_dump_json().encode()
+                header.tracking.append(meta)
+            header = header.model_dump_json().encode()
             things_to_send = [header, data]
-
-            if socket.info.type == zmq.PUB:
-                # TODO: handle multiple subjects (if needed)
-                subject = socket.info.subjects[0]
-                things_to_send.insert(0, subject)
 
             msg_futures.append(self._send_and_update_metrics(socket, things_to_send))
         # TODO: look into creating tasks
@@ -173,8 +203,8 @@ class ZmqMessenger(BaseMessenger):
     async def start(self, pipeline: Pipeline):
         logger.info(f"Setting up operator {self._id}...")
 
-        # Initialize KeyValueLoop for operators and metrics
-        self.port_kv = KeyValueLoop[PortVal](
+        # Initialize KeyValueLoop for ports and port metrics
+        self.port_kv_loop = KeyValueLoop[PortVal](
             nc=self.js._nc,
             js=self.js,
             shutdown_event=self._shutdown_event,
@@ -182,10 +212,10 @@ class ZmqMessenger(BaseMessenger):
             update_interval=1.0,
             data_model=PortVal,
         )
-        await self.port_kv.start()
-        self.operator_kv = await self.port_kv.get_bucket()
+        await self.port_kv_loop.start()
+        self.port_kv_bucket = await self.port_kv_loop.get_bucket()
 
-        self.metrics_kv_loop = KeyValueLoop[PortMetrics](
+        self.port_metrics_kv_loop = KeyValueLoop[PortMetrics](
             nc=self.js._nc,
             js=self.js,
             shutdown_event=self._shutdown_event,
@@ -193,8 +223,7 @@ class ZmqMessenger(BaseMessenger):
             update_interval=1.0,
             data_model=PortMetrics,
         )
-        await self.metrics_kv_loop.start()
-        self.metrics_kv = await self.metrics_kv_loop.get_bucket()
+        await self.port_metrics_kv_loop.start()
 
         try:
             await asyncio.wait_for(
@@ -210,8 +239,10 @@ class ZmqMessenger(BaseMessenger):
             logger.error(f"Failed to setup zmq messenger: {e}")
             raise e
 
-        self.port_kv.cleanup_callbacks.append(
-            lambda: logger.info(f"Operator {self._id} shutting down, deleting KV...")
+        self.port_kv_loop.cleanup_callbacks.append(
+            lambda: logger.info(
+                f"Operator {self._id} shutting down, deleting port watcher KV loop..."
+            )
         )
         self.watcher_task = asyncio.create_task(self.upstream_connection_watcher())
 
@@ -219,11 +250,11 @@ class ZmqMessenger(BaseMessenger):
         self._shutdown_event.set()
         logger.info("Stopping zmq messenger...")
 
-        if self.port_kv:
-            await self.port_kv.stop()
+        if self.port_kv_loop:
+            await self.port_kv_loop.stop()
 
-        if self.metrics_kv_loop:
-            await self.metrics_kv_loop.stop()
+        if self.port_metrics_kv_loop:
+            await self.port_metrics_kv_loop.stop()
 
         if self.watcher_task:
             self.watcher_task.cancel()
@@ -238,17 +269,22 @@ class ZmqMessenger(BaseMessenger):
             socket.close()
 
     async def upstream_connection_watcher(self):
-        upstream_ports = list(self.upstream_port_map.keys())
-        if len(upstream_ports) == 0:
+        """
+        Watch for changes in upstream port addresses and update input sockets accordingly.
+        """
+        upstream_port_ids = list(self.upstream_port_map.keys())
+        if len(upstream_port_ids) == 0:
             return
-        logger.info(f"Starting upstream connection watcher, watching: {upstream_ports}")
-        watchers: dict[UUID, nats.js.kv.KeyValue.KeyWatcher] = {}
-        for key in upstream_ports:
-            watchers[key] = await self.operator_kv.watch(
-                key, ignore_deletes=False, include_history=False
+        logger.info(
+            f"Starting upstream connection watcher, watching: {upstream_port_ids}"
+        )
+        watchers: dict[UpstreamPortID, nats.js.kv.KeyValue.KeyWatcher] = {}
+        for id in upstream_port_ids:
+            watchers[id] = await self.port_kv_bucket.watch(
+                id, ignore_deletes=False, include_history=False
             )
 
-        state: dict[UUID, bytes | None] = {}
+        state: dict[UpstreamPortID, bytes | None] = {}
         while not self._shutdown_event.is_set():
             update_tasks = [
                 asyncio.create_task(watcher.updates(timeout=1))
@@ -257,39 +293,39 @@ class ZmqMessenger(BaseMessenger):
 
             for task in asyncio.as_completed(update_tasks):
                 try:
-                    msg = await task  # Await the result of the completed task
+                    msg = await task
                 except nats.errors.TimeoutError:
                     pass
                 if not msg:
                     continue
-                key, val = UUID(msg.key), msg.value
-                if key not in state:
-                    state[key] = val
-                if val == state[key]:
+                id, val = UUID(msg.key), msg.value
+                if id not in state:
+                    state[id] = val
+                if val == state[id]:
                     continue
                 if val is None or val == b"":
-                    logger.warning(f"Key {key} has been deleted")
-                    ids_to_disconnect = self.upstream_port_map[key]
+                    logger.warning(f"Port ID {id} has been removed, disconnecting...")
+                    ids_to_disconnect = self.upstream_port_map[id]
                     for id in ids_to_disconnect:
-                        self.input_sockets[id].disconnect(key)
-                    state[key] = val
+                        self.input_sockets[id].disconnect(id)
+                    state[id] = val
                     continue
-                state[key] = val
+                state[id] = val
                 val = PortVal.model_validate_json(val)
                 if val.uri is None:
-                    logger.warning(f"URI not found for port {key}")
-                    ids_to_disconnect = self.upstream_port_map[key]
+                    logger.warning(f"URI not found for port {id}")
+                    ids_to_disconnect = self.upstream_port_map[id]
                     for id in ids_to_disconnect:
-                        self.input_sockets[id].disconnect(key)
+                        self.input_sockets[id].disconnect(id)
                     continue
                 addrs = val.uri.query.get("address", [])
                 if not addrs:
-                    logger.warning(f"No addresses found for port {key}")
+                    logger.warning(f"No addresses found for port {id}")
                     continue
                 addrs = [ZMQAddress.from_address(addr) for addr in addrs]
-                for id in self.upstream_port_map[key]:
-                    if self.input_sockets[id].info.address_map.get(key) != addrs:
-                        self.input_sockets[id].reconnect(key, addrs)
+                for my_id in self.upstream_port_map[id]:
+                    if self.input_sockets[my_id].info.address_map.get(id) != addrs:
+                        self.input_sockets[my_id].reconnect(id, addrs)
 
             # If shutdown is requested, cancel all pending tasks
             if self._shutdown_event.is_set():
@@ -298,63 +334,69 @@ class ZmqMessenger(BaseMessenger):
 
         logger.info("Upstream connection watcher shutting down")
 
-    def add_socket(self, port_info: PortJSON):
-        if port_info.port_type == PortType.output:
-            socket_info = SocketInfo(
-                type=zmq.PUB,
-                subjects=[b"data"],
-                bind=True,
-                parent_id=port_info.id,
-            )
-            sockets = self.output_sockets
-        else:
-            socket_info = SocketInfo(
-                type=zmq.SUB,
-                subjects=[b"data"],
-                bind=False,
-                parent_id=port_info.id,
-            )
-            sockets = self.input_sockets
-
+    def add_input_socket(self, port_info: RuntimePort):
+        socket_info = SocketInfo(
+            type=zmq.PULL,
+            bind=False,
+            port_id=port_info.id,
+            canonical_port_id=port_info.canonical_id,
+            operator_id=port_info.operator_id,
+        )
         socket = self._context.socket(info=socket_info)
-        sockets[port_info.id] = socket
+        self.input_sockets[port_info.id] = socket
+
+    def add_output_socket(self, port_info: RuntimePort):
+        socket_info = SocketInfo(
+            type=zmq.PUSH,
+            bind=True,
+            port_id=port_info.id,
+            canonical_port_id=port_info.canonical_id,
+            operator_id=port_info.operator_id,
+        )
+        socket = self._context.socket(info=socket_info)
+        self.output_sockets[port_info.id] = socket
 
     async def setup_inputs(self, pipeline: Pipeline):
-        if not self.port_kv:
+        if not self.port_kv_loop:
             raise RuntimeError("Port KeyValueLoop is not initialized.")
 
         for input in pipeline.get_operator_inputs(self._id).values():
-            self.input_infos[input.id] = input
+            self._input_ports[input.id] = input
 
-        for info in self.input_infos.values():
-            self.add_socket(info)
+        for info in self._input_ports.values():
+            self.add_input_socket(info)
 
         for port_id in self.input_sockets.keys():
-            predecessors = pipeline.get_predecessors(port_id)
-            for pred in predecessors:
-                if self.upstream_port_map.get(pred) is None:
-                    self.upstream_port_map[pred] = []
-                self.upstream_port_map[pred].append(port_id)
+            predecessors: list[UpstreamPortID] = pipeline.get_predecessors(port_id)
+            for pred_id in predecessors:
+                if self.upstream_port_map.get(pred_id) is None:
+                    self.upstream_port_map[pred_id] = []
+                self.upstream_port_map[pred_id].append(port_id)
 
-        for upstream_port, port_ids in self.upstream_port_map.items():
-            addrs = await self.get_upstream_addresses(upstream_port)
-            for port in port_ids:
-                self.input_sockets[port].update_address_map(upstream_port, addrs)
-                self.input_sockets[port].bind_or_connect()
+        for upstream_port_id, my_port_ids in self.upstream_port_map.items():
+            # TODO: this should be a non-blocking call
+            addrs = await self.get_upstream_addresses(upstream_port_id)
+            for id in my_port_ids:
+                self.input_sockets[id].update_address_map(upstream_port_id, addrs)
+                self.input_sockets[id].bind_or_connect()
                 port_val = PortVal(
-                    id=port,
+                    id=id,
+                    canonical_id=self._input_ports[id].canonical_id,
                     status=PortStatus.IDLE,
                 )
-                self.port_vals[port] = port_val
+                self.port_vals[id] = port_val
                 # Register this input port with the KeyValueLoop
-                self.port_kv.add_or_update_value(str(port), port_val)
+                self.port_kv_loop.add_or_update_value(str(id), port_val)
 
-    async def get_upstream_addresses(self, upstream_port: PortID) -> list[ZMQAddress]:
-        if not self.port_kv:
+    async def get_upstream_addresses(
+        self, upstream_port: UpstreamPortID
+    ) -> list[ZMQAddress]:
+        if not self.port_kv_loop:
             raise RuntimeError("Port KeyValueLoop is not initialized.")
+
         while True:
             try:
-                port_val = await self.port_kv.get_val(upstream_port)
+                port_val = await self.port_kv_loop.get_val(upstream_port)
                 if port_val is None:
                     await asyncio.sleep(1)
                     continue
@@ -369,17 +411,22 @@ class ZmqMessenger(BaseMessenger):
                 await asyncio.sleep(1)
 
     async def setup_outputs(self, pipeline: Pipeline):
-        if not self.port_kv:
+        if not self.port_kv_loop:
             raise RuntimeError("Port KeyValueLoop is not initialized.")
-        if not self.metrics_kv_loop:
+        if not self.port_metrics_kv_loop:
             raise RuntimeError("Metrics KeyValueLoop is not initialized.")
 
         for output in pipeline.get_operator_outputs(self._id).values():
-            self.output_infos[output.id] = output
+            self._output_ports[output.id] = output
 
-        for info in self.output_infos.values():
-            self.add_socket(info)
+        # TODO: we need to create a socket for each set of downstream ports
+        # e.g., if this port will go out to two different operators (not parallel)
+        # then we need a socket for each of those operators per connected port
+        # this is because we need to duplicate the sends for each operator
+        for output_port in self._output_ports.values():
+            self.add_output_socket(output_port)
 
+        # Bind all output sockets and publish their addresses
         for port_id, socket in self.output_sockets.items():
             address = ZMQAddress(
                 protocol=Protocol.tcp,
@@ -388,7 +435,7 @@ class ZmqMessenger(BaseMessenger):
             )
             socket.update_address_map(port_id, [address])
             socket.bind_or_connect()
-            info = self.output_infos[port_id]
+            port = self._output_ports[port_id]
             addresses = [a.to_address() for a in socket.info.address_map[port_id]]
 
             uri = URI(
@@ -399,34 +446,48 @@ class ZmqMessenger(BaseMessenger):
                 comm_backend=CommBackend.ZMQ,
             )
             self.port_vals[port_id] = PortVal(
-                id=port_id, uri=uri, status=PortStatus.IDLE
+                id=port.id,
+                canonical_id=port.canonical_id,
+                uri=uri,
+                status=PortStatus.IDLE,
             )
-
-            self.port_kv.add_or_update_value(
+            self.port_kv_loop.add_or_update_value(
                 str(port_id), lambda port_id=port_id: self.port_vals[port_id]
             )
 
-        await self.port_kv.update_now()
+        await self.port_kv_loop.update_now()
 
-        def get_metrics_for_all_sockets() -> dict[str, PortMetrics]:
-            metrics_data = {}
-            all_sockets = list(self.input_sockets.values()) + list(
-                self.output_sockets.values()
-            )
-            for socket in all_sockets:
-                key = f"{self._id}.{socket.info.parent_id}"
-                metrics_data[key] = socket.metrics
+        def get_metrics_for_all_sockets() -> dict[PortValKey, PortMetrics]:
+            metrics_data: dict[PortValKey, PortMetrics] = {}
+
+            for id, socket in self.input_sockets.items():
+                if socket is None:
+                    logger.warning(f"No input socket found for port {id}")
+                    continue
+                k = PortValKey(id=id, operator_id=self._id)
+                metrics_data[k] = socket.metrics
+
+            for id, socket in self.output_sockets.items():
+                if socket is None:
+                    logger.warning(f"No output socket found for port {id}")
+                    continue
+                k = PortValKey(id=id, operator_id=self._id)
+                metrics_data[k] = socket.metrics
+
             return metrics_data
 
         # Register metrics update function, occurs before a KV update
-        self.metrics_kv_loop.before_update_callbacks.append(
+        self.port_metrics_kv_loop.before_update_callbacks.append(
             lambda: self._update_metrics(get_metrics_for_all_sockets())
         )
 
-    async def _update_metrics(self, metrics_dict: dict[str, PortMetrics]) -> None:
-        if self.metrics_kv_loop:
+    async def _update_metrics(
+        self, metrics_dict: dict[PortValKey, PortMetrics]
+    ) -> None:
+        if self.port_metrics_kv_loop:
             for key, metrics in metrics_dict.items():
-                self.metrics_kv_loop.add_or_update_value(key, metrics)
+                key_str = str(key)
+                self.port_metrics_kv_loop.add_or_update_value(key_str, metrics)
 
     # TODO: implement
     @property

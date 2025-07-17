@@ -8,10 +8,11 @@ from pydantic import BaseModel, model_validator
 from interactem.core.logger import get_logger
 from interactem.core.models.base import (
     IdType,
-    PortID,
     Protocol,
 )
-from interactem.core.models.ports import PortMetrics
+from interactem.core.models.canonical import CanonicalPortID
+from interactem.core.models.metrics import PortMetrics
+from interactem.core.models.runtime import RuntimeOperatorID, RuntimePortID
 from interactem.core.models.uri import ZMQAddress
 
 logger = get_logger()
@@ -21,7 +22,9 @@ class SocketInfo(BaseModel):
     type: int  # zmq.SocketType
     subjects: list[bytes] | None = None
     address_map: dict[IdType, Sequence[ZMQAddress]] = {}
-    parent_id: PortID
+    port_id: RuntimePortID
+    canonical_port_id: CanonicalPortID
+    operator_id: RuntimeOperatorID
     bind: bool
     options: list[tuple[zmq.SocketOption, Any]] = []
     connected_to: list[IdType] = []
@@ -57,7 +60,7 @@ class Socket(zmq.asyncio.Socket):
         info = kwargs.pop("info", None)
         info = SocketInfo.model_validate(info)
         super().__init__(context, socket_type, io_loop, _from_socket, **kwargs)
-        self.metrics = PortMetrics(id=info.parent_id)
+        self.metrics = PortMetrics(id=info.port_id, canonical_id=info.canonical_port_id)
         self.info = info
 
     def _configure(self):
@@ -102,10 +105,8 @@ class Socket(zmq.asyncio.Socket):
         else:
             self.bind(bind_addr)
 
-        self.info.bound_to.append(self.info.parent_id)
-        logger.info(
-            f"Socket on {self.info.parent_id} bound to {addr.to_bind_address()}"
-        )
+        self.info.bound_to.append(self.info.port_id)
+        logger.info(f"Socket on {self.info.port_id} bound to {addr.to_bind_address()}")
 
     def _connect_to_addresses(
         self, address_map: dict[IdType, Sequence[ZMQAddress]]
