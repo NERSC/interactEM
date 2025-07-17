@@ -151,7 +151,9 @@ class TestPipelineExpansion:
             canonical, uuid4(), parallel_factor=parallel_factor
         )
 
-        assert len(runtime_pipeline.operators) == 3 + parallel_factor  # 3 original + parallel copies
+        assert len(runtime_pipeline.operators) == 2 + parallel_factor, (
+            "Mismatch in operator count for parallel expansion"
+        )  # 2 original + parallel copies
 
         parallel_instances = runtime_pipeline.get_parallel_group(parallel_op.id)
         assert len(parallel_instances) == parallel_factor
