@@ -40,7 +40,7 @@ def get_nats_broker(servers: list[str], name: str) -> NatsBroker:
         reconnected_cb=reconnected_cb,
         disconnected_cb=disconnected_cb,
         closed_cb=closed_cb,
-        **options,
+        **options,  # type: ignore[call-arg]
     )
 
 
