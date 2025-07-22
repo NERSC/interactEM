@@ -14,7 +14,7 @@ import {
 import { useReactFlow } from "@xyflow/react"
 import type React from "react"
 import { memo, useEffect, useState } from "react"
-import type { OperatorParameter } from "../../client"
+import type { OperatorSpecParameter } from "../../client"
 import { usePipelineContext } from "../../contexts/pipeline"
 import { useParameterUpdate } from "../../hooks/nats/useParameterUpdate"
 import { useParameterValue } from "../../hooks/nats/useParameterValue"
@@ -23,7 +23,7 @@ import type { OperatorNodeType } from "../../types/nodes"
 import ParameterInfoTooltip from "./parameterinfotooltip"
 
 const compareValues = (
-  parameter: OperatorParameter,
+  parameter: OperatorSpecParameter,
   value1: string,
   value2: string,
 ): boolean => {
@@ -44,7 +44,7 @@ const compareValues = (
 }
 
 type ParameterUpdaterProps = {
-  parameter: OperatorParameter
+  parameter: OperatorSpecParameter
   operatorID: string
 }
 

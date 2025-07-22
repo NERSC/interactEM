@@ -182,10 +182,10 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       }
       if (!operatorDropData) return
 
-      const { operatorID, offsetX, offsetY } = operatorDropData
-      const op = operators?.find((op) => op.id === operatorID)
+      const { specID, offsetX, offsetY } = operatorDropData
+      const op = operators?.find((op) => op.id === specID)
       if (!op) {
-        console.error(`Operator type not found: ${operatorID}`)
+        console.error(`Operator type not found: ${specID}`)
         return
       }
 
@@ -210,6 +210,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         position,
         zIndex: 1,
         data: {
+          spec_id: op.id,
           label: op.label,
           image: op.image,
           inputs: op.inputs?.map(() => uuidv4()),

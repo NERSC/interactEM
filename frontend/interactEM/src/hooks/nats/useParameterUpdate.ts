@@ -3,13 +3,13 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query"
-import type { OperatorParameter } from "../../client"
+import type { OperatorSpecParameter } from "../../client"
 import { PARAMETERS_QUERYKEY, PARAMETERS_STREAM } from "../../constants/nats"
 import { useNats } from "../../contexts/nats"
 
 export const useParameterUpdate = (
   operatorID: string,
-  parameter: OperatorParameter,
+  parameter: OperatorSpecParameter,
 ): UseMutationResult<void, Error, string> => {
   const { jetStreamClient } = useNats()
   const queryClient = useQueryClient()
