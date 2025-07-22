@@ -33,7 +33,10 @@ import {
 import { useDnD } from "../contexts/dnd"
 import useOperators from "../hooks/api/useOperators"
 import { usePipelineStore } from "../stores"
-import { DisplayNodeType, type OperatorNodeTypes } from "../types/nodes"
+import {
+  type OperatorNodeTypes,
+  displayNodeTypeFromLabel,
+} from "../types/nodes"
 import { layoutNodes } from "../utils/layout"
 import { fromPipelineJSON, toJSON } from "../utils/pipeline"
 import ImageNode from "./nodes/image"
@@ -104,7 +107,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       const pipelineJson = toJSON(currentNodes, currentEdges)
       addRevisionMutation.mutate({
         path: { id: currentPipelineId },
-        body: { data: pipelineJson.data },
+        body: { data: pipelineJson },
       })
     },
     [currentPipelineId, addRevisionMutation, isEditMode],
@@ -195,14 +198,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       }
       const position = screenToFlowPosition(screenPosition)
 
-      const labelToNodeTypeMap: {
-        [key: string]: DisplayNodeType.image | DisplayNodeType.table
-      } = {
-        Image: DisplayNodeType.image,
-        Table: DisplayNodeType.table,
-      }
-      const nodeType: OperatorNodeTypes["type"] =
-        labelToNodeTypeMap[op.label] ?? DisplayNodeType.operator
+      const nodeType = displayNodeTypeFromLabel(op.label)
 
       const newNode: OperatorNodeTypes = {
         id: generateID(),
@@ -212,6 +208,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         data: {
           spec_id: op.id,
           label: op.label,
+          description: op.description,
           image: op.image,
           inputs: op.inputs?.map(() => uuidv4()),
           outputs: op.outputs?.map(() => uuidv4()),
@@ -220,7 +217,8 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
             value: param.default,
           })),
           tags: op.tags ?? [],
-          type: nodeType,
+          node_type: "operator",
+          parallel_config: op.parallel_config,
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,

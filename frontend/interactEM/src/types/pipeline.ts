@@ -1,55 +1,10 @@
 import { z } from "zod"
-import type { OperatorParameter, OperatorTag } from "../client"
-import type { DisplayNodeType } from "./nodes"
+import type { CanonicalOperator, CanonicalPipelineData } from "../client"
 
-export interface PipelineWithID {
-  id: string
-  data: PipelineJSON["data"]
-}
-
-export type OperatorNodeData = {
-  label: string
-  image: string
-  inputs?: string[]
-  outputs?: string[]
-  parameters?: OperatorParameter[]
-  tags?: OperatorTag[]
-  type: DisplayNodeType
-}
-
-export interface OperatorJSON extends OperatorNodeData {
-  id: string
-
-  [x: string | number | symbol]: unknown
-}
-
-export interface EdgeJSON {
-  input_id: string
-  output_id: string
-
-  [x: string | number | symbol]: unknown
-}
-
-export type PortNodeType = "port"
-
-export interface PortJSON {
-  node_type: PortNodeType
-  id: string
-  operator_id: string
-  portkey: string
-  port_type: string
-
-  [x: string | number | symbol]: unknown
-}
-
-export interface PipelineData {
-  operators: OperatorJSON[]
-  ports: PortJSON[]
-  edges: EdgeJSON[]
-}
+export type OperatorNodeData = Omit<CanonicalOperator, "id">
 
 export interface PipelineJSON {
-  data: PipelineData
+  data: CanonicalPipelineData
 }
 
 export const PipelineRunSchema = z.object({
