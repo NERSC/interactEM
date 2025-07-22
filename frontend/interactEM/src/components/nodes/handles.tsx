@@ -8,8 +8,10 @@ interface HandlesProps {
 
 const Handles: React.FC<HandlesProps> = ({ inputs, outputs }) => (
   <>
-    {inputs && <Handle type="target" position={Position.Left} id={inputs[0]} />}
-    {outputs && (
+    {inputs && inputs.length > 0 && (
+      <Handle type="target" position={Position.Left} id={inputs[0]} />
+    )}
+    {outputs && outputs.length > 0 && (
       <Handle type="source" position={Position.Right} id={outputs[0]} />
     )}
   </>
