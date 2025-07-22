@@ -46,12 +46,15 @@ class RuntimeOperator(CanonicalOperator):
     ) -> "RuntimeOperator":
         return cls(
             id=runtime_id,
+            label=canonical_operator.label,
+            description=canonical_operator.description,
+            spec_id=canonical_operator.spec_id,
             canonical_id=canonical_operator.id,
             uri=uri,
             parallel_index=parallel_index,
             # Canonical fields
             image=canonical_operator.image,
-            parameters=canonical_operator.parameters,
+            parameters=canonical_operator.parameters,  # type: ignore
             inputs=canonical_operator.inputs,
             outputs=canonical_operator.outputs,
             tags=canonical_operator.tags,
@@ -61,8 +64,11 @@ class RuntimeOperator(CanonicalOperator):
     def to_canonical(self) -> CanonicalOperator:
         return CanonicalOperator(
             id=self.canonical_id,
+            label=self.label,
+            description=self.description,
+            spec_id=self.spec_id,
             image=self.image,
-            parameters=self.parameters,
+            parameters=self.parameters,  # type: ignore
             inputs=self.inputs,
             outputs=self.outputs,
             tags=self.tags,
@@ -94,7 +100,7 @@ class RuntimePort(CanonicalPort):
             id=runtime_id,
             canonical_id=canonical_port.id,
             operator_id=runtime_operator_id,
-            canonical_operator_id=canonical_port.operator_id,
+            canonical_operator_id=canonical_port.canonical_operator_id,
             uri=uri,
             port_type=canonical_port.port_type,
             portkey=canonical_port.portkey,
@@ -103,7 +109,7 @@ class RuntimePort(CanonicalPort):
     def to_canonical(self) -> CanonicalPort:
         return CanonicalPort(
             id=self.canonical_id,
-            operator_id=self.canonical_operator_id,
+            canonical_operator_id=self.canonical_operator_id,
             port_type=self.port_type,
             portkey=self.portkey,
         )

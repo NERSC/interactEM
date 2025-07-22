@@ -3,12 +3,7 @@ from collections.abc import Sequence
 from pydantic import BaseModel
 
 from interactem.core.models.base import IdType, NodeType, PortType
-from interactem.core.models.spec import (
-    OperatorSpecID,
-    OperatorSpecParameter,
-    OperatorSpecTag,
-    ParallelConfig,
-)
+from interactem.core.models.spec import OperatorSpec, OperatorSpecID, OperatorSpecTag
 
 """
 These models represent the canonical form a pipeline. This is what is stored in the db
@@ -38,17 +33,15 @@ class CanonicalOutput(CanonicalPort):
     port_type: PortType = PortType.output
 
 
-class CanonicalOperator(BaseModel):
+class CanonicalOperator(OperatorSpec):
     id: CanonicalOperatorID  # UID generated at DnD time in frontend
     spec_id: OperatorSpecID  # The operator spec ID this operator is based on
     node_type: NodeType = NodeType.operator
-    image: str  # Container image
     # tunable parameters for the operator
-    parameters: list[OperatorSpecParameter] | None = None
     inputs: list[CanonicalPortID] = []
     outputs: list[CanonicalPortID] = []
-    tags: list[OperatorSpecTag] = []  # Tags for agent matching
-    parallel_config: ParallelConfig | None = None  # Parallel execution configuration
+    tags: list[OperatorSpecTag] = []
+
 
     def update_parameter_value(self, name: str, value: str | None) -> None:
         for parameter in self.parameters or []:
