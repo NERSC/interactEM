@@ -121,9 +121,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       return
     }
 
-    // TODO: type pipeline data!
     const { nodes: importedNodes, edges: importedEdges } =
-      // @ts-expect-error Ignore type mismatch between PipelineRevisionPublic and PipelineJSON
       fromPipelineJSON(pipelineData)
 
     let layoutedNodes = importedNodes
