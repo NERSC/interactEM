@@ -55,32 +55,14 @@ class RuntimeOperator(CanonicalOperator):
     ) -> "RuntimeOperator":
         return cls(
             id=runtime_id,
-            label=canonical_operator.label,
-            description=canonical_operator.description,
-            spec_id=canonical_operator.spec_id,
             canonical_id=canonical_operator.id,
             parallel_index=parallel_index,
-            # Canonical fields
-            image=canonical_operator.image,
-            parameters=canonical_operator.parameters,  # type: ignore
-            inputs=canonical_operator.inputs,
-            outputs=canonical_operator.outputs,
-            tags=canonical_operator.tags,
-            parallel_config=canonical_operator.parallel_config,
+            **canonical_operator.model_dump(exclude={"id"}),
         )
 
     def to_canonical(self) -> CanonicalOperator:
         return CanonicalOperator(
-            id=self.canonical_id,
-            label=self.label,
-            description=self.description,
-            spec_id=self.spec_id,
-            image=self.image,
-            parameters=self.parameters,  # type: ignore
-            inputs=self.inputs,
-            outputs=self.outputs,
-            tags=self.tags,
-            parallel_config=self.parallel_config,
+            id=self.canonical_id, **self.model_dump(exclude={"id"})
         )
 
 
@@ -106,18 +88,11 @@ class RuntimePort(CanonicalPort):
             id=runtime_id,
             canonical_id=canonical_port.id,
             operator_id=runtime_operator_id,
-            canonical_operator_id=canonical_port.canonical_operator_id,
-            port_type=canonical_port.port_type,
-            portkey=canonical_port.portkey,
+            **canonical_port.model_dump(exclude={"id"}),
         )
 
     def to_canonical(self) -> CanonicalPort:
-        return CanonicalPort(
-            id=self.canonical_id,
-            canonical_operator_id=self.canonical_operator_id,
-            port_type=self.port_type,
-            portkey=self.portkey,
-        )
+        return CanonicalPort(id=self.canonical_id, **self.model_dump(exclude={"id"}))
 
 
 class RuntimeInput(RuntimePort):
