@@ -48,9 +48,12 @@ class CanonicalEdge(BaseModel):
     output_id: CanonicalPortID | CanonicalOperatorID
 
 
-class CanonicalPipeline(BaseModel):
-    id: CanonicalPipelineID
-    revision_id: int
+class CanonicalPipelineData(BaseModel):
     operators: Sequence[CanonicalOperator] = []
     ports: Sequence[CanonicalPort] = []
     edges: Sequence[CanonicalEdge] = []
+
+
+class CanonicalPipeline(CanonicalPipelineData):
+    id: CanonicalPipelineID
+    revision_id: int

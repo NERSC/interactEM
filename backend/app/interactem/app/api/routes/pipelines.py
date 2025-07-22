@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import ValidationError
 from sqlmodel import col, func, select
 
 from interactem.app.api.deps import CurrentUser, SessionDep
@@ -23,6 +24,7 @@ from interactem.app.models import (
     PipelineUpdate,
 )
 from interactem.core.logger import get_logger
+from interactem.core.models.canonical import CanonicalPipeline
 
 logger = get_logger()
 router = APIRouter()
@@ -151,6 +153,13 @@ def add_pipeline_revision(
         data=revision_in.data,
     )
     session.add(revision)
+
+    try:
+        CanonicalPipeline(
+            id=revision.pipeline_id, revision_id=revision.revision_id, **revision.data
+        )
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid pipeline data: {str(e)}")
 
     # Update the parent pipeline
     pipeline.data = revision_in.data

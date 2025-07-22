@@ -13,6 +13,7 @@ from sqlmodel import (
     SQLModel,
 )
 
+from interactem.core.models.canonical import CanonicalPipelineData
 from interactem.core.models.spec import OperatorSpec
 
 
@@ -102,6 +103,7 @@ class PipelineBase(SQLModel):
     name: str | None = Field(
         index=True, max_length=128, default="New Pipeline", nullable=True
     )
+    # we store as JSON, but validate as CanonicalPipelineData before
     data: dict[str, Any] = Field(sa_column=Column(JSON))
 
 
@@ -179,6 +181,7 @@ class PipelinePublic(PipelineBase):
     updated_at: datetime
     created_at: datetime
     current_revision_id: int
+    data: CanonicalPipelineData
 
 
 class PipelinesPublic(SQLModel):
@@ -189,7 +192,7 @@ class PipelinesPublic(SQLModel):
 class PipelineRevisionPublic(SQLModel):
     pipeline_id: uuid.UUID
     revision_id: int
-    data: dict[str, Any]
+    data: CanonicalPipelineData
     tag: str | None
     created_at: datetime
 
@@ -259,5 +262,5 @@ class PipelineDeploymentsPublic(SQLModel):
     count: int
 
 
-class Operators(BaseModel):
+class OperatorSpecs(BaseModel):
     data: list[OperatorSpec]
