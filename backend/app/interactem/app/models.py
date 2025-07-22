@@ -259,5 +259,5 @@ class PipelineDeploymentsPublic(SQLModel):
     count: int
 
 
-class Operators(BaseModel):
+class OperatorSpecs(BaseModel):
     data: list[OperatorSpec]

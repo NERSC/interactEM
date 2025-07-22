@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 
 from interactem.app.api.deps import CurrentUser
-from interactem.app.models import Operators
+from interactem.app.models import OperatorSpecs
 from interactem.app.operators import fetch_operators
 from interactem.core.logger import get_logger
 
@@ -12,8 +12,8 @@ router = APIRouter()
 _operators = None
 
 
-@router.get("/", response_model=Operators)
-async def read_operators(current_user: CurrentUser) -> Operators:
+@router.get("/", response_model=OperatorSpecs)
+async def read_operators(current_user: CurrentUser) -> OperatorSpecs:
     """
     Retrieve available operators.
     """
@@ -22,4 +22,4 @@ async def read_operators(current_user: CurrentUser) -> Operators:
     if _operators is None:
         _operators = await fetch_operators()
 
-    return Operators(data=_operators)
+    return OperatorSpecs(data=_operators)
