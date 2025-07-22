@@ -16,17 +16,17 @@ as json data. Frontend sends this data to app from wired up operators.
 """
 
 
-CanonicalOperatorID = OperatorSpecID
+CanonicalOperatorID = IdType
 CanonicalPortID = IdType
 CanonicalPipelineID = IdType
 CanonicalPipelineRevisionID = int
 
 
 class CanonicalPort(BaseModel):
-    id: CanonicalPortID
+    id: CanonicalPortID  # UID generated at DnD time in frontend
     node_type: NodeType = NodeType.port
     port_type: PortType
-    operator_id: OperatorSpecID  # The operator this port belongs to
+    canonical_operator_id: CanonicalOperatorID  # The operator this port belongs to
     portkey: str  # Unused currently, but can be used for port-port compatibility
 
 
@@ -39,7 +39,8 @@ class CanonicalOutput(CanonicalPort):
 
 
 class CanonicalOperator(BaseModel):
-    id: CanonicalOperatorID
+    id: CanonicalOperatorID  # UID generated at DnD time in frontend
+    spec_id: OperatorSpecID  # The operator spec ID this operator is based on
     node_type: NodeType = NodeType.operator
     image: str  # Container image
     # tunable parameters for the operator
