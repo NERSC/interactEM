@@ -13,6 +13,7 @@ from interactem.core.models.canonical import (
     CanonicalPortID,
 )
 from interactem.core.models.containers import MountMixin, NetworkMode
+from interactem.core.models.spec import OperatorSpecParameter
 from interactem.core.models.uri import OperatorURI, PipelineURI, PortURI
 
 """
@@ -26,15 +27,26 @@ RuntimeOperatorID = IdType
 RuntimePipelineID = IdType
 RuntimePortID = IdType
 
+class RuntimeOperatorParameter(OperatorSpecParameter):
+    value: str | None = None  # Value of the parameter at runtime
+
 
 class RuntimeOperator(CanonicalOperator):
     id: RuntimeOperatorID
     canonical_id: CanonicalOperatorID
     uri: OperatorURI | None = None
     parallel_index: int = 0
+    parameters: list[RuntimeOperatorParameter] | None = None  # Runtime parameters
     env: dict[str, str] = {}  # Environment variables to pass to the container
     command: str | list[str] = []  # Command to pass to the container
     network_mode: NetworkMode | None = None  # Network mode for the container
+
+    def update_parameter_value(self, name: str, value: str | None) -> None:
+        for parameter in self.parameters or []:
+            if parameter.name == name:
+                parameter.value = value
+                return
+        raise ValueError(f"Parameter '{name}' not found in operator.")
 
     @classmethod
     def from_canonical(

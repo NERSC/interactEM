@@ -43,14 +43,6 @@ class CanonicalOperator(OperatorSpec):
     tags: list[OperatorSpecTag] = []
 
 
-    def update_parameter_value(self, name: str, value: str | None) -> None:
-        for parameter in self.parameters or []:
-            if parameter.name == name:
-                parameter.value = value
-                return
-        raise ValueError(f"Parameter '{name}' not found in operator.")
-
-
 class CanonicalEdge(BaseModel):
     input_id: CanonicalPortID | CanonicalOperatorID
     output_id: CanonicalPortID | CanonicalOperatorID

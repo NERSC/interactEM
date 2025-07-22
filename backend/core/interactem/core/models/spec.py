@@ -41,7 +41,6 @@ class OperatorSpecParameter(BaseModel):
     type: ParameterSpecType  # Type of the parameter
     default: str  # Default value of the parameter
     required: bool  # If the parameter is required
-    value: str | None = None  # Value of the parameter
     options: list[str] | None = None  # List of options for STR_ENUM
 
 
