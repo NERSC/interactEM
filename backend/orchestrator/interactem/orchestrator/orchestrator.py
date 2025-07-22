@@ -379,7 +379,6 @@ class PipelineAssigner:
 
 async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info("Received pipeline run event...")
-    await msg.ack()
 
     try:
         event = PipelineDeploymentEvent.model_validate_json(msg.data)
