@@ -19,6 +19,39 @@ export type BodyLoginLoginAccessToken = {
   client_secret?: string | null
 }
 
+export type CanonicalEdge = {
+  input_id: string
+  output_id: string
+}
+
+export type CanonicalOperator = {
+  id: string
+  label: string
+  description: string
+  image: string
+  inputs?: Array<string>
+  outputs?: Array<string>
+  parameters?: Array<OperatorSpecParameter> | null
+  tags?: Array<OperatorSpecTag>
+  parallel_config?: ParallelConfig | null
+  spec_id: string
+  node_type?: NodeType
+}
+
+export type CanonicalPipelineData = {
+  operators?: Array<CanonicalOperator>
+  ports?: Array<CanonicalPort>
+  edges?: Array<CanonicalEdge>
+}
+
+export type CanonicalPort = {
+  id: string
+  node_type?: NodeType
+  port_type: PortType
+  canonical_operator_id: string
+  portkey: string
+}
+
 export type ComputeType = "gpu" | "cpu"
 
 export type HttpValidationError = {
@@ -34,48 +67,56 @@ export type NewPassword = {
   new_password: string
 }
 
-export type Operator = {
+export type NodeType = "operator" | "port"
+
+export type OperatorSpec = {
   id: string
   label: string
   description: string
   image: string
-  inputs?: Array<OperatorInput> | null
-  outputs?: Array<OperatorOutput> | null
-  parameters?: Array<OperatorParameter> | null
-  tags?: Array<OperatorTag> | null
+  inputs?: Array<OperatorSpecInput> | null
+  outputs?: Array<OperatorSpecOutput> | null
+  parameters?: Array<OperatorSpecParameter> | null
+  tags?: Array<OperatorSpecTag> | null
+  parallel_config?: ParallelConfig | null
 }
 
-export type OperatorInput = {
+export type OperatorSpecInput = {
   label: string
   description: string
 }
 
-export type OperatorOutput = {
+export type OperatorSpecOutput = {
   label: string
   description: string
 }
 
-export type OperatorParameter = {
+export type OperatorSpecParameter = {
   name: string
   label: string
   description: string
-  type: ParameterType
+  type: ParameterSpecType
   default: string
   required: boolean
-  value?: string | null
   options?: Array<string> | null
 }
 
-export type OperatorTag = {
+export type OperatorSpecTag = {
   value: string
   description?: string | null
 }
 
-export type Operators = {
-  data: Array<Operator>
+export type OperatorSpecs = {
+  data: Array<OperatorSpec>
 }
 
-export type ParameterType =
+export type ParallelConfig = {
+  type?: ParallelType
+}
+
+export type ParallelType = "none" | "embarrassing"
+
+export type ParameterSpecType =
   | "str"
   | "int"
   | "float"
@@ -120,9 +161,7 @@ export type PipelineDeploymentsPublic = {
 
 export type PipelinePublic = {
   name?: string | null
-  data: {
-    [key: string]: unknown
-  }
+  data: CanonicalPipelineData
   id: string
   owner_id: string
   updated_at: string
@@ -139,9 +178,7 @@ export type PipelineRevisionCreate = {
 export type PipelineRevisionPublic = {
   pipeline_id: string
   revision_id: number
-  data: {
-    [key: string]: unknown
-  }
+  data: CanonicalPipelineData
   tag: string | null
   created_at: string
 }
@@ -158,6 +195,8 @@ export type PipelinesPublic = {
   data: Array<PipelinePublic>
   count: number
 }
+
+export type PortType = "input" | "output"
 
 export type PublicHost = "dtn01" | "dtns" | "perlmutter"
 
@@ -1113,7 +1152,7 @@ export type OperatorsReadOperatorsResponses = {
   /**
    * Successful Response
    */
-  200: Operators
+  200: OperatorSpecs
 }
 
 export type OperatorsReadOperatorsResponse =

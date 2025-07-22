@@ -1270,7 +1270,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Operators" }
+                "schema": { "$ref": "#/components/schemas/OperatorSpecs" }
               }
             }
           }
@@ -1359,6 +1359,118 @@
         "required": ["username", "password"],
         "title": "Body_login-login_access_token"
       },
+      "CanonicalEdge": {
+        "properties": {
+          "input_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Input Id"
+          },
+          "output_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Output Id"
+          }
+        },
+        "type": "object",
+        "required": ["input_id", "output_id"],
+        "title": "CanonicalEdge"
+      },
+      "CanonicalOperator": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "label": { "type": "string", "title": "Label" },
+          "description": { "type": "string", "title": "Description" },
+          "image": { "type": "string", "title": "Image" },
+          "inputs": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "title": "Inputs",
+            "default": []
+          },
+          "outputs": {
+            "items": { "type": "string", "format": "uuid" },
+            "type": "array",
+            "title": "Outputs",
+            "default": []
+          },
+          "parameters": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/OperatorSpecParameter"
+                },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Parameters"
+          },
+          "tags": {
+            "items": { "$ref": "#/components/schemas/OperatorSpecTag" },
+            "type": "array",
+            "title": "Tags",
+            "default": []
+          },
+          "parallel_config": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/ParallelConfig" },
+              { "type": "null" }
+            ]
+          },
+          "spec_id": { "type": "string", "format": "uuid", "title": "Spec Id" },
+          "node_type": {
+            "$ref": "#/components/schemas/NodeType",
+            "default": "operator"
+          }
+        },
+        "type": "object",
+        "required": ["id", "label", "description", "image", "spec_id"],
+        "title": "CanonicalOperator"
+      },
+      "CanonicalPipelineData": {
+        "properties": {
+          "operators": {
+            "items": { "$ref": "#/components/schemas/CanonicalOperator" },
+            "type": "array",
+            "title": "Operators",
+            "default": []
+          },
+          "ports": {
+            "items": { "$ref": "#/components/schemas/CanonicalPort" },
+            "type": "array",
+            "title": "Ports",
+            "default": []
+          },
+          "edges": {
+            "items": { "$ref": "#/components/schemas/CanonicalEdge" },
+            "type": "array",
+            "title": "Edges",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "CanonicalPipelineData"
+      },
+      "CanonicalPort": {
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "title": "Id" },
+          "node_type": {
+            "$ref": "#/components/schemas/NodeType",
+            "default": "port"
+          },
+          "port_type": { "$ref": "#/components/schemas/PortType" },
+          "canonical_operator_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Canonical Operator Id"
+          },
+          "portkey": { "type": "string", "title": "Portkey" }
+        },
+        "type": "object",
+        "required": ["id", "port_type", "canonical_operator_id", "portkey"],
+        "title": "CanonicalPort"
+      },
       "ComputeType": {
         "type": "string",
         "enum": ["gpu", "cpu"],
@@ -1395,7 +1507,12 @@
         "required": ["token", "new_password"],
         "title": "NewPassword"
       },
-      "Operator": {
+      "NodeType": {
+        "type": "string",
+        "enum": ["operator", "port"],
+        "title": "NodeType"
+      },
+      "OperatorSpec": {
         "properties": {
           "id": { "type": "string", "format": "uuid", "title": "Id" },
           "label": { "type": "string", "title": "Label" },
@@ -1404,7 +1521,7 @@
           "inputs": {
             "anyOf": [
               {
-                "items": { "$ref": "#/components/schemas/OperatorInput" },
+                "items": { "$ref": "#/components/schemas/OperatorSpecInput" },
                 "type": "array"
               },
               { "type": "null" }
@@ -1414,7 +1531,7 @@
           "outputs": {
             "anyOf": [
               {
-                "items": { "$ref": "#/components/schemas/OperatorOutput" },
+                "items": { "$ref": "#/components/schemas/OperatorSpecOutput" },
                 "type": "array"
               },
               { "type": "null" }
@@ -1424,7 +1541,9 @@
           "parameters": {
             "anyOf": [
               {
-                "items": { "$ref": "#/components/schemas/OperatorParameter" },
+                "items": {
+                  "$ref": "#/components/schemas/OperatorSpecParameter"
+                },
                 "type": "array"
               },
               { "type": "null" }
@@ -1434,48 +1553,50 @@
           "tags": {
             "anyOf": [
               {
-                "items": { "$ref": "#/components/schemas/OperatorTag" },
+                "items": { "$ref": "#/components/schemas/OperatorSpecTag" },
                 "type": "array"
               },
               { "type": "null" }
             ],
             "title": "Tags"
+          },
+          "parallel_config": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/ParallelConfig" },
+              { "type": "null" }
+            ]
           }
         },
         "type": "object",
         "required": ["id", "label", "description", "image"],
-        "title": "Operator"
+        "title": "OperatorSpec"
       },
-      "OperatorInput": {
+      "OperatorSpecInput": {
         "properties": {
           "label": { "type": "string", "title": "Label" },
           "description": { "type": "string", "title": "Description" }
         },
         "type": "object",
         "required": ["label", "description"],
-        "title": "OperatorInput"
+        "title": "OperatorSpecInput"
       },
-      "OperatorOutput": {
+      "OperatorSpecOutput": {
         "properties": {
           "label": { "type": "string", "title": "Label" },
           "description": { "type": "string", "title": "Description" }
         },
         "type": "object",
         "required": ["label", "description"],
-        "title": "OperatorOutput"
+        "title": "OperatorSpecOutput"
       },
-      "OperatorParameter": {
+      "OperatorSpecParameter": {
         "properties": {
           "name": { "type": "string", "title": "Name" },
           "label": { "type": "string", "title": "Label" },
           "description": { "type": "string", "title": "Description" },
-          "type": { "$ref": "#/components/schemas/ParameterType" },
+          "type": { "$ref": "#/components/schemas/ParameterSpecType" },
           "default": { "type": "string", "title": "Default" },
           "required": { "type": "boolean", "title": "Required" },
-          "value": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Value"
-          },
           "options": {
             "anyOf": [
               { "items": { "type": "string" }, "type": "array" },
@@ -1493,9 +1614,9 @@
           "default",
           "required"
         ],
-        "title": "OperatorParameter"
+        "title": "OperatorSpecParameter"
       },
-      "OperatorTag": {
+      "OperatorSpecTag": {
         "properties": {
           "value": { "type": "string", "title": "Value" },
           "description": {
@@ -1505,24 +1626,39 @@
         },
         "type": "object",
         "required": ["value"],
-        "title": "OperatorTag"
+        "title": "OperatorSpecTag"
       },
-      "Operators": {
+      "OperatorSpecs": {
         "properties": {
           "data": {
-            "items": { "$ref": "#/components/schemas/Operator" },
+            "items": { "$ref": "#/components/schemas/OperatorSpec" },
             "type": "array",
             "title": "Data"
           }
         },
         "type": "object",
         "required": ["data"],
-        "title": "Operators"
+        "title": "OperatorSpecs"
       },
-      "ParameterType": {
+      "ParallelConfig": {
+        "properties": {
+          "type": {
+            "$ref": "#/components/schemas/ParallelType",
+            "default": "none"
+          }
+        },
+        "type": "object",
+        "title": "ParallelConfig"
+      },
+      "ParallelType": {
+        "type": "string",
+        "enum": ["none", "embarrassing"],
+        "title": "ParallelType"
+      },
+      "ParameterSpecType": {
         "type": "string",
         "enum": ["str", "int", "float", "bool", "mount", "str-enum"],
-        "title": "ParameterType"
+        "title": "ParameterSpecType"
       },
       "PipelineCreate": {
         "properties": {
@@ -1619,11 +1755,7 @@
             "title": "Name",
             "default": "New Pipeline"
           },
-          "data": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Data"
-          },
+          "data": { "$ref": "#/components/schemas/CanonicalPipelineData" },
           "id": { "type": "string", "format": "uuid", "title": "Id" },
           "owner_id": {
             "type": "string",
@@ -1676,11 +1808,7 @@
             "title": "Pipeline Id"
           },
           "revision_id": { "type": "integer", "title": "Revision Id" },
-          "data": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Data"
-          },
+          "data": { "$ref": "#/components/schemas/CanonicalPipelineData" },
           "tag": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Tag"
@@ -1734,6 +1862,11 @@
         "type": "object",
         "required": ["data", "count"],
         "title": "PipelinesPublic"
+      },
+      "PortType": {
+        "type": "string",
+        "enum": ["input", "output"],
+        "title": "PortType"
       },
       "PublicHost": {
         "type": "string",
