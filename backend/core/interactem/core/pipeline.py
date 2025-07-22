@@ -202,7 +202,6 @@ class Pipeline(nx.DiGraph):
                 canonical_operator=operator,
                 runtime_id=runtime_op_id,
                 parallel_index=parallel_index,
-                uri=None,  # Will be assigned during agent assignment
             )
 
             runtime_operators.append(runtime_op)
@@ -235,7 +234,6 @@ class Pipeline(nx.DiGraph):
                     canonical_port=canonical_port,
                     runtime_id=runtime_port_id,
                     runtime_operator_id=runtime_op.id,
-                    uri=None,  # Will be assigned during agent assignment
                 )
 
                 runtime_ports.append(runtime_port)
