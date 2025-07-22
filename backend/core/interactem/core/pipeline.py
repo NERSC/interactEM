@@ -218,11 +218,11 @@ class Pipeline(nx.DiGraph):
 
         for canonical_port in ports:
             # Get the runtime operators for this port's canonical operator
-            runtime_ops = operator_mapping.get(canonical_port.operator_id, [])
+            runtime_ops = operator_mapping.get(canonical_port.canonical_operator_id, [])
 
             if not runtime_ops:
                 logger.warning(
-                    f"No runtime operators found for canonical operator {canonical_port.operator_id}"
+                    f"No runtime operators found for canonical operator {canonical_port.canonical_operator_id}"
                 )
                 continue
 
