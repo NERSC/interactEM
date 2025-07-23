@@ -3,6 +3,12 @@ from uuid import UUID
 
 IdType = UUID
 
+class PipelineDeploymentState(str, Enum):
+    PENDING = "pending"
+    FAILED_TO_START = "failed_to_start"
+    RUNNING = "running"
+    CANCELLED = "cancelled"
+
 
 class CommBackend(str, Enum):
     ZMQ = "zmq"

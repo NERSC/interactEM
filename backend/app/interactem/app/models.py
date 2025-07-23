@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Any
 
 import sqlalchemy as sa
@@ -13,6 +12,7 @@ from sqlmodel import (
     SQLModel,
 )
 
+from interactem.core.models.base import PipelineDeploymentState
 from interactem.core.models.canonical import CanonicalPipelineData
 from interactem.core.models.spec import OperatorSpec
 
@@ -195,13 +195,6 @@ class PipelineRevisionPublic(SQLModel):
     data: CanonicalPipelineData
     tag: str | None
     created_at: datetime
-
-
-class PipelineDeploymentState(str, Enum):
-    PENDING = "pending"
-    FAILED_TO_START = "failed_to_start"
-    RUNNING = "running"
-    CANCELLED = "cancelled"
 
 
 class PipelineDeployment(SQLModel, table=True):
