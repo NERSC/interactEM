@@ -25,6 +25,12 @@ PIPELINES_STREAM_CONFIG = StreamConfig(
     subjects=[f"{STREAM_PIPELINES}.>"],
 )
 
+PIPELINES_FASTSTREAM_CONFIG = JStream(
+    name=STREAM_PIPELINES,
+    description="A stream for pipeline messages",
+    subjects=[f"{STREAM_PIPELINES}.>"],
+)
+
 IMAGES_STREAM_CONFIG = StreamConfig(
     name=STREAM_IMAGES,
     description="A stream for images.",

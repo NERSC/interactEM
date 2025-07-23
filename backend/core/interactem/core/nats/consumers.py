@@ -40,6 +40,10 @@ PIPELINE_CONSUMER_CONFIG = ConsumerConfig(
     deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
 )
 
+PIPELINE_UPDATE_CONSUMER_CONFIG = ConsumerConfig(
+    deliver_policy=DeliverPolicy.NEW,
+)
+
 METRICS_CONSUMER_CONFIG = ConsumerConfig(
     deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
 )

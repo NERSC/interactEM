@@ -244,19 +244,14 @@ def read_pipeline_deployment(
     return PipelineDeploymentPublic.model_validate(deployment)
 
 
-@router.patch("/{id}", response_model=PipelineDeploymentPublic)
-async def update_pipeline_deployment(
-    *,
+async def _handle_update_pipeline_state(
     session: SessionDep,
-    current_user: CurrentUser,
-    id: uuid.UUID,
+    deployment: PipelineDeployment,
     update: PipelineDeploymentUpdate,
 ) -> PipelineDeploymentPublic:
     """
     Update a pipeline deployment state with proper transition logic and event publishing.
     """
-    deployment = session.get(PipelineDeployment, id)
-    deployment = check_deployment_authorized(deployment, current_user, id)
 
     # Store the previous state for transition logic
     previous_state = deployment.state
@@ -289,3 +284,20 @@ async def update_pipeline_deployment(
         )
 
     return PipelineDeploymentPublic.model_validate(deployment)
+
+
+@router.patch("/{id}", response_model=PipelineDeploymentPublic)
+async def update_pipeline_deployment(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    update: PipelineDeploymentUpdate,
+) -> PipelineDeploymentPublic:
+    """
+    Update a pipeline deployment state with proper transition logic and event publishing.
+    """
+    deployment = session.get(PipelineDeployment, id)
+    deployment = check_deployment_authorized(deployment, current_user, id)
+
+    return await _handle_update_pipeline_state(session, deployment, update)
