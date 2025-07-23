@@ -417,17 +417,6 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     )
     agent_vals = [agent_info for agent_info in agent_vals if agent_info]
 
-    if not agent_vals:
-        logger.warning(
-            f"No agents available to run pipeline {pipeline.id}. Assignment skipped."
-        )
-        publish_error(
-            js,
-            "Pipeline cannot be assigned: no agents available.",
-            task_refs=task_refs,
-        )
-        return
-
     try:
         assigner = PipelineAssigner(agent_vals, pipeline)
     except CyclicDependenciesError as e:
