@@ -419,10 +419,6 @@ class ZmqMessenger(BaseMessenger):
         for output in pipeline.get_operator_outputs(self._id).values():
             self._output_ports[output.id] = output
 
-        # TODO: we need to create a socket for each set of downstream ports
-        # e.g., if this port will go out to two different operators (not parallel)
-        # then we need a socket for each of those operators per connected port
-        # this is because we need to duplicate the sends for each operator
         for output_port in self._output_ports.values():
             self.add_output_socket(output_port)
 
