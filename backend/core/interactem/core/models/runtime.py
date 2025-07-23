@@ -1,3 +1,4 @@
+import uuid
 from collections.abc import Sequence
 
 from pydantic import BaseModel
@@ -65,6 +66,19 @@ class RuntimeOperator(CanonicalOperator):
             id=self.canonical_id, **self.model_dump(exclude={"id"})
         )
 
+    @classmethod
+    def replicate_from_canonical(
+        cls, operator: CanonicalOperator, num_replicas: int
+    ) -> list["RuntimeOperator"]:
+        return [
+            cls.from_canonical(
+                canonical_operator=operator,
+                runtime_id=uuid.uuid4(),
+                parallel_index=parallel_index,
+            )
+            for parallel_index in range(num_replicas)
+        ]
+
 
 class AgentRuntimeOperator(RuntimeOperator, MountMixin):
     # We need to check resolve mounts on the agent side
@@ -76,6 +90,11 @@ class RuntimePort(CanonicalPort):
     canonical_id: CanonicalPortID
     operator_id: RuntimeOperatorID  # The operator this port belongs to
     canonical_operator_id: CanonicalOperatorID
+
+    # We want to store which canonical operator this port targets at runtime
+    # This is useful for when we are expanding the pipeline
+    # and we need to know which operator this port is connected to
+    targets_canonical_operator_id: CanonicalOperatorID | None = None
 
     @classmethod
     def from_canonical(
