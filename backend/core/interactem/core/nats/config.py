@@ -1,3 +1,4 @@
+from faststream.nats import JStream
 from nats.js.api import RetentionPolicy, StreamConfig
 
 from interactem.core.constants import (
@@ -39,6 +40,12 @@ METRICS_STREAM_CONFIG = StreamConfig(
 )
 
 AGENTS_STREAM_CONFIG = StreamConfig(
+    name=STREAM_AGENTS,
+    description="A stream for messages to the agents.",
+    subjects=[f"{STREAM_AGENTS}.>"],
+)
+
+AGENTS_FASTSTREAM_CONFIG = JStream(
     name=STREAM_AGENTS,
     description="A stream for messages to the agents.",
     subjects=[f"{STREAM_AGENTS}.>"],

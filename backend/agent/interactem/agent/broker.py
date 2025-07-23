@@ -8,6 +8,7 @@ from interactem.core.constants import STREAM_AGENTS, STREAM_NOTIFICATIONS
 from interactem.core.logger import get_logger
 from interactem.core.models.runtime import PipelineAssignment
 from interactem.core.nats.broker import get_nats_broker
+from interactem.core.nats.config import AGENTS_FASTSTREAM_CONFIG
 from interactem.core.nats.consumers import AGENT_CONSUMER_CONFIG
 
 from .agent import Agent, cfg
@@ -44,12 +45,6 @@ async def on_shutdown(agent: Agent = Context()):
     await agent.shutdown()
 
 
-AGENT_JSTREAM = JStream(
-    name=STREAM_AGENTS,
-    description="A stream for messages to the agents.",
-    subjects=[f"{STREAM_AGENTS}.>"],
-)
-
 agent_consumer_config = AGENT_CONSUMER_CONFIG
 agent_consumer_config.description = f"agent-{AGENT_ID}"
 
@@ -71,7 +66,7 @@ progress_dep = Depends(progress)
 
 
 @broker.subscriber(
-    stream=AGENT_JSTREAM,
+    stream=AGENTS_FASTSTREAM_CONFIG,
     subject=f"{STREAM_AGENTS}.{AGENT_ID}",
     config=agent_consumer_config,
     pull_sub=True,
