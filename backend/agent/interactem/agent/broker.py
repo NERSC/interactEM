@@ -4,45 +4,13 @@ from faststream import Context, ContextRepo, Depends, FastStream
 from faststream.nats import JStream, NatsBroker, NatsMessage
 from nats.js.api import RetentionPolicy
 
-from interactem.core.config import cfg as nats_cfg
 from interactem.core.constants import STREAM_AGENTS, STREAM_NOTIFICATIONS
 from interactem.core.logger import get_logger
 from interactem.core.models.runtime import PipelineAssignment
+from interactem.core.nats.broker import get_nats_broker
 from interactem.core.nats.consumers import AGENT_CONSUMER_CONFIG
 
 from .agent import Agent, cfg
-
-
-def get_nats_broker(servers: list[str], name: str) -> NatsBroker:
-    options_map = {
-        nats_cfg.NATS_SECURITY_MODE.NKEYS: {
-            "nkeys_seed_str": nats_cfg.NKEYS_SEED_STR,
-        },
-        nats_cfg.NATS_SECURITY_MODE.CREDS: {
-            "user_credentials": str(nats_cfg.NATS_CREDS_FILE),
-        },
-    }
-    options = options_map[nats_cfg.NATS_SECURITY_MODE]
-
-    async def disconnected_cb():
-        logger.info("NATS disconnected.")
-
-    async def reconnected_cb():
-        logger.info("NATS reconnected.")
-
-    async def closed_cb():
-        logger.info("NATS connection closed.")
-
-    return NatsBroker(
-        servers=servers,
-        name=name,
-        allow_reconnect=True,
-        reconnected_cb=reconnected_cb,
-        disconnected_cb=disconnected_cb,
-        closed_cb=closed_cb,
-        **options,  # type: ignore[call-arg]
-    )
-
 
 logger = get_logger()
 AGENT_ID = cfg.ID
