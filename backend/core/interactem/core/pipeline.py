@@ -71,7 +71,7 @@ class Pipeline(nx.DiGraph):
         self._operator_graph = nx.DiGraph()
         self._needs_rebuild = True
 
-    def _try_get_id(self, id: IdName) -> IdType:
+    def _try_get_id(self, id: IdName):
         """Helper to safely get the ID from the graph attributes."""
         try:
             return self.graph[id.value]
@@ -81,17 +81,17 @@ class Pipeline(nx.DiGraph):
     @property
     def id(self) -> RuntimePipelineID:
         """Returns the ID of the pipeline graph stored in graph attributes."""
-        self._try_get_id(IdName.RUNTIME)
+        return self._try_get_id(IdName.RUNTIME)
 
     @property
     def canonical_id(self) -> CanonicalPipelineID:
         """Returns the canonical ID of the pipeline graph."""
-        self._try_get_id(IdName.CANONICAL)
+        return self._try_get_id(IdName.CANONICAL)
 
     @property
     def revision_id(self) -> int:
         """Returns the revision ID of the pipeline graph."""
-        self._try_get_id(IdName.REVISION)
+        return self._try_get_id(IdName.REVISION)
 
     @classmethod
     def from_pipeline(
