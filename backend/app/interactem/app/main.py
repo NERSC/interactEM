@@ -8,6 +8,7 @@ from starlette.middleware.cors import CORSMiddleware
 
 from interactem.app.api.main import api_router
 from interactem.app.core.config import settings
+from interactem.app.events.consumer import broker
 from interactem.app.events.producer import start as start_producer
 from interactem.app.events.producer import stop as stop_producer
 
@@ -25,6 +26,9 @@ async def lifespan(app: FastAPI):
     logger.info("--------------------")
     logger.info("Starting event producer...")
     await start_producer()
+    logger.info("Event producer started")
+    await broker.start()
+    logger.info("Broker started")
 
     yield
 
@@ -32,6 +36,10 @@ async def lifespan(app: FastAPI):
     logger.info("--------------------")
     logger.info("Stopping event producer...")
     await stop_producer()
+    logger.info("Event producer stopped")
+    logger.info("Stopping broker...")
+    await broker.stop()
+    logger.info("Broker stopped")
 
 
 if settings.SENTRY_DSN and settings.ENVIRONMENT != "local":

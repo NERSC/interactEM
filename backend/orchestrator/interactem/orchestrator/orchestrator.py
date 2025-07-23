@@ -13,16 +13,19 @@ from interactem.core.constants import (
     BUCKET_AGENTS_TTL,
     BUCKET_PIPELINES,
     BUCKET_PIPELINES_TTL,
+    NATS_API_KEY_HEADER,
     STREAM_AGENTS,
     SUBJECT_PIPELINES_RUN,
     SUBJECT_PIPELINES_STOP,
+    SUBJECT_PIPELINES_UPDATES,
 )
 from interactem.core.events.pipelines import (
     PipelineDeploymentEvent,
     PipelineStopEvent,
+    PipelineUpdateEvent,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models.base import IdType
+from interactem.core.models.base import IdType, PipelineDeploymentState
 from interactem.core.models.canonical import CanonicalPipeline
 from interactem.core.models.kvs import AgentVal, PipelineRunVal
 from interactem.core.models.runtime import PipelineAssignment, RuntimeOperator
@@ -42,6 +45,7 @@ from interactem.core.nats.config import (
     AGENTS_STREAM_CONFIG,
     OPERATORS_STREAM_CONFIG,
     PIPELINES_STREAM_CONFIG,
+    STREAM_PIPELINES,
 )
 from interactem.core.nats.consumers import create_orchestrator_pipeline_consumer
 from interactem.core.pipeline import Pipeline
@@ -104,6 +108,19 @@ async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
             await update_pipeline_kv(js, pipeline)
         logger.debug(f"Updated {len(pipelines)} pipelines in KV store.")
         await asyncio.sleep(interval)
+
+async def update_pipeline_status(
+    js: JetStreamContext,
+    event: PipelineDeploymentEvent,
+    state: PipelineDeploymentState,
+):
+    update_event = PipelineUpdateEvent(deployment_id=event.deployment_id, state=state)
+    await js.publish(
+        SUBJECT_PIPELINES_UPDATES,
+        stream=STREAM_PIPELINES,
+        payload=update_event.model_dump_json().encode(),
+        headers={NATS_API_KEY_HEADER: cfg.ORCHESTRATOR_API_KEY},
+    )
 
 
 async def clean_up_old_pipelines(
@@ -428,6 +445,8 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
             "Pipeline cannot be assigned: cyclic dependencies in pipeline.",
             task_refs=task_refs,
         )
+        await update_pipeline_status(js, event, PipelineDeploymentState.FAILED_TO_START)
+
         return
     except NoAgentsError:
         logger.exception(
@@ -438,6 +457,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
             "Pipeline cannot be assigned: no agents available.",
             task_refs=task_refs,
         )
+        await update_pipeline_status(js, event, PipelineDeploymentState.FAILED_TO_START)
         return
 
     try:
@@ -449,6 +469,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
             "Pipeline cannot be assigned: unassignable operators.",
             task_refs=task_refs,
         )
+        await update_pipeline_status(js, event, PipelineDeploymentState.FAILED_TO_START)
         return
     except NetworkPreferenceError:
         logger.exception(f"Pipeline {pipeline.id} has network preference violations.")
@@ -457,6 +478,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
             "Pipeline cannot be assigned: network preference violations.",
             task_refs=task_refs,
         )
+        await update_pipeline_status(js, event, PipelineDeploymentState.FAILED_TO_START)
         return
 
     await asyncio.gather(
@@ -471,6 +493,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info(f"Updated KV store with pipeline {valid_pipeline.id}.")
 
     logger.info(f"Pipeline run event for {valid_pipeline.id} processed.")
+
 
 async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info("Received pipeline stop event...")
