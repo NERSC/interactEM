@@ -448,22 +448,22 @@ class ZmqMessenger(BaseMessenger):
 
         await self.port_kv_loop.update_now()
 
-        def get_metrics_for_all_sockets() -> dict[PortValKey, PortMetrics]:
-            metrics_data: dict[PortValKey, PortMetrics] = {}
+        def get_metrics_for_all_sockets() -> dict[str, PortMetrics]:
+            metrics_data: dict[str, PortMetrics] = {}
 
             for id, socket in self.input_sockets.items():
                 if socket is None:
                     logger.warning(f"No input socket found for port {id}")
                     continue
                 k = PortValKey(id=id, operator_id=self._id)
-                metrics_data[k] = socket.metrics
+                metrics_data[str(k)] = socket.metrics
 
             for id, socket in self.output_sockets.items():
                 if socket is None:
                     logger.warning(f"No output socket found for port {id}")
                     continue
                 k = PortValKey(id=id, operator_id=self._id)
-                metrics_data[k] = socket.metrics
+                metrics_data[str(k)] = socket.metrics
 
             return metrics_data
 
@@ -472,12 +472,9 @@ class ZmqMessenger(BaseMessenger):
             lambda: self._update_metrics(get_metrics_for_all_sockets())
         )
 
-    async def _update_metrics(
-        self, metrics_dict: dict[PortValKey, PortMetrics]
-    ) -> None:
+    async def _update_metrics(self, metrics_dict: dict[str, PortMetrics]) -> None:
         if self.port_metrics_kv_loop:
-            for key, metrics in metrics_dict.items():
-                key_str = str(key)
+            for key_str, metrics in metrics_dict.items():
                 self.port_metrics_kv_loop.add_or_update_value(key_str, metrics)
 
     # TODO: implement
