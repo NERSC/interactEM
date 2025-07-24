@@ -646,3 +646,14 @@ class Pipeline(nx.DiGraph):
         if not edge:
             raise ValueError(f"Edge not found between {input_id} and {output_id}")
         return RuntimeEdge(**edge)
+
+    def count_replicated_outputs(self, operator_id: IdType) -> dict[IdType, int]:
+        """Count how many runtime outputs target each canonical operator."""
+        outputs = self.get_operator_outputs(operator_id)
+        target_counts: dict[IdType, int] = {}
+        for output in outputs.values():
+            if output.targets_canonical_operator_id:
+                target_counts[output.targets_canonical_operator_id] = (
+                    target_counts.get(output.targets_canonical_operator_id, 0) + 1
+                )
+        return target_counts
