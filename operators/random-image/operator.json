@@ -29,11 +29,11 @@
       "required": true
     },
     {
-      "name": "internal",
-      "label": "Internal",
+      "name": "interval",
+      "label": "Interval",
       "type": "int",
       "default": "2",
-      "description": "The internal at which to generate the image",
+      "description": "The interval at which to generate the image",
       "required": true
     }
   ]
