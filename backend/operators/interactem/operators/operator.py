@@ -26,12 +26,6 @@ from interactem.core.constants import (
     STREAM_OPERATORS,
     STREAM_PARAMETERS_UPDATE,
 )
-from interactem.core.events.operators import (
-    OperatorErrorEvent,
-    OperatorErrorType,
-    OperatorEvent,
-    OperatorRunningEvent,
-)
 from interactem.core.logger import get_logger
 from interactem.core.models import CommBackend
 from interactem.core.models.kvs import (
@@ -190,7 +184,7 @@ class OperatorMixin(RunnableKernel):
             canonical_id=self.info.canonical_id,
             timing=OperatorTiming(),
         )
-        self.metrics_kv.add_or_update_value(self.id, self.metrics)
+        self.metrics_kv.add_or_update_value(self.metrics.key(), self.metrics)
         await self.metrics_kv.start()
         self.operator_kv = KeyValueLoop[OperatorVal](
             self.nc,
@@ -210,7 +204,7 @@ class OperatorMixin(RunnableKernel):
             runtime_pipeline_id=self.pipeline.id,
             canonical_pipeline_id=self.pipeline.canonical_id,
         )
-        self.operator_kv.add_or_update_value(self.id, self.val)
+        self.operator_kv.add_or_update_value(self.val.key(), self.val)
         await self.operator_kv.start()
         await self.operator_kv.update_now()
 
@@ -462,7 +456,8 @@ class OperatorMixin(RunnableKernel):
             raise ValueError("Metrics not initialized")
         has_input = True if len(self.messenger.input_ports) > 0 else False
         error_count, max_retries, error_state = 0, 10, False
-        await self._publish_running()
+        self.val.status = OperatorStatus.RUNNING
+        await self.operator_kv.update_now()
         while not self._shutdown_event.is_set():
             tasks: list[Coroutine] = []
             msg = None
@@ -494,7 +489,8 @@ class OperatorMixin(RunnableKernel):
                 logger.error(f"Error in kernel: {e}")
                 if not error_state:
                     error_state = True
-                    await self._publish_error(OperatorErrorType.PROCESSING, str(e))
+                    self.val.add_error(str(e))
+                    await self.operator_kv.update_now()
 
                 error_count += 1
                 if error_count >= max_retries:
@@ -510,7 +506,8 @@ class OperatorMixin(RunnableKernel):
             # we need to publish that we are running again
             if error_state and processed_msg:
                 error_state = False
-                tasks.append(self._publish_running())
+                self.val.clear_errors()
+                await self.operator_kv.update_now()
 
             if processed_msg:
                 processed_msg.header.tracking = _tracking
@@ -553,24 +550,6 @@ class OperatorMixin(RunnableKernel):
             payload=msg.header.model_dump_json().encode(),
         )
 
-    async def _publish_error(self, type: OperatorErrorType, message: str | None = None):
-        event = OperatorErrorEvent(
-            error_type=type, operator_id=self.id, message=message
-        )
-        await self._publish_operator_event(event)
-
-    async def _publish_running(self):
-        event = OperatorRunningEvent(operator_id=self.id)
-        await self._publish_operator_event(event)
-
-    async def _publish_operator_event(self, event: OperatorEvent):
-        if not self.js:
-            logger.warning("JetStream context not initialized...")
-            return
-        await self.js.publish(
-            subject=f"{STREAM_OPERATORS}.{self.id}.events",
-            payload=event.model_dump_json().encode(),
-        )
 
     def _update_metrics(
         self,

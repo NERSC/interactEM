@@ -72,10 +72,10 @@ class NetworkPreferenceError(Exception):
 
 
 async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
-    pipeline_bucket = await get_pipelines_bucket(js)
-    await pipeline_bucket.delete(str(pipeline_id))
-    await pipeline_bucket.purge(str(pipeline_id))
     pipeline_bucket = await get_status_bucket(js)
+    key = f"{PIPELINES}.{str(pipeline_id)}"  # TODO: use PipelineRunVal.key() instead
+    await pipeline_bucket.delete(key)
+    await pipeline_bucket.purge(key)
 
 
 async def update_pipeline_kv(
@@ -87,8 +87,8 @@ async def update_pipeline_kv(
             canonical_id=pipeline.canonical_id,
             canonical_revision_id=pipeline.revision_id,
         )
-    await pipeline_bucket.put(str(pipeline.id), pipeline.model_dump_json().encode())
     pipeline_bucket = await get_status_bucket(js)
+    await pipeline_bucket.put(pipeline.key(), pipeline.model_dump_json().encode())
 
 
 async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
@@ -115,8 +115,8 @@ async def update_pipeline_status(
 async def clean_up_old_pipelines(
     js: JetStreamContext, valid_pipeline: CanonicalPipeline
 ):
-    current_pipeline_keys = await get_keys(pipelines_bucket)
     bucket = await get_status_bucket(js)
+    current_pipeline_keys = await get_keys(bucket, filters=[f"{PIPELINES}"])
     delete_tasks = []
     for key in current_pipeline_keys:
         if key != str(valid_pipeline.id):
@@ -416,7 +416,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     )
     bucket = await get_status_bucket(js)
 
-    agent_keys = await get_keys(bucket)
+    agent_keys = await get_keys(bucket, filters=[f"{AGENTS}"])
 
     agent_vals = await asyncio.gather(
         *[get_val(bucket, agent, AgentVal) for agent in agent_keys]
@@ -506,14 +506,16 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
     publish_notification(js=js, msg="Pipeline stopped", task_refs=task_refs)
 
     # Send stop command (empty assignment) to all agents
-    agent_keys = await get_keys(agents_bucket)
-    agents_bucket = await get_status_bucket(js)
+    status_bucket = await get_status_bucket(js)
+    agent_keys = await get_keys(status_bucket, filters=[f"{AGENTS}"])
 
     if not agent_keys:
         logger.warning(
             f"No agents found to send stop command for pipeline {deployment_id}."
         )
         return
+
+    agent_ids = [UUID(agent_key.strip(f"{AGENTS}.")) for agent_key in agent_keys]
 
     # Create a runtime pipeline w/o operators for killing the pipelin
 
@@ -530,11 +532,11 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
 
     stop_assignments = [
         PipelineAssignment(
-            agent_id=UUID(agent_key),
+            agent_id=agent_id,
             operators_assigned=[],
             pipeline=runtime_pipeline,
         )
-        for agent_key in agent_keys
+        for agent_id in agent_ids
     ]
 
     publish_tasks = [

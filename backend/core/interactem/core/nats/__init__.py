@@ -90,9 +90,9 @@ async def get_metrics_bucket(js: JetStreamContext) -> KeyValue:
     return await create_bucket_if_doesnt_exist(js, BUCKET_METRICS, BUCKET_METRICS_TTL)
 
 
-async def get_keys(bucket: KeyValue) -> list[str]:
+async def get_keys(bucket: KeyValue, filters: list[str] = []) -> list[str]:
     try:
-        keys = await bucket.keys()
+        keys = await bucket.keys(filters=filters)
     except NoKeysError:
         return []
     return keys

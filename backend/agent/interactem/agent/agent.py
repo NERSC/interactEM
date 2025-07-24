@@ -227,7 +227,7 @@ class Agent:
             data_model=AgentVal,
         )
         self.agent_kv.before_update_callbacks.append(self._update_agent_state)
-        self.agent_kv.add_or_update_value(self.id, self.agent_val)
+        self.agent_kv.add_or_update_value(self.agent_val.key(), self.agent_val)
 
         await self.agent_kv.start()
         self._container_monitor_task = await asyncio.create_task(
