@@ -68,7 +68,6 @@ class ZmqMessenger(BaseMessenger):
     def __init__(
         self,
         operator_id: RuntimeOperatorID,
-        parallel_index: int,
         js: JetStreamContext,
     ):
         self._input_ports: dict[RuntimePortID, RuntimeInput] = {}
@@ -80,7 +79,6 @@ class ZmqMessenger(BaseMessenger):
         self.upstream_port_map: dict[UpstreamPortID, list[ThisOperatorPortID]] = {}
         self._context: Context = Context.instance()
         self._id: RuntimeOperatorID = operator_id
-        self._parallel_index: int = parallel_index
         self.js: JetStreamContext = js
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self.recv_queue: asyncio.Queue[BytesMessage] = asyncio.Queue()
