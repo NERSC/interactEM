@@ -37,11 +37,9 @@ const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
   )
 }
 
-export const DeploymentManagementPanel: React.FC<DeploymentManagementPanelProps> = ({
-  open,
-  onClose,
-  onRevisionClick,
-}) => {
+export const DeploymentManagementPanel: React.FC<
+  DeploymentManagementPanelProps
+> = ({ open, onClose, onRevisionClick }) => {
   const { currentPipelineId } = usePipelineStore()
   const [currentTab, setCurrentTab] = useState(0)
 
@@ -126,11 +124,15 @@ export const DeploymentManagementButton: React.FC<{
         size="small"
         onClick={onClick}
         sx={{
-          backgroundColor: hasActiveDeployments ? "success.main" : "transparent",
+          backgroundColor: hasActiveDeployments
+            ? "success.main"
+            : "transparent",
           color: hasActiveDeployments ? "success.contrastText" : "inherit",
           marginX: 0.5,
           "&:hover": {
-            backgroundColor: hasActiveDeployments ? "success.dark" : "action.hover",
+            backgroundColor: hasActiveDeployments
+              ? "success.dark"
+              : "action.hover",
             color: hasActiveDeployments ? "success.contrastText" : "inherit",
           },
         }}

@@ -1,7 +1,7 @@
 import { z } from "zod"
-import {
-  type RuntimeOperatorParameterAck,
-  type RuntimeOperatorParameterUpdate,
+import type {
+  RuntimeOperatorParameterAck,
+  RuntimeOperatorParameterUpdate,
 } from "./gen"
 
 export const RuntimeOperatorParameterUpdateSchema = z.object({

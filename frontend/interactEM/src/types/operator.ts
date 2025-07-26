@@ -1,6 +1,6 @@
 import { z } from "zod"
-import { OperatorStatus } from "./gen"
 import type { OperatorVal } from "./gen"
+import { OperatorStatus } from "./gen"
 
 export const OperatorStatusSchema = z.nativeEnum(OperatorStatus)
 

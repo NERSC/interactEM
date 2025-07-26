@@ -1,12 +1,11 @@
 import { useMemo } from "react"
-import { useRunningPipelines } from "./useRunningPipelines"
-import { useBucketWatch } from "./useBucketWatch"
-import { OperatorVal } from "../../types/gen"
 import { BUCKET_STATUS, OPERATORS } from "../../constants/nats"
+import type { OperatorVal } from "../../types/gen"
 import { OperatorValSchema } from "../../types/operator"
+import { useBucketWatch } from "./useBucketWatch"
+import { useRunningPipelines } from "./useRunningPipelines"
 
 export const useOperatorStatus = (operatorID: string) => {
-
   const { items: operatorVals, isLoading } = useBucketWatch<OperatorVal>({
     bucketName: `${BUCKET_STATUS}`,
     schema: OperatorValSchema,

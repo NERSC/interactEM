@@ -23,7 +23,10 @@ import { useActivePipeline } from "../../hooks/api/useActivePipeline"
 import { useInfiniteActiveDeployments } from "../../hooks/api/useDeploymentsQuery"
 import { usePipelineStore } from "../../stores"
 import { DeletePipelineButton } from "./deletebutton"
-import { DeploymentManagementButton, DeploymentManagementPanel } from "./deploymentmanagementpanel"
+import {
+  DeploymentManagementButton,
+  DeploymentManagementPanel,
+} from "./deploymentmanagementpanel"
 import { PipelineEditDialog } from "./editdialog"
 import { LaunchPipelineButton } from "./launchbutton"
 import { PipelineList } from "./list"
@@ -36,7 +39,8 @@ export const PipelineHud: React.FC = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isRevisionPopoverOpen, setIsRevisionPopoverOpen] = useState(false)
   const [isPipelineDrawerOpen, setIsPipelineDrawerOpen] = useState(false)
-  const [isDeploymentManagementOpen, setIsDeploymentManagementOpen] = useState(false)
+  const [isDeploymentManagementOpen, setIsDeploymentManagementOpen] =
+    useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const revisionButtonRef = useRef<HTMLButtonElement | null>(null)
 
