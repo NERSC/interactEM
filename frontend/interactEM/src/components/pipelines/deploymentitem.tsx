@@ -2,7 +2,10 @@ import { Done, Error as ErrorIcon, PlayArrow } from "@mui/icons-material"
 import { Box, Chip, ListItem, ListItemText, Typography } from "@mui/material"
 import { formatDistanceToNow } from "date-fns"
 import type React from "react"
-import type { PipelineDeploymentPublic, PipelineDeploymentState } from "../../client"
+import type {
+  PipelineDeploymentPublic,
+  PipelineDeploymentState,
+} from "../../client"
 import { usePipelineName } from "../../hooks/api/usePipelineQuery"
 import {
   formatDeploymentState,
@@ -17,7 +20,9 @@ interface DeploymentItemProps {
   onDeploymentClick?: (deployment: PipelineDeploymentPublic) => void
 }
 
-const STATE_ICONS: Partial<Record<PipelineDeploymentState, React.ReactElement>> = {
+const STATE_ICONS: Partial<
+  Record<PipelineDeploymentState, React.ReactElement>
+> = {
   running: <PlayArrow fontSize="small" />,
   cancelled: <Done fontSize="small" />,
   failed_to_start: <ErrorIcon fontSize="small" />,

@@ -6,168 +6,168 @@
 */
 
 export interface AgentVal {
-  name?: string | null;
-  uri: URI;
-  status: AgentStatus;
-  status_message?: string | null;
-  tags?: string[];
-  networks: string[];
-  pipeline_id?: string | null;
-  operator_assignments?: string[] | null;
-  uptime?: number;
-  error_messages?: AgentErrorMessage[];
+  name?: string | null
+  uri: URI
+  status: AgentStatus
+  status_message?: string | null
+  tags?: string[]
+  networks: string[]
+  pipeline_id?: string | null
+  operator_assignments?: string[] | null
+  uptime?: number
+  error_messages?: AgentErrorMessage[]
 }
 export interface URI {
-  id: string;
-  location: URILocation;
-  hostname: string;
-  comm_backend: CommBackend;
+  id: string
+  location: URILocation
+  hostname: string
+  comm_backend: CommBackend
   query?: {
-    [k: string]: string[];
-  };
-  [k: string]: unknown;
+    [k: string]: string[]
+  }
+  [k: string]: unknown
 }
 export interface AgentErrorMessage {
-  message: string;
-  timestamp?: number;
-  [k: string]: unknown;
+  message: string
+  timestamp?: number
+  [k: string]: unknown
 }
 export interface OperatorErrorEvent {
-  type?: OperatorEventType;
-  operator_id: string;
-  error_type: OperatorErrorType;
-  message?: string | null;
+  type?: OperatorEventType
+  operator_id: string
+  error_type: OperatorErrorType
+  message?: string | null
 }
 export interface OperatorRunningEvent {
-  type?: OperatorEventType;
-  operator_id: string;
+  type?: OperatorEventType
+  operator_id: string
 }
 export interface OperatorVal {
-  id: string;
-  canonical_id: string;
-  status: OperatorStatus;
-  canonical_pipeline_id: string;
-  runtime_pipeline_id: string;
+  id: string
+  canonical_id: string
+  status: OperatorStatus
+  canonical_pipeline_id: string
+  runtime_pipeline_id: string
 }
 export interface PipelineDeploymentEvent {
-  type?: PipelineEventType;
-  canonical_id: string;
-  revision_id: number;
-  deployment_id: string;
+  type?: PipelineEventType
+  canonical_id: string
+  revision_id: number
+  deployment_id: string
   data: {
-    [k: string]: unknown;
-  };
+    [k: string]: unknown
+  }
 }
 export interface PipelineRunVal {
-  id: string;
-  canonical_id: string;
-  canonical_revision_id: number;
+  id: string
+  canonical_id: string
+  canonical_revision_id: number
 }
 export interface PipelineStopEvent {
-  type?: PipelineEventType;
-  deployment_id: string;
+  type?: PipelineEventType
+  deployment_id: string
 }
 export interface PortVal {
-  id: string;
-  canonical_id: string;
-  uri?: URI | null;
-  status?: PortStatus | null;
+  id: string
+  canonical_id: string
+  uri?: URI | null
+  status?: PortStatus | null
 }
 export interface RuntimeEdge {
-  input_id: string;
-  output_id: string;
+  input_id: string
+  output_id: string
 }
 export interface RuntimeOperator {
-  id: string;
-  label: string;
-  description: string;
-  image: string;
-  inputs?: string[];
-  outputs?: string[];
-  parameters?: RuntimeOperatorParameter[] | null;
-  tags?: OperatorSpecTag[];
-  parallel_config?: ParallelConfig | null;
-  spec_id: string;
-  node_type?: NodeType;
-  canonical_id: string;
-  parallel_index?: number;
+  id: string
+  label: string
+  description: string
+  image: string
+  inputs?: string[]
+  outputs?: string[]
+  parameters?: RuntimeOperatorParameter[] | null
+  tags?: OperatorSpecTag[]
+  parallel_config?: ParallelConfig | null
+  spec_id: string
+  node_type?: NodeType
+  canonical_id: string
+  parallel_index?: number
   env?: {
-    [k: string]: string;
-  };
-  command?: string | string[];
-  network_mode?: NetworkMode | null;
+    [k: string]: string
+  }
+  command?: string | string[]
+  network_mode?: NetworkMode | null
 }
 export interface RuntimeOperatorParameter {
-  name: string;
-  label: string;
-  description: string;
-  type: ParameterSpecType;
-  default: string;
-  required: boolean;
-  options?: string[] | null;
-  value?: string | null;
-  [k: string]: unknown;
+  name: string
+  label: string
+  description: string
+  type: ParameterSpecType
+  default: string
+  required: boolean
+  options?: string[] | null
+  value?: string | null
+  [k: string]: unknown
 }
 export interface OperatorSpecTag {
-  value: string;
-  description?: string | null;
-  [k: string]: unknown;
+  value: string
+  description?: string | null
+  [k: string]: unknown
 }
 export interface ParallelConfig {
-  type?: ParallelType;
-  [k: string]: unknown;
+  type?: ParallelType
+  [k: string]: unknown
 }
 export interface RuntimePipeline {
-  operators?: RuntimeOperator[];
-  ports?: RuntimePort[];
-  edges?: RuntimeEdge[];
-  id: string;
-  revision_id: number;
-  canonical_id: string;
+  operators?: RuntimeOperator[]
+  ports?: RuntimePort[]
+  edges?: RuntimeEdge[]
+  id: string
+  revision_id: number
+  canonical_id: string
 }
 export interface RuntimePort {
-  id: string;
-  node_type?: NodeType;
-  port_type: PortType;
-  canonical_operator_id: string;
-  portkey: string;
-  canonical_id: string;
-  operator_id: string;
+  id: string
+  node_type?: NodeType
+  port_type: PortType
+  canonical_operator_id: string
+  portkey: string
+  canonical_id: string
+  operator_id: string
 }
 
 export enum URILocation {
   operator = "operator",
   port = "port",
   agent = "agent",
-  orchestrator = "orchestrator"
+  orchestrator = "orchestrator",
 }
 export enum CommBackend {
   zmq = "zmq",
   mpi = "mpi",
-  nats = "nats"
+  nats = "nats",
 }
 export enum AgentStatus {
   initializing = "initializing",
   idle = "idle",
   busy = "busy",
   error = "error",
-  shutting_down = "shutting_down"
+  shutting_down = "shutting_down",
 }
 
 export enum OperatorErrorType {
-  processing = "processing"
+  processing = "processing",
 }
 
 export enum OperatorStatus {
   initializing = "initializing",
   running = "running",
-  shutting_down = "shutting_down"
+  shutting_down = "shutting_down",
 }
 
 export enum PortStatus {
   initializing = "initializing",
   idle = "idle",
-  busy = "busy"
+  busy = "busy",
 }
 export enum ParameterSpecType {
   str = "str",
@@ -175,11 +175,11 @@ export enum ParameterSpecType {
   float = "float",
   bool = "bool",
   mount = "mount",
-  "str-enum" = "str-enum"
+  "str-enum" = "str-enum",
 }
 export enum ParallelType {
   none = "none",
-  embarrassing = "embarrassing"
+  embarrassing = "embarrassing",
 }
 
 export enum NetworkMode {
@@ -187,26 +187,26 @@ export enum NetworkMode {
   none = "none",
   container = "container",
   host = "host",
-  ns = "ns"
+  ns = "ns",
 }
 
 export enum NodeType {
   operator = "operator",
-  port = "port"
+  port = "port",
 }
 
 export enum PortType {
   input = "input",
-  output = "output"
+  output = "output",
 }
 
 export enum OperatorEventType {
   running = "running",
   stopped = "stopped",
-  error = "error"
+  error = "error",
 }
 
 export enum PipelineEventType {
   pipeline_run = "pipeline_run",
-  pipeline_stop = "pipeline_stop"
+  pipeline_stop = "pipeline_stop",
 }
