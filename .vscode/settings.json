@@ -12,10 +12,6 @@
       },
       "editor.defaultFormatter": "golang.go",
     },
-    "[typescript]": {
-      "editor.defaultFormatter": "biomejs.biome"
-    },
-    "[typescriptreact]": {
-      "editor.defaultFormatter": "biomejs.biome"
-    },
+    "biome.enabled": false,
+    "prettier.enable": false
   }
