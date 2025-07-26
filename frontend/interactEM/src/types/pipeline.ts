@@ -1,15 +1,14 @@
 import { z } from "zod"
 import type { CanonicalOperator, CanonicalPipelineData } from "../client"
-
+import type { PipelineRunVal } from "./gen"
 export type OperatorNodeData = Omit<CanonicalOperator, "id">
 
 export interface PipelineJSON {
   data: CanonicalPipelineData
 }
 
-export const PipelineRunSchema = z.object({
+export const PipelineRunValSchema = z.object({
   id: z.string().uuid(),
-  revision_id: z.number().int(),
-})
-
-export type PipelineRun = z.infer<typeof PipelineRunSchema>
+  canonical_id: z.string().uuid(),
+  canonical_revision_id: z.number().int(),
+}) satisfies z.ZodType<PipelineRunVal>

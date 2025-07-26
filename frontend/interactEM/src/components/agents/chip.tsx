@@ -1,12 +1,12 @@
 import Chip from "@mui/material/Chip"
 import Tooltip from "@mui/material/Tooltip"
-import type { Agent } from "../../types/agent"
+import type { AgentVal } from "../../types/gen"
 import { getAgentStatusColor } from "../../utils/statusColor"
 import { StatusDot } from "../statusdot"
 import AgentTooltip from "./tooltip"
 
 interface AgentChipProps {
-  agent: Agent
+  agent: AgentVal
 }
 
 export default function AgentChip({ agent }: AgentChipProps) {

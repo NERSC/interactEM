@@ -1,5 +1,5 @@
 import { Badge, Tooltip } from "@mui/material"
-import type { AgentStatus } from "../types/agent"
+import type { AgentStatus } from "../types/gen"
 import { getAgentStatusColor } from "../utils/statusColor"
 
 type StatusDotProps = {

@@ -1,5 +1,5 @@
 import type { Node } from "@xyflow/react"
-import type { Agent } from "./agent"
+import type { AgentValType } from "./agent"
 import type { OperatorNodeData } from "./pipeline"
 
 export enum DisplayNodeType {
@@ -15,7 +15,7 @@ export type ImageNodeType = Node<OperatorNodeData, DisplayNodeType.image>
 
 export type TableNodeType = Node<OperatorNodeData, DisplayNodeType.table>
 
-export type AgentNodeType = Node<Agent, DisplayNodeType.agent>
+export type AgentNodeType = Node<AgentValType, DisplayNodeType.agent>
 
 export type AnyNodeType =
   | OperatorNodeType

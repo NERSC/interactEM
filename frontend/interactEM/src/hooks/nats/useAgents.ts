@@ -1,5 +1,6 @@
 import { AGENTS_BUCKET } from "../../constants/nats"
-import { type AgentVal, AgentValSchema } from "../../types/agent"
+import { AgentValSchema } from "../../types/agent"
+import type { AgentVal } from "../../types/gen"
 import { useBucketWatch } from "./useBucketWatch"
 
 export const useAgents = () => {

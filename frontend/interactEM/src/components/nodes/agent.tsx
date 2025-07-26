@@ -2,7 +2,7 @@ import { Typography } from "@mui/material"
 import type { NodeProps } from "@xyflow/react"
 import { NodeResizer, useReactFlow } from "@xyflow/react"
 import { useCallback } from "react"
-import { AgentStatus } from "../../types/agent"
+import { AgentStatus } from "../../types/gen"
 import { type AgentNodeType, DisplayNodeType } from "../../types/nodes"
 import AgentTooltip from "../agents/tooltip"
 import { StatusDot } from "../statusdot"
@@ -24,7 +24,7 @@ const AgentNode = ({ data, id, selected }: NodeProps<AgentNodeType>) => {
 
   const hasErrors = data.error_messages && data.error_messages.length > 0
   const effectiveStatus =
-    data.status === "idle" && hasErrors ? AgentStatus.BUSY : data.status
+    data.status === "idle" && hasErrors ? AgentStatus.busy : data.status
 
   // Function to layout child nodes when agent node is double-clicked
   const handleDoubleClick = useCallback(() => {
