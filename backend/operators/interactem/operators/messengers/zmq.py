@@ -10,7 +10,6 @@ import nats.js.errors
 import nats.js.kv
 import zmq
 from nats.js import JetStreamContext
-from pydantic import BaseModel
 
 from interactem.core.logger import get_logger
 from interactem.core.models.base import IdType, Protocol
@@ -44,24 +43,6 @@ logger = get_logger()
 
 UpstreamPortID = RuntimePortID
 ThisOperatorPortID = RuntimePortID
-
-
-class PortValKey(BaseModel):
-    """This goes on the OPERATORS bucket, which also has plain OPERATORS
-    so we need to uniquely identify the port on a runtime operator"""
-
-    id: ThisOperatorPortID
-    operator_id: RuntimeOperatorID
-
-    def __str__(self):
-        return f"{self.operator_id}.{self.id}"
-
-    @classmethod
-    def from_str(cls, key_str: str) -> "PortValKey":
-        operator_id, port_id = key_str.split(".")
-        return cls(
-            id=RuntimePortID(port_id), operator_id=RuntimeOperatorID(operator_id)
-        )
 
 
 class ZmqMessenger(BaseMessenger):
@@ -208,7 +189,7 @@ class ZmqMessenger(BaseMessenger):
             nc=self.js._nc,
             js=self.js,
             shutdown_event=self._shutdown_event,
-            bucket=InteractemBucket.OPERATORS,
+            bucket=InteractemBucket.STATUS,
             update_interval=1.0,
             data_model=PortVal,
         )

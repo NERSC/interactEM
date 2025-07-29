@@ -17,9 +17,6 @@ from stamina.instrumentation import set_on_retry_hooks
 
 from interactem.core.constants import (
     OPERATOR_ID_ENV_VAR,
-    STREAM_OPERATORS,
-    STREAM_PARAMETERS,
-    STREAM_PARAMETERS_UPDATE,
 )
 from interactem.core.constants.mounts import CORE_MOUNT, OPERATORS_MOUNT
 from interactem.core.logger import get_logger
@@ -34,11 +31,16 @@ from interactem.core.models.runtime import (
     PipelineAssignment,
     RuntimeOperator,
     RuntimeOperatorID,
+    RuntimeOperatorParameter,
 )
-from interactem.core.models.spec import OperatorSpecParameter, ParameterSpecType
+from interactem.core.models.spec import ParameterSpecType
 from interactem.core.models.uri import URI, CommBackend, URILocation
-from interactem.core.nats.consumers import PARAMETER_CONSUMER_CONFIG
+from interactem.core.nats.consumers import create_agent_mount_consumer
 from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
+from interactem.core.nats.publish import (
+    create_agent_mount_publisher,
+    publish_pipeline_to_operators,
+)
 from interactem.core.pipeline import Pipeline
 from interactem.core.util import create_task_with_ref
 
@@ -220,7 +222,7 @@ class Agent:
             nc=self.nc,
             js=self.js,
             shutdown_event=self._shutdown_event,
-            bucket=InteractemBucket.AGENTS,
+            bucket=InteractemBucket.STATUS,
             update_interval=10.0,
             data_model=AgentVal,
         )
@@ -319,6 +321,8 @@ class Agent:
                     for param in operator.parameters:
                         if not param.type == ParameterSpecType.MOUNT:
                             continue
+                        # TODO: this should be done once for the
+                        # same canonical ID
                         tracker.add_parameter_task(
                             asyncio.create_task(self.remount_task(tracker, param))
                         )
@@ -358,30 +362,25 @@ class Agent:
         container.start()
 
         # Publish pipeline to JetStream
-        await self.broker.publish(
-            subject=f"{STREAM_OPERATORS}.{operator.id}",
-            message=self.pipeline.to_runtime().model_dump_json(),
-        )
+        await publish_pipeline_to_operators(self.broker, self.pipeline, operator.id)
         logger.debug(f"Published pipeline for operator {operator.id}")
         logger.debug(f"Pipeline: {self.pipeline.to_runtime().model_dump_json()}")
 
         return operator, container
 
     async def remount_task(
-        self, tracker: ContainerTracker, parameter: OperatorSpecParameter
+        self, tracker: ContainerTracker, parameter: RuntimeOperatorParameter
     ):
         operator = tracker.operator
-        sub = self.broker.subscriber(
-            subject=f"{STREAM_PARAMETERS}.{operator.id}.{parameter.name}",
-            stream=STREAM_PARAMETERS,
-            description=f"agent-{self.id}-{operator.id}-{parameter.name}",
-            config=PARAMETER_CONSUMER_CONFIG,
-            pull_sub=True,
+        sub = create_agent_mount_consumer(
+            self.broker, self.id, operator.canonical_id, parameter
         )
-        pub = self.broker.publisher(
-            stream=STREAM_PARAMETERS,
-            subject=f"{STREAM_PARAMETERS_UPDATE}.{operator.id}.{parameter.name}",
+        pub = create_agent_mount_publisher(
+            self.broker,
+            operator.id,
+            parameter.name,
         )
+
         self.broker.setup_publisher(pub)
 
         async def handler(msg: dict[str, Any]):

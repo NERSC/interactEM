@@ -1,15 +1,15 @@
 import asyncio
 
 from faststream import Context, ContextRepo, Depends, FastStream
-from faststream.nats import JStream, NatsBroker, NatsMessage
-from nats.js.api import RetentionPolicy
+from faststream.nats import NatsBroker, NatsMessage
 
-from interactem.core.constants import STREAM_AGENTS, STREAM_NOTIFICATIONS
+from interactem.core.constants import SUBJECT_AGENTS_DEPLOYMENTS
 from interactem.core.logger import get_logger
 from interactem.core.models.runtime import PipelineAssignment
 from interactem.core.nats.broker import get_nats_broker
-from interactem.core.nats.config import AGENTS_FASTSTREAM_CONFIG
+from interactem.core.nats.config import DEPLOYMENTS_JSTREAM
 from interactem.core.nats.consumers import AGENT_CONSUMER_CONFIG
+from interactem.core.nats.publish import create_agent_error_publisher
 
 from .agent import Agent, cfg
 
@@ -19,16 +19,9 @@ broker = get_nats_broker(servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{AGENT
 
 app = FastStream(broker=broker)
 
-NOTIFICATIONS_JSTREAM = JStream(
-    name=STREAM_NOTIFICATIONS,
-    description="A stream for notifications.",
-    subjects=[f"{STREAM_NOTIFICATIONS}.>"],
-    retention=RetentionPolicy.INTEREST,
-)
-
-error_pub = broker.publisher(
-    stream=NOTIFICATIONS_JSTREAM,
-    subject=f"{STREAM_NOTIFICATIONS}.errors",
+error_pub = create_agent_error_publisher(
+    broker=broker,
+    agent_id=AGENT_ID,
 )
 
 
@@ -66,8 +59,8 @@ progress_dep = Depends(progress)
 
 
 @broker.subscriber(
-    stream=AGENTS_FASTSTREAM_CONFIG,
-    subject=f"{STREAM_AGENTS}.{AGENT_ID}",
+    stream=DEPLOYMENTS_JSTREAM,
+    subject=f"{SUBJECT_AGENTS_DEPLOYMENTS}.{AGENT_ID}",
     config=agent_consumer_config,
     pull_sub=True,
     dependencies=[progress_dep],

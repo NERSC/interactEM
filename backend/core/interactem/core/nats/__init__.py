@@ -5,14 +5,10 @@ from interactem.core.util import create_task_with_ref
 import nats
 
 from interactem.core.constants import (
-    BUCKET_AGENTS,
-    BUCKET_AGENTS_TTL,
     BUCKET_METRICS,
     BUCKET_METRICS_TTL,
-    BUCKET_OPERATORS,
-    BUCKET_OPERATORS_TTL,
-    BUCKET_PIPELINES,
-    BUCKET_PIPELINES_TTL,
+    BUCKET_STATUS,
+    BUCKET_STATUS_TTL,
     SUBJECT_NOTIFICATIONS_ERRORS,
     SUBJECT_NOTIFICATIONS_INFO,
 )
@@ -31,6 +27,15 @@ from nats.js.errors import KeyNotFoundError
 
 from interactem.core.logger import get_logger
 from interactem.core.config import cfg
+from .config import (
+    SFAPI_STREAM_CONFIG,
+    DEPLOYMENTS_STREAM_CONFIG,
+    IMAGES_STREAM_CONFIG,
+    NOTIFICATIONS_STREAM_CONFIG,
+    PARAMETERS_STREAM_CONFIG,
+    TABLE_STREAM_CONFIG,
+    METRICS_STREAM_CONFIG,
+)
 
 ValType = TypeVar("ValType", bound=BaseModel)
 logger = get_logger()
@@ -77,20 +82,8 @@ async def create_bucket_if_doesnt_exist(
     return kv
 
 
-async def get_agents_bucket(js: JetStreamContext) -> KeyValue:
-    return await create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL)
-
-
-async def get_operators_bucket(js: JetStreamContext) -> KeyValue:
-    return await create_bucket_if_doesnt_exist(
-        js, BUCKET_OPERATORS, BUCKET_OPERATORS_TTL
-    )
-
-
-async def get_pipelines_bucket(js: JetStreamContext) -> KeyValue:
-    return await create_bucket_if_doesnt_exist(
-        js, BUCKET_PIPELINES, BUCKET_PIPELINES_TTL
-    )
+async def get_status_bucket(js: JetStreamContext) -> KeyValue:
+    return await create_bucket_if_doesnt_exist(js, BUCKET_STATUS, BUCKET_STATUS_TTL)
 
 
 async def get_metrics_bucket(js: JetStreamContext) -> KeyValue:
@@ -170,6 +163,46 @@ async def create_or_update_stream(
         raise RuntimeError(f"Stream info could not be obtained for stream {cfg.name}")
 
     return stream_info
+
+async def create_all_streams(js: JetStreamContext) -> list[StreamInfo]:
+    stream_infos: list[StreamInfo] = []
+    tasks: set[asyncio.Task] = set()
+    create_task_with_ref(
+        tasks,
+        create_or_update_stream(DEPLOYMENTS_STREAM_CONFIG, js),
+    )
+    create_task_with_ref(
+        tasks,
+        create_or_update_stream(SFAPI_STREAM_CONFIG, js),
+    )
+    create_task_with_ref(
+        tasks,
+        create_or_update_stream(TABLE_STREAM_CONFIG, js),
+    )
+    create_task_with_ref(
+        tasks,
+        create_or_update_stream(IMAGES_STREAM_CONFIG, js),
+    )
+    create_task_with_ref(
+        tasks,
+        create_or_update_stream(PARAMETERS_STREAM_CONFIG, js),
+    )
+    create_task_with_ref(
+        tasks,
+        create_or_update_stream(NOTIFICATIONS_STREAM_CONFIG, js),
+    )
+    create_task_with_ref(
+        tasks,
+        create_or_update_stream(METRICS_STREAM_CONFIG, js),
+    )
+    try:
+        stream_infos = await asyncio.gather(*tasks)
+        logger.info(f"All streams created or updated successfully.")
+    except Exception as e:
+        logger.error(f"Failed to create or update streams: {e}")
+        raise
+    return stream_infos
+
 
 def publish_error(js: JetStreamContext, msg: str, task_refs: Set[asyncio.Task]) -> None:
     create_task_with_ref(

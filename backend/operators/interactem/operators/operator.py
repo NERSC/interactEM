@@ -196,7 +196,7 @@ class OperatorMixin(RunnableKernel):
             self.nc,
             self.js,
             shutdown_event=self._shutdown_event,
-            bucket=InteractemBucket.OPERATORS,
+            bucket=InteractemBucket.STATUS,
             update_interval=5.0,
             data_model=OperatorVal,
         )
