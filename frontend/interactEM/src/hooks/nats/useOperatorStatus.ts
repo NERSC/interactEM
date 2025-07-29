@@ -1,23 +1,31 @@
 import { useMemo } from "react"
-import { OPERATORS_BUCKET } from "../../constants/nats"
-import { type OperatorVal, OperatorValSchema } from "../../types/operator"
-import { useBucketWatch } from "./useBucketWatch"
 import { useRunningPipelines } from "./useRunningPipelines"
+import { useBucketWatch } from "./useBucketWatch"
+import { OperatorVal } from "../../types/gen"
+import { BUCKET_STATUS, OPERATORS } from "../../constants/nats"
+import { OperatorValSchema } from "../../types/operator"
 
 export const useOperatorStatus = (operatorID: string) => {
-  const { items: operatorStatuses, isLoading } = useBucketWatch<OperatorVal>({
-    bucketName: OPERATORS_BUCKET,
+
+  const { items: operatorVals, isLoading } = useBucketWatch<OperatorVal>({
+    bucketName: `${BUCKET_STATUS}`,
     schema: OperatorValSchema,
-    keyFilter: operatorID,
+    // TODO: come back when we revisit runtime pipelines in frontend
+    keyFilter: `${OPERATORS}.>`,
+    stripPrefix: OPERATORS,
   })
 
   const { pipelines } = useRunningPipelines()
 
+  // Find the operator status that matches the canonical ID
+  // TODO: come back when we revisit runtime pipelines in frontend
   const operatorStatus = useMemo(() => {
-    return operatorStatuses.length > 0 ? operatorStatuses[0] : null
-  }, [operatorStatuses])
+    return (
+      operatorVals.find((status) => status.canonical_id === operatorID) || null
+    )
+  }, [operatorVals, operatorID])
 
-  const pipelineId = operatorStatus?.pipeline_id || null
+  const pipelineId = operatorStatus?.runtime_pipeline_id || null
   const status = operatorStatus?.status || null
 
   // Check if the operator is part of a running pipeline
