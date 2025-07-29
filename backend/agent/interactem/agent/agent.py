@@ -459,7 +459,7 @@ class Agent:
             logger.info(f"Parameter task for {operator.id}.{parameter.name} cancelled.")
             raise
         finally:
-            await sub.close()
+            await sub.stop()
             logger.info(
                 f"Closed parameter subscription for {operator.id}.{parameter.name}."
             )
