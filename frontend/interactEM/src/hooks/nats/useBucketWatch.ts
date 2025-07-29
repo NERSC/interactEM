@@ -11,12 +11,14 @@ interface UseBucketWatchOptions<T extends WithId> {
   bucketName: string
   schema: z.ZodSchema<T>
   keyFilter?: string | string[]
+  stripPrefix?: string
 }
 
 export function useBucketWatch<T extends WithId>({
   bucketName,
   schema,
   keyFilter,
+  stripPrefix = "",
 }: UseBucketWatchOptions<T>) {
   const [items, setItems] = useState<T[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -68,13 +70,18 @@ export function useBucketWatch<T extends WithId>({
             }
 
             const key = entry.key
+            // since we are using a subject prefix (e.g., "<prefix>.<id>")
+            // we need to strip the prefix for filtering
+            const strippedKey = stripPrefix
+              ? key.replace(`${stripPrefix}.`, "")
+              : key
 
             setItems((prevItems) => {
               // Simply filter based on id property
               const filteredItems = prevItems.filter((item) => {
                 // Check both possible ID locations from the WithId type
                 const itemId = "id" in item ? item.id : item.uri.id
-                return itemId !== key
+                return itemId !== strippedKey
               })
 
               // Handle deletion
@@ -114,7 +121,7 @@ export function useBucketWatch<T extends WithId>({
     return () => {
       abortController.abort()
     }
-  }, [bucket, bucketName, schema, keyFilter, isLoading])
+  }, [bucket, stripPrefix, bucketName, schema, keyFilter, isLoading])
 
   return { items, error, isLoading }
 }
