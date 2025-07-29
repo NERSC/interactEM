@@ -25,6 +25,7 @@ from interactem.core.constants import (
 from interactem.core.logger import get_logger
 from interactem.core.models.canonical import CanonicalOperatorID
 from interactem.core.models.runtime import (
+    RuntimeOperatorID,
     RuntimeOperatorParameter,
 )
 from interactem.core.models.spec import ParameterSpecType
@@ -114,7 +115,7 @@ async def create_operator_parameter_consumer(
 
 async def create_operator_pipeline_consumer(
     js: JetStreamContext,
-    operator_id: UUID,
+    operator_id: RuntimeOperatorID,
 ) -> JetStreamContext.PullSubscription:
     subject = f"{SUBJECT_OPERATORS_DEPLOYMENTS}.{operator_id}"
     cfg = replace(

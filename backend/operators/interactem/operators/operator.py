@@ -21,9 +21,6 @@ from interactem.core.constants import (
     MOUNT_DIR,
     OPERATOR_CLASS_NAME,
     OPERATOR_ID_ENV_VAR,
-    STREAM_METRICS,
-    STREAM_OPERATORS,
-    STREAM_PARAMETERS_UPDATE,
 )
 from interactem.core.logger import get_logger
 from interactem.core.models import CommBackend
@@ -41,13 +38,7 @@ from interactem.core.models.runtime import (
     RuntimePipeline,
 )
 from interactem.core.nats import (
-    create_or_update_stream,
     nc,
-)
-from interactem.core.nats.config import (
-    METRICS_STREAM_CONFIG,
-    OPERATORS_STREAM_CONFIG,
-    PARAMETERS_STREAM_CONFIG,
 )
 from interactem.core.nats.consumers import (
     create_operator_parameter_consumer,
@@ -245,38 +236,11 @@ class OperatorMixin(RunnableKernel):
         )
         logger.info("Connected to NATS...")
         self.js = self.nc.jetstream()
-
-        await create_or_update_stream(METRICS_STREAM_CONFIG, self.js)
-        await create_or_update_stream(PARAMETERS_STREAM_CONFIG, self.js)
-        await create_or_update_stream(OPERATORS_STREAM_CONFIG, self.js)
-
-        retries = 10
-        while retries > 0:
-            try:
-                self.params_psub = await create_operator_parameter_consumer(
-                    self.js, self.id
-                )
-                break
-            # This happens when consumer is already attached to this stream
-            # Shouldn't happen in production (UIDs are unique), but happens if
-            # spawning test pipelines one after another quickly
-            except nats.js.errors.BadRequestError as e:
-                if e.code == 400 and e.err_code == 10100:
-                    logger.warning(f"Consumer name weirdness: {e}. Retrying...")
-                    retries -= 1
-                    await asyncio.sleep(1)
-                    if retries == 0:
-                        raise e
-                    continue
         return self.nc, self.js
 
     async def initialize_pipeline(self):
-        logger.info(
-            f"Subscribing to stream '{STREAM_OPERATORS}' for operator {self.id}..."
-        )
         if not self.js:
             raise ValueError("JetStream context not initialized")
-        await create_or_update_stream(OPERATORS_STREAM_CONFIG, self.js)
         psub = await create_operator_pipeline_consumer(self.js, self.id)
         try:
             msg = await psub.fetch(1)
@@ -545,11 +509,7 @@ class OperatorMixin(RunnableKernel):
             logger.warning("No tracking data in message to publish...")
             return
 
-        await self.js.publish(
-            subject=f"{STREAM_METRICS}.operators",
-            payload=msg.header.model_dump_json().encode(),
-        )
-
+        await publish_pipeline_metrics(self.js, msg)
 
     def _update_metrics(
         self,
