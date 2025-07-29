@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import tempfile
 import time
@@ -13,6 +12,7 @@ import stamina
 from faststream.nats import NatsBroker
 from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
 from podman.domain.containers import Container
+from pydantic import ValidationError
 from stamina.instrumentation import set_on_retry_hooks
 
 from interactem.core.constants import (
@@ -32,6 +32,9 @@ from interactem.core.models.runtime import (
     RuntimeOperator,
     RuntimeOperatorID,
     RuntimeOperatorParameter,
+    RuntimeOperatorParameterUpdate,
+    RuntimeParameterCollection,
+    RuntimeParameterCollectionType,
 )
 from interactem.core.models.spec import ParameterSpecType
 from interactem.core.models.uri import URI, CommBackend, URILocation
@@ -39,6 +42,7 @@ from interactem.core.nats.consumers import create_agent_mount_consumer
 from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
 from interactem.core.nats.publish import (
     create_agent_mount_publisher,
+    publish_agent_mount_parameter_ack,
     publish_pipeline_to_operators,
 )
 from interactem.core.pipeline import Pipeline
@@ -372,6 +376,12 @@ class Agent:
         self, tracker: ContainerTracker, parameter: RuntimeOperatorParameter
     ):
         operator = tracker.operator
+
+        # while this is single param, collection will still work
+        mount_params = RuntimeParameterCollection.from_parameter_list(
+            [parameter], RuntimeParameterCollectionType.MOUNT
+        )
+
         sub = create_agent_mount_consumer(
             self.broker, self.id, operator.canonical_id, parameter
         )
@@ -384,13 +394,32 @@ class Agent:
         self.broker.setup_publisher(pub)
 
         async def handler(msg: dict[str, Any]):
-            new_val = msg.get(parameter.name, "")
-            if new_val == parameter.value:
-                return
-            logger.info(
-                f"Received new value for parameter '{parameter.name}': {new_val}"
-            )
+            logger.info(f"Received mount parameter message: {msg}")
 
+            try:
+                # Parse the structured parameter update message
+                update = RuntimeOperatorParameterUpdate.model_validate(msg)
+            except ValidationError as e:
+                logger.exception(f"Failed to parse parameter update: {e}")
+                await self.error_publisher.publish(
+                    f"Invalid parameter update format: {e}"
+                )
+                return
+
+            new_val = update.value
+
+            try:
+                value_changed = mount_params.update_value(parameter.name, new_val)
+            except (ValueError, KeyError) as e:
+                logger.error(f"Invalid mount parameter value: {e}")
+                await self.error_publisher.publish(str(e))
+                return
+
+            if not value_changed:
+                logger.info(f"Mount {parameter.name} unchanged, skipping restart")
+                return
+
+            # Update the operator's parameter
             operator.update_parameter_value(parameter.name, new_val)
 
             try:
@@ -400,9 +429,20 @@ class Agent:
                 await self.error_publisher.publish(str(e))
                 return
 
-            # Mark for a restart (handled in the monitor loop)
+            logger.info(
+                f"Remounting {parameter.name} for operator {operator.id} with value {new_val}"
+            )
+
+            # Mark for restart
             tracker.mark()
-            await pub.publish(json.dumps(new_val))
+
+            updated_param = mount_params.parameters[parameter.name]
+            create_task_with_ref(
+                self._task_refs,
+                publish_agent_mount_parameter_ack(
+                    pub, operator.canonical_id, updated_param
+                ),
+            )
 
         sub(handler)
         self.broker.setup_subscriber(sub)

@@ -3,6 +3,7 @@ from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
 from nats.js import JetStreamContext
 
 from interactem.core.models.kvs import CanonicalOperatorID
+from interactem.core.models.runtime import RuntimeOperatorParameter
 
 from ..constants import (
     STREAM_DEPLOYMENTS,
@@ -22,6 +23,7 @@ from ..models.messages import (
 from ..models.runtime import (
     PipelineAssignment,
     RuntimeOperatorID,
+    RuntimeOperatorParameterAck,
 )
 from ..nats.config import NOTIFICATIONS_JSTREAM
 from ..pipeline import Pipeline as PipelineGraph
@@ -34,6 +36,24 @@ async def publish_pipeline_metrics(
     """Used to send out the tracking information.
     TODO: we may not want to publish the entire header here"""
     await js.publish(SUBJECT_PIPELINES_METRICS, msg.header.model_dump_json().encode())
+
+
+async def publish_operator_parameter_ack(
+    js: JetStreamContext,
+    # TODO: on the way back, we should use the runtime ID instead
+    # of canonical, that way we can ensure (somewhere else) that the
+    # parameters are set on all instances of the operator
+    id: CanonicalOperatorID,
+    parameter: RuntimeOperatorParameter,
+):
+    event = RuntimeOperatorParameterAck(
+        canonical_operator_id=id, name=parameter.name, value=parameter.value
+    )
+    await js.publish(
+        subject=f"{SUBJECT_OPERATORS_PARAMETERS}.{id}.{parameter.name}",
+        stream=STREAM_PARAMETERS,
+        payload=event.model_dump_json().encode(),
+    )
 
 
 async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignment):
@@ -86,6 +106,22 @@ def create_agent_mount_publisher(
             stream=STREAM_PARAMETERS,
             subject=subject,
         )
+
+async def publish_agent_mount_parameter_ack(
+    publisher: AsyncAPIPublisher,
+    canonical_operator_id: CanonicalOperatorID,
+    parameter: RuntimeOperatorParameter,
+):
+    """Publish mount parameter acknowledgment from agent"""
+    event = RuntimeOperatorParameterAck(
+        canonical_operator_id=canonical_operator_id,
+        name=parameter.name,
+        value=parameter.value,
+    )
+    await publisher.publish(
+        message=event.model_dump_json().encode(),
+    )
+
 
 def create_agent_error_publisher(
     broker: NatsBroker,

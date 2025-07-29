@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import signal
 from abc import ABC, abstractmethod
@@ -34,8 +33,13 @@ from interactem.core.models.kvs import (
 )
 from interactem.core.models.messages import BytesMessage, OperatorTrackingMetadata
 from interactem.core.models.metrics import OperatorMetrics, OperatorTiming
-from interactem.core.models.runtime import RuntimeOperator, RuntimePipeline
-from interactem.core.models.spec import ParameterSpecType
+from interactem.core.models.runtime import (
+    RuntimeOperator,
+    RuntimeOperatorParameterUpdate,
+    RuntimeParameterCollection,
+    RuntimeParameterCollectionType,
+    RuntimePipeline,
+)
 from interactem.core.nats import (
     create_or_update_stream,
     nc,
@@ -50,6 +54,10 @@ from interactem.core.nats.consumers import (
     create_operator_pipeline_consumer,
 )
 from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
+from interactem.core.nats.publish import (
+    publish_operator_parameter_ack,
+    publish_pipeline_metrics,
+)
 from interactem.core.pipeline import Pipeline
 from interactem.core.util import create_task_with_ref
 
@@ -141,7 +149,9 @@ class OperatorMixin(RunnableKernel):
         self.metrics_kv: KeyValueLoop[OperatorMetrics] | None = None
         self.operator_kv: KeyValueLoop[OperatorVal] | None = None
         self.val: OperatorVal | None = None
-        self.parameters: dict[str, Any] = {}
+        self.parameters = RuntimeParameterCollection(
+            type=RuntimeParameterCollectionType.OPERATOR
+        )
         self.metrics: OperatorMetrics | None = None
         self.run_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
@@ -168,7 +178,7 @@ class OperatorMixin(RunnableKernel):
         self.info = await self.initialize_operator()
         assert self.info, "Operator info not initialized"
         await self.initialize_parameters()
-        asyncio.create_task(self.publish_parameters())
+        self.publish_parameters()
 
         # Setup KV stores
         self.metrics_kv = KeyValueLoop[OperatorMetrics](
@@ -288,14 +298,16 @@ class OperatorMixin(RunnableKernel):
     async def initialize_parameters(self):
         if not self.info:
             raise ValueError("Operator info not initialized.")
+        if not self.info.parameters:
+            logger.info("No parameters to initialize for operator.")
+            return
 
-        if self.info.parameters is not None:
-            self.parameters = {
-                p.name: p.value if p.value else p.default for p in self.info.parameters
-            }
-        logger.info(f"Operator {self.id} initialized with parameters {self.parameters}")
+        self.parameters = RuntimeParameterCollection.from_parameter_list(
+            self.info.parameters, RuntimeParameterCollectionType.OPERATOR
+        )
+        logger.info(f"Operator {self.id} initialized with parameters")
 
-    async def publish_parameters(self):
+    def publish_parameters(self):
         if not self.js:
             logger.warning("JetStream context not initialized...")
             return
@@ -305,29 +317,23 @@ class OperatorMixin(RunnableKernel):
         if not self.info.parameters:
             logger.info("No parameters to publish...")
             return
-        tasks = []
-        for name, val in self.parameters.items():
-            param = next((p for p in self.info.parameters if p.name == name), None)
-
-            # Agent will handle the mount parameter publishing
-            if param and param.type == ParameterSpecType.MOUNT:
-                continue
-            logger.info(
-                f"Publishing {name}, {val} on subject: {STREAM_PARAMETERS_UPDATE}.{self.id}.{name}"
-            )
-            tasks.append(
-                asyncio.create_task(
-                    self.js.publish(
-                        subject=f"{STREAM_PARAMETERS_UPDATE}.{self.id}.{name}",
-                        payload=json.dumps(val).encode(),
-                    )
-                )
+        for param in self.parameters.parameters.values():
+            create_task_with_ref(
+                self._task_refs,
+                publish_operator_parameter_ack(self.js, self.info.canonical_id, param),
             )
         logger.info(f"Publishing parameters for operator {self.id}...")
 
     async def consume_params(self):
         if not self.js:
             raise ValueError("JetStream context not initialized")
+        if not self.info:
+            raise ValueError("Operator info not initialized")
+
+        self.params_psub = await create_operator_parameter_consumer(
+            self.js, self.info.canonical_id
+        )
+
         while not self._shutdown_event.is_set():
             msgs = None
             try:
@@ -346,7 +352,7 @@ class OperatorMixin(RunnableKernel):
                     logger.error(f"Consumer info error: {e}")
                     logger.info("Initializing a new consumer...")
                     self.params_psub = await create_operator_parameter_consumer(
-                        self.js, self.id
+                        self.js, self.info.canonical_id
                     )
                 continue
             except Exception as e:
@@ -356,32 +362,26 @@ class OperatorMixin(RunnableKernel):
             if not msgs:
                 continue
 
-            # Only use the last parameter from frontend
+            # Process parameter updates
             for msg in msgs:
-                if not msg.data:
-                    logger.warning(f"Received empty message for operator {self.id}")
-                    await msg.term()  # terminate sending this message
-                    continue
-
-                parameter_name = msg.subject.split(".")[-1]
-                if parameter_name not in self.parameters:
-                    logger.warning(
-                        f"Received message for unknown parameter {parameter_name}"
-                    )
-                    continue
                 try:
-                    # We want to update, not overwrite
-                    # TODO: we need some way of validating parameters and typing them
-                    self.parameters.update(json.loads(msg.data.decode()))
-                    logger.info(
-                        f"Updating {parameter_name} to {self.parameters[parameter_name]}..."
+                    update = RuntimeOperatorParameterUpdate.model_validate_json(
+                        msg.data
                     )
-                    asyncio.create_task(msg.ack())
-                except json.JSONDecodeError as e:
-                    logger.error(f"Error decoding param update: {e}")
+                    # Use the parameter collection's update method
+                    self.parameters.update_value(update.name, update.value)
+
+                    # Also update the operator info parameter list for consistency
+                    if self.info:
+                        self.info.update_parameter_value(update.name, update.value)
+
+                except (ValidationError, KeyError) as e:
+                    logger.error(f"Parameter update failed: {e}")
                     await msg.term()
-                    pass
-            asyncio.create_task(self.publish_parameters())
+
+                create_task_with_ref(self._task_refs, msg.ack())
+
+            self.publish_parameters()
 
     async def initialize_messenger(self):
         # TODO: put this somewhere else
@@ -483,7 +483,7 @@ class OperatorMixin(RunnableKernel):
                 before_kernel = datetime.now()
 
             try:
-                processed_msg = await self.run_kernel(msg, self.parameters)
+                processed_msg = await self.run_kernel(msg, self.parameters.values)
                 error_count = 0
             except Exception as e:
                 logger.error(f"Error in kernel: {e}")

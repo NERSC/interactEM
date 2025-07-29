@@ -1,7 +1,9 @@
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from enum import Enum
+from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from interactem.core.models.base import IdType, PortType
 from interactem.core.models.canonical import (
@@ -14,7 +16,7 @@ from interactem.core.models.canonical import (
     CanonicalPortID,
 )
 from interactem.core.models.containers import MountMixin, NetworkMode
-from interactem.core.models.spec import OperatorSpecParameter
+from interactem.core.models.spec import OperatorSpecParameter, ParameterSpecType
 
 """
 These models represent the runtime form of a pipeline. They are converted from canonical form.
@@ -27,8 +29,123 @@ RuntimeOperatorID = IdType
 RuntimePipelineID = IdType
 RuntimePortID = IdType
 
+
 class RuntimeOperatorParameter(OperatorSpecParameter):
     value: str | None = None  # Value of the parameter at runtime
+
+    @model_validator(mode="after")
+    def validate_value(self):
+        if self.type != ParameterSpecType.STR_ENUM:
+            return self
+
+        v = self.value
+        if v is not None and self.options and v not in self.options:
+            raise ValueError(
+                f"Parameter '{self.name}' of type STR_ENUM must have a value in options."
+            )
+        return self
+
+    def get_typed_value(self) -> Any:
+        """Get the properly typed value for kernel execution"""
+        raw_value = self.value if self.value is not None else self.default
+
+        type_map = {
+            ParameterSpecType.STRING: str,
+            ParameterSpecType.INTEGER: int,
+            ParameterSpecType.FLOAT: float,
+            ParameterSpecType.BOOLEAN: lambda x: x.lower() in ("true", "1", "yes"),
+            ParameterSpecType.STR_ENUM: str,
+        }
+
+        converter = type_map.get(self.type, str)
+        return converter(raw_value)
+
+
+class RuntimeParameterCollectionType(str, Enum):
+    OPERATOR = "operator"
+    MOUNT = "mount"
+
+
+class RuntimeParameterCollection(BaseModel):
+    """Unified parameter collection for both regular and mount parameters"""
+
+    type: RuntimeParameterCollectionType
+    parameters: dict[str, RuntimeOperatorParameter] = {}
+    _value_cache: dict[str, Any] = {}
+
+    @classmethod
+    def from_parameter_list(
+        cls,
+        params: Sequence[OperatorSpecParameter | RuntimeOperatorParameter],
+        collection_type: RuntimeParameterCollectionType,
+    ) -> "RuntimeParameterCollection":
+        """Create parameter collection from parameter list.
+
+        Args:
+            params: List of parameters to include
+            collection_type: Type of collection to create (OPERATOR or MOUNT)
+        """
+
+        # Map collection types to their filtering logic
+        type_filters: dict[RuntimeParameterCollectionType, Callable[[Any], bool]] = {
+            RuntimeParameterCollectionType.OPERATOR: lambda p: p.type
+            != ParameterSpecType.MOUNT,
+            RuntimeParameterCollectionType.MOUNT: lambda p: p.type
+            == ParameterSpecType.MOUNT,
+        }
+
+        filter_func = type_filters[collection_type]
+        filtered_params = [p for p in params if filter_func(p)]
+
+        _params = {
+            param.name: RuntimeOperatorParameter(**param.model_dump())
+            for param in filtered_params
+        }
+
+        instance = cls(type=collection_type, parameters=_params)
+        instance._rebuild_cache()
+        return instance
+
+    def update_value(self, name: str, value: str) -> bool:
+        """Update parameter value. Returns True if value changed."""
+        if name not in self.parameters:
+            raise KeyError(f"Parameter '{name}' not found")
+
+        param = self.parameters[name]
+        old_value = self._value_cache.get(name)
+
+        # Update the parameter
+        param.value = value
+
+        # Update cache with converted value
+        new_value = param.get_typed_value()
+        self._value_cache[name] = new_value
+
+        # Return whether the value actually changed
+        return old_value != new_value
+
+    def _rebuild_cache(self) -> None:
+        """Rebuild the value cache"""
+        self._value_cache = {
+            name: param.get_typed_value() for name, param in self.parameters.items()
+        }
+
+    @property
+    def values(self) -> dict[str, Any]:
+        """Return the cached values dictionary"""
+        return self._value_cache
+
+
+class RuntimeOperatorParameterUpdate(BaseModel):
+    canonical_operator_id: CanonicalOperatorID
+    name: str
+    value: str
+
+
+class RuntimeOperatorParameterAck(BaseModel):
+    canonical_operator_id: CanonicalOperatorID
+    name: str
+    value: str | None = None
 
 
 class RuntimeOperator(CanonicalOperator):

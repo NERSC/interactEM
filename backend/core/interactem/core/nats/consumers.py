@@ -41,10 +41,6 @@ SFAPI_CONSUMER_CONFIG = ConsumerConfig(
     inactive_threshold=30,
 )
 
-PARAMETER_CONSUMER_CONFIG = ConsumerConfig(
-    deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
-)
-
 DEPLOYMENTS_CONSUMER_CONFIG = ConsumerConfig(
     deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
 )
@@ -85,7 +81,7 @@ def create_agent_mount_consumer(
         )
     subject = f"{SUBJECT_OPERATORS_PARAMETERS_UPDATE}.{canonical_operator_id}.{parameter.name}"
     cfg = replace(
-        PARAMETER_CONSUMER_CONFIG,
+        PIPELINE_UPDATE_CONSUMER_CONFIG,
         description=f"agent-{agent_id}-{canonical_operator_id}-{parameter.name}",
     )
     return broker.subscriber(
@@ -98,11 +94,11 @@ def create_agent_mount_consumer(
 
 async def create_operator_parameter_consumer(
     js: JetStreamContext,
-    operator_id: UUID,
+    operator_id: CanonicalOperatorID,
 ) -> JetStreamContext.PullSubscription:
     subject = f"{SUBJECT_OPERATORS_PARAMETERS_UPDATE}.{operator_id}.>"
     cfg = replace(
-        PARAMETER_CONSUMER_CONFIG,
+        PIPELINE_UPDATE_CONSUMER_CONFIG,
         description=f"operator-{operator_id}",
     )
     psub = await js.pull_subscribe(
