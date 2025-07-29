@@ -414,10 +414,12 @@ class OperatorMixin(RunnableKernel):
         loop.add_signal_handler(signal.SIGTERM, handle_signal)
 
     async def run(self):
-        if not self.messenger:
-            raise ValueError("Messenger not initialized")
-        if not self.metrics:
-            raise ValueError("Metrics not initialized")
+        assert self.messenger, "Messenger not initialized"
+        assert self.js, "JetStream context not initialized"
+        assert self.val, "Operator value not initialized"
+        assert self.operator_kv, "Operator KV not initialized"
+        assert self.metrics, "Operator metrics not initialized"
+
         has_input = True if len(self.messenger.input_ports) > 0 else False
         error_count, max_retries, error_state = 0, 10, False
         self.val.status = OperatorStatus.RUNNING
@@ -481,10 +483,12 @@ class OperatorMixin(RunnableKernel):
                     await self.messenger.send(processed_msg)
                 # if last operator in pipeline, publish tracking information
                 elif timing_this_iter:
-                    tasks.append(self._publish_metrics(processed_msg))
+                    tasks.append(self._publish_pipeline_metrics(processed_msg))
             elif timing_this_iter and msg:
                 tasks.append(
-                    self._update_and_publish_metrics(msg, before_kernel, after_kernel)
+                    self._update_and_publish_pipeline_metrics(
+                        msg, before_kernel, after_kernel
+                    )
                 )
 
             if timing_this_iter:
@@ -501,7 +505,9 @@ class OperatorMixin(RunnableKernel):
             await asyncio.sleep(self._tracking_interval)
             self._tracking_ready.set()
 
-    async def _publish_metrics(self, msg: BytesMessage):
+    async def _publish_pipeline_metrics(self, msg: BytesMessage):
+        """These are the metrics from the tracking information
+        that should be sent through the full pipeline."""
         if not self.js:
             logger.warning("JetStream context not initialized...")
             return
@@ -531,7 +537,7 @@ class OperatorMixin(RunnableKernel):
         msg.header.tracking.append(meta)
         return msg
 
-    async def _update_and_publish_metrics(
+    async def _update_and_publish_pipeline_metrics(
         self,
         msg: BytesMessage,
         before_kernel: datetime | None,
@@ -545,7 +551,7 @@ class OperatorMixin(RunnableKernel):
         if not msg:
             return
 
-        await self._publish_metrics(msg)
+        await self._publish_pipeline_metrics(msg)
 
 
 class Operator(OperatorMixin, OperatorInterface):
