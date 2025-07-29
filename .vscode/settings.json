@@ -13,5 +13,7 @@
       "editor.defaultFormatter": "golang.go",
     },
     "biome.enabled": false,
-    "prettier.enable": false
+    "python.analysis.extraPaths": [
+      "./backend/agent/thirdparty/podman-hpc-py"
+    ]
   }
