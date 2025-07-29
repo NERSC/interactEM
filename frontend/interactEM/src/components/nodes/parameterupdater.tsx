@@ -17,7 +17,7 @@ import { memo, useEffect, useState } from "react"
 import type { OperatorSpecParameter } from "../../client"
 import { usePipelineContext } from "../../contexts/pipeline"
 import { useParameterUpdate } from "../../hooks/nats/useParameterUpdate"
-import { useParameterValue } from "../../hooks/nats/useParameterValue"
+import { useParameterAck } from "../../hooks/nats/useParameterValue"
 import { useEditModeState } from "../../stores/edit"
 import type { OperatorNodeType } from "../../types/nodes"
 import ParameterInfoTooltip from "./parameterinfotooltip"
@@ -55,7 +55,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   const { isCurrentPipelineRunning } = usePipelineContext()
   const { isEditMode } = useEditModeState()
   const { getNode, setNodes } = useReactFlow<OperatorNodeType>()
-  const { actualValue: runtimeValue, hasReceivedMessage } = useParameterValue(
+  const { actualValue: runtimeValue, hasReceivedMessage } = useParameterAck(
     operatorID,
     parameter.name,
     parameter.default,
