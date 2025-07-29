@@ -17,7 +17,8 @@ export const PipelineProvider: React.FC<{ children: ReactNode }> = ({
   const { pipelines } = useRunningPipelines()
 
   const isCurrentPipelineRunning = useMemo(
-    () => pipelines.some((p) => p.id === currentPipelineId),
+    // TODO: come back when we revisit runtime pipelines in frontend
+    () => pipelines.some((p) => p.canonical_id === currentPipelineId),
     [pipelines, currentPipelineId],
   )
 
