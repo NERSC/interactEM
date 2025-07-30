@@ -1,7 +1,5 @@
 import asyncio
 import time
-from collections import deque
-from enum import Enum
 from uuid import UUID
 
 import networkx
@@ -11,20 +9,16 @@ from nats.js import JetStreamContext
 from nats.js.errors import NotFoundError
 from networkx.readwrite.text import generate_network_text
 from prometheus_client import start_http_server
-from pydantic import BaseModel
 
 from interactem.core.events.pipelines import PipelineRunVal
 from interactem.core.logger import get_logger
-from interactem.core.models.base import IdType
 from interactem.core.models.messages import (
     InputPortTrackingMetadata,
     MessageHeader,
     OperatorTrackingMetadata,
     OutputPortTrackingMetadata,
 )
-from interactem.core.models.operators import (
-    OperatorMetrics,  # Import the OperatorMetrics model
-)
+from interactem.core.models.operators import OperatorMetrics
 from interactem.core.models.pipeline import PipelineJSON
 from interactem.core.models.ports import PortMetrics
 from interactem.core.nats import (
@@ -41,23 +35,21 @@ from interactem.core.nats.consumers import create_metrics_consumer
 from interactem.core.pipeline import Pipeline
 from interactem.metrics.prometheus_metrics import (
     CollectionDuration,
+    EdgeConnection,
     ErrorType,
     OperatorProcessingTime,
     PipelineInfoData,
     PipelineStatus,
-    PortRates,
     ServiceStatus,
     record_collection_duration,
     record_collection_error,
     record_operator_processing_time,
-    update_edge_metrics,
+    update_edge_connection,
     update_pipeline_info,
     update_pipeline_status,
     update_port_metrics,
-    update_port_rates,
     update_service_status,
 )
-from interactem.metrics.prometheus_metrics import EdgeMetrics as PrometheusEdgeMetrics
 from interactem.metrics.prometheus_metrics import PortMetrics as PrometheusPortMetrics
 
 from .config import cfg
@@ -65,155 +57,7 @@ from .config import cfg
 logger = get_logger()
 
 
-class MetricType(str, Enum):
-    THROUGHPUT = "throughput (Mbps)"
-    MESSAGES = "msgs (msgs/s)"
-
-
-class EdgeMetric(BaseModel):
-    input_id: IdType
-    input_num_msgs: int = 0
-    input_num_bytes: int = 0
-    input_throughput: float = 0.0
-    input_avg_msgs: float = 0.0
-    output_id: IdType
-    output_num_msgs: int = 0
-    output_num_bytes: int = 0
-    output_throughput: float = 0.0
-    output_avg_msgs: float = 0.0
-
-    def calculate_differences(self):
-        message_diff = self.input_num_msgs - self.output_num_msgs
-        byte_diff = self.input_num_bytes - self.output_num_bytes
-        throughput_diff = self.input_throughput - self.output_throughput
-        avg_msgs_diff = self.input_avg_msgs - self.output_avg_msgs
-        return {
-            "message_diff": message_diff,
-            "byte_diff": byte_diff,
-            "throughput_diff": throughput_diff,
-            "avg_msgs_diff": avg_msgs_diff,
-        }
-
-    def log_metrics(self):
-        logger.info(f"Edge from {self.input_id} to {self.output_id}:")
-        logger.info(f"  Sent {self.input_num_msgs} msgs, {self.input_num_bytes} bytes")
-        logger.info(
-            f"  Received {self.output_num_msgs} msgs, {self.output_num_bytes} bytes"
-        )
-
-        differences = self.calculate_differences()
-        logger.info(f"  Message diff: {differences['message_diff']}")
-        logger.info(f"  Byte diff: {differences['byte_diff']}")
-        logger.info(f"  Throughput diff: {differences['throughput_diff']:.2f} Mbps")
-        logger.info(f"  Avg msgs diff: {differences['avg_msgs_diff']:.2f}")
-        logger.info(f"  Input throughput: {self.input_throughput:.2f} Mbps")
-        logger.info(f"  Input average msgs: {self.input_avg_msgs:.2f}")
-        logger.info(f"  Output throughput: {self.output_throughput:.2f} Mbps")
-        logger.info(f"  Output average msgs: {self.output_avg_msgs:.2f}")
-
-    @classmethod
-    def from_io_and_moving_average(
-        cls,
-        input_metric: PortMetrics,
-        output_metric: PortMetrics,
-        input_moving_avg: "PortMovingAverages",
-        output_moving_avg: "PortMovingAverages",
-    ):
-        return cls(
-            input_id=input_metric.id,
-            input_num_msgs=input_metric.send_count,
-            input_num_bytes=input_metric.send_bytes,
-            input_throughput=input_moving_avg.send_bytes["2s"].average_throughput(),
-            input_avg_msgs=input_moving_avg.send_num_msgs["2s"].average_msgs(),
-            output_id=output_metric.id,
-            output_num_msgs=output_metric.recv_count,
-            output_num_bytes=output_metric.recv_bytes,
-            output_throughput=output_moving_avg.recv_bytes["2s"].average_throughput(),
-            output_avg_msgs=output_moving_avg.recv_num_msgs["2s"].average_msgs(),
-        )
-
-
-class MovingAverage:
-    def __init__(self, max_seconds: int):
-        self.max_seconds = max_seconds
-        self.values: deque[tuple[float, float]] = deque()
-
-    def add_value(self, time: float, value: float):
-        self.values.append((time, value))
-        self._remove_old_values(time)
-
-    def _remove_old_values(self, current_time: float):
-        while self.values and (current_time - self.values[0][0]) > self.max_seconds:
-            self.values.popleft()
-
-    def average_throughput(self) -> float:
-        if not self.values:
-            return 0.0
-        total_bytes = self.values[-1][1] - self.values[0][1]
-        total_time = self.values[-1][0] - self.values[0][0]
-        if total_time > 0:
-            total_bits = total_bytes * 8
-            total_megabits = total_bits / 1_000_000
-            return total_megabits / total_time
-        return 0.0
-
-    def average_msgs(self) -> float:
-        if not self.values:
-            return 0.0
-        total_msgs = self.values[-1][1] - self.values[0][1]
-        total_time = self.values[-1][0] - self.values[0][0]
-        return total_msgs / total_time if total_time > 0 else 0.0
-
-    def log_averages(self, interval: str, metric_type: MetricType, direction: str):
-        metric_types = {
-            MetricType.THROUGHPUT: self.average_throughput,
-            MetricType.MESSAGES: self.average_msgs,
-        }
-        avg = metric_types[metric_type]()
-        logger.info(f"  {direction} {interval} avg {metric_type.value}: {avg:.2f}")
-
-
-class PortMovingAverages:
-    def __init__(self, intervals: list[int], update_interval: int):
-        self.update_interval = update_interval
-        self.send_bytes = {
-            f"{interval}s": MovingAverage(interval) for interval in intervals
-        }
-        self.send_num_msgs = {
-            f"{interval}s": MovingAverage(interval) for interval in intervals
-        }
-        self.recv_bytes = {
-            f"{interval}s": MovingAverage(interval) for interval in intervals
-        }
-        self.recv_num_msgs = {
-            f"{interval}s": MovingAverage(interval) for interval in intervals
-        }
-
-    def add_metrics(self, current_time: float, metric: PortMetrics):
-        for moving_average in self.send_bytes.values():
-            moving_average.add_value(current_time, metric.send_bytes)
-        for moving_average in self.send_num_msgs.values():
-            moving_average.add_value(current_time, metric.send_count)
-        for moving_average in self.recv_bytes.values():
-            moving_average.add_value(current_time, metric.recv_bytes)
-        for moving_average in self.recv_num_msgs.values():
-            moving_average.add_value(current_time, metric.recv_count)
-
-    def log_averages(self, key: str):
-        logger.info(f"Port: {key}")
-        for interval, moving_average in self.send_bytes.items():
-            moving_average.log_averages(interval, MetricType.THROUGHPUT, "Send")
-        for interval, moving_average in self.send_num_msgs.items():
-            moving_average.log_averages(interval, MetricType.MESSAGES, "Send")
-        for interval, moving_average in self.recv_bytes.items():
-            moving_average.log_averages(interval, MetricType.THROUGHPUT, "Recv")
-        for interval, moving_average in self.recv_num_msgs.items():
-            moving_average.log_averages(interval, MetricType.MESSAGES, "Recv")
-
-
-async def metrics_watch(
-    js: JetStreamContext, intervals: list[int], update_interval: int):
-    moving_averages: dict[str, PortMovingAverages] = {}
+async def metrics_watch(js: JetStreamContext, update_interval: int):
     metrics_bucket = await get_metrics_bucket(js)
     pipeline_bucket = await get_pipelines_bucket(js)
 
@@ -241,10 +85,7 @@ async def metrics_watch(
                 await asyncio.sleep(update_interval)
                 continue
 
-            pipeline_data_with_id = {
-                "id": pipeline.id,
-                **pipeline.data
-            }
+            pipeline_data_with_id = {"id": pipeline.id, **pipeline.data}
             pipeline_data = PipelineJSON.model_validate(pipeline_data_with_id)
 
             pipeline_id = str(pipeline_data.id)
@@ -270,8 +111,7 @@ async def metrics_watch(
             port_metrics_map = {}
             port_futs = [get_val(metrics_bucket, key, PortMetrics) for key in port_keys]
 
-            current_time = asyncio.get_event_loop().time()
-
+            # Process port metrics - just send raw counters
             for fut in asyncio.as_completed(port_futs):
                 metric = await fut
                 if not metric:
@@ -281,6 +121,7 @@ async def metrics_watch(
 
                 operator_type = get_operator_type_for_port(metric.id, pipeline_data)
 
+                # Send only raw metrics to Prometheus
                 port_metrics_data = PrometheusPortMetrics(
                     port_id=key,
                     pipeline_id=pipeline_id,
@@ -292,51 +133,17 @@ async def metrics_watch(
                 )
                 update_port_metrics(port_metrics_data)
 
-                if key not in moving_averages:
-                    moving_averages[key] = PortMovingAverages(intervals, update_interval)
-
-                moving_averages[key].add_metrics(current_time, metric)
-                for interval in intervals:
-                    interval_key = f"{interval}s"
-                    send_throughput = moving_averages[key].send_bytes[interval_key].average_throughput()
-                    recv_throughput = moving_averages[key].recv_bytes[interval_key].average_throughput()
-                    send_msg_rate = moving_averages[key].send_num_msgs[interval_key].average_msgs()
-                    recv_msg_rate = moving_averages[key].recv_num_msgs[interval_key].average_msgs()
-
-                    port_rates_data = PortRates(
-                        port_id=key,
-                        pipeline_id=pipeline_id,
-                        operator_type=operator_type,
-                        interval=interval_key,
-                        send_throughput=send_throughput,
-                        recv_throughput=recv_throughput,
-                        send_msg_rate=send_msg_rate,
-                        recv_msg_rate=recv_msg_rate
-                    )
-                    update_port_rates(port_rates_data)
-
-            # Match edges to port metrics
             for edge in pipeline_data.edges:
                 input_metric = port_metrics_map.get(str(edge.input_id))
                 output_metric = port_metrics_map.get(str(edge.output_id))
                 if input_metric and output_metric:
-                    input_moving_avg = moving_averages.get(str(edge.input_id))
-                    output_moving_avg = moving_averages.get(str(edge.output_id))
-
-                    if input_moving_avg and output_moving_avg:
-                        edge_metric = EdgeMetric.from_io_and_moving_average(
-                            input_metric, output_metric, input_moving_avg, output_moving_avg
-                        )
-                        differences = edge_metric.calculate_differences()
-                        edge_metrics_data = PrometheusEdgeMetrics(
-                            input_port_id=str(edge.input_id),
-                            output_port_id=str(edge.output_id),
-                            pipeline_id=pipeline_id,
-                            message_diff=differences["message_diff"],
-                            byte_diff=differences["byte_diff"],
-                            throughput_diff=differences["throughput_diff"]
-                        )
-                        update_edge_metrics(edge_metrics_data)
+                    # Just record that this edge exists
+                    edge_connection = EdgeConnection(
+                        input_port_id=str(edge.input_id),
+                        output_port_id=str(edge.output_id),
+                        pipeline_id=pipeline_id
+                    )
+                    update_edge_connection(edge_connection)
 
             pipeline_status_data = PipelineStatus(
                 pipeline_id=pipeline_id,
@@ -345,6 +152,7 @@ async def metrics_watch(
             )
             update_pipeline_status(pipeline_status_data)
 
+            # Process operator metrics
             for fut in asyncio.as_completed(operator_futs):
                 metric = await fut
                 if not metric:
@@ -363,7 +171,6 @@ async def metrics_watch(
                             processing_time_us=processing_time
                         )
                         record_operator_processing_time(processing_time_data)
-                    metric.timing.print_timing_info(logger)
                 else:
                     logger.debug(f"Operator {metric.id} has incomplete timing data")
 
@@ -507,8 +314,7 @@ def get_operator_type_for_id(operator_id: UUID, pipeline: PipelineJSON) -> str:
 
 
 async def main():
-    intervals = [2, 5, 30]  # List of intervals in seconds
-    update_interval = 1  # Time difference between entries in seconds
+    update_interval = 1  # Time between collections in seconds
     prometheus_port = cfg.METRICS_PORT
 
     nats_client: NATSClient = await nc(
@@ -527,9 +333,7 @@ async def main():
         await create_or_update_stream(METRICS_STREAM_CONFIG, js)
         metrics_psub = await create_metrics_consumer(js)
 
-    metrics_watch_task = asyncio.create_task(
-        metrics_watch(js, intervals, update_interval)
-    )
+    metrics_watch_task = asyncio.create_task(metrics_watch(js, update_interval))
     consume_messages_task = asyncio.create_task(
         consume_messages(metrics_psub, handler=handle_metrics, js=js)
     )

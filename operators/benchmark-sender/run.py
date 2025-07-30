@@ -15,11 +15,11 @@ class DataFrame:
         self.scan_number = 0
         self.data = np.random.bytes(data_size_bytes)
 
-# Generate DataFrames from 1KB to 32MB (doubling each time)
-sizes_in_bytes = [1024 * (2 ** i) for i in range(0, 16)]
+total_size_bytes = 4_294_967_296
+# Generate DataFrames from 1KB to 16MB (doubling each time)
+sizes_in_bytes = [1024 * (2 ** i) for i in range(0, 15)]
+num_frames_per_size = [total_size_bytes // size for size in sizes_in_bytes]
 accumulated_data = [DataFrame(size) for size in sizes_in_bytes]
-
-NUM_FRAMES_PER_SIZE = 1000
 
 # Global state variables
 current_size_index = 0
@@ -36,17 +36,21 @@ def send_benchmark_frame(inputs: BytesMessage | None, parameters: dict[str, Any]
     if current_size_index >= len(sizes_in_bytes):
         return None
 
-    # Wait for reciever to connect
+    # Wait for receiver to connect
     if first_time:
         time.sleep(2)
         first_time = False
 
     current_frame = accumulated_data[current_size_index]
 
+    # Calculate cumulative frame_id across all sizes
+    cumulative_frames = sum(num_frames_per_size[:current_size_index])
+    frame_id = cumulative_frames + current_frame_repeat_count
+
     # Prepare metadata
     output_meta = {
         "scan_number": current_frame.scan_number,
-        "frame_id": current_size_index * NUM_FRAMES_PER_SIZE + current_frame_repeat_count,
+        "frame_id": frame_id,
         "size": sizes_in_bytes[current_size_index]
     }
 
@@ -62,9 +66,10 @@ def send_benchmark_frame(inputs: BytesMessage | None, parameters: dict[str, Any]
     # Update counters
     current_frame_repeat_count += 1
 
-    if current_frame_repeat_count == NUM_FRAMES_PER_SIZE:
+    # Check if we've sent all frames for current size
+    if current_frame_repeat_count == num_frames_per_size[current_size_index]:
         # Interval between send receive of different sizes of messages
-        interval = int(parameters.get("interval", 2))
+        interval = int(parameters.get("interval", 45))
         time.sleep(interval)
 
         current_size_index += 1
