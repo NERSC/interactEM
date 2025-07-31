@@ -24,7 +24,10 @@ from interactem.app.models import (
     PipelineUpdate,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models.canonical import CanonicalPipeline
+from interactem.core.models.canonical import (
+    CanonicalPipeline,
+    CanonicalPipelineRevisionID,
+)
 
 logger = get_logger()
 router = APIRouter()
@@ -185,7 +188,7 @@ def read_pipeline_revision(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    revision_id: int,
+    revision_id: CanonicalPipelineRevisionID,
 ) -> Any:
     """
     Get specific revision data for a pipeline.
@@ -209,7 +212,7 @@ def update_pipeline_revision(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    revision_id: int,
+    revision_id: CanonicalPipelineRevisionID,
     update: PipelineRevisionUpdate,
 ) -> PipelineRevisionPublic:
     """
@@ -299,7 +302,7 @@ def list_pipeline_revision_deployments(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    revision_id: int,
+    revision_id: CanonicalPipelineRevisionID,
     offset: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
 ) -> PipelineDeploymentsPublic:
