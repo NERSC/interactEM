@@ -275,11 +275,7 @@ class Pipeline(nx.DiGraph):
 
         # If no downstream or single downstream, treat as single target
         # If multiple downstream, create one port per target for replication
-        targets = (
-            downstream_ops
-            if len(downstream_ops) > 1
-            else {list(downstream_ops)[0] if downstream_ops else None}
-        )
+        targets = downstream_ops if downstream_ops else {None}
 
         for runtime_op in runtime_ops:
             for target_op_id in targets:
