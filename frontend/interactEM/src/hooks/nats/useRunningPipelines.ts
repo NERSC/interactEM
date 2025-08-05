@@ -8,6 +8,7 @@ export const useRunningPipelines = () => {
     bucketName: BUCKET_STATUS,
     schema: PipelineRunValSchema,
     keyFilter: `${PIPELINES}.>`,
+    stripPrefix: PIPELINES,
   })
 
   return { pipelines, error }

@@ -119,6 +119,7 @@ async def clean_up_old_pipelines(
     current_pipeline_keys = await get_keys(bucket, filters=[f"{PIPELINES}"])
     delete_tasks = []
     for key in current_pipeline_keys:
+        key = key.strip(f"{PIPELINES}.")
         if key != str(valid_pipeline.id):
             try:
                 uid = UUID(key)
