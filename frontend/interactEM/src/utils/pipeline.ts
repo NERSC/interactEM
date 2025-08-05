@@ -128,6 +128,7 @@ export const toJSON = (nodes: OperatorNodeTypes[], edges: Edge[]) => {
       outputs: outputs,
       parameters: parameters,
       tags: tags,
+      parallel_config: data.parallel_config,
     }
     operatorsJSON.push(op)
   }
