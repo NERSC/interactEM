@@ -195,13 +195,10 @@ class OperatorMixin(RunnableKernel):
             update_interval=5.0,
             data_model=OperatorVal,
         )
-        if self.info.uri is None:
-            raise ValueError("Operator URI must be set in the pipeline")
         self.val = OperatorVal(
             id=self.id,
             canonical_id=self.info.canonical_id,
             status=OperatorStatus.INITIALIZING,
-            uri=self.info.uri,
             runtime_pipeline_id=self.pipeline.id,
             canonical_pipeline_id=self.pipeline.canonical_id,
         )
