@@ -37,5 +37,8 @@
       "options": ["plane", "interp"],
       "required": true
     }
-  ]
+  ],
+  "parallel_config": {
+    "type": "embarrassing"
+  }
 }
