@@ -45,14 +45,6 @@ export const DeploymentsList: React.FC<DeploymentsListProps> = ({
     isError,
     error,
   } = query
-  console.log(
-    "isLoading: ",
-    query.isLoading,
-    "isPending: ",
-    isPending,
-    "hasNextPage: ",
-    hasNextPage,
-  )
 
   const deployments =
     deploymentsData?.pages.flatMap((page) => page?.data || []) ?? []
