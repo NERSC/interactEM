@@ -9,13 +9,11 @@ import { PipelineHud } from "../components/pipelines/hud"
 import { usePipelineContext } from "../contexts/pipeline"
 import { useActivePipeline } from "../hooks/api/useActivePipeline"
 import useOperators from "../hooks/api/useOperators"
-import { useAgents } from "../hooks/nats/useAgents"
 import { usePipelineStore } from "../stores"
 import { useEditModeState } from "../stores/edit"
 
 export default function ComposerPage() {
   const { operators } = useOperators()
-  const { agents } = useAgents()
   const { revision } = useActivePipeline()
   const { currentPipelineId } = usePipelineStore()
   const { isEditMode, setIsEditMode, canEdit } = useEditModeState()
@@ -91,7 +89,7 @@ export default function ComposerPage() {
 
         {/* Agents Accordion */}
         <Box>
-          <AgentsAccordion agents={agents} />
+          <AgentsAccordion />
         </Box>
       </Box>
 
