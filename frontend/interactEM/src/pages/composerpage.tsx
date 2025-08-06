@@ -96,7 +96,6 @@ export default function ComposerPage() {
         <ComposerPipelineFlow
           key={currentPipelineId}
           pipelineData={revision ?? null}
-          isEditMode={isEditMode}
         />
       </div>
 

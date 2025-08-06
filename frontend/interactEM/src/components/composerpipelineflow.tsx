@@ -53,12 +53,10 @@ const generateID = () => uuidv4()
 
 interface ComposerPipelineFlowProps {
   pipelineData?: PipelineRevisionPublic | null
-  isEditMode: boolean
 }
 
 const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   pipelineData,
-  isEditMode,
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [nodes, setNodes] = useState<OperatorNodeTypes[]>([])
@@ -101,7 +99,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   // --- Direct Save Revision Function ---
   const saveRevision = useCallback(
     (currentNodes: OperatorNodeTypes[], currentEdges: Edge[]) => {
-      if (!isEditMode || !currentPipelineId) {
+      if (!currentPipelineId) {
         return
       }
       const pipelineJson = toJSON(currentNodes, currentEdges)
@@ -110,7 +108,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         body: { data: pipelineJson },
       })
     },
-    [currentPipelineId, addRevisionMutation, isEditMode],
+    [currentPipelineId, addRevisionMutation],
   )
 
   useEffect(() => {
@@ -143,33 +141,26 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
 
   const handleConnect: OnConnect = useCallback(
     (connection) => {
-      if (!isEditMode) return
       setEdges((eds) => {
         const newEdges = addEdge(connection, eds)
         saveRevision(nodes, newEdges)
         return newEdges
       })
     },
-    [nodes, saveRevision, isEditMode],
+    [nodes, saveRevision],
   )
 
   const handleDragOver = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault()
-      if (isEditMode) {
-        event.dataTransfer.dropEffect = "move"
-      } else {
-        event.dataTransfer.dropEffect = "none"
-      }
+      event.dataTransfer.dropEffect = "move"
     },
-    [isEditMode],
+    [],
   )
 
   const handleDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault()
-      if (!isEditMode) return
-
       if (!currentPipelineId) {
         toast.error(
           "Please select or create a pipeline before adding operators.",
@@ -234,73 +225,50 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       edges,
       saveRevision,
       currentPipelineId,
-      isEditMode,
     ],
   )
 
   const handleNodesChange: OnNodesChange<OperatorNodeTypes> = useCallback(
     (changes: NodeChange[]) => {
-      const allowedChanges = isEditMode
-        ? changes
-        : changes.filter(
-            (change) =>
-              change.type === "position" ||
-              change.type === "dimensions" ||
-              change.type === "select",
-          )
-
-      if (allowedChanges.length === 0) return
-
-      const nextNodes = applyNodeChanges(
-        allowedChanges,
-        nodes,
-      ) as OperatorNodeTypes[]
+      if (changes.length === 0) return
+      const nextNodes = applyNodeChanges(changes, nodes) as OperatorNodeTypes[]
       setNodes(nextNodes)
 
       // Trigger revision save if topology might have changed
       // But exclude "remove" type changes as those are handled by onNodesDelete
-      if (isEditMode) {
-        const affectsTopology = allowedChanges.some(
-          (change) => change.type === "add" || change.type === "replace",
-        )
-        if (affectsTopology) {
-          saveRevision(nextNodes, edges)
-        }
+
+      const affectsTopology = changes.some(
+        (change) => change.type === "add" || change.type === "replace",
+      )
+      if (affectsTopology) {
+        saveRevision(nextNodes, edges)
       }
     },
-    [nodes, edges, saveRevision, isEditMode],
+    [nodes, edges, saveRevision],
   )
 
   const handleEdgesChange: OnEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
-      const allowedChanges = isEditMode
-        ? changes
-        : changes.filter((change) => change.type === "select")
+      if (changes.length === 0) return
 
-      if (allowedChanges.length === 0) return
-
-      const nextEdges = applyEdgeChanges(allowedChanges, edges)
+      const nextEdges = applyEdgeChanges(changes, edges)
       setEdges(nextEdges)
 
-      if (isEditMode) {
-        const affectsTopology = allowedChanges.some(
-          (change) =>
-            change.type === "add" ||
-            change.type === "replace" ||
-            change.type !== "remove",
-        )
-        if (affectsTopology) {
-          saveRevision(nodes, nextEdges)
-        }
+      const affectsTopology = changes.some(
+        (change) =>
+          change.type === "add" ||
+          change.type === "replace" ||
+          change.type !== "remove",
+      )
+      if (affectsTopology) {
+        saveRevision(nodes, nextEdges)
       }
     },
-    [edges, nodes, saveRevision, isEditMode],
+    [edges, nodes, saveRevision],
   )
 
   const handleNodesDelete: OnNodesDelete = useCallback(
     (deletedNodes) => {
-      if (!isEditMode) return
-
       // When nodes are deleted, we handle this as a single operation
       // that includes removing connected edges as well
       // This prevents duplicate saveRevision calls
@@ -316,7 +284,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         ),
       )
     },
-    [nodes, edges, saveRevision, isEditMode],
+    [nodes, edges, saveRevision],
   )
 
   const handleDownloadClick = () => {
@@ -337,7 +305,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
     [],
   )
 
-  const deleteKeyCode: KeyCode | null = isEditMode ? "Delete" : null
+  const deleteKeyCode: KeyCode = "Delete"
   const multiSelectionKeyCode: KeyCode = "Shift"
   const selectionKeyCode: KeyCode = "Space"
 
@@ -360,7 +328,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
           nodeTypes={nodeTypes}
           fitView={pipelineJSONLoaded}
           fitViewOptions={{ duration: 300, padding: 0.1 }}
-          nodesConnectable={isEditMode}
+          nodesConnectable={true}
           noWheelClassName="no-wheel"
         >
           <Controls>
