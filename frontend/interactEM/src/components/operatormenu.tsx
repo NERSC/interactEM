@@ -2,10 +2,7 @@ import type React from "react"
 import type { DragEvent } from "react"
 import type { OperatorSpec } from "../client/"
 import { useDnD } from "../contexts/dnd"
-
-interface OperatorMenuProps {
-  operators: OperatorSpec[]
-}
+import useOperatorSpecs from "../hooks/api/useOperatorSpecs"
 
 interface OperatorMenuItemProps {
   operator: OperatorSpec
@@ -44,12 +41,13 @@ const OperatorMenuItem: React.FC<OperatorMenuItemProps> = ({ operator }) => {
   )
 }
 
-export const OperatorMenu: React.FC<OperatorMenuProps> = ({ operators }) => {
+export const OperatorMenu: React.FC = () => {
+  const { operatorSpecs } = useOperatorSpecs()
   return (
     <aside>
       <div className="description">Drag your operators into your pipeline!</div>
 
-      {operators.map((operator: OperatorSpec) => (
+      {operatorSpecs?.map((operator: OperatorSpec) => (
         <OperatorMenuItem operator={operator} key={operator.id} />
       ))}
     </aside>

@@ -31,7 +31,7 @@ import {
   pipelinesReadPipelinesQueryKey,
 } from "../client/generated/@tanstack/react-query.gen"
 import { useDnD } from "../contexts/dnd"
-import useOperators from "../hooks/api/useOperators"
+import useOperatorSpecs from "../hooks/api/useOperatorSpecs"
 import { usePipelineStore } from "../stores"
 import {
   type OperatorNodeTypes,
@@ -66,7 +66,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   const [pipelineJSONLoaded, setPipelineJSONLoaded] = useState(false)
   const { screenToFlowPosition, fitView } = useReactFlow()
   const [operatorDropData] = useDnD<OperatorMenuItemDragData>()
-  const { operators } = useOperators()
+  const { operatorSpecs } = useOperatorSpecs()
   const queryClient = useQueryClient()
 
   const { currentPipelineId, setPipelineRevision } = usePipelineStore()
@@ -184,7 +184,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       if (!operatorDropData) return
 
       const { specID, offsetX, offsetY } = operatorDropData
-      const op = operators?.find((op) => op.id === specID)
+      const op = operatorSpecs?.find((op) => op.id === specID)
       if (!op) {
         console.error(`Operator type not found: ${specID}`)
         return
@@ -230,7 +230,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
     [
       screenToFlowPosition,
       operatorDropData,
-      operators,
+      operatorSpecs,
       edges,
       saveRevision,
       currentPipelineId,
