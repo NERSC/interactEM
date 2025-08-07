@@ -1,44 +1,111 @@
 import { useMemo } from "react"
-import { BUCKET_STATUS, OPERATORS } from "../../constants/nats"
-import type { OperatorVal } from "../../types/gen"
-import { OperatorValSchema } from "../../types/operator"
-import { useBucketWatch } from "./useBucketWatch"
-import { useRunningPipelines } from "./useRunningPipelines"
+import { useOperatorStatusContext } from "../../contexts/nats/operatorstatus"
+import { OperatorStatus } from "../../types/gen"
 
-export const useOperatorStatus = (operatorID: string) => {
-  const { items: operatorVals, isLoading } = useBucketWatch<OperatorVal>({
-    bucketName: `${BUCKET_STATUS}`,
-    schema: OperatorValSchema,
-    // TODO: come back when we revisit runtime pipelines in frontend
-    keyFilter: `${OPERATORS}.>`,
-    stripPrefix: OPERATORS,
-  })
+export const useOperatorStatus = (operatorId?: string) => {
+  const { operators, operatorsLoading, operatorsError } =
+    useOperatorStatusContext()
 
-  const { pipelines } = useRunningPipelines()
-
-  // Find the operator status that matches the canonical ID
-  // TODO: come back when we revisit runtime pipelines in frontend
-  const operatorStatus = useMemo(() => {
-    return (
-      operatorVals.find((status) => status.canonical_id === operatorID) || null
-    )
-  }, [operatorVals, operatorID])
-
-  const pipelineId = operatorStatus?.runtime_pipeline_id || null
-  const status = operatorStatus?.status || null
-
-  // Check if the operator is part of a running pipeline
-  const isActiveInRunningPipeline =
-    pipelineId !== null &&
-    pipelines.some((pipeline) => pipeline.id === pipelineId)
-
-  // Get effective status - only return a status if the operator is part of a running pipeline
-  const effectiveStatus = isActiveInRunningPipeline ? status : null
+  const operator = useMemo(
+    () =>
+      operatorId ? operators.find((op) => op.id === operatorId) || null : null,
+    [operators, operatorId],
+  )
 
   return {
-    status: effectiveStatus,
+    operator,
+    isLoading: operatorsLoading,
+    error: operatorsError,
+  }
+}
+
+export const useAllOperatorStatuses = () => {
+  const { operators, operatorsLoading, operatorsError } =
+    useOperatorStatusContext()
+
+  return {
+    operators,
+    isLoading: operatorsLoading,
+    error: operatorsError,
+  }
+}
+
+export const useOperatorsByCanonicalId = (canonicalId: string) => {
+  const { operators, operatorsLoading, operatorsError } =
+    useOperatorStatusContext()
+
+  const matchingOperators = useMemo(
+    () => operators.filter((op) => op.canonical_id === canonicalId),
+    [operators, canonicalId],
+  )
+
+  return {
+    operators: matchingOperators,
+    isLoading: operatorsLoading,
+    error: operatorsError,
+  }
+}
+
+export const useAggregateOperatorStatus = (canonicalId?: string) => {
+  const { operators, isLoading, error } = useOperatorsByCanonicalId(
+    canonicalId || "",
+  )
+  const status: OperatorStatus | null = useMemo(() => {
+    if (operators.length === 0) return null
+
+    const statuses = operators.map((op) => op.status)
+    if (statuses.every((s) => s === OperatorStatus.running))
+      return OperatorStatus.running
+    if (statuses.some((s) => s === OperatorStatus.error))
+      return OperatorStatus.error
+    if (statuses.some((s) => s === OperatorStatus.shutting_down))
+      return OperatorStatus.shutting_down
+    return OperatorStatus.initializing
+  }, [operators])
+
+  return {
+    status,
     isLoading,
-    pipelineId,
-    rawStatus: status,
+    error,
+  }
+}
+
+export const useOperatorsByPipelineId = (pipelineId?: string) => {
+  const { operators, operatorsLoading, operatorsError } =
+    useOperatorStatusContext()
+
+  const matchingOperators = useMemo(
+    () => operators.filter((op) => op.runtime_pipeline_id === pipelineId),
+    [operators, pipelineId],
+  )
+
+  return {
+    operators: matchingOperators,
+    isLoading: operatorsLoading,
+    error: operatorsError,
+  }
+}
+
+export const useRuntimeOperatorStatusStyles = (canonicalId: string) => {
+  const { status } = useAggregateOperatorStatus(canonicalId)
+
+  const getStatusClass = (status: OperatorStatus | null) => {
+    switch (status) {
+      case OperatorStatus.initializing:
+        return "operator-status-initializing"
+      case OperatorStatus.running:
+        return "operator-status-running"
+      case OperatorStatus.shutting_down:
+        return "operator-status-shutting-down"
+      default:
+        return "operator-status-offline"
+    }
+  }
+
+  return {
+    status,
+    statusClass: getStatusClass(status),
+    isOnline: status === "running",
+    isInitializing: status === "initializing",
   }
 }
