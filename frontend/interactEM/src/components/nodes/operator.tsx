@@ -1,6 +1,7 @@
 import type { NodeProps } from "@xyflow/react"
 import { useRef } from "react"
 import { useRuntimeOperatorStatusStyles } from "../../hooks/nats/useOperatorStatus"
+import { ViewMode, useViewModeStore } from "../../stores"
 import type { OperatorNodeType } from "../../types/nodes"
 import Handles from "./handles"
 import OperatorHeader from "./header"
@@ -16,7 +17,13 @@ const OperatorNodeBase = ({
   className = "",
 }: OperatorNodeBaseProps) => {
   const nodeRef = useRef<HTMLDivElement>(null)
-  const { statusClass } = useRuntimeOperatorStatusStyles(id)
+  const { viewMode } = useViewModeStore()
+  let statusClass = ""
+  if (viewMode === ViewMode.Runtime) {
+    const { statusClass: runtimeStatusClass } =
+      useRuntimeOperatorStatusStyles(id)
+    statusClass = runtimeStatusClass
+  }
 
   return (
     <div className={`operator ${className} ${statusClass}`} ref={nodeRef}>
