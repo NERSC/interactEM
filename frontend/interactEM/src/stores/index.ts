@@ -18,6 +18,14 @@ interface PipelineState {
     pipelineId: string | null,
     revisionId: number | null,
   ) => void
+export enum ViewMode {
+  Composer = "composer",
+  Runtime = "runtime",
+}
+
+interface ViewModeState {
+  viewMode: ViewMode
+  setViewMode: (mode: ViewMode) => void
 }
 
 const usePipelineStoreZustand = create<PipelineState>()(
@@ -32,6 +40,14 @@ const usePipelineStoreZustand = create<PipelineState>()(
     }),
     {
       name: "pipeline-storage",
+const useViewModeStoreZustand = create<ViewModeState>()(
+  persist(
+    (set) => ({
+      viewMode: ViewMode.Composer,
+      setViewMode: (mode) => set({ viewMode: mode }),
+    }),
+    {
+      name: "view-mode-storage",
     },
   ),
 )
@@ -79,5 +95,12 @@ export const usePipelineStore = () => {
     setPipelineAndRevision,
     setPipelineRevision,
     setPipeline,
+export const useViewModeStore = () => {
+  const viewMode = useViewModeStoreZustand((state) => state.viewMode)
+  const setViewMode = useViewModeStoreZustand((state) => state.setViewMode)
+
+  return {
+    viewMode,
+    setViewMode,
   }
 }
