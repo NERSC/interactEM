@@ -1,9 +1,7 @@
 import { DownloadIcon } from "@radix-ui/react-icons"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   ControlButton,
   Controls,
-  type Edge,
   type EdgeChange,
   type KeyCode,
   type NodeChange,
@@ -20,19 +18,14 @@ import {
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 import type React from "react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useRef } from "react"
 import { toast } from "react-toastify"
 import { v4 as uuidv4 } from "uuid"
 import type { PipelineRevisionPublic } from "../client"
-import {
-  pipelinesAddPipelineRevisionMutation,
-  pipelinesListPipelineRevisionsQueryKey,
-  pipelinesReadPipelineQueryKey,
-  pipelinesReadPipelinesQueryKey,
-} from "../client/generated/@tanstack/react-query.gen"
 import { useDnD } from "../contexts/dnd"
 import useOperatorSpecs from "../hooks/api/useOperatorSpecs"
 import { usePipelineStore } from "../stores"
+import { useSavePipelineRevision } from "../hooks/api/useSavePipelineRevision"
 import {
   type OperatorNodeTypes,
   displayNodeTypeFromLabel,
@@ -59,57 +52,13 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   pipelineData,
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
-  const [nodes, setNodes] = useState<OperatorNodeTypes[]>([])
-  const [edges, setEdges] = useState<Edge[]>([])
-  const [pipelineJSONLoaded, setPipelineJSONLoaded] = useState(false)
   const { screenToFlowPosition, fitView } = useReactFlow()
   const [operatorDropData] = useDnD<OperatorMenuItemDragData>()
   const { operatorSpecs } = useOperatorSpecs()
-  const queryClient = useQueryClient()
 
   const { currentPipelineId, setPipelineRevision } = usePipelineStore()
 
   // --- Revision Mutation Setup ---
-  const addRevisionMutation = useMutation({
-    ...pipelinesAddPipelineRevisionMutation(),
-    onSuccess: (data) => {
-      // Invalidate queries to refetch pipeline details and revisions
-      setPipelineRevision(data)
-      queryClient.invalidateQueries({
-        queryKey: pipelinesReadPipelinesQueryKey(),
-      })
-      if (currentPipelineId) {
-        queryClient.invalidateQueries({
-          queryKey: pipelinesReadPipelineQueryKey({
-            path: { id: currentPipelineId },
-          }),
-        })
-        queryClient.invalidateQueries({
-          queryKey: pipelinesListPipelineRevisionsQueryKey({
-            path: { id: currentPipelineId },
-          }),
-        })
-      }
-    },
-    onError: () => {
-      toast.error("Failed to save pipeline revision. Please try again.")
-    },
-  })
-
-  // --- Direct Save Revision Function ---
-  const saveRevision = useCallback(
-    (currentNodes: OperatorNodeTypes[], currentEdges: Edge[]) => {
-      if (!currentPipelineId) {
-        return
-      }
-      const pipelineJson = toJSON(currentNodes, currentEdges)
-      addRevisionMutation.mutate({
-        path: { id: currentPipelineId },
-        body: { data: pipelineJson },
-      })
-    },
-    [currentPipelineId, addRevisionMutation],
-  )
 
   useEffect(() => {
     if (!pipelineData) {
@@ -124,6 +73,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
 
     let layoutedNodes = importedNodes
     let layoutedEdges = importedEdges
+  const { saveRevision } = useSavePipelineRevision()
 
     const layoutResult = layoutNodes(importedNodes, importedEdges)
     layoutedNodes = layoutResult.nodes
