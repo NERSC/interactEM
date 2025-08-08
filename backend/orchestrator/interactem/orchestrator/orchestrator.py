@@ -523,7 +523,7 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
     # TODO: for now, we use a blank pipeline to stop things
     # we should probably have a more explicit "stop" pipeline message
     canonical_pipeline = CanonicalPipeline(
-        id=event.deployment_id, revision_id=0, operators=[], edges=[]
+        id=uuid4(), revision_id=0, operators=[], edges=[]
     )
 
     # Convert to runtime pipeline for assignment
