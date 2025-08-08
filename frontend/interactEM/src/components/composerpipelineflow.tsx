@@ -22,6 +22,7 @@ import { useCallback, useMemo, useRef } from "react"
 import { toast } from "react-toastify"
 import { v4 as uuidv4 } from "uuid"
 import type { PipelineRevisionPublic } from "../client"
+import { zOperatorSpec } from "../client/generated/zod.gen"
 import { useDnD } from "../contexts/dnd"
 import useOperatorSpecs from "../hooks/api/useOperatorSpecs"
 import { useSavePipelineRevision } from "../hooks/api/useSavePipelineRevision"
@@ -66,7 +67,6 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
     usePipelineGraph(pipelineData, fitView)
 
   // --- Change Handlers ---
-
   const handleConnect: OnConnect = useCallback(
     (connection) => {
       setEdges((eds) => {
@@ -109,6 +109,8 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         return
       }
 
+      const validOp = zOperatorSpec.parse(op)
+
       const screenPosition = {
         x: event.clientX - offsetX,
         y: event.clientY - offsetY,
@@ -123,10 +125,8 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         position,
         zIndex: 1,
         data: {
+          ...validOp,
           spec_id: op.id,
-          label: op.label,
-          description: op.description,
-          image: op.image,
           inputs: op.inputs?.map(() => uuidv4()),
           outputs: op.outputs?.map(() => uuidv4()),
           parameters: op.parameters?.map((param) => ({
@@ -135,7 +135,6 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
           })),
           tags: op.tags ?? [],
           node_type: "operator",
-          parallel_config: op.parallel_config,
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
