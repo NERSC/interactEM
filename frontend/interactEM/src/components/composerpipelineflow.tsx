@@ -24,14 +24,14 @@ import { v4 as uuidv4 } from "uuid"
 import type { PipelineRevisionPublic } from "../client"
 import { useDnD } from "../contexts/dnd"
 import useOperatorSpecs from "../hooks/api/useOperatorSpecs"
-import { usePipelineStore } from "../stores"
 import { useSavePipelineRevision } from "../hooks/api/useSavePipelineRevision"
+import { usePipelineGraph } from "../hooks/usePipelineGraph"
+import { usePipelineStore } from "../stores"
 import {
   type OperatorNodeTypes,
   displayNodeTypeFromLabel,
 } from "../types/nodes"
-import { layoutNodes } from "../utils/layout"
-import { fromPipelineJSON, toJSON } from "../utils/pipeline"
+import { toJSON } from "../utils/pipeline"
 import ImageNode from "./nodes/image"
 import OperatorNode from "./nodes/operator"
 import TableNode from "./nodes/table"
@@ -56,36 +56,14 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   const [operatorDropData] = useDnD<OperatorMenuItemDragData>()
   const { operatorSpecs } = useOperatorSpecs()
 
-  const { currentPipelineId, setPipelineRevision } = usePipelineStore()
+  const { currentPipelineId } = usePipelineStore()
 
   // --- Revision Mutation Setup ---
-
-  useEffect(() => {
-    if (!pipelineData) {
-      setNodes([])
-      setEdges([])
-      setPipelineJSONLoaded(false)
-      return
-    }
-
-    const { nodes: importedNodes, edges: importedEdges } =
-      fromPipelineJSON(pipelineData)
-
-    let layoutedNodes = importedNodes
-    let layoutedEdges = importedEdges
   const { saveRevision } = useSavePipelineRevision()
 
-    const layoutResult = layoutNodes(importedNodes, importedEdges)
-    layoutedNodes = layoutResult.nodes
-    layoutedEdges = layoutResult.edges
-
-    setNodes(layoutedNodes as OperatorNodeTypes[])
-    setEdges(layoutedEdges)
-    setPipelineJSONLoaded(true)
-    setTimeout(() => {
-      fitView({ duration: 300, padding: 0.1 })
-    }, 100)
-  }, [pipelineData, fitView])
+  // --- Pipeline Graph Setup ---
+  const { nodes, setNodes, edges, setEdges, pipelineJSONLoaded } =
+    usePipelineGraph(pipelineData, fitView)
 
   // --- Change Handlers ---
 
@@ -97,7 +75,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         return newEdges
       })
     },
-    [nodes, saveRevision],
+    [nodes, setEdges, saveRevision],
   )
 
   const handleDragOver = useCallback(
@@ -175,6 +153,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       edges,
       saveRevision,
       currentPipelineId,
+      setNodes,
     ],
   )
 
@@ -194,7 +173,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         saveRevision(nextNodes, edges)
       }
     },
-    [nodes, edges, saveRevision],
+    [nodes, edges, setNodes, saveRevision],
   )
 
   const handleEdgesChange: OnEdgesChange = useCallback(
@@ -214,7 +193,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         saveRevision(nodes, nextEdges)
       }
     },
-    [edges, nodes, saveRevision],
+    [edges, nodes, setEdges, saveRevision],
   )
 
   const handleNodesDelete: OnNodesDelete = useCallback(
