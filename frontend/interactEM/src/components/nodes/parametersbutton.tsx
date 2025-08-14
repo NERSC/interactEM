@@ -65,7 +65,10 @@ const ParametersButton: React.FC<ParametersButtonProps> = ({
           <div className="operator-modal-content">
             {parameters.map((param) => (
               <div key={param.name} className="parameter-item">
-                <ParameterUpdater parameter={param} operatorID={operatorID} />
+                <ParameterUpdater
+                  parameter={param}
+                  operatorCanonicalID={operatorID}
+                />
               </div>
             ))}
           </div>

@@ -12,162 +12,139 @@ import {
   Typography,
 } from "@mui/material"
 import { useReactFlow } from "@xyflow/react"
-import type React from "react"
 import { memo, useEffect, useState } from "react"
 import type { OperatorSpecParameter } from "../../client"
-import { usePipelineContext } from "../../contexts/pipeline"
+import { useSavePipelineRevision } from "../../hooks/api/useSavePipelineRevision"
 import { useParameterUpdate } from "../../hooks/nats/useParameterUpdate"
 import { useParameterAck } from "../../hooks/nats/useParameterValue"
-import { useEditModeState } from "../../stores/edit"
+import { usePipelineStatus } from "../../hooks/nats/useRunningPipelines"
+import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
 import type { OperatorNodeType } from "../../types/nodes"
+import { getParameterSchema } from "../../types/params"
 import ParameterInfoTooltip from "./parameterinfotooltip"
-
-const compareValues = (
-  parameter: OperatorSpecParameter,
-  value1: string,
-  value2: string,
-): boolean => {
-  switch (parameter.type) {
-    case "int":
-      return Number.parseInt(value1, 10) === Number.parseInt(value2, 10)
-    case "float":
-      return Number.parseFloat(value1) === Number.parseFloat(value2)
-    case "bool":
-      return value1 === value2
-    case "str":
-    case "str-enum":
-    case "mount":
-      return value1 === value2
-    default:
-      return false
-  }
-}
 
 type ParameterUpdaterProps = {
   parameter: OperatorSpecParameter
-  operatorID: string
+  operatorCanonicalID: string
 }
 
 const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   parameter,
-  operatorID,
+  operatorCanonicalID,
 }) => {
-  const { isCurrentPipelineRunning } = usePipelineContext()
-  const { isEditMode } = useEditModeState()
-  const { getNode, setNodes } = useReactFlow<OperatorNodeType>()
+  const { viewMode } = useViewModeStore()
+  const { selectedRuntimePipelineId } = usePipelineStore()
+  const { pipeline: runtimePipeline } = usePipelineStatus(
+    selectedRuntimePipelineId,
+  )
+
+  const { getNode, setNodes, getEdges, getNodes } =
+    useReactFlow<OperatorNodeType>()
   const { actualValue: runtimeValue, hasReceivedMessage } = useParameterAck(
-    operatorID,
+    operatorCanonicalID,
     parameter.name,
     parameter.default,
   )
 
-  const node = getNode(operatorID)
+  const { saveRevision } = useSavePipelineRevision()
+  const { mutateAsync: updateParameter } = useParameterUpdate(
+    operatorCanonicalID,
+    parameter,
+  )
+
+  const node = getNode(operatorCanonicalID)
   if (!node) {
-    throw new Error(`Node with id ${operatorID} not found`)
+    throw new Error(`Node with id ${operatorCanonicalID} not found`)
   }
 
-  // Get the correct value depending on our mode
-  const comparisonTarget = isCurrentPipelineRunning
-    ? // If we haven't received a message use the parameter default.
-      hasReceivedMessage
-      ? runtimeValue
+  const comparisonTarget =
+    viewMode === ViewMode.Runtime && runtimePipeline
+      ? hasReceivedMessage
+        ? runtimeValue
+        : parameter.default
       : parameter.default
-    : parameter.default
 
   const [inputValue, setInputValue] = useState<string>(comparisonTarget)
   const [error, setError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
   const [userEditing, setUserEditing] = useState(false)
 
-  const isReadOnly = !isCurrentPipelineRunning && !isEditMode
+  const isReadOnly = viewMode === ViewMode.Runtime ? !runtimePipeline : false
 
-  // Update the input value when critical parameters or mode change
+  // Build Zod schema for this parameter
+  const schema = getParameterSchema(parameter)
+
   useEffect(() => {
-    // Only update if we haven't received user edits or we're in read-only mode
     if (!userEditing || isReadOnly) {
       setInputValue(comparisonTarget)
     }
-
-    // Reset userEditing state when switching modes
     if (isReadOnly) {
       setUserEditing(false)
     }
   }, [comparisonTarget, isReadOnly, userEditing])
 
-  const validateInput = (value: string) => {
-    switch (parameter.type) {
-      case "int":
-        return /^-?\d+$/.test(value)
-      case "float":
-        return /^-?\d+(\.\d+)?$/.test(value)
-      case "str":
-      case "str-enum":
-        return true
-      case "bool":
-        return value === "true" || value === "false"
-      case "mount":
-        return /^(\/|~\/)(?!.*(?:^|\/)\.\.(?:\/|$)).*$/.test(value)
-      default:
-        return false
-    }
-  }
-
-  const {
-    mutate: updateParameter,
-    isPending,
-    isError,
-  } = useParameterUpdate(operatorID, parameter)
+  const validateInput = (value: string) => schema.safeParse(value)
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     if (isReadOnly) return
-
-    e.preventDefault()
     const newValue = e.target.value
     setInputValue(newValue)
     setUserEditing(true)
 
-    if (!validateInput(newValue)) {
+    const result = validateInput(newValue)
+    if (!result.success) {
       setError(true)
-      setErrorMessage("Invalid value (type mismatch)")
+      setErrorMessage(result.error.errors[0]?.message || "Invalid value")
       return
     }
     setError(false)
+    setErrorMessage("")
+  }
+
+  const updateNodeParameter = (updateFn: (p: any) => any) => {
+    setNodes((nodes) =>
+      nodes.map((n) =>
+        n.id === operatorCanonicalID
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                parameters: n.data.parameters?.map((p) =>
+                  p.name === parameter.name ? updateFn(p) : p,
+                ),
+              },
+            }
+          : n,
+      ),
+    )
+  }
+
+  const compareValues = (value1: string, value2: string): boolean => {
+    const parsed1 = schema.safeParse(value1)
+    const parsed2 = schema.safeParse(value2)
+    if (!parsed1.success || !parsed2.success) return false
+    return parsed1.data === parsed2.data
   }
 
   const handleUpdateClick = async () => {
-    if (error || isReadOnly) {
-      return
+    if (error || isReadOnly) return
+    updateNodeParameter((p) => ({ ...p, value: inputValue }))
+    await updateParameter(inputValue)
+    setUserEditing(false)
+  }
+
+  const handleSetDefaultClick = () => {
+    if (error) return
+    updateNodeParameter((p) => ({
+      ...p,
+      default: inputValue,
+      value: inputValue,
+    }))
+    if (viewMode === ViewMode.Runtime && runtimePipeline) {
+      saveRevision(getNodes(), getEdges())
     }
-
-    setNodes((nodes) =>
-      nodes.map((n) => {
-        if (n.id === operatorID) {
-          const updatedParameters = n.data.parameters?.map((p) => {
-            if (p.name === parameter.name) {
-              if (isCurrentPipelineRunning) {
-                // Update value only when running
-                return { ...p, value: inputValue }
-              }
-              // Set both default and value when not running
-              return { ...p, default: inputValue, value: inputValue }
-            }
-            return p
-          })
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              parameters: updatedParameters,
-            },
-          }
-        }
-        return n
-      }),
-    )
-
-    updateParameter(inputValue)
     setUserEditing(false)
   }
 
@@ -186,23 +163,13 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
             onChange={handleInputChange}
             error={error}
             helperText={error ? errorMessage : ""}
-            sx={{
-              flexGrow: 1,
-              "& .MuiInputBase-input.Mui-disabled": {
-                WebkitTextFillColor: "rgba(0, 0, 0, 0.7)",
-              },
-            }}
+            sx={{ flexGrow: 1 }}
             disabled={isReadOnly}
           />
         )
       case "str-enum":
         return (
-          <FormControl
-            fullWidth
-            size="small"
-            sx={{ flexGrow: 1 }}
-            disabled={isReadOnly}
-          >
+          <FormControl fullWidth size="small" disabled={isReadOnly}>
             <InputLabel id={`${parameter.name}-label`}>Set Point</InputLabel>
             <Select
               labelId={`${parameter.name}-label`}
@@ -210,12 +177,10 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
               label="Set Point"
               onChange={(e) => {
                 if (isReadOnly) return
-                const newValue = e.target.value as string
-                setInputValue(newValue)
+                setInputValue(e.target.value as string)
                 setUserEditing(true)
+                setError(false)
               }}
-              inputProps={{ readOnly: isReadOnly }}
-              sx={{ opacity: isReadOnly ? 0.7 : 1 }}
             >
               {parameter.options?.map((option) => (
                 <MenuItem key={option} value={option}>
@@ -233,15 +198,15 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
                 checked={inputValue === "true"}
                 onChange={(e) => {
                   if (isReadOnly) return
-                  const newValue = e.target.checked ? "true" : "false"
-                  setInputValue(newValue)
+                  const val = e.target.checked ? "true" : "false"
+                  setInputValue(val)
                   setUserEditing(true)
+                  setError(false)
                 }}
                 disabled={isReadOnly}
               />
             }
             label="Set Point"
-            sx={{ opacity: isReadOnly ? 0.7 : 1 }}
           />
         )
       default:
@@ -249,20 +214,8 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     }
   }
 
-  useEffect(() => {
-    // TODO: we should make a ParameterErrorEvent type
-    if (isError || compareValues(parameter, runtimeValue, "ERROR")) {
-      if (parameter.type === "mount") {
-        setErrorMessage("Invalid mount. File/dir doesn't exist.")
-      }
-    }
-  }, [parameter, isError, runtimeValue])
-
-  const buttonVisible =
-    !error &&
-    !isReadOnly &&
-    !compareValues(parameter, comparisonTarget, inputValue) &&
-    !isPending
+  const showButtons =
+    !error && !isReadOnly && !compareValues(comparisonTarget, inputValue)
 
   return (
     <Container>
@@ -270,28 +223,32 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
         <Typography sx={{ fontSize: 16 }}>{parameter.label}</Typography>
         <ParameterInfoTooltip parameter={parameter} />
       </Box>
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 2,
-          flexGrow: 1,
-        }}
-      >
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
         {renderInputField()}
-        {buttonVisible && (
-          <Button
-            type="submit"
-            variant="contained"
-            color="primary"
-            size="small"
-            onClick={handleUpdateClick}
-          >
-            {isCurrentPipelineRunning ? "Update" : "Set Default"}
-          </Button>
-        )}
+        {showButtons &&
+          (viewMode === ViewMode.Runtime && runtimePipeline ? (
+            // Runtime mode → only allow Update
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={handleUpdateClick}
+            >
+              Update
+            </Button>
+          ) : (
+            // Design/Edit mode → only allow Set Default
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              onClick={handleSetDefaultClick}
+            >
+              Set Default
+            </Button>
+          ))}
       </Box>
-      {isError && (
+      {error && (
         <Typography color="error">Failed to update parameter</Typography>
       )}
     </Container>

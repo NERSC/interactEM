@@ -148,7 +148,7 @@ class TestMessageReplicationScenarios:
         """Test scenario 1: non-parallel → parallel expansion."""
         # Create pipeline: OpA (non-parallel) → OpB (parallel)
         builder = PipelineBuilder()
-        op_a = builder.add_operator("OpA", parallel=False, num_inputs=1, num_outputs=1)
+        op_a = builder.add_operator("OpA", parallel=False, num_inputs=0, num_outputs=1)
         op_b = builder.add_operator("OpB", parallel=True, num_inputs=1, num_outputs=0)
         builder.connect(op_a, op_b)
 
@@ -172,16 +172,17 @@ class TestMessageReplicationScenarios:
         assert len(op_b_instances) == 2  # Parallel with factor 2
 
         # Verify ports
-        # OpA: 1 input + 1 output = 2 ports
+        # OpA: 1 output = 1 ports
         # OpB1: 1 input = 1 port
         # OpB2: 1 input = 1 port
         # Total: 4 ports
-        assert len(pipeline.ports) == 4
+        assert len(pipeline.ports) == 3
 
         # Verify edges
-        # OpA output should connect to both OpB1 and OpB2 inputs
+        # OpA →(E0) outA →(E1) inB1 →(E2) OpB1
+        # OpA →(E0) outA →(E3) inB2 →(E4) OpB2
         edges = list(pipeline.edges)
-        assert len(edges) == 2
+        assert len(edges) == 5
 
         # Get OpA's output port
         op_a_runtime = op_a_instances[0]
@@ -244,19 +245,21 @@ class TestMessageReplicationScenarios:
         assert len(pipeline.ports) == 8
 
         # Verify edges
-        # OpA → OpB1, OpA → OpB2 = 2 edges
-        # OpB1 → OpC1, OpB1 → OpC2 = 2 edges
-        # OpB2 → OpC1, OpB2 → OpC2 = 2 edges
-        # Total: 6 edges
+        # OpA →(E0) outA →(E1) in1 →(E2) OpB1, OpA →(E0) outA →(E3) in2 →(E4) OpB2
+        # OpB1 →(E5) outB1 →(E6) inC1 →(E8) OpC1, OpB1 →(E5) outB1 →(E7) inC2 →(E9) OpC2
+        # OpB2 →(E8) outB2 →(E10) inC1 →(E11) OpC1, OpB2 →(E8) outB2 →(E12) inC2 →(E13) OpC2
+        # Total:  14 edges
         edges = list(pipeline.edges)
-        assert len(edges) == 6
+        assert len(edges) == 14
 
         # Verify connection pattern
         # Track connections from OpB to OpC
         opb_to_opc_connections = []
         for src_id, dst_id in edges:
-            src_port = pipeline.ports[src_id]
-            dst_port = pipeline.ports[dst_id]
+            src_port = pipeline.ports.get(src_id, None)
+            dst_port = pipeline.ports.get(dst_id, None)
+            if src_port is None or dst_port is None:
+                continue
 
             src_op = pipeline.operators[src_port.operator_id]
             dst_op = pipeline.operators[dst_port.operator_id]
@@ -292,9 +295,12 @@ class TestMessageReplicationScenarios:
         # Ports: 3 OpA outputs + 1 OpB input = 4
         assert len(pipeline.ports) == 4
 
-        # Each OpA should connect to OpB
+        # OpA1 →(E0) out1 →(E1) in →(E7) OpB
+        # OpA2 →(E2) out2 →(E3) in →(E7) OpB
+        # OpA3 →(E4) out3 →(E5) in →(E7) OpB
+        # 7 total (in → OpB the same)
         edges = list(pipeline.edges)
-        assert len(edges) == 3
+        assert len(edges) == 7
 
         # Verify all OpA instances connect to the single OpB
         op_b_instances = pipeline.get_parallel_group(op_b.id)
