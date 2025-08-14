@@ -3,7 +3,7 @@ import {
   pipelinesReadPipelineOptions,
   pipelinesReadPipelineRevisionOptions,
 } from "../../client/generated/@tanstack/react-query.gen"
-import { usePipelineStore, useViewModeStore } from "../../stores"
+import { usePipelineStore, useViewModeStore, ViewMode } from "../../stores"
 import { usePipelineStatus } from "../nats/useRunningPipelines"
 
 function useComposerPipeline() {
@@ -72,7 +72,7 @@ export function useActivePipeline() {
   const runtimeData = useRuntimePipeline()
 
   // Return the appropriate data based on view mode
-  if (viewMode === "runtime") {
+  if (viewMode === ViewMode.Runtime) {
     return {
       ...runtimeData,
     }

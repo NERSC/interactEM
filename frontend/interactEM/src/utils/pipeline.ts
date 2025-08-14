@@ -2,7 +2,7 @@ import { type Edge, Position, type XYPosition } from "@xyflow/react"
 import type { CanonicalEdge, CanonicalOperator, CanonicalPort } from "../client"
 import { zCanonicalPipelineData } from "../client/generated/zod.gen"
 import { edgeOptions } from "../components/composerpipelineflow"
-import type { ViewMode } from "../stores"
+import { ViewMode } from "../stores"
 import { NodeType, PortType } from "../types/gen"
 import {
   DisplayNodeType,
@@ -30,7 +30,7 @@ export const fromPipelineJSON = (
 
   for (const operatorJSON of pipelineJSON.data.operators ?? []) {
     let displayType = DisplayNodeType.operator
-    if (viewMode === "runtime") {
+    if (viewMode === ViewMode.Runtime) {
       displayType = displayNodeTypeFromImage(operatorJSON.image)
     }
     const node: OperatorNodeTypes = {

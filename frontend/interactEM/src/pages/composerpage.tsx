@@ -5,7 +5,7 @@ import { OperatorMenu } from "../components/operatormenu"
 import { PipelineHud } from "../components/pipelines/hud"
 import RunningPipelineFlow from "../components/runningpipelineflow"
 import { useActivePipeline } from "../hooks/api/useActivePipeline"
-import { useViewModeStore } from "../stores"
+import { useViewModeStore, ViewMode } from "../stores"
 
 export default function ComposerPage() {
   const { pipeline, revision, runtimePipelineId } = useActivePipeline()
@@ -44,7 +44,7 @@ export default function ComposerPage() {
 
       {/* Main Flow Area */}
       <div className="composer-flow">
-        {viewMode === "composer" ? (
+        {viewMode === ViewMode.Composer ? (
           <ComposerPipelineFlow key={pipeline?.id} pipelineData={revision} />
         ) : (
           <RunningPipelineFlow
@@ -56,7 +56,7 @@ export default function ComposerPage() {
       </div>
 
       {/* Operator Menu - Only show in composer mode */}
-      {viewMode === "composer" && (
+      {viewMode === ViewMode.Composer && (
         <div className="composer-operators">
           <OperatorMenu />
         </div>
