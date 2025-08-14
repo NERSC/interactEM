@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import ValidationError
 from sqlmodel import col, func, select
 
 from interactem.app.api.deps import CurrentUser, SessionDep
@@ -23,6 +24,10 @@ from interactem.app.models import (
     PipelineUpdate,
 )
 from interactem.core.logger import get_logger
+from interactem.core.models.canonical import (
+    CanonicalPipeline,
+    CanonicalPipelineRevisionID,
+)
 
 logger = get_logger()
 router = APIRouter()
@@ -131,7 +136,8 @@ def add_pipeline_revision(
     """
     if not revision_in.data:
         raise HTTPException(status_code=400, detail="Revision data is required")
-    pipeline = session.get(Pipeline, id)
+    # Lock this pipeline to avoid race condition with revision ID
+    pipeline = session.get(Pipeline, id, with_for_update=True)
     pipeline = check_present_and_authorized(pipeline, current_user, id)
 
     # Get latest revision_id
@@ -151,6 +157,13 @@ def add_pipeline_revision(
         data=revision_in.data,
     )
     session.add(revision)
+
+    try:
+        CanonicalPipeline(
+            id=revision.pipeline_id, revision_id=revision.revision_id, **revision.data
+        )
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid pipeline data: {str(e)}")
 
     # Update the parent pipeline
     pipeline.data = revision_in.data
@@ -176,7 +189,7 @@ def read_pipeline_revision(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    revision_id: int,
+    revision_id: CanonicalPipelineRevisionID,
 ) -> Any:
     """
     Get specific revision data for a pipeline.
@@ -200,7 +213,7 @@ def update_pipeline_revision(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    revision_id: int,
+    revision_id: CanonicalPipelineRevisionID,
     update: PipelineRevisionUpdate,
 ) -> PipelineRevisionPublic:
     """
@@ -290,7 +303,7 @@ def list_pipeline_revision_deployments(
     session: SessionDep,
     current_user: CurrentUser,
     id: uuid.UUID,
-    revision_id: int,
+    revision_id: CanonicalPipelineRevisionID,
     offset: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
 ) -> PipelineDeploymentsPublic:

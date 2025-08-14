@@ -23,7 +23,7 @@ from interactem.app.models import (
     PipelineDeploymentUpdate,
     PipelineRevision,
 )
-from interactem.core.events.pipelines import PipelineRunEvent, PipelineStopEvent
+from interactem.core.events.pipelines import PipelineDeploymentEvent, PipelineStopEvent
 from interactem.core.logger import get_logger
 
 logger = get_logger()
@@ -74,8 +74,8 @@ class PipelineDeploymentStateMachine:
         }
 
     async def start(self, deployment: PipelineDeployment) -> None:
-        event = PipelineRunEvent(
-            id=deployment.pipeline_id,
+        event = PipelineDeploymentEvent(
+            canonical_id=deployment.pipeline_id,
             data=deployment.revision.data,
             revision_id=deployment.revision_id,
             deployment_id=deployment.id,
@@ -104,8 +104,6 @@ class PipelineDeploymentStateMachine:
 
     async def _handle_cancellation(self, deployment: PipelineDeployment) -> None:
         event = PipelineStopEvent(
-            id=deployment.pipeline_id,
-            revision_id=deployment.revision_id,
             deployment_id=deployment.id,
         )
         await publish_pipeline_stop_event(event)
@@ -246,19 +244,14 @@ def read_pipeline_deployment(
     return PipelineDeploymentPublic.model_validate(deployment)
 
 
-@router.patch("/{id}", response_model=PipelineDeploymentPublic)
-async def update_pipeline_deployment(
-    *,
+async def _handle_update_pipeline_state(
     session: SessionDep,
-    current_user: CurrentUser,
-    id: uuid.UUID,
+    deployment: PipelineDeployment,
     update: PipelineDeploymentUpdate,
 ) -> PipelineDeploymentPublic:
     """
     Update a pipeline deployment state with proper transition logic and event publishing.
     """
-    deployment = session.get(PipelineDeployment, id)
-    deployment = check_deployment_authorized(deployment, current_user, id)
 
     # Store the previous state for transition logic
     previous_state = deployment.state
@@ -291,3 +284,20 @@ async def update_pipeline_deployment(
         )
 
     return PipelineDeploymentPublic.model_validate(deployment)
+
+
+@router.patch("/{id}", response_model=PipelineDeploymentPublic)
+async def update_pipeline_deployment(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    update: PipelineDeploymentUpdate,
+) -> PipelineDeploymentPublic:
+    """
+    Update a pipeline deployment state with proper transition logic and event publishing.
+    """
+    deployment = session.get(PipelineDeployment, id)
+    deployment = check_deployment_authorized(deployment, current_user, id)
+
+    return await _handle_update_pipeline_state(session, deployment, update)

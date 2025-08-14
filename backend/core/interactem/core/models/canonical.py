@@ -4,10 +4,10 @@ from pydantic import BaseModel
 
 from interactem.core.models.base import IdType, NodeType, PortType
 from interactem.core.models.spec import (
+    OperatorSpec,
     OperatorSpecID,
-    OperatorSpecParameter,
     OperatorSpecTag,
-    ParallelConfig,
+    ParallelType,
 )
 
 """
@@ -16,17 +16,17 @@ as json data. Frontend sends this data to app from wired up operators.
 """
 
 
-CanonicalOperatorID = OperatorSpecID
+CanonicalOperatorID = IdType
 CanonicalPortID = IdType
 CanonicalPipelineID = IdType
 CanonicalPipelineRevisionID = int
 
 
 class CanonicalPort(BaseModel):
-    id: CanonicalPortID
+    id: CanonicalPortID  # UID generated at DnD time in frontend
     node_type: NodeType = NodeType.port
     port_type: PortType
-    operator_id: OperatorSpecID  # The operator this port belongs to
+    canonical_operator_id: CanonicalOperatorID  # The operator this port belongs to
     portkey: str  # Unused currently, but can be used for port-port compatibility
 
 
@@ -38,23 +38,14 @@ class CanonicalOutput(CanonicalPort):
     port_type: PortType = PortType.output
 
 
-class CanonicalOperator(BaseModel):
-    id: CanonicalOperatorID
+class CanonicalOperator(OperatorSpec):
+    id: CanonicalOperatorID  # UID generated at DnD time in frontend
+    spec_id: OperatorSpecID  # The operator spec ID this operator is based on
     node_type: NodeType = NodeType.operator
-    image: str  # Container image
     # tunable parameters for the operator
-    parameters: list[OperatorSpecParameter] | None = None
     inputs: list[CanonicalPortID] = []
     outputs: list[CanonicalPortID] = []
-    tags: list[OperatorSpecTag] = []  # Tags for agent matching
-    parallel_config: ParallelConfig | None = None  # Parallel execution configuration
-
-    def update_parameter_value(self, name: str, value: str | None) -> None:
-        for parameter in self.parameters or []:
-            if parameter.name == name:
-                parameter.value = value
-                return
-        raise ValueError(f"Parameter '{name}' not found in operator.")
+    tags: list[OperatorSpecTag] = []
 
 
 class CanonicalEdge(BaseModel):
@@ -62,9 +53,29 @@ class CanonicalEdge(BaseModel):
     output_id: CanonicalPortID | CanonicalOperatorID
 
 
-class CanonicalPipeline(BaseModel):
-    id: CanonicalPipelineID
-    revision_id: int
+class CanonicalPipelineData(BaseModel):
     operators: Sequence[CanonicalOperator] = []
     ports: Sequence[CanonicalPort] = []
     edges: Sequence[CanonicalEdge] = []
+
+
+class CanonicalPipeline(CanonicalPipelineData):
+    id: CanonicalPipelineID
+    revision_id: CanonicalPipelineRevisionID
+
+    def get_operator_by_label(self, label: str) -> CanonicalOperator | None:
+        return next((op for op in self.operators if op.label == label), None)
+
+    def get_parallel_operators(self) -> list[CanonicalOperator]:
+        return [
+            op
+            for op in self.operators
+            if op.parallel_config and op.parallel_config.type != ParallelType.NONE
+        ]
+
+    def get_sequential_operators(self) -> list[CanonicalOperator]:
+        return [
+            op
+            for op in self.operators
+            if not op.parallel_config or op.parallel_config.type == ParallelType.NONE
+        ]

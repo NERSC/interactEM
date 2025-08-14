@@ -22,9 +22,11 @@ nats-py = "^2.10.0"
 nkeys = "^0.2.1"
 tenacity = "^9.0.0"
 pydantic-settings = "^2.10.1"
+faststream = {version="^0.5.48", extras=["nats", "cli"]}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"
+pydantic-to-typescript = "^2.0.0"
 
 [build-system]
 requires = ["poetry-core"]
@@ -34,7 +36,7 @@ build-backend = "poetry.core.masonry.api"
 target-version = "py310"
 
 [tool.ruff.lint]
-exclude = ["**/__init__.py", "thirdparty/**", "conftest.py"]
+exclude = ["**/__init__.py", "thirdparty/**", "conftest.py", "**/_export.py"]
 select = [
     "E",  # pycodestyle errors
     "W",  # pycodestyle warnings

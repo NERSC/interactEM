@@ -66,4 +66,4 @@ class Settings(BaseSettings):
             raise e
 
 
-cfg = Settings()
+cfg = Settings()  # pyright: ignore[reportCallIssue]

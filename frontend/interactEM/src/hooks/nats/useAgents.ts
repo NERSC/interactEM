@@ -1,12 +1,27 @@
-import { AGENTS_BUCKET } from "../../constants/nats"
-import { type AgentVal, AgentValSchema } from "../../types/agent"
-import { useBucketWatch } from "./useBucketWatch"
+import { useMemo } from "react"
+import { useAgentStatusContext } from "../../contexts/nats/agentstatus"
 
-export const useAgents = () => {
-  const { items: agents, error } = useBucketWatch<AgentVal>({
-    bucketName: AGENTS_BUCKET,
-    schema: AgentValSchema,
-  })
+export const useAgent = (id: string) => {
+  const { agents, agentsLoading, agentsError } = useAgentStatusContext()
 
-  return { agents, error }
+  const agent = useMemo(
+    () => (id ? agents.find((a) => a.uri.id === id) || null : null),
+    [agents, id],
+  )
+
+  return {
+    agent,
+    isLoading: agentsLoading,
+    error: agentsError,
+  }
+}
+
+export const useAllAgents = () => {
+  const { agents, agentsLoading, agentsError } = useAgentStatusContext()
+
+  return {
+    agents,
+    isLoading: agentsLoading,
+    error: agentsError,
+  }
 }

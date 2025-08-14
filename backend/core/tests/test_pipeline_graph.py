@@ -20,6 +20,9 @@ def canonical() -> CanonicalPipeline:
     # Create operators
     op1 = CanonicalOperator(
         id=uuid4(),
+        spec_id=uuid4(),
+        label="Test Operator 1",
+        description="First test operator",
         image="test/op1:latest",
         parameters=None,
         inputs=[],
@@ -31,6 +34,9 @@ def canonical() -> CanonicalPipeline:
     # Parallel operator
     parallel_op = CanonicalOperator(
         id=uuid4(),
+        spec_id=uuid4(),
+        label="Parallel Test Operator",
+        description="Parallel test operator",
         image="test/parallel:latest",
         parameters=None,
         inputs=[],
@@ -41,6 +47,9 @@ def canonical() -> CanonicalPipeline:
 
     op3 = CanonicalOperator(
         id=uuid4(),
+        spec_id=uuid4(),
+        label="Test Operator 3",
+        description="Third test operator",
         image="test/op3:latest",
         parameters=None,
         inputs=[],
@@ -53,30 +62,30 @@ def canonical() -> CanonicalPipeline:
     ports = [
         # Op1 ports
         CanonicalPort(
-            id=uuid4(), operator_id=op1.id, port_type=PortType.input, portkey="input"
+            id=uuid4(), canonical_operator_id=op1.id, port_type=PortType.input, portkey="input"
         ),
         CanonicalPort(
-            id=uuid4(), operator_id=op1.id, port_type=PortType.output, portkey="output"
+            id=uuid4(), canonical_operator_id=op1.id, port_type=PortType.output, portkey="output"
         ),
         # Parallel op ports
         CanonicalPort(
             id=uuid4(),
-            operator_id=parallel_op.id,
+            canonical_operator_id=parallel_op.id,
             port_type=PortType.input,
             portkey="input",
         ),
         CanonicalPort(
             id=uuid4(),
-            operator_id=parallel_op.id,
+            canonical_operator_id=parallel_op.id,
             port_type=PortType.output,
             portkey="output",
         ),
         # Op3 ports
         CanonicalPort(
-            id=uuid4(), operator_id=op3.id, port_type=PortType.input, portkey="input"
+            id=uuid4(), canonical_operator_id=op3.id, port_type=PortType.input, portkey="input"
         ),
         CanonicalPort(
-            id=uuid4(), operator_id=op3.id, port_type=PortType.output, portkey="output"
+            id=uuid4(), canonical_operator_id=op3.id, port_type=PortType.output, portkey="output"
         ),
     ]
 
@@ -151,7 +160,9 @@ class TestPipelineExpansion:
             canonical, uuid4(), parallel_factor=parallel_factor
         )
 
-        assert len(runtime_pipeline.operators) == 3 + parallel_factor  # 3 original + parallel copies
+        assert len(runtime_pipeline.operators) == 2 + parallel_factor, (
+            "Mismatch in operator count for parallel expansion"
+        )  # 2 original + parallel copies
 
         parallel_instances = runtime_pipeline.get_parallel_group(parallel_op.id)
         assert len(parallel_instances) == parallel_factor
@@ -229,6 +240,9 @@ class TestEdgeCases:
         """Test expansion of single non-parallel operator."""
         single_op = CanonicalOperator(
             id=uuid4(),
+            spec_id=uuid4(),
+            label="Single Test Operator",
+            description="Single operator test",
             image="test:latest",
             parameters=None,
             inputs=[],

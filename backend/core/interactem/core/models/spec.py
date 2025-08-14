@@ -1,6 +1,6 @@
 from enum import Enum
 
-from pydantic import BaseModel
+from pydantic import BaseModel, model_validator
 
 from interactem.core.models.base import IdType
 
@@ -41,8 +41,20 @@ class OperatorSpecParameter(BaseModel):
     type: ParameterSpecType  # Type of the parameter
     default: str  # Default value of the parameter
     required: bool  # If the parameter is required
-    value: str | None = None  # Value of the parameter
     options: list[str] | None = None  # List of options for STR_ENUM
+
+    @model_validator(mode="after")
+    def validate_options(self):
+        if self.type == ParameterSpecType.STR_ENUM:
+            if not self.options:
+                raise ValueError(
+                    f"Parameter '{self.name}' of type STR_ENUM must have options."
+                )
+            if self.default not in self.options:
+                raise ValueError(
+                    f"Default value '{self.default}' for parameter '{self.name}' is not in options."
+                )
+        return self
 
 
 class OperatorSpecTag(BaseModel):

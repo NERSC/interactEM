@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime, timezone
-from enum import Enum
 from typing import Any
 
 import sqlalchemy as sa
@@ -13,7 +12,12 @@ from sqlmodel import (
     SQLModel,
 )
 
-from interactem.core.models.operators import Operator
+from interactem.core.models.base import PipelineDeploymentState
+from interactem.core.models.canonical import (
+    CanonicalPipelineData,
+    CanonicalPipelineRevisionID,
+)
+from interactem.core.models.spec import OperatorSpec
 
 
 # Shared properties
@@ -102,6 +106,7 @@ class PipelineBase(SQLModel):
     name: str | None = Field(
         index=True, max_length=128, default="New Pipeline", nullable=True
     )
+    # we store as JSON, but validate as CanonicalPipelineData before
     data: dict[str, Any] = Field(sa_column=Column(JSON))
 
 
@@ -132,7 +137,7 @@ class Pipeline(PipelineBase, table=True):
         cascade_delete=True,
         sa_relationship_kwargs={"order_by": "PipelineRevision.revision_id"},
     )
-    current_revision_id: int = Field(
+    current_revision_id: CanonicalPipelineRevisionID = Field(
         default=0,
         index=True,
         nullable=False,
@@ -143,7 +148,7 @@ class PipelineRevision(SQLModel, table=True):
     pipeline_id: uuid.UUID = Field(
         foreign_key="pipeline.id", primary_key=True, index=True, ondelete="CASCADE"
     )
-    revision_id: int = Field(primary_key=True, index=True)
+    revision_id: CanonicalPipelineRevisionID = Field(primary_key=True, index=True)
     data: dict[str, Any] = Field(sa_column=Column(JSON))
     tag: str | None = Field(default=None, max_length=128)
     created_at: datetime = Field(
@@ -178,7 +183,8 @@ class PipelinePublic(PipelineBase):
     owner_id: uuid.UUID
     updated_at: datetime
     created_at: datetime
-    current_revision_id: int
+    current_revision_id: CanonicalPipelineRevisionID
+    data: CanonicalPipelineData
 
 
 class PipelinesPublic(SQLModel):
@@ -188,17 +194,10 @@ class PipelinesPublic(SQLModel):
 
 class PipelineRevisionPublic(SQLModel):
     pipeline_id: uuid.UUID
-    revision_id: int
-    data: dict[str, Any]
+    revision_id: CanonicalPipelineRevisionID
+    data: CanonicalPipelineData
     tag: str | None
     created_at: datetime
-
-
-class PipelineDeploymentState(str, Enum):
-    PENDING = "pending"
-    FAILED_TO_START = "failed_to_start"
-    RUNNING = "running"
-    CANCELLED = "cancelled"
 
 
 class PipelineDeployment(SQLModel, table=True):
@@ -206,7 +205,7 @@ class PipelineDeployment(SQLModel, table=True):
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     pipeline_id: uuid.UUID = Field(index=True)
-    revision_id: int = Field(index=True)
+    revision_id: CanonicalPipelineRevisionID = Field(index=True)
     state: PipelineDeploymentState = Field(
         default=PipelineDeploymentState.PENDING, index=True
     )
@@ -238,7 +237,7 @@ class PipelineDeployment(SQLModel, table=True):
 
 class PipelineDeploymentCreate(SQLModel):
     pipeline_id: uuid.UUID
-    revision_id: int
+    revision_id: CanonicalPipelineRevisionID
 
 
 class PipelineDeploymentUpdate(SQLModel):
@@ -248,7 +247,7 @@ class PipelineDeploymentUpdate(SQLModel):
 class PipelineDeploymentPublic(SQLModel):
     id: uuid.UUID
     pipeline_id: uuid.UUID
-    revision_id: int
+    revision_id: CanonicalPipelineRevisionID
     state: PipelineDeploymentState
     created_at: datetime
     updated_at: datetime
@@ -259,5 +258,5 @@ class PipelineDeploymentsPublic(SQLModel):
     count: int
 
 
-class Operators(BaseModel):
-    data: list[Operator]
+class OperatorSpecs(BaseModel):
+    data: list[OperatorSpec]

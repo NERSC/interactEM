@@ -20,17 +20,13 @@ from tenacity import (
 )
 
 from interactem.core.constants import (
-    BUCKET_AGENTS,
     BUCKET_METRICS,
-    BUCKET_OPERATORS,
-    BUCKET_PIPELINES,
+    BUCKET_STATUS,
 )
 from interactem.core.logger import get_logger
 from interactem.core.nats import (
-    get_agents_bucket,
     get_metrics_bucket,
-    get_operators_bucket,
-    get_pipelines_bucket,
+    get_status_bucket,
 )
 from interactem.core.util import create_task_with_ref
 
@@ -38,19 +34,15 @@ logger = get_logger()
 
 
 class InteractemBucket(str, Enum):
-    AGENTS = BUCKET_AGENTS
-    OPERATORS = BUCKET_OPERATORS
     METRICS = BUCKET_METRICS
-    PIPELINES = BUCKET_PIPELINES
+    STATUS = BUCKET_STATUS
 
 
 bucket_map: dict[
     InteractemBucket, Callable[[JetStreamContext], Awaitable[KeyValue]]
 ] = {
-    InteractemBucket.AGENTS: get_agents_bucket,
-    InteractemBucket.OPERATORS: get_operators_bucket,
     InteractemBucket.METRICS: get_metrics_bucket,
-    InteractemBucket.PIPELINES: get_pipelines_bucket,
+    InteractemBucket.STATUS: get_status_bucket,
 }
 
 ERRORS_THAT_REQUIRE_RECONNECT = (
