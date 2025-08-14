@@ -2,14 +2,14 @@ import InfoIcon from "@mui/icons-material/Info"
 import { IconButton, Tooltip } from "@mui/material"
 import { useNodesData } from "@xyflow/react"
 import type React from "react"
-import type { OperatorParameter, OperatorTag } from "../../client"
+import type { OperatorSpecParameter, OperatorSpecTag } from "../../client"
 import type { OperatorNodeType } from "../../types/nodes"
 import ParametersButton from "./parametersbutton"
 
 interface OperatorToolbarProps {
   id: string
   image: string
-  parameters?: OperatorParameter[] | null
+  parameters?: OperatorSpecParameter[] | null
   nodeRef: React.RefObject<HTMLDivElement>
 }
 
@@ -41,7 +41,7 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
                 <div>
                   Tags:
                   <ul style={{ margin: "5px 0", paddingLeft: "20px" }}>
-                    {nodeTags.map((tag: OperatorTag, index: number) => (
+                    {nodeTags.map((tag: OperatorSpecTag, index: number) => (
                       <li key={index}>
                         {tag.value}
                         {tag.description && (

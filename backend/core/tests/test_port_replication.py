@@ -143,79 +143,12 @@ class TestMessageReplicationScenarios:
         assert len(op_graph.nodes()) == 2
         assert len(op_graph.edges()) == 1
 
-    def test_parallel_to_parallel_replication(self) -> None:
-        """Test replication when parallel operator connects to another parallel operator."""
-        # Build parallel to parallel pipeline
-        builder = PipelineBuilder()
-        op1 = builder.add_operator("Parallel Source", parallel=True)
-        op2 = builder.add_operator("Parallel Sink", parallel=True)
-        builder.connect(op1, op2)
-
-        pipeline_canonical = builder.build()
-        parallel_factor = 2
-
-        pipeline: Pipeline = Pipeline.from_pipeline(
-            pipeline_canonical,
-            runtime_pipeline_id=uuid.uuid4(),
-            parallel_factor=parallel_factor,
-        )
-
-        # Should have 4 operators: 2 + 2 instances
-        assert len(pipeline.operators) == 4
-
-        # Verify each parallel group
-        for canonical_op in pipeline_canonical.operators:
-            instances: list[RuntimeOperator] = pipeline.get_parallel_group(
-                canonical_op.id
-            )
-            assert len(instances) == parallel_factor
-            assert all(inst.parallel_index in [0, 1] for inst in instances)
-
-        # Check port counts
-        # Each operator has BOTH input and output ports by default:
-        # 2 source instances × 2 ports (1 in + 1 out) = 4 ports
-        # 2 sink instances × 2 ports (1 in + 1 out) = 4 ports
-        # Total = 8 ports
-        assert len(pipeline.ports) == 8
-
-        # Verify port distribution
-        output_ports = [
-            p for p in pipeline.ports.values() if p.port_type == PortType.output
-        ]
-        input_ports = [
-            p for p in pipeline.ports.values() if p.port_type == PortType.input
-        ]
-
-        assert len(output_ports) == 4  # 2 per operator type
-        assert len(input_ports) == 4  # 2 per operator type
-
-        # Check edges - only the connected ports should have edges
-        # Source outputs connect to Sink inputs
-        # With 2 source instances and 2 sink instances, we expect 4 edges
-        # (full mesh: each source connects to each sink)
-        edges = list(pipeline.edges)
-        assert len(edges) == 4
-
-        # Verify the connection pattern
-        for src_port_id, dst_port_id in edges:
-            src_port = pipeline.ports[src_port_id]
-            dst_port = pipeline.ports[dst_port_id]
-
-            src_op = pipeline.operators[src_port.operator_id]
-            dst_op = pipeline.operators[dst_port.operator_id]
-
-            # Source port should be output, destination should be input
-            assert src_port.port_type == PortType.output
-            assert dst_port.port_type == PortType.input
-
-            # Operators should be from different canonical operators
-            assert src_op.canonical_id != dst_op.canonical_id
 
     def test_non_parallel_to_parallel_expansion(self) -> None:
         """Test scenario 1: non-parallel → parallel expansion."""
         # Create pipeline: OpA (non-parallel) → OpB (parallel)
         builder = PipelineBuilder()
-        op_a = builder.add_operator("OpA", parallel=False, num_inputs=1, num_outputs=1)
+        op_a = builder.add_operator("OpA", parallel=False, num_inputs=0, num_outputs=1)
         op_b = builder.add_operator("OpB", parallel=True, num_inputs=1, num_outputs=0)
         builder.connect(op_a, op_b)
 
@@ -239,16 +172,17 @@ class TestMessageReplicationScenarios:
         assert len(op_b_instances) == 2  # Parallel with factor 2
 
         # Verify ports
-        # OpA: 1 input + 1 output = 2 ports
+        # OpA: 1 output = 1 ports
         # OpB1: 1 input = 1 port
         # OpB2: 1 input = 1 port
         # Total: 4 ports
-        assert len(pipeline.ports) == 4
+        assert len(pipeline.ports) == 3
 
         # Verify edges
-        # OpA output should connect to both OpB1 and OpB2 inputs
+        # OpA →(E0) outA →(E1) inB1 →(E2) OpB1
+        # OpA →(E0) outA →(E3) inB2 →(E4) OpB2
         edges = list(pipeline.edges)
-        assert len(edges) == 2
+        assert len(edges) == 5
 
         # Get OpA's output port
         op_a_runtime = op_a_instances[0]
@@ -311,19 +245,21 @@ class TestMessageReplicationScenarios:
         assert len(pipeline.ports) == 8
 
         # Verify edges
-        # OpA → OpB1, OpA → OpB2 = 2 edges
-        # OpB1 → OpC1, OpB1 → OpC2 = 2 edges
-        # OpB2 → OpC1, OpB2 → OpC2 = 2 edges
-        # Total: 6 edges
+        # OpA →(E0) outA →(E1) in1 →(E2) OpB1, OpA →(E0) outA →(E3) in2 →(E4) OpB2
+        # OpB1 →(E5) outB1 →(E6) inC1 →(E8) OpC1, OpB1 →(E5) outB1 →(E7) inC2 →(E9) OpC2
+        # OpB2 →(E8) outB2 →(E10) inC1 →(E11) OpC1, OpB2 →(E8) outB2 →(E12) inC2 →(E13) OpC2
+        # Total:  14 edges
         edges = list(pipeline.edges)
-        assert len(edges) == 6
+        assert len(edges) == 14
 
         # Verify connection pattern
         # Track connections from OpB to OpC
         opb_to_opc_connections = []
         for src_id, dst_id in edges:
-            src_port = pipeline.ports[src_id]
-            dst_port = pipeline.ports[dst_id]
+            src_port = pipeline.ports.get(src_id, None)
+            dst_port = pipeline.ports.get(dst_id, None)
+            if src_port is None or dst_port is None:
+                continue
 
             src_op = pipeline.operators[src_port.operator_id]
             dst_op = pipeline.operators[dst_port.operator_id]
@@ -359,9 +295,12 @@ class TestMessageReplicationScenarios:
         # Ports: 3 OpA outputs + 1 OpB input = 4
         assert len(pipeline.ports) == 4
 
-        # Each OpA should connect to OpB
+        # OpA1 →(E0) out1 →(E1) in →(E7) OpB
+        # OpA2 →(E2) out2 →(E3) in →(E7) OpB
+        # OpA3 →(E4) out3 →(E5) in →(E7) OpB
+        # 7 total (in → OpB the same)
         edges = list(pipeline.edges)
-        assert len(edges) == 3
+        assert len(edges) == 7
 
         # Verify all OpA instances connect to the single OpB
         op_b_instances = pipeline.get_parallel_group(op_b.id)

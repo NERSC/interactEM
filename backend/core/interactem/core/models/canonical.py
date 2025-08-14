@@ -61,7 +61,7 @@ class CanonicalPipelineData(BaseModel):
 
 class CanonicalPipeline(CanonicalPipelineData):
     id: CanonicalPipelineID
-    revision_id: int
+    revision_id: CanonicalPipelineRevisionID
 
     def get_operator_by_label(self, label: str) -> CanonicalOperator | None:
         return next((op for op in self.operators if op.label == label), None)

@@ -1,11 +1,11 @@
 import asyncio
 from typing import Any
 
-from interactem.core.constants import STREAM_IMAGES
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
 from interactem.core.nats import create_or_update_stream
 from interactem.core.nats.config import IMAGES_STREAM_CONFIG
+from interactem.core.nats.publish import publish_image
 from interactem.operators.operator import AsyncOperator
 
 logger = get_logger()
@@ -14,6 +14,7 @@ logger = get_logger()
 class ImageDisplay(AsyncOperator):
     def __init__(self):
         super().__init__()
+        self._image_count = 0
 
         self.image_stream = None
 
@@ -29,9 +30,13 @@ class ImageDisplay(AsyncOperator):
     async def _publish_image(self, image_data: bytes):
         await self._ensure_stream()
 
-        await self.js.publish(
-            subject=f"{STREAM_IMAGES}.{self.id}",
-            payload=image_data,
+        # We publish this on the canonical operator ID,
+        # TODO: may need to adjust the way we are handling this
+        # in the frontend to use the runtime ID instead
+        await publish_image(
+            self.js,
+            image_data=image_data,
+            canonical_operator_id=self.info.canonical_id,
         )
 
     async def kernel(
@@ -42,7 +47,10 @@ class ImageDisplay(AsyncOperator):
 
         image_data = inputs.data
 
-        logger.info(f"Received image data with length {len(image_data)}")
+        logger.info(
+            f"Received image {self._image_count} data with length {len(image_data)}"
+        )
+        self._image_count += 1
 
         # Publish the image to the frontend
         await self._publish_image(image_data)

@@ -1,6 +1,9 @@
-import { useInfiniteQuery } from "@tanstack/react-query"
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query"
 import type { PipelineDeploymentState } from "../../client"
-import { deploymentsListPipelineDeploymentsInfiniteOptions } from "../../client/generated/@tanstack/react-query.gen"
+import {
+  deploymentsListPipelineDeploymentsInfiniteOptions,
+  deploymentsReadPipelineDeploymentOptions,
+} from "../../client/generated/@tanstack/react-query.gen"
 
 const DEFAULT_LIMIT = 20
 
@@ -46,5 +49,15 @@ export const useInfinitePipelineDeployments = (
 export const useInfiniteActiveDeployments = () => {
   return useInfiniteDeployments({
     states: ["pending", "running"],
+  })
+}
+
+export const useDeployment = (deploymentId?: string | null) => {
+  return useQuery({
+    ...deploymentsReadPipelineDeploymentOptions({
+      path: { id: deploymentId as string },
+    }),
+    enabled: !!deploymentId,
+    refetchInterval: 5000,
   })
 }
