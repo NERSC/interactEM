@@ -10,7 +10,7 @@ import "@xyflow/react/dist/style.css"
 import { Flip, ToastContainer } from "react-toastify"
 import { interactemQueryClient } from "../auth/api"
 import NotificationsToast from "../components/notificationstoast"
-import { PipelineProvider } from "../contexts/pipeline"
+import { StatusProvider } from "../contexts/nats/allstatus"
 import "../index.css"
 import ComposerPage from "./composerpage"
 
@@ -32,25 +32,25 @@ export default function InteractEM({
     <QueryClientProvider client={interactemQueryClient}>
       <AuthProvider apiBaseUrl={apiBaseURL}>
         <NatsProvider natsServers={natsServers}>
-          <NotificationsToast />
-          <ReactFlowProvider>
-            <DnDProvider>
-              <PipelineProvider>
+          <StatusProvider>
+            <NotificationsToast />
+            <ReactFlowProvider>
+              <DnDProvider>
                 <ComposerPage />
-              </PipelineProvider>
-            </DnDProvider>
-          </ReactFlowProvider>
-          <ToastContainer
-            position="top-center"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop
-            closeOnClick
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-            transition={Flip}
-          />
+              </DnDProvider>
+            </ReactFlowProvider>
+            <ToastContainer
+              position="top-center"
+              autoClose={5000}
+              hideProgressBar={false}
+              newestOnTop
+              closeOnClick
+              pauseOnFocusLoss
+              draggable
+              pauseOnHover
+              transition={Flip}
+            />
+          </StatusProvider>
         </NatsProvider>
       </AuthProvider>
     </QueryClientProvider>

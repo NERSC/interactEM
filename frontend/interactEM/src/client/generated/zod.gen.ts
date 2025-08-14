@@ -19,6 +19,80 @@ export const zBodyLoginLoginAccessToken = z.object({
   client_secret: z.union([z.string(), z.null()]).optional(),
 })
 
+export const zCanonicalEdge = z.object({
+  input_id: z.string().uuid(),
+  output_id: z.string().uuid(),
+})
+
+export const zCanonicalOperator = z.object({
+  id: z.string().uuid(),
+  label: z.string(),
+  description: z.string(),
+  image: z.string(),
+  inputs: z.array(z.string().uuid()).optional().default([]),
+  outputs: z.array(z.string().uuid()).optional().default([]),
+  parameters: z
+    .union([
+      z.array(
+        z.object({
+          name: z.string(),
+          label: z.string(),
+          description: z.string(),
+          type: z.enum(["str", "int", "float", "bool", "mount", "str-enum"]),
+          default: z.string(),
+          required: z.boolean(),
+          options: z.union([z.array(z.string()), z.null()]).optional(),
+        }),
+      ),
+      z.null(),
+    ])
+    .optional(),
+  tags: z
+    .array(
+      z.object({
+        value: z.string(),
+        description: z.union([z.string(), z.null()]).optional(),
+      }),
+    )
+    .optional()
+    .default([]),
+  parallel_config: z
+    .union([
+      z.object({
+        type: z.enum(["none", "embarrassing"]).optional(),
+      }),
+      z.null(),
+    ])
+    .optional(),
+  spec_id: z.string().uuid(),
+  node_type: z.enum(["operator", "port"]).optional(),
+})
+
+export const zCanonicalPipelineData = z.object({
+  operators: z.array(zCanonicalOperator).optional().default([]),
+  ports: z
+    .array(
+      z.object({
+        id: z.string().uuid(),
+        node_type: z.enum(["operator", "port"]).optional(),
+        port_type: z.enum(["input", "output"]),
+        canonical_operator_id: z.string().uuid(),
+        portkey: z.string(),
+      }),
+    )
+    .optional()
+    .default([]),
+  edges: z.array(zCanonicalEdge).optional().default([]),
+})
+
+export const zCanonicalPort = z.object({
+  id: z.string().uuid(),
+  node_type: z.enum(["operator", "port"]).optional(),
+  port_type: z.enum(["input", "output"]),
+  canonical_operator_id: z.string().uuid(),
+  portkey: z.string(),
+})
+
 export const zComputeType = z.enum(["gpu", "cpu"])
 
 export const zHttpValidationError = z.object({
@@ -42,7 +116,9 @@ export const zNewPassword = z.object({
   new_password: z.string().min(8).max(40),
 })
 
-export const zOperator = z.object({
+export const zNodeType = z.enum(["operator", "port"])
+
+export const zOperatorSpec = z.object({
   id: z.string().uuid(),
   label: z.string(),
   description: z.string(),
@@ -79,7 +155,6 @@ export const zOperator = z.object({
           type: z.enum(["str", "int", "float", "bool", "mount", "str-enum"]),
           default: z.string(),
           required: z.boolean(),
-          value: z.union([z.string(), z.null()]).optional(),
           options: z.union([z.array(z.string()), z.null()]).optional(),
         }),
       ),
@@ -97,39 +172,52 @@ export const zOperator = z.object({
       z.null(),
     ])
     .optional(),
+  parallel_config: z
+    .union([
+      z.object({
+        type: z.enum(["none", "embarrassing"]).optional(),
+      }),
+      z.null(),
+    ])
+    .optional(),
 })
 
-export const zOperatorInput = z.object({
+export const zOperatorSpecInput = z.object({
   label: z.string(),
   description: z.string(),
 })
 
-export const zOperatorOutput = z.object({
+export const zOperatorSpecOutput = z.object({
   label: z.string(),
   description: z.string(),
 })
 
-export const zOperatorParameter = z.object({
+export const zOperatorSpecParameter = z.object({
   name: z.string(),
   label: z.string(),
   description: z.string(),
   type: z.enum(["str", "int", "float", "bool", "mount", "str-enum"]),
   default: z.string(),
   required: z.boolean(),
-  value: z.union([z.string(), z.null()]).optional(),
   options: z.union([z.array(z.string()), z.null()]).optional(),
 })
 
-export const zOperatorTag = z.object({
+export const zOperatorSpecTag = z.object({
   value: z.string(),
   description: z.union([z.string(), z.null()]).optional(),
 })
 
-export const zOperators = z.object({
-  data: z.array(zOperator),
+export const zOperatorSpecs = z.object({
+  data: z.array(zOperatorSpec),
 })
 
-export const zParameterType = z.enum([
+export const zParallelConfig = z.object({
+  type: z.enum(["none", "embarrassing"]).optional(),
+})
+
+export const zParallelType = z.enum(["none", "embarrassing"])
+
+export const zParameterSpecType = z.enum([
   "str",
   "int",
   "float",
@@ -174,7 +262,7 @@ export const zPipelineDeploymentsPublic = z.object({
 
 export const zPipelinePublic = z.object({
   name: z.union([z.string().max(128), z.null()]).optional(),
-  data: z.object({}),
+  data: zCanonicalPipelineData,
   id: z.string().uuid(),
   owner_id: z.string().uuid(),
   updated_at: z.string().datetime(),
@@ -189,7 +277,7 @@ export const zPipelineRevisionCreate = z.object({
 export const zPipelineRevisionPublic = z.object({
   pipeline_id: z.string().uuid(),
   revision_id: z.number().int(),
-  data: z.object({}),
+  data: zCanonicalPipelineData,
   tag: z.union([z.string(), z.null()]),
   created_at: z.string().datetime(),
 })
@@ -206,6 +294,8 @@ export const zPipelinesPublic = z.object({
   data: z.array(zPipelinePublic),
   count: z.number().int(),
 })
+
+export const zPortType = z.enum(["input", "output"])
 
 export const zPublicHost = z.enum(["dtn01", "dtns", "perlmutter"])
 
@@ -341,4 +431,4 @@ export const zDeploymentsReadPipelineDeploymentResponse =
 export const zDeploymentsUpdatePipelineDeploymentResponse =
   zPipelineDeploymentPublic
 
-export const zOperatorsReadOperatorsResponse = zOperators
+export const zOperatorsReadOperatorsResponse = zOperatorSpecs

@@ -1,5 +1,5 @@
 [project]
-name = "launcher"
+name = "interactem-launcher"
 description = ""
 dynamic = ["version", "dependencies"]
 authors = [

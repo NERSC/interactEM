@@ -1,14 +1,14 @@
-import { IMAGES_STREAM } from "../../constants/nats"
+import { STREAM_IMAGES } from "../../constants/nats"
 import { useStreamMessage } from "./useStreamMessage"
 
 const streamConfig = {
-  name: IMAGES_STREAM,
-  subjects: [`${IMAGES_STREAM}.>`],
+  name: STREAM_IMAGES,
+  subjects: [`${STREAM_IMAGES}.>`],
   max_msgs_per_subject: 1,
 }
 
 export const useImage = (operatorID: string): Uint8Array | null => {
-  const subject = `${IMAGES_STREAM}.${operatorID}`
+  const subject = `${STREAM_IMAGES}.${operatorID}`
 
   // ensure stream
   // TODO: there is still for some reason a bug here that requires us to run things twice.
@@ -19,7 +19,7 @@ export const useImage = (operatorID: string): Uint8Array | null => {
   //   at async createConsumer (useConsumer.ts:58:11)
   // Note: Special transform function for binary data
   const { data } = useStreamMessage<Uint8Array>({
-    streamName: IMAGES_STREAM,
+    streamName: STREAM_IMAGES,
     streamConfig,
     subject,
     transform: (_, originalMessage) => {

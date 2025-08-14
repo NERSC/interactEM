@@ -24,7 +24,7 @@ services:
   orchestrator:
     restart: "no"
     volumes:
-      - ./backend/app/:/interactem/app
+      - ./backend/orchestrator/:/interactem/orchestrator
       - ./backend/core/:/interactem/core
       - ./backend/sfapi_models/:/interactem/sfapi_models
 

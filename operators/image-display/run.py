@@ -14,6 +14,7 @@ logger = get_logger()
 class ImageDisplay(AsyncOperator):
     def __init__(self):
         super().__init__()
+        self._image_count = 0
 
         self.image_stream = None
 
@@ -46,7 +47,10 @@ class ImageDisplay(AsyncOperator):
 
         image_data = inputs.data
 
-        logger.info(f"Received image data with length {len(image_data)}")
+        logger.info(
+            f"Received image {self._image_count} data with length {len(image_data)}"
+        )
+        self._image_count += 1
 
         # Publish the image to the frontend
         await self._publish_image(image_data)

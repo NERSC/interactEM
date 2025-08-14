@@ -1,14 +1,11 @@
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore"
 import PeopleIcon from "@mui/icons-material/People"
 import { Accordion, AccordionDetails, AccordionSummary } from "@mui/material"
-import type { Agent } from "../../types/agent"
+import { useAllAgents } from "../../hooks/nats/useAgents"
 import AgentsArray from "./array"
 
-interface AgentsAccordionProps {
-  agents: Agent[]
-}
-
-export default function AgentsAccordion({ agents }: AgentsAccordionProps) {
+export default function AgentsAccordion() {
+  const { agents } = useAllAgents()
   return (
     <Accordion
       disableGutters

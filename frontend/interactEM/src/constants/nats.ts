@@ -1,13 +1,124 @@
-export const PARAMETERS_BUCKET = "parameters"
-export const PARAMETERS_STREAM = PARAMETERS_BUCKET
-export const PARAMETERS_QUERYKEY = "parameterValue"
-export const PARAMETERS_UPDATE_STREAM = `${PARAMETERS_STREAM}.update`
-export const IMAGES_STREAM = "images"
-export const OPERATORS_STREAM = "operators"
-export const OPERATORS_BUCKET = "operators"
-export const NOTIFICATIONS_STREAM = "notifications"
-export const NOTIFICATIONS_ERRORS_SUBJECT = `${NOTIFICATIONS_STREAM}.errors`
-export const NOTIFICATIONS_INFO_SUBJECT = `${NOTIFICATIONS_STREAM}.info`
-export const AGENTS_BUCKET = "agents"
-export const PIPELINES_BUCKET = "pipelines"
-export const TABLES_STREAM = "tables"
+// Generated using claude from the constants in the backend
+/**
+ * These constants are used throughout interactEM, mostly for NATS streams and buckets.
+ * At top level are what we want to talk about (the streams), like status, metrics, and notifications.
+ * We then define who we are talking about, like pipelines, agents, operators, and ports.
+ * Underneath this level is typically the ID of the subject, like a pipeline ID, agent ID, operator ID, or port ID.
+ *
+ * Later, we could sneak a user ID between the type and the ID, but we don't do that yet.
+ *
+ * We should ideally keep these short, nats recommends <16 tokens (hierarchy levels) and <256 characters total.
+ * ref: https://github.com/nats-io/nats.docs/blob/master/nats-concepts/subjects.md
+ */
+
+// Streams/buckets
+const BUCKET_STATUS = "stat"
+const BUCKET_STATUS_TTL = 30
+
+const STREAM_METRICS = "met"
+const SUBJECT_METRICS_ALL = `${STREAM_METRICS}.>`
+const BUCKET_METRICS = STREAM_METRICS
+const BUCKET_METRICS_TTL = 30
+
+const STREAM_NOTIFICATIONS = "noti"
+const SUBJECT_NOTIFICATIONS_ALL = `${STREAM_NOTIFICATIONS}.>`
+
+const STREAM_PARAMETERS = "par"
+const SUBJECT_PARAMETERS_ALL = `${STREAM_PARAMETERS}.>`
+
+const STREAM_DEPLOYMENTS = "depl"
+const SUBJECT_DEPLOYMENTS_ALL = `${STREAM_DEPLOYMENTS}.>`
+
+const STREAM_IMAGES = "img"
+const SUBJECT_IMAGES_ALL = `${STREAM_IMAGES}.>`
+
+const STREAM_TABLES = "tbl"
+const SUBJECT_TABLES_ALL = `${STREAM_TABLES}.>`
+
+const STREAM_SFAPI = "sfapi"
+const SUBJECT_SFAPI_JOBS = `${STREAM_SFAPI}.jobs`
+const SUBJECT_SFAPI_ALL = `${STREAM_SFAPI}.>`
+
+// Common
+const PIPELINES = "pipe"
+const OPERATORS = "op"
+const AGENTS = "agent"
+const PORTS = "port"
+const ERRORS = "err"
+const INFO = "info"
+const UPDATES = "upd"
+
+// Pipelines
+const SUBJECT_PIPELINES_METRICS = `${STREAM_METRICS}.${PIPELINES}`
+const SUBJECT_PIPELINES_DEPLOYMENTS = `${STREAM_DEPLOYMENTS}.${PIPELINES}`
+const SUBJECT_PIPELINES_DEPLOYMENTS_NEW = `${SUBJECT_PIPELINES_DEPLOYMENTS}.new`
+const SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE = `${SUBJECT_PIPELINES_DEPLOYMENTS}.${UPDATES}`
+const SUBJECT_PIPELINES_DEPLOYMENTS_STOP = `${SUBJECT_PIPELINES_DEPLOYMENTS}.stop`
+
+// Agents
+// TODO: come back to agent errors/info when doing logging
+const SUBJECT_AGENTS_NOTIFICATIONS = `${STREAM_NOTIFICATIONS}.${AGENTS}`
+const SUBJECT_AGENTS_NOTIFICATIONS_ERRORS = `${SUBJECT_AGENTS_NOTIFICATIONS}.${ERRORS}`
+const SUBJECT_AGENTS_NOTIFICATIONS_INFO = `${SUBJECT_AGENTS_NOTIFICATIONS}.${INFO}`
+const SUBJECT_AGENTS_DEPLOYMENTS = `${STREAM_DEPLOYMENTS}.${AGENTS}`
+
+// Operators
+const SUBJECT_OPERATORS_PARAMETERS = `${STREAM_PARAMETERS}.${OPERATORS}`
+// we get operator parameters updates from the frontend, we use a different subject
+// for the update channel
+const SUBJECT_OPERATORS_PARAMETERS_UPDATE = `${SUBJECT_OPERATORS_PARAMETERS}.${UPDATES}`
+// TODO: come back to operator errors/info when doing logging
+const SUBJECT_OPERATORS_NOTIFICATIONS_ERRORS = `${STREAM_NOTIFICATIONS}.${OPERATORS}.${ERRORS}`
+const SUBJECT_OPERATORS_NOTIFICATIONS_INFO = `${STREAM_NOTIFICATIONS}.${OPERATORS}.${INFO}`
+const SUBJECT_OPERATORS_METRICS = `${STREAM_METRICS}.${OPERATORS}`
+const SUBJECT_OPERATORS_DEPLOYMENTS = `${STREAM_DEPLOYMENTS}.${OPERATORS}`
+
+// TODO: come back to notifications errors/info when doing logging
+const SUBJECT_NOTIFICATIONS_ERRORS = `${STREAM_NOTIFICATIONS}.${ERRORS}`
+const SUBJECT_NOTIFICATIONS_INFO = `${STREAM_NOTIFICATIONS}.${INFO}`
+
+export {
+  BUCKET_STATUS,
+  BUCKET_STATUS_TTL,
+  STREAM_METRICS,
+  SUBJECT_METRICS_ALL,
+  BUCKET_METRICS,
+  BUCKET_METRICS_TTL,
+  STREAM_NOTIFICATIONS,
+  SUBJECT_NOTIFICATIONS_ALL,
+  STREAM_PARAMETERS,
+  SUBJECT_PARAMETERS_ALL,
+  STREAM_DEPLOYMENTS,
+  SUBJECT_DEPLOYMENTS_ALL,
+  STREAM_IMAGES,
+  SUBJECT_IMAGES_ALL,
+  STREAM_TABLES,
+  SUBJECT_TABLES_ALL,
+  STREAM_SFAPI,
+  SUBJECT_SFAPI_JOBS,
+  SUBJECT_SFAPI_ALL,
+  PIPELINES,
+  OPERATORS,
+  AGENTS,
+  PORTS,
+  ERRORS,
+  INFO,
+  UPDATES,
+  SUBJECT_PIPELINES_METRICS,
+  SUBJECT_PIPELINES_DEPLOYMENTS,
+  SUBJECT_PIPELINES_DEPLOYMENTS_NEW,
+  SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE,
+  SUBJECT_PIPELINES_DEPLOYMENTS_STOP,
+  SUBJECT_AGENTS_NOTIFICATIONS,
+  SUBJECT_AGENTS_NOTIFICATIONS_ERRORS,
+  SUBJECT_AGENTS_NOTIFICATIONS_INFO,
+  SUBJECT_AGENTS_DEPLOYMENTS,
+  SUBJECT_OPERATORS_PARAMETERS,
+  SUBJECT_OPERATORS_PARAMETERS_UPDATE,
+  SUBJECT_OPERATORS_NOTIFICATIONS_ERRORS,
+  SUBJECT_OPERATORS_NOTIFICATIONS_INFO,
+  SUBJECT_OPERATORS_METRICS,
+  SUBJECT_OPERATORS_DEPLOYMENTS,
+  SUBJECT_NOTIFICATIONS_ERRORS,
+  SUBJECT_NOTIFICATIONS_INFO,
+}

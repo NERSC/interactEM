@@ -38,10 +38,6 @@ async def on_shutdown(agent: Agent = Context()):
     await agent.shutdown()
 
 
-agent_consumer_config = AGENT_CONSUMER_CONFIG
-agent_consumer_config.description = f"agent-{AGENT_ID}"
-
-
 PROGRESS_UPDATE_INTERVAL = 1 # sec
 # Since receiving assignments can take a while, use dep to tell nats connection not to die.
 async def progress(message: NatsMessage):
@@ -56,6 +52,8 @@ async def progress(message: NatsMessage):
 
 
 progress_dep = Depends(progress)
+agent_consumer_config = AGENT_CONSUMER_CONFIG
+agent_consumer_config.description = f"agent-{AGENT_ID}"
 
 
 @broker.subscriber(

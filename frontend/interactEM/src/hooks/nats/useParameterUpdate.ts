@@ -3,13 +3,23 @@ import {
   useMutation,
   useQueryClient,
 } from "@tanstack/react-query"
-import type { OperatorParameter } from "../../client"
-import { PARAMETERS_QUERYKEY, PARAMETERS_STREAM } from "../../constants/nats"
+import { z } from "zod"
+import type { OperatorSpecParameter } from "../../client"
+import {
+  STREAM_PARAMETERS,
+  SUBJECT_OPERATORS_PARAMETERS_UPDATE,
+} from "../../constants/nats"
 import { useNats } from "../../contexts/nats"
+import { RuntimeOperatorParameterUpdateSchema } from "../../types/params"
+
+// TODO: for now, we are sending an update to all operators with the same
+// canonical ID. This will produce unintended updates to other operators
+// if there are multiple pipeline revisions running at the same time
+// (not really likely at the moment...)
 
 export const useParameterUpdate = (
   operatorID: string,
-  parameter: OperatorParameter,
+  parameter: OperatorSpecParameter,
 ): UseMutationResult<void, Error, string> => {
   const { jetStreamClient } = useNats()
   const queryClient = useQueryClient()
@@ -20,14 +30,23 @@ export const useParameterUpdate = (
     }
 
     try {
-      const subject = `${PARAMETERS_STREAM}.${operatorID}.${parameter.name}`
+      const updateData = RuntimeOperatorParameterUpdateSchema.parse({
+        canonical_operator_id: operatorID,
+        name: parameter.name,
+        value: value,
+      })
+      const subject = `${SUBJECT_OPERATORS_PARAMETERS_UPDATE}.${operatorID}.${parameter.name}`
       const encoder = new TextEncoder()
-      const payload = encoder.encode(
-        JSON.stringify({ [parameter.name]: value }),
-      )
+      const payload = encoder.encode(JSON.stringify(updateData))
       await jetStreamClient.publish(subject, payload)
     } catch (error) {
-      console.error("Failed to publish set point:", error)
+      if (error instanceof z.ZodError) {
+        console.error("Parameter update validation failed:", error.errors)
+        throw new Error(
+          `Invalid parameter update data: ${error.errors.map((e) => e.message).join(", ")}`,
+        )
+      }
+      console.error("Failed to publish parameter update:", error)
       throw error
     }
   }
@@ -36,7 +55,7 @@ export const useParameterUpdate = (
     mutationFn: updateParameter,
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: [PARAMETERS_QUERYKEY, operatorID, parameter.name],
+        queryKey: [STREAM_PARAMETERS, operatorID, parameter.name],
       })
     },
   })
