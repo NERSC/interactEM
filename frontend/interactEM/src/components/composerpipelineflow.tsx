@@ -1,9 +1,7 @@
 import { DownloadIcon } from "@radix-ui/react-icons"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   ControlButton,
   Controls,
-  type Edge,
   type EdgeChange,
   type KeyCode,
   type NodeChange,
@@ -20,25 +18,21 @@ import {
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
 import type React from "react"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useMemo, useRef } from "react"
 import { toast } from "react-toastify"
 import { v4 as uuidv4 } from "uuid"
 import type { PipelineRevisionPublic } from "../client"
-import {
-  pipelinesAddPipelineRevisionMutation,
-  pipelinesListPipelineRevisionsQueryKey,
-  pipelinesReadPipelineQueryKey,
-  pipelinesReadPipelinesQueryKey,
-} from "../client/generated/@tanstack/react-query.gen"
+import { zOperatorSpec } from "../client/generated/zod.gen"
 import { useDnD } from "../contexts/dnd"
-import useOperators from "../hooks/api/useOperators"
+import useOperatorSpecs from "../hooks/api/useOperatorSpecs"
+import { useSavePipelineRevision } from "../hooks/api/useSavePipelineRevision"
+import { usePipelineGraph } from "../hooks/usePipelineGraph"
 import { usePipelineStore } from "../stores"
 import {
   type OperatorNodeTypes,
   displayNodeTypeFromLabel,
 } from "../types/nodes"
-import { layoutNodes } from "../utils/layout"
-import { fromPipelineJSON, toJSON } from "../utils/pipeline"
+import { toJSON } from "../utils/pipeline"
 import ImageNode from "./nodes/image"
 import OperatorNode from "./nodes/operator"
 import TableNode from "./nodes/table"
@@ -53,123 +47,48 @@ const generateID = () => uuidv4()
 
 interface ComposerPipelineFlowProps {
   pipelineData?: PipelineRevisionPublic | null
-  isEditMode: boolean
 }
 
 const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   pipelineData,
-  isEditMode,
 }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
-  const [nodes, setNodes] = useState<OperatorNodeTypes[]>([])
-  const [edges, setEdges] = useState<Edge[]>([])
-  const [pipelineJSONLoaded, setPipelineJSONLoaded] = useState(false)
   const { screenToFlowPosition, fitView } = useReactFlow()
   const [operatorDropData] = useDnD<OperatorMenuItemDragData>()
-  const { operators } = useOperators()
-  const queryClient = useQueryClient()
+  const { operatorSpecs } = useOperatorSpecs()
 
-  const { currentPipelineId, setPipelineRevision } = usePipelineStore()
+  const { currentPipelineId } = usePipelineStore()
 
   // --- Revision Mutation Setup ---
-  const addRevisionMutation = useMutation({
-    ...pipelinesAddPipelineRevisionMutation(),
-    onSuccess: (data) => {
-      // Invalidate queries to refetch pipeline details and revisions
-      setPipelineRevision(data)
-      queryClient.invalidateQueries({
-        queryKey: pipelinesReadPipelinesQueryKey(),
-      })
-      if (currentPipelineId) {
-        queryClient.invalidateQueries({
-          queryKey: pipelinesReadPipelineQueryKey({
-            path: { id: currentPipelineId },
-          }),
-        })
-        queryClient.invalidateQueries({
-          queryKey: pipelinesListPipelineRevisionsQueryKey({
-            path: { id: currentPipelineId },
-          }),
-        })
-      }
-    },
-    onError: () => {
-      toast.error("Failed to save pipeline revision. Please try again.")
-    },
-  })
+  const { saveRevision } = useSavePipelineRevision()
 
-  // --- Direct Save Revision Function ---
-  const saveRevision = useCallback(
-    (currentNodes: OperatorNodeTypes[], currentEdges: Edge[]) => {
-      if (!isEditMode || !currentPipelineId) {
-        return
-      }
-      const pipelineJson = toJSON(currentNodes, currentEdges)
-      addRevisionMutation.mutate({
-        path: { id: currentPipelineId },
-        body: { data: pipelineJson },
-      })
-    },
-    [currentPipelineId, addRevisionMutation, isEditMode],
-  )
-
-  useEffect(() => {
-    if (!pipelineData) {
-      setNodes([])
-      setEdges([])
-      setPipelineJSONLoaded(false)
-      return
-    }
-
-    const { nodes: importedNodes, edges: importedEdges } =
-      fromPipelineJSON(pipelineData)
-
-    let layoutedNodes = importedNodes
-    let layoutedEdges = importedEdges
-
-    const layoutResult = layoutNodes(importedNodes, importedEdges)
-    layoutedNodes = layoutResult.nodes
-    layoutedEdges = layoutResult.edges
-
-    setNodes(layoutedNodes as OperatorNodeTypes[])
-    setEdges(layoutedEdges)
-    setPipelineJSONLoaded(true)
-    setTimeout(() => {
-      fitView({ duration: 300, padding: 0.1 })
-    }, 100)
-  }, [pipelineData, fitView])
+  // --- Pipeline Graph Setup ---
+  const { nodes, setNodes, edges, setEdges, pipelineJSONLoaded } =
+    usePipelineGraph(pipelineData, fitView)
 
   // --- Change Handlers ---
-
   const handleConnect: OnConnect = useCallback(
     (connection) => {
-      if (!isEditMode) return
       setEdges((eds) => {
         const newEdges = addEdge(connection, eds)
         saveRevision(nodes, newEdges)
         return newEdges
       })
     },
-    [nodes, saveRevision, isEditMode],
+    [nodes, setEdges, saveRevision],
   )
 
   const handleDragOver = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault()
-      if (isEditMode) {
-        event.dataTransfer.dropEffect = "move"
-      } else {
-        event.dataTransfer.dropEffect = "none"
-      }
+      event.dataTransfer.dropEffect = "move"
     },
-    [isEditMode],
+    [],
   )
 
   const handleDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
       event.preventDefault()
-      if (!isEditMode) return
-
       if (!currentPipelineId) {
         toast.error(
           "Please select or create a pipeline before adding operators.",
@@ -184,11 +103,13 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       if (!operatorDropData) return
 
       const { specID, offsetX, offsetY } = operatorDropData
-      const op = operators?.find((op) => op.id === specID)
+      const op = operatorSpecs?.find((op) => op.id === specID)
       if (!op) {
         console.error(`Operator type not found: ${specID}`)
         return
       }
+
+      const validOp = zOperatorSpec.parse(op)
 
       const screenPosition = {
         x: event.clientX - offsetX,
@@ -204,10 +125,8 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         position,
         zIndex: 1,
         data: {
+          ...validOp,
           spec_id: op.id,
-          label: op.label,
-          description: op.description,
-          image: op.image,
           inputs: op.inputs?.map(() => uuidv4()),
           outputs: op.outputs?.map(() => uuidv4()),
           parameters: op.parameters?.map((param) => ({
@@ -216,7 +135,6 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
           })),
           tags: op.tags ?? [],
           node_type: "operator",
-          parallel_config: op.parallel_config,
         },
         sourcePosition: Position.Right,
         targetPosition: Position.Left,
@@ -230,77 +148,55 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
     [
       screenToFlowPosition,
       operatorDropData,
-      operators,
+      operatorSpecs,
       edges,
       saveRevision,
       currentPipelineId,
-      isEditMode,
+      setNodes,
     ],
   )
 
   const handleNodesChange: OnNodesChange<OperatorNodeTypes> = useCallback(
     (changes: NodeChange[]) => {
-      const allowedChanges = isEditMode
-        ? changes
-        : changes.filter(
-            (change) =>
-              change.type === "position" ||
-              change.type === "dimensions" ||
-              change.type === "select",
-          )
-
-      if (allowedChanges.length === 0) return
-
-      const nextNodes = applyNodeChanges(
-        allowedChanges,
-        nodes,
-      ) as OperatorNodeTypes[]
+      if (changes.length === 0) return
+      const nextNodes = applyNodeChanges(changes, nodes) as OperatorNodeTypes[]
       setNodes(nextNodes)
 
       // Trigger revision save if topology might have changed
       // But exclude "remove" type changes as those are handled by onNodesDelete
-      if (isEditMode) {
-        const affectsTopology = allowedChanges.some(
-          (change) => change.type === "add" || change.type === "replace",
-        )
-        if (affectsTopology) {
-          saveRevision(nextNodes, edges)
-        }
+
+      const affectsTopology = changes.some(
+        (change) => change.type === "add" || change.type === "replace",
+      )
+      if (affectsTopology) {
+        saveRevision(nextNodes, edges)
       }
     },
-    [nodes, edges, saveRevision, isEditMode],
+    [nodes, edges, setNodes, saveRevision],
   )
 
   const handleEdgesChange: OnEdgesChange = useCallback(
     (changes: EdgeChange[]) => {
-      const allowedChanges = isEditMode
-        ? changes
-        : changes.filter((change) => change.type === "select")
+      if (changes.length === 0) return
 
-      if (allowedChanges.length === 0) return
-
-      const nextEdges = applyEdgeChanges(allowedChanges, edges)
+      const nextEdges = applyEdgeChanges(changes, edges)
       setEdges(nextEdges)
 
-      if (isEditMode) {
-        const affectsTopology = allowedChanges.some(
-          (change) =>
-            change.type === "add" ||
-            change.type === "replace" ||
-            change.type !== "remove",
-        )
-        if (affectsTopology) {
-          saveRevision(nodes, nextEdges)
-        }
+      const affectsTopology = changes.some(
+        (change) =>
+          change.type === "add" ||
+          change.type === "replace" ||
+          change.type !== "remove",
+      )
+      if (affectsTopology) {
+        saveRevision(nodes, nextEdges)
       }
     },
-    [edges, nodes, saveRevision, isEditMode],
+    [edges, nodes, setEdges, saveRevision],
   )
 
   const handleNodesDelete: OnNodesDelete = useCallback(
     (deletedNodes) => {
-      if (!isEditMode) return
-
       // When nodes are deleted, we handle this as a single operation
       // that includes removing connected edges as well
       // This prevents duplicate saveRevision calls
@@ -316,7 +212,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
         ),
       )
     },
-    [nodes, edges, saveRevision, isEditMode],
+    [nodes, edges, saveRevision],
   )
 
   const handleDownloadClick = () => {
@@ -337,7 +233,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
     [],
   )
 
-  const deleteKeyCode: KeyCode | null = isEditMode ? "Delete" : null
+  const deleteKeyCode: KeyCode = "Delete"
   const multiSelectionKeyCode: KeyCode = "Shift"
   const selectionKeyCode: KeyCode = "Space"
 
@@ -360,7 +256,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
           nodeTypes={nodeTypes}
           fitView={pipelineJSONLoaded}
           fitViewOptions={{ duration: 300, padding: 0.1 }}
-          nodesConnectable={isEditMode}
+          nodesConnectable={true}
           noWheelClassName="no-wheel"
         >
           <Controls>
