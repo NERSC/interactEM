@@ -10,11 +10,11 @@ from interactem.core.models.base import KvKeyMixin
 from interactem.core.models.canonical import (
     CanonicalOperatorID,
     CanonicalPipelineID,
-    CanonicalPipelineRevisionID,
     CanonicalPortID,
 )
 from interactem.core.models.runtime import (
     RuntimeOperatorID,
+    RuntimePipeline,
     RuntimePipelineID,
     RuntimePortID,
 )
@@ -131,8 +131,7 @@ class PortVal(BaseModel, KvKeyMixin):
 
 class PipelineRunVal(BaseModel, KvKeyMixin):
     id: RuntimePipelineID
-    canonical_id: CanonicalPipelineID
-    canonical_revision_id: CanonicalPipelineRevisionID
+    pipeline: RuntimePipeline
 
     def key(self) -> str:
         return f"{PIPELINES}.{self.id}"
