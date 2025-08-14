@@ -5,7 +5,7 @@ import { OperatorMenu } from "../components/operatormenu"
 import { PipelineHud } from "../components/pipelines/hud"
 import RunningPipelineFlow from "../components/runningpipelineflow"
 import { useActivePipeline } from "../hooks/api/useActivePipeline"
-import { useViewModeStore, ViewMode } from "../stores"
+import { ViewMode, useViewModeStore } from "../stores"
 
 export default function ComposerPage() {
   const { pipeline, revision, runtimePipelineId } = useActivePipeline()
