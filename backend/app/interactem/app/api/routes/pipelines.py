@@ -136,7 +136,8 @@ def add_pipeline_revision(
     """
     if not revision_in.data:
         raise HTTPException(status_code=400, detail="Revision data is required")
-    pipeline = session.get(Pipeline, id)
+    # Lock this pipeline to avoid race condition with revision ID
+    pipeline = session.get(Pipeline, id, with_for_update=True)
     pipeline = check_present_and_authorized(pipeline, current_user, id)
 
     # Get latest revision_id
