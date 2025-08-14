@@ -22,18 +22,18 @@
     },
     {
       "name": "height",
-      "label": "Image width",
+      "label": "Image height",
       "type": "int",
       "default": "100",
       "description": "The height of the image",
       "required": true
     },
     {
-      "name": "internal",
-      "label": "Internal",
+      "name": "interval",
+      "label": "Interval",
       "type": "int",
       "default": "2",
-      "description": "The internal at which to generate the image",
+      "description": "The interval at which to generate the image",
       "required": true
     }
   ]

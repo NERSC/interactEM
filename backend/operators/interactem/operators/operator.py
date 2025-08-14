@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import signal
 from abc import ABC, abstractmethod
@@ -22,40 +21,34 @@ from interactem.core.constants import (
     MOUNT_DIR,
     OPERATOR_CLASS_NAME,
     OPERATOR_ID_ENV_VAR,
-    STREAM_METRICS,
-    STREAM_OPERATORS,
-    STREAM_PARAMETERS_UPDATE,
-)
-from interactem.core.events.operators import (
-    OperatorErrorEvent,
-    OperatorErrorType,
-    OperatorEvent,
-    OperatorRunningEvent,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models import CommBackend, OperatorJSON, PipelineJSON
-from interactem.core.models.messages import BytesMessage, OperatorTrackingMetadata
-from interactem.core.models.operators import (
-    OperatorMetrics,
+from interactem.core.models import CommBackend
+from interactem.core.models.kvs import (
     OperatorStatus,
-    OperatorTiming,
     OperatorVal,
-    ParameterType,
+)
+from interactem.core.models.messages import BytesMessage, OperatorTrackingMetadata
+from interactem.core.models.metrics import OperatorMetrics, OperatorTiming
+from interactem.core.models.runtime import (
+    RuntimeOperator,
+    RuntimeOperatorParameterUpdate,
+    RuntimeParameterCollection,
+    RuntimeParameterCollectionType,
+    RuntimePipeline,
 )
 from interactem.core.nats import (
-    create_or_update_stream,
     nc,
-)
-from interactem.core.nats.config import (
-    METRICS_STREAM_CONFIG,
-    OPERATORS_STREAM_CONFIG,
-    PARAMETERS_STREAM_CONFIG,
 )
 from interactem.core.nats.consumers import (
     create_operator_parameter_consumer,
     create_operator_pipeline_consumer,
 )
 from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
+from interactem.core.nats.publish import (
+    publish_operator_parameter_ack,
+    publish_pipeline_metrics,
+)
 from interactem.core.pipeline import Pipeline
 from interactem.core.util import create_task_with_ref
 
@@ -71,7 +64,8 @@ BACKEND_TO_MESSENGER: dict[CommBackend, type[BaseMessenger]] = {
     CommBackend.ZMQ: ZmqMessenger,
 }
 
-OPERATOR_ID = os.getenv(OPERATOR_ID_ENV_VAR)
+OPERATOR_ID = UUID(os.getenv(OPERATOR_ID_ENV_VAR))
+assert OPERATOR_ID, "Operator ID not set in environment variables"
 
 
 dependencies_funcs: list[Callable[[], Generator[None, None, None]]] = []
@@ -84,14 +78,14 @@ def dependencies(
     return func
 
 
-async def receive_pipeline(msg: NATSMsg) -> Pipeline | None:
+async def receive_pipeline(msg: NATSMsg) -> Pipeline:
     await msg.ack()
 
     try:
-        event = PipelineJSON.model_validate_json(msg.data)
+        event = RuntimePipeline.model_validate_json(msg.data)
     except ValidationError:
         logger.error("Invalid message")
-        return None
+        raise
     return Pipeline.from_pipeline(event)
 
 
@@ -136,22 +130,20 @@ class OperatorInterface(RunnableKernel):
 
 class OperatorMixin(RunnableKernel):
     def __init__(self):
-        self.id = UUID(OPERATOR_ID)
-        if not self.id:
-            raise ValueError("Operator ID not set")
+        self.id = OPERATOR_ID
         self.messenger: BaseMessenger | None = None
         self.pipeline: Pipeline | None = None
-        self.info: OperatorJSON | None = None
+        self.info: RuntimeOperator | None = None
         self.nc: NATSClient | None = None
         self.js: JetStreamContext | None = None
         self.messenger_task: asyncio.Task | None = None
         self.metrics_kv: KeyValueLoop[OperatorMetrics] | None = None
-        self.operator_kv: KeyValueLoop[OperatorVal]
-        self.val = OperatorVal(id=self.id, status=OperatorStatus.INITIALIZING)
-        self.parameters: dict[str, Any] = {}
-        self.metrics: OperatorMetrics = OperatorMetrics(
-            id=self.id, timing=OperatorTiming()
+        self.operator_kv: KeyValueLoop[OperatorVal] | None = None
+        self.val: OperatorVal | None = None
+        self.parameters = RuntimeParameterCollection(
+            type=RuntimeParameterCollectionType.OPERATOR
         )
+        self.metrics: OperatorMetrics | None = None
         self.run_task: asyncio.Task | None = None
         self._shutdown_event: asyncio.Event = asyncio.Event()
         self._dependencies = []
@@ -170,6 +162,16 @@ class OperatorMixin(RunnableKernel):
         await self.execute_dependencies_startup()
         await self.setup_signal_handlers()
         self.nc, self.js = await self.connect_to_nats()
+
+        # Initialize pipeline/operator information
+        await self.initialize_pipeline()
+        assert self.pipeline, "Pipeline not initialized"
+        self.info = await self.initialize_operator()
+        assert self.info, "Operator info not initialized"
+        await self.initialize_parameters()
+        self.publish_parameters()
+
+        # Setup KV stores
         self.metrics_kv = KeyValueLoop[OperatorMetrics](
             self.nc,
             self.js,
@@ -178,32 +180,43 @@ class OperatorMixin(RunnableKernel):
             update_interval=1.0,
             data_model=OperatorMetrics,
         )
-        self.metrics_kv.add_or_update_value(self.id, self.metrics)
+        self.metrics = OperatorMetrics(
+            id=self.id,
+            canonical_id=self.info.canonical_id,
+            timing=OperatorTiming(),
+        )
+        self.metrics_kv.add_or_update_value(self.metrics.key(), self.metrics)
         await self.metrics_kv.start()
         self.operator_kv = KeyValueLoop[OperatorVal](
             self.nc,
             self.js,
             shutdown_event=self._shutdown_event,
-            bucket=InteractemBucket.OPERATORS,
+            bucket=InteractemBucket.STATUS,
             update_interval=5.0,
             data_model=OperatorVal,
         )
-        self.operator_kv.add_or_update_value(self.id, self.val)
+        self.val = OperatorVal(
+            id=self.id,
+            canonical_id=self.info.canonical_id,
+            status=OperatorStatus.INITIALIZING,
+            runtime_pipeline_id=self.pipeline.id,
+            canonical_pipeline_id=self.pipeline.canonical_id,
+        )
+        self.operator_kv.add_or_update_value(self.val.key(), self.val)
         await self.operator_kv.start()
-        try:
-            await self.initialize_pipeline()
-        except ValueError as e:
-            logger.error(e)
-            self._shutdown_event.set()
-            return
+        await self.operator_kv.update_now()
+
+        # Initialize messenger
         await self.initialize_messenger()
-        if not self.messenger:
-            raise ValueError("Messenger not initialized")
+        assert self.messenger, "Messenger not initialized"
         await self.messenger.start(self.pipeline)
 
+        # Start ur engines
         self._tracking_timer_task = asyncio.create_task(self._tracking_timer())
         self.run_task = asyncio.create_task(self.run())
         self.consume_params_task = asyncio.create_task(self.consume_params())
+        self.val.status = OperatorStatus.RUNNING
+        await self.operator_kv.update_now()
         await self._shutdown_event.wait()
         await self.shutdown()
 
@@ -220,61 +233,42 @@ class OperatorMixin(RunnableKernel):
         )
         logger.info("Connected to NATS...")
         self.js = self.nc.jetstream()
-
-        await create_or_update_stream(METRICS_STREAM_CONFIG, self.js)
-        await create_or_update_stream(PARAMETERS_STREAM_CONFIG, self.js)
-        await create_or_update_stream(OPERATORS_STREAM_CONFIG, self.js)
-
-        retries = 10
-        while retries > 0:
-            try:
-                self.params_psub = await create_operator_parameter_consumer(
-                    self.js, self.id
-                )
-                break
-            # This happens when consumer is already attached to this stream
-            # Shouldn't happen in production (UIDs are unique), but happens if
-            # spawning test pipelines one after another quickly
-            except nats.js.errors.BadRequestError as e:
-                if e.code == 400 and e.err_code == 10100:
-                    logger.warning(f"Consumer name weirdness: {e}. Retrying...")
-                    retries -= 1
-                    await asyncio.sleep(1)
-                    if retries == 0:
-                        raise e
-                    continue
         return self.nc, self.js
 
     async def initialize_pipeline(self):
-        logger.info(
-            f"Subscribing to stream '{STREAM_OPERATORS}' for operator {self.id}..."
-        )
         if not self.js:
             raise ValueError("JetStream context not initialized")
-        await create_or_update_stream(OPERATORS_STREAM_CONFIG, self.js)
         psub = await create_operator_pipeline_consumer(self.js, self.id)
         try:
             msg = await psub.fetch(1)
         except nats.errors.TimeoutError:
-            raise ValueError("No pipeline message received")
+            raise RuntimeError("No pipeline message received")
         self.pipeline = await receive_pipeline(msg[0])
-        if self.pipeline is None:
-            raise ValueError("Pipeline not found")
         await psub.unsubscribe()
+
+    async def initialize_operator(self) -> RuntimeOperator:
+        if not self.pipeline:
+            raise ValueError("Pipeline not initialized.")
+
         self.info = self.pipeline.get_operator(self.id)
-        if self.info.parameters is not None:
-            self.parameters = {
-                p.name: p.value if p.value else p.default for p in self.info.parameters
-            }
-        logger.info(f"Operator {self.id} initialized with parameters {self.parameters}")
-        self.val.pipeline_id = self.pipeline.id
-        self.val.status = OperatorStatus.RUNNING
-        await self.operator_kv.update_now()
-        asyncio.create_task(self.publish_parameters())
         if self.info is None:
             raise ValueError(f"Operator {self.id} not found in pipeline")
 
-    async def publish_parameters(self):
+        return self.info
+
+    async def initialize_parameters(self):
+        if not self.info:
+            raise ValueError("Operator info not initialized.")
+        if not self.info.parameters:
+            logger.info("No parameters to initialize for operator.")
+            return
+
+        self.parameters = RuntimeParameterCollection.from_parameter_list(
+            self.info.parameters, RuntimeParameterCollectionType.OPERATOR
+        )
+        logger.info(f"Operator {self.id} initialized with parameters")
+
+    def publish_parameters(self):
         if not self.js:
             logger.warning("JetStream context not initialized...")
             return
@@ -284,73 +278,71 @@ class OperatorMixin(RunnableKernel):
         if not self.info.parameters:
             logger.info("No parameters to publish...")
             return
-        tasks = []
-        for name, val in self.parameters.items():
-            param = next((p for p in self.info.parameters if p.name == name), None)
-
-            # Agent will handle the mount parameter publishing
-            if param and param.type == ParameterType.MOUNT:
-                continue
-            logger.info(
-                f"Publishing {name}, {val} on subject: {STREAM_PARAMETERS_UPDATE}.{self.id}.{name}"
-            )
-            tasks.append(
-                asyncio.create_task(
-                    self.js.publish(
-                        subject=f"{STREAM_PARAMETERS_UPDATE}.{self.id}.{name}",
-                        payload=json.dumps(val).encode(),
-                    )
-                )
+        for param in self.parameters.parameters.values():
+            create_task_with_ref(
+                self._task_refs,
+                publish_operator_parameter_ack(self.js, self.info.canonical_id, param),
             )
         logger.info(f"Publishing parameters for operator {self.id}...")
 
     async def consume_params(self):
         if not self.js:
             raise ValueError("JetStream context not initialized")
+        if not self.info:
+            raise ValueError("Operator info not initialized")
+
+        self.params_psub = await create_operator_parameter_consumer(
+            self.js, self.info.canonical_id
+        )
+
         while not self._shutdown_event.is_set():
-            try:
-                await self.params_psub.consumer_info()
-            except Exception as e:
-                logger.error(f"Consumer info error: {e}")
-                logger.info("Initializing a new consumer...")
-                self.params_psub = await create_operator_parameter_consumer(
-                    self.js, self.id
-                )
-                continue
+            msgs = None
             try:
                 msgs = await self.params_psub.fetch(20, timeout=1)
-            except nats.errors.TimeoutError:
+            except nats.js.errors.FetchTimeoutError:
+                # If we can't get any messages, we just continue
+                continue
+            except nats.errors.Error:
+                # If we can't fetch messages for a nats error, then we
+                # try to reinitialize the consumer
+                # TODO: this could be done elsewhere...
+                # note, we want to make sure we aren't doing this every loop.
+                try:
+                    await self.params_psub.consumer_info()
+                except Exception as e:
+                    logger.error(f"Consumer info error: {e}")
+                    logger.info("Initializing a new consumer...")
+                    self.params_psub = await create_operator_parameter_consumer(
+                        self.js, self.info.canonical_id
+                    )
+                continue
+            except Exception as e:
+                logger.error(f"Error fetching parameter messages: {e}")
                 continue
 
             if not msgs:
                 continue
 
-            # Only use the last parameter from frontend
+            # Process parameter updates
             for msg in msgs:
-                if not msg.data:
-                    logger.warning(f"Received empty message for operator {self.id}")
-                    await msg.term()  # terminate sending this message
-                    continue
-
-                parameter_name = msg.subject.split(".")[-1]
-                if parameter_name not in self.parameters:
-                    logger.warning(
-                        f"Received message for unknown parameter {parameter_name}"
-                    )
-                    continue
                 try:
-                    # We want to update, not overwrite
-                    # TODO: we need some way of validating parameters and typing them
-                    self.parameters.update(json.loads(msg.data.decode()))
-                    logger.info(
-                        f"Updating {parameter_name} to {self.parameters[parameter_name]}..."
+                    update = RuntimeOperatorParameterUpdate.model_validate_json(
+                        msg.data
                     )
-                    asyncio.create_task(msg.ack())
-                except json.JSONDecodeError as e:
-                    logger.error(f"Error decoding param update: {e}")
+                    # Use the parameter collection's update method
+                    self.parameters.update_value(update.name, update.value)
+
+                    # Also update the operator info parameter list for consistency
+                    if self.info:
+                        self.info.update_parameter_value(update.name, update.value)
+
+                except (ValidationError, KeyError) as e:
+                    logger.error(f"Parameter update failed: {e}")
                     await msg.term()
-                    pass
-            asyncio.create_task(self.publish_parameters())
+
+                create_task_with_ref(self._task_refs, msg.ack())
+
+            self.publish_parameters()
 
     async def initialize_messenger(self):
         # TODO: put this somewhere else
@@ -419,11 +411,16 @@ class OperatorMixin(RunnableKernel):
         loop.add_signal_handler(signal.SIGTERM, handle_signal)
 
     async def run(self):
-        if not self.messenger:
-            raise ValueError("Messenger not initialized")
+        assert self.messenger, "Messenger not initialized"
+        assert self.js, "JetStream context not initialized"
+        assert self.val, "Operator value not initialized"
+        assert self.operator_kv, "Operator KV not initialized"
+        assert self.metrics, "Operator metrics not initialized"
+
         has_input = True if len(self.messenger.input_ports) > 0 else False
         error_count, max_retries, error_state = 0, 10, False
-        await self._publish_running()
+        self.val.status = OperatorStatus.RUNNING
+        await self.operator_kv.update_now()
         while not self._shutdown_event.is_set():
             tasks: list[Coroutine] = []
             msg = None
@@ -449,13 +446,14 @@ class OperatorMixin(RunnableKernel):
                 before_kernel = datetime.now()
 
             try:
-                processed_msg = await self.run_kernel(msg, self.parameters)
+                processed_msg = await self.run_kernel(msg, self.parameters.values)
                 error_count = 0
             except Exception as e:
                 logger.error(f"Error in kernel: {e}")
                 if not error_state:
                     error_state = True
-                    await self._publish_error(OperatorErrorType.PROCESSING, str(e))
+                    self.val.add_error(str(e))
+                    await self.operator_kv.update_now()
 
                 error_count += 1
                 if error_count >= max_retries:
@@ -471,7 +469,8 @@ class OperatorMixin(RunnableKernel):
             # we need to publish that we are running again
             if error_state and processed_msg:
                 error_state = False
-                tasks.append(self._publish_running())
+                self.val.clear_errors()
+                await self.operator_kv.update_now()
 
             if processed_msg:
                 processed_msg.header.tracking = _tracking
@@ -481,10 +480,12 @@ class OperatorMixin(RunnableKernel):
                     await self.messenger.send(processed_msg)
                 # if last operator in pipeline, publish tracking information
                 elif timing_this_iter:
-                    tasks.append(self._publish_metrics(processed_msg))
+                    tasks.append(self._publish_pipeline_metrics(processed_msg))
             elif timing_this_iter and msg:
                 tasks.append(
-                    self._update_and_publish_metrics(msg, before_kernel, after_kernel)
+                    self._update_and_publish_pipeline_metrics(
+                        msg, before_kernel, after_kernel
+                    )
                 )
 
             if timing_this_iter:
@@ -501,7 +502,9 @@ class OperatorMixin(RunnableKernel):
             await asyncio.sleep(self._tracking_interval)
             self._tracking_ready.set()
 
-    async def _publish_metrics(self, msg: BytesMessage):
+    async def _publish_pipeline_metrics(self, msg: BytesMessage):
+        """These are the metrics from the tracking information
+        that should be sent through the full pipeline."""
         if not self.js:
             logger.warning("JetStream context not initialized...")
             return
@@ -509,29 +512,7 @@ class OperatorMixin(RunnableKernel):
             logger.warning("No tracking data in message to publish...")
             return
 
-        await self.js.publish(
-            subject=f"{STREAM_METRICS}.operators",
-            payload=msg.header.model_dump_json().encode(),
-        )
-
-    async def _publish_error(self, type: OperatorErrorType, message: str | None = None):
-        event = OperatorErrorEvent(
-            error_type=type, operator_id=self.id, message=message
-        )
-        await self._publish_operator_event(event)
-
-    async def _publish_running(self):
-        event = OperatorRunningEvent(operator_id=self.id)
-        await self._publish_operator_event(event)
-
-    async def _publish_operator_event(self, event: OperatorEvent):
-        if not self.js:
-            logger.warning("JetStream context not initialized...")
-            return
-        await self.js.publish(
-            subject=f"{STREAM_OPERATORS}.{self.id}.events",
-            payload=event.model_dump_json().encode(),
-        )
+        await publish_pipeline_metrics(self.js, msg)
 
     def _update_metrics(
         self,
@@ -553,7 +534,7 @@ class OperatorMixin(RunnableKernel):
         msg.header.tracking.append(meta)
         return msg
 
-    async def _update_and_publish_metrics(
+    async def _update_and_publish_pipeline_metrics(
         self,
         msg: BytesMessage,
         before_kernel: datetime | None,
@@ -567,7 +548,7 @@ class OperatorMixin(RunnableKernel):
         if not msg:
             return
 
-        await self._publish_metrics(msg)
+        await self._publish_pipeline_metrics(msg)
 
 
 class Operator(OperatorMixin, OperatorInterface):

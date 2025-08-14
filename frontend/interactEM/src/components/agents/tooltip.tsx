@@ -1,8 +1,9 @@
 import { Box, Divider, List, ListItem, Typography } from "@mui/material"
-import type { Agent } from "../../types/agent"
+import { AgentValSchema } from "../../types/agent"
+import type { AgentVal } from "../../types/gen"
 
 interface AgentTooltipProps {
-  data: Agent
+  data: AgentVal
 }
 
 // Reusable component for label-value pairs
@@ -27,8 +28,13 @@ const formatTimestamp = (timestamp: number): string => {
   })
 }
 
-const AgentTooltip = ({ data }: AgentTooltipProps) => {
+const AgentTooltip = ({ data: unvalidated }: AgentTooltipProps) => {
   // Format uptime to hours and minutes
+  const parsed = AgentValSchema.safeParse(unvalidated)
+  if (!parsed.success) {
+    return <Typography color="error">Invalid agent data</Typography>
+  }
+  const data = parsed.data
   const formattedUptime = `${Math.floor(data.uptime / 3600)}h ${Math.floor((data.uptime % 3600) / 60)}m`
 
   return (

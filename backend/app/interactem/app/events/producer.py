@@ -5,7 +5,6 @@ from fastapi import HTTPException
 from nats.aio.msg import Msg as NatsMessage
 from nats.errors import NoRespondersError as NatsNoRespondersError
 from nats.errors import TimeoutError as NatsTimeoutError
-from nats.js.api import StreamInfo
 from nats.js.errors import APIError, NoStreamResponseError
 from pydantic import BaseModel
 from sqlmodel import SQLModel
@@ -13,15 +12,14 @@ from sqlmodel import SQLModel
 from interactem.core.constants import (
     SFAPI_GROUP_NAME,
     SFAPI_STATUS_ENDPOINT,
-    STREAM_PIPELINES,
+    STREAM_DEPLOYMENTS,
     STREAM_SFAPI,
-    SUBJECT_PIPELINES_RUN,
-    SUBJECT_PIPELINES_STOP,
-    SUBJECT_SFAPI_JOBS_SUBMIT,
+    SUBJECT_PIPELINES_DEPLOYMENTS_NEW,
+    SUBJECT_PIPELINES_DEPLOYMENTS_STOP,
+    SUBJECT_SFAPI_JOBS,
 )
 from interactem.core.events.pipelines import PipelineDeploymentEvent, PipelineStopEvent
-from interactem.core.nats import create_or_update_stream, nc
-from interactem.core.nats.config import PIPELINES_STREAM_CONFIG, SFAPI_STREAM_CONFIG
+from interactem.core.nats import create_all_streams, nc
 from interactem.sfapi_models import AgentCreateEvent, StatusRequest
 
 from ..core.config import settings
@@ -41,14 +39,7 @@ async def start():
     logger.info(f"Connecting to NATS server: {settings.NATS_SERVER_URL}")
     nats_client = await nc([str(settings.NATS_SERVER_URL)], "api")
     nats_jetstream = nats_client.jetstream()
-    stream_infos: list[StreamInfo] = []
-    stream_infos.append(
-        await create_or_update_stream(PIPELINES_STREAM_CONFIG, nats_jetstream)
-    )
-    stream_infos.append(
-        await create_or_update_stream(SFAPI_STREAM_CONFIG, nats_jetstream)
-    )
-    logger.info(f"Streams information:\n {stream_infos}")
+    await create_all_streams(nats_jetstream)
 
 
 async def stop():
@@ -111,11 +102,15 @@ async def nats_req_rep(
 
 
 async def publish_pipeline_run_event(event: PipelineDeploymentEvent) -> None:
-    await publish_jetstream_event(STREAM_PIPELINES, SUBJECT_PIPELINES_RUN, event)
+    await publish_jetstream_event(
+        STREAM_DEPLOYMENTS, SUBJECT_PIPELINES_DEPLOYMENTS_NEW, event
+    )
 
 
 async def publish_pipeline_stop_event(event: PipelineStopEvent) -> None:
-    await publish_jetstream_event(STREAM_PIPELINES, SUBJECT_PIPELINES_STOP, event)
+    await publish_jetstream_event(
+        STREAM_DEPLOYMENTS, SUBJECT_PIPELINES_DEPLOYMENTS_STOP, event
+    )
 
 
 async def request_machine_status(payload: StatusRequest) -> NatsMessage:
@@ -127,4 +122,4 @@ async def request_machine_status(payload: StatusRequest) -> NatsMessage:
 
 
 async def publish_sfapi_submit_event(event: AgentCreateEvent) -> None:
-    await publish_jetstream_event(STREAM_SFAPI, SUBJECT_SFAPI_JOBS_SUBMIT, event)
+    await publish_jetstream_event(STREAM_SFAPI, SUBJECT_SFAPI_JOBS, event)

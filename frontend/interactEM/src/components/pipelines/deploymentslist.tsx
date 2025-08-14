@@ -2,7 +2,11 @@ import { Box, CircularProgress, List, Typography } from "@mui/material"
 import { useEffect, useRef } from "react"
 import InfiniteScroll from "react-infinite-scroll-component"
 import type { PipelineDeploymentPublic } from "../../client"
-import { useInfiniteActiveDeployments, useInfiniteDeployments, useInfinitePipelineDeployments } from "../../hooks/api/useDeploymentsQuery"
+import {
+  useInfiniteActiveDeployments,
+  useInfiniteDeployments,
+  useInfinitePipelineDeployments,
+} from "../../hooks/api/useDeploymentsQuery"
 import { DeploymentItem } from "./deploymentitem"
 
 export type DeploymentsListVariant = "all" | "active" | "pipeline"
@@ -41,16 +45,9 @@ export const DeploymentsList: React.FC<DeploymentsListProps> = ({
     isError,
     error,
   } = query
-  console.log(
-    "isLoading: ",
-    query.isLoading,
-    "isPending: ",
-    isPending,
-    "hasNextPage: ",
-    hasNextPage,
-  )
 
-  const deployments = deploymentsData?.pages.flatMap((page) => page?.data || []) ?? []
+  const deployments =
+    deploymentsData?.pages.flatMap((page) => page?.data || []) ?? []
 
   // Effect to fetch more if content doesn't fill the view.
   useEffect(() => {

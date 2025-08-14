@@ -2,14 +2,17 @@ from abc import ABC, abstractmethod
 
 from nats.js import JetStreamContext
 
-from interactem.core.models.base import OperatorID
 from interactem.core.models.messages import BytesMessage
-from interactem.core.models.pipeline import InputJSON, OutputJSON
+from interactem.core.models.runtime import (
+    RuntimeInput,
+    RuntimeOperatorID,
+    RuntimeOutput,
+)
 
 
 class BaseMessenger(ABC):
     @abstractmethod
-    def __init__(self, operator_id: OperatorID, js: JetStreamContext):
+    def __init__(self, operator_id: RuntimeOperatorID, js: JetStreamContext):
         pass
 
     @property
@@ -24,12 +27,12 @@ class BaseMessenger(ABC):
 
     @property
     @abstractmethod
-    def input_ports(self) -> list[InputJSON]:
+    def input_ports(self) -> list[RuntimeInput]:
         pass
 
     @property
     @abstractmethod
-    def output_ports(self) -> list[OutputJSON]:
+    def output_ports(self) -> list[RuntimeOutput]:
         pass
 
     @abstractmethod

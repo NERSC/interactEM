@@ -1,5 +1,4 @@
-import asyncio.subprocess
-import json
+import asyncio
 import os
 import tempfile
 import time
@@ -13,32 +12,39 @@ import stamina
 from faststream.nats import NatsBroker
 from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
 from podman.domain.containers import Container
+from pydantic import ValidationError
 from stamina.instrumentation import set_on_retry_hooks
 
 from interactem.core.constants import (
     OPERATOR_ID_ENV_VAR,
-    STREAM_OPERATORS,
-    STREAM_PARAMETERS,
-    STREAM_PARAMETERS_UPDATE,
 )
 from interactem.core.constants.mounts import CORE_MOUNT, OPERATORS_MOUNT
 from interactem.core.logger import get_logger
-from interactem.core.models.agent import AgentStatus, AgentVal
-from interactem.core.models.operators import (
-    OperatorParameter,
-    ParameterType,
-)
-from interactem.core.models.pipeline import (
+from interactem.core.models.containers import (
     MountDoesntExistError,
-    OperatorJSON,
-    OperatorWithMounts,
-    PipelineAssignment,
     PodmanMount,
     PodmanMountType,
 )
+from interactem.core.models.kvs import AgentStatus, AgentVal
+from interactem.core.models.runtime import (
+    AgentRuntimeOperator,
+    PipelineAssignment,
+    RuntimeOperator,
+    RuntimeOperatorID,
+    RuntimeOperatorParameter,
+    RuntimeOperatorParameterUpdate,
+    RuntimeParameterCollection,
+    RuntimeParameterCollectionType,
+)
+from interactem.core.models.spec import ParameterSpecType
 from interactem.core.models.uri import URI, CommBackend, URILocation
-from interactem.core.nats.consumers import PARAMETER_CONSUMER_CONFIG
+from interactem.core.nats.consumers import create_agent_mount_consumer
 from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
+from interactem.core.nats.publish import (
+    create_agent_mount_publisher,
+    publish_agent_mount_parameter_ack,
+    publish_pipeline_to_operators,
+)
 from interactem.core.pipeline import Pipeline
 from interactem.core.util import create_task_with_ref
 
@@ -88,7 +94,7 @@ class ContainerTracker:
     def __init__(
         self,
         container: Container,
-        operator: OperatorWithMounts,
+        operator: AgentRuntimeOperator,
     ):
         self.container = container
         self.operator = operator
@@ -153,7 +159,7 @@ class Agent:
             networks=cfg.AGENT_NETWORKS,
         )
         self.agent_kv: KeyValueLoop[AgentVal]
-        self.container_trackers: dict[uuid.UUID, ContainerTracker] = {}
+        self.container_trackers: dict[RuntimeOperatorID, ContainerTracker] = {}
         self._container_monitor_task: asyncio.Task | None = None
         self._task_refs: set[asyncio.Task] = set()
 
@@ -220,12 +226,12 @@ class Agent:
             nc=self.nc,
             js=self.js,
             shutdown_event=self._shutdown_event,
-            bucket=InteractemBucket.AGENTS,
+            bucket=InteractemBucket.STATUS,
             update_interval=10.0,
             data_model=AgentVal,
         )
         self.agent_kv.before_update_callbacks.append(self._update_agent_state)
-        self.agent_kv.add_or_update_value(self.id, self.agent_val)
+        self.agent_kv.add_or_update_value(self.agent_val.key(), self.agent_val)
 
         await self.agent_kv.start()
         self._container_monitor_task = await asyncio.create_task(
@@ -299,7 +305,7 @@ class Agent:
                 tasks.append(self.create_task(self._start_operator(op_info, client)))
 
             results: list[
-                tuple[OperatorWithMounts, Container] | BaseException
+                tuple[AgentRuntimeOperator, Container] | BaseException
             ] = await asyncio.gather(*tasks, return_exceptions=True)
 
             for result in results:
@@ -317,18 +323,20 @@ class Agent:
                     if not operator.parameters:
                         continue
                     for param in operator.parameters:
-                        if not param.type == ParameterType.MOUNT:
+                        if not param.type == ParameterSpecType.MOUNT:
                             continue
+                        # TODO: this should be done once for the
+                        # same canonical ID
                         tracker.add_parameter_task(
                             asyncio.create_task(self.remount_task(tracker, param))
                         )
 
     async def _start_operator(
-        self, operator: OperatorJSON, client: PodmanClient
-    ) -> tuple[OperatorWithMounts, Container]:
+        self, operator: RuntimeOperator, client: PodmanClient
+    ) -> tuple[AgentRuntimeOperator, Container]:
         logger.info(f"Starting operator {operator.id} with image {operator.image}")
 
-        operator = OperatorWithMounts(**operator.model_dump())
+        operator = AgentRuntimeOperator(**operator.model_dump())
 
         if self.pipeline is None:
             raise ValueError("No pipeline configuration found")
@@ -358,40 +366,60 @@ class Agent:
         container.start()
 
         # Publish pipeline to JetStream
-        await self.broker.publish(
-            subject=f"{STREAM_OPERATORS}.{operator.id}",
-            message=self.pipeline.to_json().model_dump_json(),
-        )
+        await publish_pipeline_to_operators(self.broker, self.pipeline, operator.id)
         logger.debug(f"Published pipeline for operator {operator.id}")
-        logger.debug(f"Pipeline: {self.pipeline.to_json().model_dump_json()}")
+        logger.debug(f"Pipeline: {self.pipeline.to_runtime().model_dump_json()}")
 
         return operator, container
 
     async def remount_task(
-        self, tracker: ContainerTracker, parameter: OperatorParameter
+        self, tracker: ContainerTracker, parameter: RuntimeOperatorParameter
     ):
         operator = tracker.operator
-        sub = self.broker.subscriber(
-            subject=f"{STREAM_PARAMETERS}.{operator.id}.{parameter.name}",
-            stream=STREAM_PARAMETERS,
-            description=f"agent-{self.id}-{operator.id}-{parameter.name}",
-            config=PARAMETER_CONSUMER_CONFIG,
-            pull_sub=True,
+
+        # while this is single param, collection will still work
+        mount_params = RuntimeParameterCollection.from_parameter_list(
+            [parameter], RuntimeParameterCollectionType.MOUNT
         )
-        pub = self.broker.publisher(
-            stream=STREAM_PARAMETERS,
-            subject=f"{STREAM_PARAMETERS_UPDATE}.{operator.id}.{parameter.name}",
+
+        sub = create_agent_mount_consumer(
+            self.broker, self.id, operator.canonical_id, parameter
         )
+        pub = create_agent_mount_publisher(
+            self.broker,
+            operator.id,
+            parameter.name,
+        )
+
         self.broker.setup_publisher(pub)
 
         async def handler(msg: dict[str, Any]):
-            new_val = msg.get(parameter.name, "")
-            if new_val == parameter.value:
-                return
-            logger.info(
-                f"Received new value for parameter '{parameter.name}': {new_val}"
-            )
+            logger.info(f"Received mount parameter message: {msg}")
 
+            try:
+                # Parse the structured parameter update message
+                update = RuntimeOperatorParameterUpdate.model_validate(msg)
+            except ValidationError as e:
+                logger.exception(f"Failed to parse parameter update: {e}")
+                await self.error_publisher.publish(
+                    f"Invalid parameter update format: {e}"
+                )
+                return
+
+            new_val = update.value
+
+            try:
+                value_changed = mount_params.update_value(parameter.name, new_val)
+            except (ValueError, KeyError) as e:
+                logger.error(f"Invalid mount parameter value: {e}")
+                await self.error_publisher.publish(str(e))
+                return
+
+            if not value_changed:
+                logger.info(f"Mount {parameter.name} unchanged, skipping restart")
+                return
+
+            # Update the operator's parameter
             operator.update_parameter_value(parameter.name, new_val)
 
             try:
@@ -401,9 +429,20 @@ class Agent:
                 await self.error_publisher.publish(str(e))
                 return
 
-            # Mark for a restart (handled in the monitor loop)
+            logger.info(
+                f"Remounting {parameter.name} for operator {operator.id} with value {new_val}"
+            )
+
+            # Mark for restart
             tracker.mark()
-            await pub.publish(json.dumps(new_val))
+
+            updated_param = mount_params.parameters[parameter.name]
+            create_task_with_ref(
+                self._task_refs,
+                publish_agent_mount_parameter_ack(
+                    pub, operator.canonical_id, updated_param
+                ),
+            )
 
         sub(handler)
         self.broker.setup_subscriber(sub)
@@ -420,7 +459,7 @@ class Agent:
             logger.info(f"Parameter task for {operator.id}.{parameter.name} cancelled.")
             raise
         finally:
-            await sub.close()
+            await sub.stop()
             logger.info(
                 f"Closed parameter subscription for {operator.id}.{parameter.name}."
             )
@@ -493,7 +532,7 @@ def is_name_conflict_error(exc: Exception) -> bool:
 async def create_container(
     agent_id: uuid.UUID,
     client: PodmanClient,
-    operator: OperatorWithMounts,
+    operator: AgentRuntimeOperator,
 ) -> Container:
     name = f"operator-{operator.id}"
     network_mode = operator.network_mode or "host"

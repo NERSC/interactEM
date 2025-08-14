@@ -5,11 +5,11 @@ from typing import Any
 
 import pandas as pd
 
-from interactem.core.constants import STREAM_TABLES
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
 from interactem.core.nats import create_or_update_stream
 from interactem.core.nats.config import TABLE_STREAM_CONFIG
+from interactem.core.nats.publish import publish_table_data
 from interactem.operators.operator import AsyncOperator
 
 logger = get_logger()
@@ -36,9 +36,10 @@ class TableDisplay(AsyncOperator):
     async def _publish_table_data(self, table_data_json: bytes):
         await self._ensure_stream()
 
-        await self.js.publish(
-            subject=f"{STREAM_TABLES}.{self.id}",
-            payload=table_data_json,
+        await publish_table_data(
+            self.js,
+            table_data_json=table_data_json,
+            operator_id=self.info.canonical_id,
         )
 
     async def kernel(
