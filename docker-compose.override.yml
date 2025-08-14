@@ -15,11 +15,6 @@ services:
       - run
       - --reload
       - "interactem/app/main.py"
-    environment:
-      SMTP_HOST: "mailcatcher"
-      SMTP_PORT: "1025"
-      SMTP_TLS: "false"
-      EMAILS_FROM_EMAIL: "noreply@example.com"
 
   orchestrator:
     restart: "no"
@@ -28,11 +23,6 @@ services:
       - ./backend/core/:/interactem/core
       - ./backend/sfapi_models/:/interactem/sfapi_models
 
-  mailcatcher:
-    image: schickling/mailcatcher
-    ports:
-      - "1080:1080"
-      - "1025:1025"
 
   # frontend:
   #   restart: "no"

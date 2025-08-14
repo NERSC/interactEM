@@ -7,7 +7,9 @@ from pydantic import ValidationError
 from sqlmodel import col, func, select
 
 from interactem.app.api.deps import CurrentUser, SessionDep
-from interactem.app.api.routes.utils import check_present_and_authorized
+from interactem.app.core.util import (
+    check_present_and_authorized,
+)
 from interactem.app.models import (
     Message,
     Pipeline,

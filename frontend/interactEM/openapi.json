@@ -76,105 +76,6 @@
         "security": [{ "OAuth2PasswordBearer": [] }]
       }
     },
-    "/api/v1/password-recovery/{email}": {
-      "post": {
-        "tags": ["login"],
-        "summary": "Recover Password",
-        "description": "Password Recovery",
-        "operationId": "login-recover_password",
-        "parameters": [
-          {
-            "name": "email",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string", "title": "Email" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Message" }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/reset-password/": {
-      "post": {
-        "tags": ["login"],
-        "summary": "Reset Password",
-        "description": "Reset password",
-        "operationId": "login-reset_password",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/NewPassword" }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Message" }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/password-recovery-html-content/{email}": {
-      "post": {
-        "tags": ["login"],
-        "summary": "Recover Password Html Content",
-        "description": "HTML Content for Password Recovery",
-        "operationId": "login-recover_password_html_content",
-        "security": [{ "OAuth2PasswordBearer": [] }],
-        "parameters": [
-          {
-            "name": "email",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "string", "title": "Email" }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": { "text/html": { "schema": { "type": "string" } } }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/users/": {
       "get": {
         "tags": ["users"],
@@ -353,40 +254,6 @@
         "security": [{ "OAuth2PasswordBearer": [] }]
       }
     },
-    "/api/v1/users/signup": {
-      "post": {
-        "tags": ["users"],
-        "summary": "Register User",
-        "description": "Create new user without the need to be logged in.",
-        "operationId": "users-register_user",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/UserRegister" }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/UserPublic" }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/users/{user_id}": {
       "get": {
         "tags": ["users"],
@@ -478,45 +345,6 @@
         ],
         "responses": {
           "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Message" }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/utils/test-email/": {
-      "post": {
-        "tags": ["utils"],
-        "summary": "Test Email",
-        "description": "Test emails.",
-        "operationId": "utils-test_email",
-        "security": [{ "OAuth2PasswordBearer": [] }],
-        "parameters": [
-          {
-            "name": "email_to",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "email",
-              "title": "Email To"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -1493,20 +1321,6 @@
         "required": ["message"],
         "title": "Message"
       },
-      "NewPassword": {
-        "properties": {
-          "token": { "type": "string", "title": "Token" },
-          "new_password": {
-            "type": "string",
-            "maxLength": 40,
-            "minLength": 8,
-            "title": "New Password"
-          }
-        },
-        "type": "object",
-        "required": ["token", "new_password"],
-        "title": "NewPassword"
-      },
       "NodeType": {
         "type": "string",
         "enum": ["operator", "port"],
@@ -1908,11 +1722,10 @@
       },
       "UserCreate": {
         "properties": {
-          "email": {
+          "username": {
             "type": "string",
             "maxLength": 255,
-            "format": "email",
-            "title": "Email"
+            "title": "Username"
           },
           "is_active": {
             "type": "boolean",
@@ -1944,16 +1757,15 @@
           }
         },
         "type": "object",
-        "required": ["email", "password"],
+        "required": ["username", "password"],
         "title": "UserCreate"
       },
       "UserPublic": {
         "properties": {
-          "email": {
+          "username": {
             "type": "string",
             "maxLength": 255,
-            "format": "email",
-            "title": "Email"
+            "title": "Username"
           },
           "is_active": {
             "type": "boolean",
@@ -1980,43 +1792,17 @@
           "id": { "type": "string", "format": "uuid", "title": "Id" }
         },
         "type": "object",
-        "required": ["email", "id"],
+        "required": ["username", "id"],
         "title": "UserPublic"
       },
-      "UserRegister": {
+      "UserUpdate": {
         "properties": {
-          "email": {
-            "type": "string",
-            "maxLength": 255,
-            "format": "email",
-            "title": "Email"
-          },
-          "password": {
-            "type": "string",
-            "maxLength": 40,
-            "minLength": 8,
-            "title": "Password"
-          },
-          "full_name": {
+          "username": {
             "anyOf": [
               { "type": "string", "maxLength": 255 },
               { "type": "null" }
             ],
-            "title": "Full Name"
-          }
-        },
-        "type": "object",
-        "required": ["email", "password"],
-        "title": "UserRegister"
-      },
-      "UserUpdate": {
-        "properties": {
-          "email": {
-            "anyOf": [
-              { "type": "string", "maxLength": 255, "format": "email" },
-              { "type": "null" }
-            ],
-            "title": "Email"
+            "title": "Username"
           },
           "is_active": {
             "type": "boolean",
@@ -2060,12 +1846,12 @@
             ],
             "title": "Full Name"
           },
-          "email": {
+          "username": {
             "anyOf": [
-              { "type": "string", "maxLength": 255, "format": "email" },
+              { "type": "string", "maxLength": 255 },
               { "type": "null" }
             ],
-            "title": "Email"
+            "title": "Username"
           }
         },
         "type": "object",

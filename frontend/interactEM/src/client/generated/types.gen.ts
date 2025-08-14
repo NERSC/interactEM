@@ -62,11 +62,6 @@ export type Message = {
   message: string
 }
 
-export type NewPassword = {
-  token: string
-  new_password: string
-}
-
 export type NodeType = "operator" | "port"
 
 export type OperatorSpec = {
@@ -212,7 +207,7 @@ export type UpdatePassword = {
 }
 
 export type UserCreate = {
-  email: string
+  username: string
   is_active?: boolean
   is_superuser?: boolean
   is_external?: boolean
@@ -221,7 +216,7 @@ export type UserCreate = {
 }
 
 export type UserPublic = {
-  email: string
+  username: string
   is_active?: boolean
   is_superuser?: boolean
   is_external?: boolean
@@ -229,14 +224,8 @@ export type UserPublic = {
   id: string
 }
 
-export type UserRegister = {
-  email: string
-  password: string
-  full_name?: string | null
-}
-
 export type UserUpdate = {
-  email?: string | null
+  username?: string | null
   is_active?: boolean
   is_superuser?: boolean
   is_external?: boolean
@@ -246,7 +235,7 @@ export type UserUpdate = {
 
 export type UserUpdateMe = {
   full_name?: string | null
-  email?: string | null
+  username?: string | null
 }
 
 export type UsersPublic = {
@@ -320,91 +309,6 @@ export type LoginTestTokenResponses = {
 
 export type LoginTestTokenResponse =
   LoginTestTokenResponses[keyof LoginTestTokenResponses]
-
-export type LoginRecoverPasswordData = {
-  body?: never
-  path: {
-    email: string
-  }
-  query?: never
-  url: "/api/v1/password-recovery/{email}"
-}
-
-export type LoginRecoverPasswordErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError
-}
-
-export type LoginRecoverPasswordError =
-  LoginRecoverPasswordErrors[keyof LoginRecoverPasswordErrors]
-
-export type LoginRecoverPasswordResponses = {
-  /**
-   * Successful Response
-   */
-  200: Message
-}
-
-export type LoginRecoverPasswordResponse =
-  LoginRecoverPasswordResponses[keyof LoginRecoverPasswordResponses]
-
-export type LoginResetPasswordData = {
-  body: NewPassword
-  path?: never
-  query?: never
-  url: "/api/v1/reset-password/"
-}
-
-export type LoginResetPasswordErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError
-}
-
-export type LoginResetPasswordError =
-  LoginResetPasswordErrors[keyof LoginResetPasswordErrors]
-
-export type LoginResetPasswordResponses = {
-  /**
-   * Successful Response
-   */
-  200: Message
-}
-
-export type LoginResetPasswordResponse =
-  LoginResetPasswordResponses[keyof LoginResetPasswordResponses]
-
-export type LoginRecoverPasswordHtmlContentData = {
-  body?: never
-  path: {
-    email: string
-  }
-  query?: never
-  url: "/api/v1/password-recovery-html-content/{email}"
-}
-
-export type LoginRecoverPasswordHtmlContentErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError
-}
-
-export type LoginRecoverPasswordHtmlContentError =
-  LoginRecoverPasswordHtmlContentErrors[keyof LoginRecoverPasswordHtmlContentErrors]
-
-export type LoginRecoverPasswordHtmlContentResponses = {
-  /**
-   * Successful Response
-   */
-  200: string
-}
-
-export type LoginRecoverPasswordHtmlContentResponse =
-  LoginRecoverPasswordHtmlContentResponses[keyof LoginRecoverPasswordHtmlContentResponses]
 
 export type UsersReadUsersData = {
   body?: never
@@ -551,33 +455,6 @@ export type UsersUpdatePasswordMeResponses = {
 export type UsersUpdatePasswordMeResponse =
   UsersUpdatePasswordMeResponses[keyof UsersUpdatePasswordMeResponses]
 
-export type UsersRegisterUserData = {
-  body: UserRegister
-  path?: never
-  query?: never
-  url: "/api/v1/users/signup"
-}
-
-export type UsersRegisterUserErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError
-}
-
-export type UsersRegisterUserError =
-  UsersRegisterUserErrors[keyof UsersRegisterUserErrors]
-
-export type UsersRegisterUserResponses = {
-  /**
-   * Successful Response
-   */
-  200: UserPublic
-}
-
-export type UsersRegisterUserResponse =
-  UsersRegisterUserResponses[keyof UsersRegisterUserResponses]
-
 export type UsersDeleteUserData = {
   body?: never
   path: {
@@ -664,35 +541,6 @@ export type UsersUpdateUserResponses = {
 
 export type UsersUpdateUserResponse =
   UsersUpdateUserResponses[keyof UsersUpdateUserResponses]
-
-export type UtilsTestEmailData = {
-  body?: never
-  path?: never
-  query: {
-    email_to: string
-  }
-  url: "/api/v1/utils/test-email/"
-}
-
-export type UtilsTestEmailErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError
-}
-
-export type UtilsTestEmailError =
-  UtilsTestEmailErrors[keyof UtilsTestEmailErrors]
-
-export type UtilsTestEmailResponses = {
-  /**
-   * Successful Response
-   */
-  201: Message
-}
-
-export type UtilsTestEmailResponse =
-  UtilsTestEmailResponses[keyof UtilsTestEmailResponses]
 
 export type PipelinesReadPipelinesData = {
   body?: never
