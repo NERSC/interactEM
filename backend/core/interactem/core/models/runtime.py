@@ -148,6 +148,11 @@ class RuntimeOperatorParameterAck(BaseModel):
     value: str | None = None
 
 
+class RuntimePortMap(BaseModel):
+    id: RuntimePortID
+    canonical_id: CanonicalPortID
+
+
 class RuntimeOperator(CanonicalOperator):
     id: RuntimeOperatorID
     canonical_id: CanonicalOperatorID
@@ -156,6 +161,11 @@ class RuntimeOperator(CanonicalOperator):
     env: dict[str, str] = {}  # Environment variables to pass to the container
     command: str | list[str] = []  # Command to pass to the container
     network_mode: NetworkMode | None = None  # Network mode for the container
+
+    # We use maps here instead of lists to allow for simpler access to input/output port by
+    # canonical ID
+    inputs: list[RuntimePortMap] = []
+    outputs: list[RuntimePortMap] = []
 
     def update_parameter_value(self, name: str, value: str | None) -> None:
         for parameter in self.parameters or []:
@@ -171,16 +181,32 @@ class RuntimeOperator(CanonicalOperator):
         runtime_id: RuntimeOperatorID,
         parallel_index: int = 0,
     ) -> "RuntimeOperator":
+        # Initialize with empty port maps - will be filled during pipeline expansion
         return cls(
             id=runtime_id,
             canonical_id=canonical_operator.id,
             parallel_index=parallel_index,
-            **canonical_operator.model_dump(exclude={"id"}),
+            inputs=[],
+            outputs=[],
+            **canonical_operator.model_dump(exclude={"id", "inputs", "outputs"}),
         )
 
     def to_canonical(self) -> CanonicalOperator:
+        # Extract unique canonical port IDs from the maps
+        canonical_inputs = list({pm.canonical_id for pm in self.inputs})
+        canonical_outputs = list({pm.canonical_id for pm in self.outputs})
         return CanonicalOperator(
-            id=self.canonical_id, **self.model_dump(exclude={"id"})
+            id=self.canonical_id,
+            inputs=canonical_inputs,
+            outputs=canonical_outputs,
+            **self.model_dump(
+                exclude={
+                    "id",
+                    "canonical_id",
+                    "inputs",
+                    "outputs",
+                }
+            ),
         )
 
     @classmethod
@@ -212,20 +238,6 @@ class RuntimePort(CanonicalPort):
     # This is useful for when we are expanding the pipeline
     # and we need to know which operator this port is connected to
     targets_canonical_operator_id: CanonicalOperatorID | None = None
-
-    @classmethod
-    def from_canonical(
-        cls,
-        canonical_port: CanonicalPort,
-        runtime_id: RuntimePortID,
-        runtime_operator_id: RuntimeOperatorID,
-    ) -> "RuntimePort":
-        return cls(
-            id=runtime_id,
-            canonical_id=canonical_port.id,
-            operator_id=runtime_operator_id,
-            **canonical_port.model_dump(exclude={"id"}),
-        )
 
     def to_canonical(self) -> CanonicalPort:
         return CanonicalPort(id=self.canonical_id, **self.model_dump(exclude={"id"}))

@@ -2,9 +2,7 @@ import {
   STREAM_PARAMETERS,
   SUBJECT_OPERATORS_PARAMETERS,
 } from "../../constants/nats"
-import {
-  type RuntimeOperatorParameterAck,
-} from "../../types/gen"
+import type { RuntimeOperatorParameterAck } from "../../types/gen"
 import { RuntimeOperatorParameterAckSchema } from "../../types/params"
 import { useStreamMessage } from "./useStreamMessage"
 

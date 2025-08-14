@@ -1,14 +1,29 @@
-import { BUCKET_STATUS, PIPELINES } from "../../constants/nats"
-import type { PipelineRunVal } from "../../types/gen"
-import { PipelineRunValSchema } from "../../types/pipeline"
-import { useBucketWatch } from "./useBucketWatch"
+import { useMemo } from "react"
+import { usePipelineStatusContext } from "../../contexts/nats/pipelinestatus"
 
-export const useRunningPipelines = () => {
-  const { items: pipelines, error } = useBucketWatch<PipelineRunVal>({
-    bucketName: BUCKET_STATUS,
-    schema: PipelineRunValSchema,
-    keyFilter: `${PIPELINES}.>`,
-  })
+export const usePipelineStatus = (runtimeId: string | null) => {
+  const { pipelines, pipelinesLoading, pipelinesError } =
+    usePipelineStatusContext()
 
-  return { pipelines, error }
+  const pipeline = useMemo(
+    () =>
+      runtimeId ? pipelines.find((p) => p.id === runtimeId) || null : null,
+    [pipelines, runtimeId],
+  )
+
+  return {
+    pipeline,
+    isLoading: pipelinesLoading,
+    error: pipelinesError,
+  }
+}
+export const useAllPipelineStatuses = () => {
+  const { pipelines, pipelinesLoading, pipelinesError } =
+    usePipelineStatusContext()
+
+  return {
+    pipelines,
+    isLoading: pipelinesLoading,
+    error: pipelinesError,
+  }
 }

@@ -2,8 +2,8 @@ import { useEffect, useState } from "react"
 import type { OperatorSpec } from "../../client"
 import { operatorsReadOperators } from "../../client"
 
-const useOperators = () => {
-  const [operators, setOperators] = useState<OperatorSpec[] | null>(null)
+const useOperatorSpecs = () => {
+  const [operatorSpecs, setOperators] = useState<OperatorSpec[] | null>(null)
   const [error, setError] = useState<Error | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
 
@@ -25,7 +25,7 @@ const useOperators = () => {
     fetchData()
   }, [])
 
-  return { operators, error, loading }
+  return { operatorSpecs, error, loading }
 }
 
-export default useOperators
+export default useOperatorSpecs

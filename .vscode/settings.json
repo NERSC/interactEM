@@ -12,10 +12,8 @@
       },
       "editor.defaultFormatter": "golang.go",
     },
-    "[typescript]": {
-      "editor.defaultFormatter": "biomejs.biome"
-    },
-    "[typescriptreact]": {
-      "editor.defaultFormatter": "biomejs.biome"
-    },
+    "biome.enabled": false,
+    "python.analysis.extraPaths": [
+      "./backend/agent/thirdparty/podman-hpc-py"
+    ]
   }

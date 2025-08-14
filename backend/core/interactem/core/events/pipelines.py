@@ -4,7 +4,10 @@ from typing import Any
 from pydantic import BaseModel
 
 from interactem.core.models.base import PipelineDeploymentState
-from interactem.core.models.canonical import CanonicalPipelineID
+from interactem.core.models.canonical import (
+    CanonicalPipelineID,
+    CanonicalPipelineRevisionID,
+)
 from interactem.core.models.runtime import RuntimePipelineID
 
 
@@ -21,7 +24,7 @@ class PipelineEvent(BaseModel):
 class PipelineDeploymentEvent(PipelineEvent):
     type: PipelineEventType = PipelineEventType.PIPELINE_RUN
     canonical_id: CanonicalPipelineID
-    revision_id: int
+    revision_id: CanonicalPipelineRevisionID
     deployment_id: RuntimePipelineID
     data: dict[str, Any]
 

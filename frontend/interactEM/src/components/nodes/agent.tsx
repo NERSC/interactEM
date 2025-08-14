@@ -15,7 +15,8 @@ const AgentNode = ({ data, id, selected }: NodeProps<AgentNodeType>) => {
   const childNodes = getNodes().filter(
     (node) =>
       node.parentId === id &&
-      (node.type === DisplayNodeType.image || node.type === DisplayNodeType.operator),
+      (node.type === DisplayNodeType.image ||
+        node.type === DisplayNodeType.operator),
   )
 
   const operatorCount =

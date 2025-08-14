@@ -23,6 +23,7 @@ from .models.runtime import (
     RuntimePipeline,
     RuntimePipelineID,
     RuntimePort,
+    RuntimePortMap,
 )
 from .models.spec import ParallelType
 
@@ -64,6 +65,7 @@ class IdName(str, Enum):
     RUNTIME = "id"
     CANONICAL = "canonical_id"
     REVISION = "revision_id"
+
 
 class Pipeline(nx.DiGraph):
     def __init__(self, **attr):
@@ -156,62 +158,73 @@ class Pipeline(nx.DiGraph):
         """
         Expand a canonical pipeline to runtime pipeline with parallel operator expansion.
 
-        Args:
-            canonical_pipeline: The canonical pipeline to expand
-            runtime_pipeline_id: The runtime pipeline ID from the database
-            parallel_factor: Factor to expand parallel operators (default: 2)
-
-        Returns:
-            Pipeline with runtime models and expanded parallel operators
+          1. Expand operators (respecting parallel config)
+          2. Expand ports (including replication for multi-target outputs)
+          3. Attach port maps to operators (input/output lookup at runtime)
+          4. Generate edges (operator↔port plus port→port data edges)
         """
-        # Create runtime pipeline graph
+
         graph = cls(
             id=runtime_pipeline_id,
             canonical_id=canonical_pipeline.id,
             revision_id=canonical_pipeline.revision_id,
         )
 
-        # Track mapping of canonical operator ID to list of runtime operators
+        # 1. Expand operators
         operator_mapping: dict[IdType, list[RuntimeOperator]] = {}
         all_runtime_operators: list[RuntimeOperator] = []
-
-        # Expand operators (with parallel expansion)
         for canonical_op in canonical_pipeline.operators:
             runtime_ops = graph._expand_operator(canonical_op, parallel_factor)
             operator_mapping[canonical_op.id] = runtime_ops
             all_runtime_operators.extend(runtime_ops)
 
-        # Batch add all runtime operators
-        operator_node_data = [(op.id, op.model_dump()) for op in all_runtime_operators]
-        graph.add_nodes_from(operator_node_data)
-
-        # Expand ports
+        # 2. Expand ports with fanout
         port_fanout = get_port_fanout_map(canonical_pipeline)
         runtime_ports = graph._expand_ports(
             list(canonical_pipeline.ports), operator_mapping, port_fanout
         )
 
-        # Batch add all runtime ports
-        port_node_data = [(port.id, port.model_dump()) for port in runtime_ports]
-        graph.add_nodes_from(port_node_data)
+        # 3. Attach port maps
+        graph._attach_ports_to_operators(all_runtime_operators, runtime_ports)
 
-        # Build port lookup
-        port_by_canonical_id = {port.canonical_id: [] for port in runtime_ports}
-        for port in runtime_ports:
-            port_by_canonical_id[port.canonical_id].append(port)
+        # Add operators & ports
+        graph.add_nodes_from((op.id, op.model_dump()) for op in all_runtime_operators)
+        graph.add_nodes_from((p.id, p.model_dump()) for p in runtime_ports)
 
-        # Expand edges with lookup
+        # 4. Build lookup and add edges
+        port_by_canonical: dict[IdType, list[RuntimePort]] = {}
+        for p in runtime_ports:
+            port_by_canonical.setdefault(p.canonical_id, []).append(p)
+
         runtime_edges = graph._expand_edges(
-            list(canonical_pipeline.edges), port_by_canonical_id, operator_mapping
+            list(canonical_pipeline.edges), port_by_canonical, operator_mapping
         )
-
-        # Batch add all runtime edges
-        edge_data = [
-            (edge.input_id, edge.output_id, edge.model_dump()) for edge in runtime_edges
-        ]
-        graph.add_edges_from(edge_data)
-
+        graph.add_edges_from(
+            (e.input_id, e.output_id, e.model_dump()) for e in runtime_edges
+        )
         return graph
+
+    # ------------------------- Internal helpers ------------------------- #
+    def _attach_ports_to_operators(
+        self, operators: list[RuntimeOperator], ports: list[RuntimePort]
+    ) -> None:
+        """Populate each runtime operator's input/output port maps.
+        """
+        op_port_map: dict[IdType, list[RuntimePort]] = {}
+        for port in ports:
+            op_port_map.setdefault(port.operator_id, []).append(port)
+        for op in operators:
+            op_ports = op_port_map.get(op.id, [])
+            op.inputs = [
+                RuntimePortMap(id=p.id, canonical_id=p.canonical_id)
+                for p in op_ports
+                if p.port_type == PortType.input
+            ]
+            op.outputs = [
+                RuntimePortMap(id=p.id, canonical_id=p.canonical_id)
+                for p in op_ports
+                if p.port_type == PortType.output
+            ]
 
     def _expand_operator(
         self, operator: CanonicalOperator, factor: int
@@ -221,7 +234,6 @@ class Pipeline(nx.DiGraph):
             operator.parallel_config is not None
             and operator.parallel_config.type != ParallelType.NONE
         )
-
         expansion_factor = factor if should_expand else 1
         return RuntimeOperator.replicate_from_canonical(operator, expansion_factor)
 
@@ -272,10 +284,7 @@ class Pipeline(nx.DiGraph):
         """Create runtime output ports with replication if needed."""
         runtime_ports = []
         downstream_ops = port_fanout.get(canonical_port.id, set())
-
-        # If no downstream or single downstream, treat as single target
-        # If multiple downstream, create one port per target for replication
-        targets = downstream_ops if downstream_ops else {None}
+        targets = downstream_ops or {None}
 
         for runtime_op in runtime_ops:
             for target_op_id in targets:
@@ -324,6 +333,21 @@ class Pipeline(nx.DiGraph):
             for op in runtime_ops:
                 operator_by_runtime_id[op.id] = op
 
+        # First, add edges from operators to their ports and ports to operators
+        for runtime_ports in port_by_canonical_id.values():
+            for port in runtime_ports:
+                if port.port_type == PortType.output:
+                    # Edge from operator to output port
+                    runtime_edges.append(
+                        RuntimeEdge(input_id=port.operator_id, output_id=port.id)
+                    )
+                else:  # input port
+                    # Edge from input port to operator
+                    runtime_edges.append(
+                        RuntimeEdge(input_id=port.id, output_id=port.operator_id)
+                    )
+
+        # Then add edges between ports based on canonical edges
         for canonical_edge in edges:
             src_runtime_ports = port_by_canonical_id.get(canonical_edge.input_id, [])
             dst_runtime_ports = port_by_canonical_id.get(canonical_edge.output_id, [])

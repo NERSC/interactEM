@@ -26,7 +26,11 @@ from interactem.core.logger import get_logger
 from interactem.core.models.base import IdType, PipelineDeploymentState
 from interactem.core.models.canonical import CanonicalPipeline
 from interactem.core.models.kvs import AgentVal, PipelineRunVal
-from interactem.core.models.runtime import PipelineAssignment, RuntimeOperator
+from interactem.core.models.runtime import (
+    PipelineAssignment,
+    RuntimeOperator,
+    RuntimePipeline,
+)
 from interactem.core.nats import (
     consume_messages,
     create_bucket_if_doesnt_exist,
@@ -50,7 +54,7 @@ from .config import cfg
 
 logger = get_logger()
 
-pipelines: dict[IdType, PipelineDeploymentEvent] = {}
+pipelines: dict[IdType, RuntimePipeline] = {}
 
 task_refs: set[asyncio.Task] = set()
 
@@ -78,17 +82,10 @@ async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
     await pipeline_bucket.purge(key)
 
 
-async def update_pipeline_kv(
-    js: JetStreamContext, pipeline: PipelineRunVal | PipelineDeploymentEvent
-):
-    if isinstance(pipeline, PipelineDeploymentEvent):
-        pipeline = PipelineRunVal(
-            id=pipeline.deployment_id,
-            canonical_id=pipeline.canonical_id,
-            canonical_revision_id=pipeline.revision_id,
-        )
+async def update_pipeline_kv(js: JetStreamContext, pipeline: RuntimePipeline):
+    _pipeline = PipelineRunVal(id=pipeline.id, pipeline=pipeline)
     pipeline_bucket = await get_status_bucket(js)
-    await pipeline_bucket.put(pipeline.key(), pipeline.model_dump_json().encode())
+    await pipeline_bucket.put(_pipeline.key(), _pipeline.model_dump_json().encode())
 
 
 async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
@@ -112,13 +109,12 @@ async def update_pipeline_status(
     )
 
 
-async def clean_up_old_pipelines(
-    js: JetStreamContext, valid_pipeline: CanonicalPipeline
-):
+async def clean_up_old_pipelines(js: JetStreamContext, valid_pipeline: RuntimePipeline):
     bucket = await get_status_bucket(js)
     current_pipeline_keys = await get_keys(bucket, filters=[f"{PIPELINES}"])
     delete_tasks = []
     for key in current_pipeline_keys:
+        key = key.strip(f"{PIPELINES}.")
         if key != str(valid_pipeline.id):
             try:
                 uid = UUID(key)
@@ -470,17 +466,23 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
         await update_pipeline_status(js, event, PipelineDeploymentState.FAILED_TO_START)
         return
 
-    await asyncio.gather(
-        *[publish_assignment(js, assignment) for assignment in assignments]
-    )
+    tasks = [
+        asyncio.create_task(publish_assignment(js, assignment))
+        for assignment in assignments
+    ]
+    await asyncio.gather(*tasks)
+
     logger.info(f"Published {len(assignments)} assignments for pipeline {pipeline.id}.")
-
-    await clean_up_old_pipelines(js, valid_pipeline)
-
-    await update_pipeline_kv(js, event)
-    pipelines[valid_pipeline.id] = event
+    runtime_pipeline = pipeline.to_runtime()
+    tasks.clear()
+    tasks.append(asyncio.create_task(clean_up_old_pipelines(js, runtime_pipeline)))
+    tasks.append(asyncio.create_task(update_pipeline_kv(js, runtime_pipeline)))
+    tasks.append(asyncio.create_task(
+        update_pipeline_status(js, event, PipelineDeploymentState.RUNNING)
+    ))
+    await asyncio.gather(*tasks)
+    pipelines[runtime_pipeline.id] = runtime_pipeline
     logger.info(f"Updated KV store with pipeline {valid_pipeline.id}.")
-
     logger.info(f"Pipeline run event for {valid_pipeline.id} processed.")
 
 
@@ -522,7 +524,7 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
     # TODO: for now, we use a blank pipeline to stop things
     # we should probably have a more explicit "stop" pipeline message
     canonical_pipeline = CanonicalPipeline(
-        id=event.deployment_id, revision_id=0, operators=[], edges=[]
+        id=uuid4(), revision_id=0, operators=[], edges=[]
     )
 
     # Convert to runtime pipeline for assignment
