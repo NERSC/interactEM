@@ -12,6 +12,11 @@ import {
 import { useNats } from "../../contexts/nats"
 import { RuntimeOperatorParameterUpdateSchema } from "../../types/params"
 
+// TODO: for now, we are sending an update to all operators with the same
+// canonical ID. This will produce unintended updates to other operators
+// if there are multiple pipeline revisions running at the same time
+// (not really likely at the moment...)
+
 export const useParameterUpdate = (
   operatorID: string,
   parameter: OperatorSpecParameter,
