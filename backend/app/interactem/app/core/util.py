@@ -1,11 +1,9 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import HTTPException
 
 from interactem.app.api.deps import CurrentUser
 from interactem.app.models import Pipeline
-
-router = APIRouter()
 
 
 def check_present_and_authorized(

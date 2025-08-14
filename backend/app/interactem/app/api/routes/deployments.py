@@ -8,7 +8,9 @@ from fastapi import APIRouter, HTTPException, Query
 from sqlmodel import col, desc, select
 
 from interactem.app.api.deps import CurrentUser, SessionDep
-from interactem.app.api.routes.utils import check_present_and_authorized
+from interactem.app.core.util import (
+    check_present_and_authorized,
+)
 from interactem.app.events.producer import (
     publish_pipeline_run_event,
     publish_pipeline_stop_event,
