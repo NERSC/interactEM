@@ -1,19 +1,8 @@
-import os
 import pathlib
 import re
-import subprocess
 
 from pydantic2ts import generate_typescript_defs
 
-
-def get_git_root(path):
-    try:
-        return subprocess.check_output(
-            ['git', '-C', os.path.dirname(path), 'rev-parse', '--show-toplevel'],
-            stderr=subprocess.DEVNULL
-        ).decode().strip()
-    except Exception:
-        raise RuntimeError("Could not determine git root directory.")
 
 def deduplicate_enums(file_path: str, enum_base_names: list[str]):
     """
@@ -72,9 +61,9 @@ def deduplicate_enums(file_path: str, enum_base_names: list[str]):
     print("Cleanup complete.")
 
 
-# 0. Get the root directory of the git repository
-git_root = get_git_root(__file__)
-output_path = pathlib.Path(git_root) / "frontend" / "interactEM" / "src" / "types" / "gen.ts"
+# 0. Determine the repository root relative to this file
+repo_root = pathlib.Path(__file__).resolve().parents[3]
+output_path = repo_root / "frontend" / "interactEM" / "src" / "types" / "gen.ts"
 json2ts_cmd = 'json2ts --inferStringEnumKeysFromValues --enableConstEnums false'
 
 # 1. Generate the TypeScript file from Pydantic models
