@@ -232,9 +232,11 @@ class RuntimePort(CanonicalPort):
     id: RuntimePortID
     canonical_id: CanonicalPortID
     operator_id: RuntimeOperatorID  # The operator this port belongs to
+
+    # the canonical op ID this port is attached to
     canonical_operator_id: CanonicalOperatorID
 
-    # We want to store which canonical operator this port targets at runtime
+    # store the canonical operator this port points to at runtime
     # This is useful for when we are expanding the pipeline
     # and we need to know which operator this port is connected to
     targets_canonical_operator_id: CanonicalOperatorID | None = None
