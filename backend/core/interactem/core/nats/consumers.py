@@ -1,6 +1,8 @@
 from dataclasses import replace
 from uuid import UUID
 
+from faststream.nats.broker import NatsBroker
+from faststream.nats.subscriber.asyncapi import AsyncAPISubscriber
 from nats.js import JetStreamContext
 from nats.js.api import (
     ConsumerConfig,
@@ -8,17 +10,25 @@ from nats.js.api import (
 )
 
 from interactem.core.constants import (
-    STREAM_AGENTS,
+    STREAM_DEPLOYMENTS,
     STREAM_METRICS,
-    STREAM_OPERATORS,
     STREAM_PARAMETERS,
-    STREAM_PIPELINES,
     STREAM_SFAPI,
-    SUBJECT_SFAPI_JOBS_SUBMIT,
+    SUBJECT_AGENTS_DEPLOYMENTS,
+    SUBJECT_METRICS_ALL,
+    SUBJECT_OPERATORS_DEPLOYMENTS,
+    SUBJECT_OPERATORS_PARAMETERS_UPDATE,
+    SUBJECT_PIPELINES_DEPLOYMENTS_NEW,
+    SUBJECT_PIPELINES_DEPLOYMENTS_STOP,
+    SUBJECT_SFAPI_JOBS,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models.runtime import RuntimeOperator
-from interactem.core.models.spec import OperatorSpecParameter
+from interactem.core.models.canonical import CanonicalOperatorID
+from interactem.core.models.runtime import (
+    RuntimeOperatorID,
+    RuntimeOperatorParameter,
+)
+from interactem.core.models.spec import ParameterSpecType
 
 logger = get_logger()
 
@@ -32,12 +42,12 @@ SFAPI_CONSUMER_CONFIG = ConsumerConfig(
     inactive_threshold=30,
 )
 
-PARAMETER_CONSUMER_CONFIG = ConsumerConfig(
+DEPLOYMENTS_CONSUMER_CONFIG = ConsumerConfig(
     deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
 )
 
-PIPELINE_CONSUMER_CONFIG = ConsumerConfig(
-    deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
+PIPELINE_UPDATE_CONSUMER_CONFIG = ConsumerConfig(
+    deliver_policy=DeliverPolicy.NEW,
 )
 
 METRICS_CONSUMER_CONFIG = ConsumerConfig(
@@ -49,30 +59,10 @@ async def create_agent_consumer(
     js: JetStreamContext,
     agent_id: UUID,
 ) -> JetStreamContext.PullSubscription:
-    subject = f"{STREAM_AGENTS}.{agent_id}"
+    subject = f"{SUBJECT_AGENTS_DEPLOYMENTS}.{agent_id}"
     cfg = replace(AGENT_CONSUMER_CONFIG, description=f"agent-{agent_id}")
     psub = await js.pull_subscribe(
-        stream=STREAM_AGENTS,
-        subject=f"{STREAM_AGENTS}.{agent_id}",
-        config=cfg,
-    )
-    logger.info(f"Subscribed to {subject}")
-    return psub
-
-
-async def create_agent_parameter_consumer(
-    js: JetStreamContext,
-    agent_id: UUID,
-    operator: RuntimeOperator,
-    parameter: OperatorSpecParameter,
-) -> JetStreamContext.PullSubscription:
-    subject = f"{STREAM_PARAMETERS}.{operator.id}.{parameter.name}"
-    cfg = replace(
-        PARAMETER_CONSUMER_CONFIG,
-        description=f"agent-{agent_id}-{operator.id}-{parameter.name}",
-    )
-    psub = await js.pull_subscribe(
-        stream=STREAM_AGENTS,
+        stream=STREAM_DEPLOYMENTS,
         subject=subject,
         config=cfg,
     )
@@ -80,13 +70,36 @@ async def create_agent_parameter_consumer(
     return psub
 
 
+def create_agent_mount_consumer(
+    broker: NatsBroker,
+    agent_id: UUID,
+    canonical_operator_id: CanonicalOperatorID,
+    parameter: RuntimeOperatorParameter,
+) -> AsyncAPISubscriber:
+    if parameter.type != ParameterSpecType.MOUNT:
+        raise ValueError(
+            f"Parameter {parameter.name} of type {parameter.type} is not a mount type."
+        )
+    subject = f"{SUBJECT_OPERATORS_PARAMETERS_UPDATE}.{canonical_operator_id}.{parameter.name}"
+    cfg = replace(
+        PIPELINE_UPDATE_CONSUMER_CONFIG,
+        description=f"agent-{agent_id}-{canonical_operator_id}-{parameter.name}",
+    )
+    return broker.subscriber(
+        stream=STREAM_PARAMETERS,
+        subject=subject,
+        config=cfg,
+        pull_sub=True,
+    )
+
+
 async def create_operator_parameter_consumer(
     js: JetStreamContext,
-    operator_id: UUID,
+    operator_id: CanonicalOperatorID,
 ) -> JetStreamContext.PullSubscription:
-    subject = f"{STREAM_PARAMETERS}.{operator_id}.>"
+    subject = f"{SUBJECT_OPERATORS_PARAMETERS_UPDATE}.{operator_id}.>"
     cfg = replace(
-        PARAMETER_CONSUMER_CONFIG,
+        PIPELINE_UPDATE_CONSUMER_CONFIG,
         description=f"operator-{operator_id}",
     )
     psub = await js.pull_subscribe(
@@ -102,15 +115,15 @@ async def create_operator_parameter_consumer(
 
 async def create_operator_pipeline_consumer(
     js: JetStreamContext,
-    operator_id: UUID,
+    operator_id: RuntimeOperatorID,
 ) -> JetStreamContext.PullSubscription:
-    subject = f"{STREAM_OPERATORS}.{operator_id}"
+    subject = f"{SUBJECT_OPERATORS_DEPLOYMENTS}.{operator_id}"
     cfg = replace(
-        PIPELINE_CONSUMER_CONFIG,
+        DEPLOYMENTS_CONSUMER_CONFIG,
         description=f"operator-pipelines-{operator_id}",
     )
     psub = await js.pull_subscribe(
-        stream=STREAM_OPERATORS,
+        stream=STREAM_DEPLOYMENTS,
         subject=subject,
         config=cfg,
     )
@@ -118,17 +131,17 @@ async def create_operator_pipeline_consumer(
     return psub
 
 
-async def create_orchestrator_pipeline_consumer(
+async def create_orchestrator_deployment_consumer(
     js: JetStreamContext,
     orchestrator_id: UUID,
     subject: str,
 ) -> JetStreamContext.PullSubscription:
     cfg = replace(
-        PIPELINE_CONSUMER_CONFIG,
+        DEPLOYMENTS_CONSUMER_CONFIG,
         description=f"orchestrator-{orchestrator_id}",
     )
     psub = await js.pull_subscribe(
-        stream=STREAM_PIPELINES,
+        stream=STREAM_DEPLOYMENTS,
         subject=subject,
         config=cfg,
     )
@@ -136,13 +149,37 @@ async def create_orchestrator_pipeline_consumer(
     return psub
 
 
+# TODO: come back to this, did not want to change functionality significantly
+# but I don't think we should be using "stop" and "new" in the subjects
+async def create_orchestrator_pipeline_stop_consumer(
+    js: JetStreamContext,
+    orchestrator_id: UUID,
+) -> JetStreamContext.PullSubscription:
+    return await create_orchestrator_deployment_consumer(
+        js,
+        orchestrator_id,
+        SUBJECT_PIPELINES_DEPLOYMENTS_STOP,
+    )
+
+
+async def create_orchestrator_pipeline_new_consumer(
+    js: JetStreamContext,
+    orchestrator_id: UUID,
+) -> JetStreamContext.PullSubscription:
+    return await create_orchestrator_deployment_consumer(
+        js,
+        orchestrator_id,
+        SUBJECT_PIPELINES_DEPLOYMENTS_NEW,
+    )
+
+
 async def create_metrics_consumer(
     js: JetStreamContext,
 ) -> JetStreamContext.PullSubscription:
-    subject = f"{STREAM_METRICS}.>"
+    subject = SUBJECT_METRICS_ALL
     cfg = replace(
         METRICS_CONSUMER_CONFIG,
-        description="metrics",
+        description="metrics-microservice-consumer",
     )
     psub = await js.pull_subscribe(
         stream=STREAM_METRICS,
@@ -156,7 +193,7 @@ async def create_metrics_consumer(
 async def create_sfapi_submit_consumer(
     js: JetStreamContext,
 ) -> JetStreamContext.PullSubscription:
-    subject = SUBJECT_SFAPI_JOBS_SUBMIT
+    subject = SUBJECT_SFAPI_JOBS
     cfg = replace(
         SFAPI_CONSUMER_CONFIG,
         description="sfapi_submit_consumer",

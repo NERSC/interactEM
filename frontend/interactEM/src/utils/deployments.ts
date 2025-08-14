@@ -16,10 +16,14 @@ export const getDeploymentStateColor = (
   return STATE_COLORS[state] || "default"
 }
 
-export const isActiveDeploymentState = (state: PipelineDeploymentState): boolean => {
+export const isActiveDeploymentState = (
+  state: PipelineDeploymentState,
+): boolean => {
   return state === "running" || state === "pending"
 }
 
-export const formatDeploymentState = (state: PipelineDeploymentState): string => {
+export const formatDeploymentState = (
+  state: PipelineDeploymentState,
+): string => {
   return state.replace("_", " ")
 }

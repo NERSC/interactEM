@@ -9,48 +9,52 @@ from nats.js import JetStreamContext
 from pydantic import BaseModel, ValidationError
 
 from interactem.core.constants import (
-    BUCKET_AGENTS,
-    BUCKET_AGENTS_TTL,
-    BUCKET_PIPELINES,
-    BUCKET_PIPELINES_TTL,
-    STREAM_AGENTS,
-    SUBJECT_PIPELINES_RUN,
-    SUBJECT_PIPELINES_STOP,
+    AGENTS,
+    BUCKET_STATUS,
+    BUCKET_STATUS_TTL,
+    NATS_API_KEY_HEADER,
+    PIPELINES,
+    STREAM_DEPLOYMENTS,
+    SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE,
 )
 from interactem.core.events.pipelines import (
     PipelineDeploymentEvent,
     PipelineStopEvent,
+    PipelineUpdateEvent,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models.base import IdType
+from interactem.core.models.base import IdType, PipelineDeploymentState
 from interactem.core.models.canonical import CanonicalPipeline
 from interactem.core.models.kvs import AgentVal, PipelineRunVal
-from interactem.core.models.runtime import PipelineAssignment, RuntimeOperator
+from interactem.core.models.runtime import (
+    PipelineAssignment,
+    RuntimeOperator,
+    RuntimePipeline,
+)
 from interactem.core.nats import (
     consume_messages,
     create_bucket_if_doesnt_exist,
     create_or_update_stream,
-    get_agents_bucket,
     get_keys,
-    get_pipelines_bucket,
+    get_status_bucket,
     get_val,
     nc,
     publish_error,
     publish_notification,
 )
-from interactem.core.nats.config import (
-    AGENTS_STREAM_CONFIG,
-    OPERATORS_STREAM_CONFIG,
-    PIPELINES_STREAM_CONFIG,
+from interactem.core.nats.config import DEPLOYMENTS_STREAM_CONFIG
+from interactem.core.nats.consumers import (
+    create_orchestrator_pipeline_new_consumer,
+    create_orchestrator_pipeline_stop_consumer,
 )
-from interactem.core.nats.consumers import create_orchestrator_pipeline_consumer
+from interactem.core.nats.publish import publish_assignment
 from interactem.core.pipeline import Pipeline
 
 from .config import cfg
 
 logger = get_logger()
 
-pipelines: dict[IdType, PipelineDeploymentEvent] = {}
+pipelines: dict[IdType, RuntimePipeline] = {}
 
 task_refs: set[asyncio.Task] = set()
 
@@ -71,31 +75,17 @@ class NetworkPreferenceError(Exception):
     pass
 
 
-async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignment):
-    await js.publish(
-        f"{STREAM_AGENTS}.{assignment.agent_id}",
-        stream=f"{STREAM_AGENTS}",
-        payload=assignment.model_dump_json().encode(),
-    )
-
-
 async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
-    pipeline_bucket = await get_pipelines_bucket(js)
-    await pipeline_bucket.delete(str(pipeline_id))
-    await pipeline_bucket.purge(str(pipeline_id))
+    pipeline_bucket = await get_status_bucket(js)
+    key = f"{PIPELINES}.{str(pipeline_id)}"  # TODO: use PipelineRunVal.key() instead
+    await pipeline_bucket.delete(key)
+    await pipeline_bucket.purge(key)
 
 
-async def update_pipeline_kv(
-    js: JetStreamContext, pipeline: PipelineRunVal | PipelineDeploymentEvent
-):
-    if isinstance(pipeline, PipelineDeploymentEvent):
-        pipeline = PipelineRunVal(
-            id=pipeline.deployment_id,
-            canonical_id=pipeline.canonical_id,
-            canonical_revision_id=pipeline.revision_id,
-        )
-    pipeline_bucket = await get_pipelines_bucket(js)
-    await pipeline_bucket.put(str(pipeline.id), pipeline.model_dump_json().encode())
+async def update_pipeline_kv(js: JetStreamContext, pipeline: RuntimePipeline):
+    _pipeline = PipelineRunVal(id=pipeline.id, pipeline=pipeline)
+    pipeline_bucket = await get_status_bucket(js)
+    await pipeline_bucket.put(_pipeline.key(), _pipeline.model_dump_json().encode())
 
 
 async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
@@ -105,14 +95,26 @@ async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
         logger.debug(f"Updated {len(pipelines)} pipelines in KV store.")
         await asyncio.sleep(interval)
 
-
-async def clean_up_old_pipelines(
-    js: JetStreamContext, valid_pipeline: CanonicalPipeline
+async def update_pipeline_status(
+    js: JetStreamContext,
+    event: PipelineDeploymentEvent,
+    state: PipelineDeploymentState,
 ):
-    pipelines_bucket = await get_pipelines_bucket(js)
-    current_pipeline_keys = await get_keys(pipelines_bucket)
+    update_event = PipelineUpdateEvent(deployment_id=event.deployment_id, state=state)
+    await js.publish(
+        SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE,
+        stream=STREAM_DEPLOYMENTS,
+        payload=update_event.model_dump_json().encode(),
+        headers={NATS_API_KEY_HEADER: cfg.ORCHESTRATOR_API_KEY},
+    )
+
+
+async def clean_up_old_pipelines(js: JetStreamContext, valid_pipeline: RuntimePipeline):
+    bucket = await get_status_bucket(js)
+    current_pipeline_keys = await get_keys(bucket, filters=[f"{PIPELINES}"])
     delete_tasks = []
     for key in current_pipeline_keys:
+        key = key.strip(f"{PIPELINES}.")
         if key != str(valid_pipeline.id):
             try:
                 uid = UUID(key)
@@ -408,9 +410,9 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     pipeline = Pipeline.from_pipeline(
         valid_pipeline, runtime_pipeline_id=event.deployment_id
     )
-    bucket = await get_agents_bucket(js)
+    bucket = await get_status_bucket(js)
 
-    agent_keys = await get_keys(bucket)
+    agent_keys = await get_keys(bucket, filters=[f"{AGENTS}"])
 
     agent_vals = await asyncio.gather(
         *[get_val(bucket, agent, AgentVal) for agent in agent_keys]
@@ -428,6 +430,8 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
             "Pipeline cannot be assigned: cyclic dependencies in pipeline.",
             task_refs=task_refs,
         )
+        await update_pipeline_status(js, event, PipelineDeploymentState.FAILED_TO_START)
+
         return
     except NoAgentsError:
         logger.exception(
@@ -438,6 +442,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
             "Pipeline cannot be assigned: no agents available.",
             task_refs=task_refs,
         )
+        await update_pipeline_status(js, event, PipelineDeploymentState.FAILED_TO_START)
         return
 
     try:
@@ -449,6 +454,7 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
             "Pipeline cannot be assigned: unassignable operators.",
             task_refs=task_refs,
         )
+        await update_pipeline_status(js, event, PipelineDeploymentState.FAILED_TO_START)
         return
     except NetworkPreferenceError:
         logger.exception(f"Pipeline {pipeline.id} has network preference violations.")
@@ -457,20 +463,28 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
             "Pipeline cannot be assigned: network preference violations.",
             task_refs=task_refs,
         )
+        await update_pipeline_status(js, event, PipelineDeploymentState.FAILED_TO_START)
         return
 
-    await asyncio.gather(
-        *[publish_assignment(js, assignment) for assignment in assignments]
-    )
+    tasks = [
+        asyncio.create_task(publish_assignment(js, assignment))
+        for assignment in assignments
+    ]
+    await asyncio.gather(*tasks)
+
     logger.info(f"Published {len(assignments)} assignments for pipeline {pipeline.id}.")
-
-    await clean_up_old_pipelines(js, valid_pipeline)
-
-    await update_pipeline_kv(js, event)
-    pipelines[valid_pipeline.id] = event
+    runtime_pipeline = pipeline.to_runtime()
+    tasks.clear()
+    tasks.append(asyncio.create_task(clean_up_old_pipelines(js, runtime_pipeline)))
+    tasks.append(asyncio.create_task(update_pipeline_kv(js, runtime_pipeline)))
+    tasks.append(asyncio.create_task(
+        update_pipeline_status(js, event, PipelineDeploymentState.RUNNING)
+    ))
+    await asyncio.gather(*tasks)
+    pipelines[runtime_pipeline.id] = runtime_pipeline
     logger.info(f"Updated KV store with pipeline {valid_pipeline.id}.")
-
     logger.info(f"Pipeline run event for {valid_pipeline.id} processed.")
+
 
 async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info("Received pipeline stop event...")
@@ -494,8 +508,8 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
     publish_notification(js=js, msg="Pipeline stopped", task_refs=task_refs)
 
     # Send stop command (empty assignment) to all agents
-    agents_bucket = await get_agents_bucket(js)
-    agent_keys = await get_keys(agents_bucket)
+    status_bucket = await get_status_bucket(js)
+    agent_keys = await get_keys(status_bucket, filters=[f"{AGENTS}"])
 
     if not agent_keys:
         logger.warning(
@@ -503,12 +517,14 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
         )
         return
 
+    agent_ids = [UUID(agent_key.strip(f"{AGENTS}.")) for agent_key in agent_keys]
+
     # Create a runtime pipeline w/o operators for killing the pipelin
 
     # TODO: for now, we use a blank pipeline to stop things
     # we should probably have a more explicit "stop" pipeline message
     canonical_pipeline = CanonicalPipeline(
-        id=event.deployment_id, revision_id=0, operators=[], edges=[]
+        id=uuid4(), revision_id=0, operators=[], edges=[]
     )
 
     # Convert to runtime pipeline for assignment
@@ -518,11 +534,11 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
 
     stop_assignments = [
         PipelineAssignment(
-            agent_id=UUID(agent_key),
+            agent_id=agent_id,
             operators_assigned=[],
             pipeline=runtime_pipeline,
         )
-        for agent_key in agent_keys
+        for agent_id in agent_ids
     ]
 
     publish_tasks = [
@@ -545,22 +561,19 @@ async def main():
 
     try:
         startup_tasks = [
-            create_bucket_if_doesnt_exist(js, BUCKET_AGENTS, BUCKET_AGENTS_TTL),
-            create_bucket_if_doesnt_exist(js, BUCKET_PIPELINES, BUCKET_PIPELINES_TTL),
-            create_or_update_stream(AGENTS_STREAM_CONFIG, js),
-            create_or_update_stream(OPERATORS_STREAM_CONFIG, js),
-            create_or_update_stream(PIPELINES_STREAM_CONFIG, js),
+            create_bucket_if_doesnt_exist(js, BUCKET_STATUS, BUCKET_STATUS_TTL),
+            create_or_update_stream(DEPLOYMENTS_STREAM_CONFIG, js),
         ]
         await asyncio.gather(*startup_tasks)
         logger.info("NATS buckets and streams initialized/verified.")
 
-        pipeline_run_psub = await create_orchestrator_pipeline_consumer(
-            js, instance_id, subject=SUBJECT_PIPELINES_RUN
+        pipeline_run_psub = await create_orchestrator_pipeline_new_consumer(
+            js, instance_id
         )
         logger.info("Pipeline run event consumer created.")
 
-        pipeline_stop_psub = await create_orchestrator_pipeline_consumer(
-            js, instance_id, subject=SUBJECT_PIPELINES_STOP
+        pipeline_stop_psub = await create_orchestrator_pipeline_stop_consumer(
+            js, instance_id
         )
         logger.info("Pipeline stop event consumer created.")
 

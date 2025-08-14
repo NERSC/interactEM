@@ -3,7 +3,12 @@ from collections.abc import Sequence
 from pydantic import BaseModel
 
 from interactem.core.models.base import IdType, NodeType, PortType
-from interactem.core.models.spec import OperatorSpec, OperatorSpecID, OperatorSpecTag
+from interactem.core.models.spec import (
+    OperatorSpec,
+    OperatorSpecID,
+    OperatorSpecTag,
+    ParallelType,
+)
 
 """
 These models represent the canonical form a pipeline. This is what is stored in the db
@@ -56,4 +61,21 @@ class CanonicalPipelineData(BaseModel):
 
 class CanonicalPipeline(CanonicalPipelineData):
     id: CanonicalPipelineID
-    revision_id: int
+    revision_id: CanonicalPipelineRevisionID
+
+    def get_operator_by_label(self, label: str) -> CanonicalOperator | None:
+        return next((op for op in self.operators if op.label == label), None)
+
+    def get_parallel_operators(self) -> list[CanonicalOperator]:
+        return [
+            op
+            for op in self.operators
+            if op.parallel_config and op.parallel_config.type != ParallelType.NONE
+        ]
+
+    def get_sequential_operators(self) -> list[CanonicalOperator]:
+        return [
+            op
+            for op in self.operators
+            if not op.parallel_config or op.parallel_config.type == ParallelType.NONE
+        ]

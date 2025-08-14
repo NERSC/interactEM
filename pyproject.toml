@@ -1,0 +1,28 @@
+[project]
+name = "interactem"
+dynamic = [ "version", "dependencies"]
+description = "interactem"
+readme = "README.md"
+authors = [
+    {name = "Sam Welborn", email = "swelborn@lbl.gov"},
+    {name = "Chris Harris", email = "cjh@lbl.gov"}
+]
+requires-python = ">=3.11,<4.0"
+
+[tool.poetry]
+version = "0.1.0"
+package-mode = false
+
+[tool.poetry.dependencies]
+interactem-core = {path = "backend/core", develop = true}
+interactem-app = {path = "backend/app", develop = true}
+interactem-agent = {path = "backend/agent", develop = true}
+interactem-launcher = {path = "backend/launcher", develop = true}
+interactem-operators = {path = "backend/operators", develop = true}
+interactem-metrics = {path = "backend/metrics", develop = true}
+interactem-orchestrator = {path = "backend/orchestrator", develop = true}
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

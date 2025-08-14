@@ -144,5 +144,8 @@ class Settings(BaseSettings):
     CONTAINER_REGISTRY_NAMESPACE: str = "nersc"
     OPERATOR_CONTAINER_PREFIX: str = "interactem"
 
+    # Internal API key
+    ORCHESTRATOR_API_KEY: str = "changeme"
+
 
 settings = Settings()  # type: ignore
