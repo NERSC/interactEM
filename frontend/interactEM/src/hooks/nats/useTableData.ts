@@ -1,4 +1,4 @@
-import { TABLES_STREAM } from "../../constants/nats"
+import { STREAM_TABLES } from "../../constants/nats"
 import { useStreamMessage } from "./useStreamMessage"
 
 export interface TableRow {
@@ -14,16 +14,16 @@ export interface TablePayload {
 }
 
 const streamConfig = {
-  name: TABLES_STREAM,
-  subjects: [`${TABLES_STREAM}.*`],
+  name: STREAM_TABLES,
+  subjects: [`${STREAM_TABLES}.*`],
   max_msgs_per_subject: 1,
 }
 
 export const useTableData = (operatorID: string): TablePayload | null => {
-  const subject = `${TABLES_STREAM}.${operatorID}`
+  const subject = `${STREAM_TABLES}.${operatorID}`
 
   const { data } = useStreamMessage<TablePayload>({
-    streamName: TABLES_STREAM,
+    streamName: STREAM_TABLES,
     streamConfig,
     subject,
     transform: (jsonData) => {

@@ -1,13 +1,13 @@
 import { z } from "zod"
+import type { OperatorVal } from "./gen"
+import { OperatorStatus } from "./gen"
 
-const OperatorStatusEnum = z.enum(["initializing", "running", "shutting_down"])
-
-export type OperatorStatus = z.infer<typeof OperatorStatusEnum>
+export const OperatorStatusSchema = z.nativeEnum(OperatorStatus)
 
 export const OperatorValSchema = z.object({
   id: z.string().uuid(),
-  status: OperatorStatusEnum,
-  pipeline_id: z.string().uuid().nullable(),
-})
-
-export type OperatorVal = z.infer<typeof OperatorValSchema>
+  canonical_id: z.string().uuid(),
+  canonical_pipeline_id: z.string().uuid(),
+  runtime_pipeline_id: z.string().uuid(),
+  status: OperatorStatusSchema,
+}) satisfies z.ZodType<OperatorVal>

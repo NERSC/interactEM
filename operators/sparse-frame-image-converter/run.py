@@ -3,24 +3,15 @@ from typing import Any
 
 import matplotlib.cm as cm
 import numpy as np
+from distiller_streaming.models import FrameHeader
 from PIL import Image, ImageEnhance
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
 from interactem.operators.operator import operator
 
 logger = get_logger()
-
-
-class FrameHeader(BaseModel):
-    scan_number: int
-    frame_number: int | None = None
-    nSTEM_positions_per_row_m1: int
-    nSTEM_rows_m1: int
-    STEM_x_position_in_row: int
-    STEM_row_in_scan: int
-    modules: list[int]
 
 
 skip_counter = 0
@@ -50,7 +41,7 @@ def image_converter(
         logger.error("Invalid message")
         return None
 
-    frame_shape = (576, 576)
+    frame_shape = header.frame_shape
     data = np.frombuffer(inputs.data, dtype=np.uint32)
     y_indices, x_indices = np.unravel_index(data, frame_shape)
 

@@ -1,3 +1,4 @@
+import abc
 from enum import Enum
 from uuid import UUID
 
@@ -8,6 +9,10 @@ class PipelineDeploymentState(str, Enum):
     FAILED_TO_START = "failed_to_start"
     RUNNING = "running"
     CANCELLED = "cancelled"
+
+class KvKeyMixin(abc.ABC):
+    @abc.abstractmethod
+    def key(self) -> str: ...
 
 
 class CommBackend(str, Enum):

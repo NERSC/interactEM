@@ -1,52 +1,40 @@
-// frontend/interactEM/src/types/agent.ts
 import { z } from "zod"
+import {
+  AgentStatus,
+  type AgentVal,
+  CommBackend,
+  type ErrorMessage,
+  type URI,
+  URILocation,
+} from "./gen"
 
-export enum AgentStatus {
-  INITIALIZING = "initializing",
-  IDLE = "idle",
-  BUSY = "busy",
-  ERROR = "error",
-  SHUTTING_DOWN = "shutting_down",
-}
-
-enum URILocation {
-  operator = "operator",
-  port = "port",
-  agent = "agent",
-  orchestrator = "orchestrator",
-}
-
-enum CommBackend {
-  zmq = "zmq",
-  nats = "nats",
-  mpi = "mpi",
-}
-
-const URI = z.object({
+const zURI = z.object({
   id: z.string(),
   location: z.nativeEnum(URILocation),
   hostname: z.string(),
   comm_backend: z.nativeEnum(CommBackend),
-  query: z.record(z.any()).optional(),
-})
+  query: z.record(z.string(), z.array(z.string())).optional(),
+}) satisfies z.ZodType<URI>
 
-const ErrorMessage = z.object({
+// For AgentErrorMessage, handle manually due to index signature
+const zErrorMessage = z.object({
   message: z.string(),
   timestamp: z.number(),
-})
+}) satisfies z.ZodType<ErrorMessage>
 
 export const AgentValSchema = z.object({
   name: z.string().nullable().optional(),
-  uri: URI,
+  uri: zURI,
   status: z.nativeEnum(AgentStatus),
   status_message: z.string().nullable().optional(),
-  tags: z.array(z.string()).default([]).optional(),
-  networks: z.array(z.string()).default([]).optional(),
+  tags: z.array(z.string()).optional(),
+  networks: z.array(z.string()),
   pipeline_id: z.string().nullable().optional(),
   operator_assignments: z.array(z.string()).nullable().optional(),
   uptime: z.number(),
-  error_messages: z.array(ErrorMessage).default([]).optional(),
-})
+  error_messages: z.array(zErrorMessage).optional(),
+}) satisfies z.ZodType<AgentVal>
 
-export type AgentVal = z.infer<typeof AgentValSchema>
-export type Agent = AgentVal
+// Re-export this because AgentVal is an interface and we need this for
+// the AgentNode type
+export type AgentValType = z.infer<typeof AgentValSchema>

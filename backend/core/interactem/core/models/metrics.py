@@ -3,20 +3,27 @@ from logging import Logger
 
 from pydantic import BaseModel, model_validator
 
-from interactem.core.models.base import IdType
-from interactem.core.models.canonical import CanonicalOperatorID
-from interactem.core.models.runtime import RuntimeOperatorID
+from interactem.core.constants import (
+    OPERATORS,
+    PORTS,
+)
+from interactem.core.models.base import KvKeyMixin
+from interactem.core.models.canonical import CanonicalOperatorID, CanonicalPortID
+from interactem.core.models.runtime import RuntimeOperatorID, RuntimePortID
 
 
-class PortMetrics(BaseModel):
-    id: IdType
-    canonical_id: IdType
+class PortMetrics(BaseModel, KvKeyMixin):
+    id: RuntimePortID
+    canonical_id: CanonicalPortID
     send_count: int = 0
     send_bytes: int = 0
     send_timeouts: int = 0
     recv_count: int = 0
     recv_bytes: int = 0
     recv_timeouts: int = 0
+
+    def key(self) -> str:
+        return f"{PORTS}.{self.id}"
 
 
 class OperatorTiming(BaseModel):
@@ -75,7 +82,10 @@ class OperatorTiming(BaseModel):
             logger.info(f"  Total time: {s:.6f} seconds")
 
 
-class OperatorMetrics(BaseModel):
+class OperatorMetrics(BaseModel, KvKeyMixin):
     id: RuntimeOperatorID
     canonical_id: CanonicalOperatorID
     timing: OperatorTiming
+
+    def key(self) -> str:
+        return f"{OPERATORS}.{self.id}"
