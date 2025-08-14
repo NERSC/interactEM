@@ -73,7 +73,7 @@ class CanonicalPipeline(CanonicalPipelineData):
             if op.parallel_config and op.parallel_config.type != ParallelType.NONE
         ]
 
-    def get_non_parallel_operators(self) -> list[CanonicalOperator]:
+    def get_sequential_operators(self) -> list[CanonicalOperator]:
         return [
             op
             for op in self.operators
