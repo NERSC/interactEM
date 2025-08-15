@@ -1,8 +1,6 @@
 {
-  "id": null,
   "title": "Interactem Pipeline Monitoring",
   "tags": ["interactem", "prometheus", "pipeline"],
-  "style": "light",
   "timezone": "browser",
   "refresh": "5s",
   "time": {
@@ -20,30 +18,24 @@
         "allValue": ".*",
         "multi": true,
         "current": {
-          "selected": false,
           "text": "All",
           "value": "$__all"
         },
-        "hide": 0,
-        "label": "Pipeline ID",
-        "skipUrlSync": false
+        "label": "Pipeline ID"
       },
       {
         "name": "operator_type",
         "type": "query",
-        "query": "label_values(interactem_port_messages_sent_total, operator_type)",
+        "query": "label_values(interactem_runtime_port_messages_sent_total, operator_type)",
         "refresh": 1,
         "includeAll": true,
         "allValue": ".*",
         "multi": true,
         "current": {
-          "selected": false,
           "text": "All",
           "value": "$__all"
         },
-        "hide": 0,
-        "label": "Operator Type",
-        "skipUrlSync": false
+        "label": "Operator Type"
       },
       {
         "name": "rate_interval_short",
@@ -55,32 +47,11 @@
         "label": "Short Window",
         "skipUrlSync": false,
         "options": [
-          {
-            "text": "5 seconds",
-            "value": "5s",
-            "selected": true
-          },
-          {
-            "text": "10 seconds",
-            "value": "10s",
-            "selected": false
-          },
-          {
-            "text": "15 seconds",
-            "value": "15s",
-            "selected": false
-          },
-          {
-            "text": "30 seconds",
-            "value": "30s",
-            "selected": false
-          }
-        ],
-        "current": {
-          "selected": true,
-          "text": "5 seconds",
-          "value": "5s"
-        }
+          { "text": "5 seconds", "value": "5s", "selected": true },
+          { "text": "10 seconds", "value": "10s" },
+          { "text": "15 seconds", "value": "15s" },
+          { "text": "30 seconds", "value": "30s" }
+        ]
       },
       {
         "name": "rate_interval_long",
@@ -92,32 +63,11 @@
         "label": "Long Window",
         "skipUrlSync": false,
         "options": [
-          {
-            "text": "30 seconds",
-            "value": "30s",
-            "selected": true
-          },
-          {
-            "text": "1 minute",
-            "value": "1m",
-            "selected": false
-          },
-          {
-            "text": "2 minutes",
-            "value": "2m",
-            "selected": false
-          },
-          {
-            "text": "5 minutes",
-            "value": "5m",
-            "selected": false
-          }
-        ],
-        "current": {
-          "selected": true,
-          "text": "30 seconds",
-          "value": "30s"
-        }
+          { "text": "30 seconds", "value": "30s", "selected": true },
+          { "text": "1 minute", "value": "1m" },
+          { "text": "2 minutes", "value": "2m" },
+          { "text": "5 minutes", "value": "5m" }
+        ]
       }
     ]
   },
@@ -126,8 +76,7 @@
       "id": 1,
       "title": "Service Overview",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
-      "collapsed": false
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 }
     },
     {
       "id": 2,
@@ -142,9 +91,6 @@
       "gridPos": { "h": 4, "w": 8, "x": 0, "y": 1 },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
           "thresholds": {
             "steps": [
               { "color": "red", "value": 0 },
@@ -172,7 +118,7 @@
     },
     {
       "id": 4,
-      "title": "Collection Errors",
+      "title": "Collected Errors",
       "type": "stat",
       "targets": [
         {
@@ -183,9 +129,6 @@
       "gridPos": { "h": 4, "w": 8, "x": 16, "y": 1 },
       "fieldConfig": {
         "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
           "thresholds": {
             "steps": [
               { "color": "green", "value": 0 },
@@ -200,20 +143,19 @@
       "id": 10,
       "title": "Port Throughput",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
-      "collapsed": false
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 }
     },
     {
       "id": 11,
-      "title": "Send Throughput (Mbps)",
+      "title": "Combined Send Throughput (Mbps)",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]) * 8 / 1000000",
+          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])) * 8 / 1000000",
           "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]) * 8 / 1000000",
+          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])) * 8 / 1000000",
           "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_long"
         }
       ],
@@ -221,7 +163,6 @@
       "fieldConfig": {
         "defaults": {
           "unit": "Mbps",
-          "color": { "mode": "palette-classic" },
           "custom": {
             "lineWidth": 2,
             "fillOpacity": 10
@@ -231,15 +172,15 @@
     },
     {
       "id": 12,
-      "title": "Receive Throughput (Mbps)",
+      "title": "Combined Receive Throughput (Mbps)",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]) * 8 / 1000000",
+          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])) * 8 / 1000000",
           "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]) * 8 / 1000000",
+          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])) * 8 / 1000000",
           "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_long"
         }
       ],
@@ -247,7 +188,6 @@
       "fieldConfig": {
         "defaults": {
           "unit": "Mbps",
-          "color": { "mode": "palette-classic" },
           "custom": {
             "lineWidth": 2,
             "fillOpacity": 10
@@ -256,27 +196,94 @@
       }
     },
     {
-      "id": 20,
-      "title": "Message Rates",
-      "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 14 },
-      "collapsed": false
-    },
-    {
-      "id": 21,
-      "title": "Send Message Rate",
+      "id": 13,
+      "title": "Runtime Ports Send Throughput (Stacked)",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])",
+          "expr": "rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]) * 8 / 1000000",
+          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_short"
+        },
+        {
+          "expr": "rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]) * 8 / 1000000",
+          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_long"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 14 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 40,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 14,
+      "title": "Runtime Ports Receive Throughput (Stacked)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]) * 8 / 1000000",
+          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_short"
+        },
+        {
+          "expr": "rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]) * 8 / 1000000",
+          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_long"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 14 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Mbps",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 40,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 20,
+      "title": "Message Rates",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 24 }
+    },
+    {
+      "id": 21,
+      "title": "Combined Send Message Rate",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]))",
           "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])",
+          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]))",
           "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_long"
         }
       ],
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 15 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
       "fieldConfig": {
         "defaults": {
           "unit": "msg/s",
@@ -289,19 +296,19 @@
     },
     {
       "id": 22,
-      "title": "Receive Message Rate",
+      "title": "Combined Receive Message Rate",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])",
+          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]))",
           "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])",
+          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]))",
           "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_long"
         }
       ],
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 15 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
       "fieldConfig": {
         "defaults": {
           "unit": "msg/s",
@@ -313,156 +320,90 @@
       }
     },
     {
-      "id": 30,
-      "title": "Edge Analysis",
-      "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 23 },
-      "collapsed": false
-    },
-    {
-      "id": 31,
-      "title": "Edge Message Rate Difference (Input - Output)",
+      "id": 23,
+      "title": "Runtime Send Message Rates (Stacked)",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_port_messages_sent_total[$rate_interval_short]) * on(port_id, pipeline_id) group_left(output_port_id) (label_replace(interactem_edge_active, \"port_id\", \"$1\", \"input_port_id\", \"(.*)\"))",
-          "legendFormat": "{{input_port_id}}_{{output_port_id}}_input",
-          "refId": "INPUT_MSG"
+          "expr": "rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])",
+          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_port_messages_received_total[$rate_interval_short]) * on(port_id, pipeline_id) group_left(input_port_id) (label_replace(interactem_edge_active, \"port_id\", \"$1\", \"output_port_id\", \"(.*)\"))",
-          "legendFormat": "{{input_port_id}}_{{output_port_id}}_output",
-          "refId": "OUTPUT_MSG"
+          "expr": "rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])",
+          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_long"
         }
       ],
-      "transformations": [
-        {
-          "id": "joinByField",
-          "options": {
-            "byField": "Time",
-            "mode": "outer"
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "diff"
-            },
-            "replaceFields": true
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              ".*_input": true,
-              ".*_output": true
-            },
-            "renameByName": {
-              "Diff": "Message Rate Difference"
-            }
-          }
-        }
-      ],
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 }
-    },
-    {
-      "id": 32,
-      "title": "Edge Throughput Difference (Input - Output)",
-      "type": "timeseries",
-      "targets": [
-        {
-          "expr": "rate(interactem_port_bytes_sent_total{port_id=~\".*\"}[$rate_interval_short]) * 8 / 1000000 * on(port_id, pipeline_id) group_left(output_port_id) (label_replace(interactem_edge_active, \"port_id\", \"$1\", \"input_port_id\", \"(.*)\"))",
-          "legendFormat": "{{input_port_id}}_{{output_port_id}}_input",
-          "refId": "INPUT_TH"
-        },
-        {
-          "expr": "rate(interactem_port_bytes_received_total{port_id=~\".*\"}[$rate_interval_short]) * 8 / 1000000 * on(port_id, pipeline_id) group_left(input_port_id) (label_replace(interactem_edge_active, \"port_id\", \"$1\", \"output_port_id\", \"(.*)\"))",
-          "legendFormat": "{{input_port_id}}_{{output_port_id}}_output",
-          "refId": "OUTPUT_TH"
-        }
-      ],
-      "transformations": [
-        {
-          "id": "joinByField",
-          "options": {
-            "byField": "Time",
-            "mode": "outer"
-          }
-        },
-        {
-          "id": "calculateField",
-          "options": {
-            "mode": "reduceRow",
-            "reduce": {
-              "reducer": "diff"
-            },
-            "replaceFields": true
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              ".*_input": true,
-              ".*_output": true
-            },
-            "renameByName": {
-              "Diff": "Throughput Difference"
-            }
-          }
-        }
-      ],
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 33 },
       "fieldConfig": {
         "defaults": {
-          "unit": "Mbps",
+          "unit": "msg/s",
           "custom": {
-            "lineWidth": 2,
-            "fillOpacity": 10
-          },
-          "color": {
-            "mode": "thresholds"
-          },
-          "thresholds": {
-            "steps": [
-              {
-                "color": "red",
-                "value": null
-              },
-              {
-                "color": "yellow",
-                "value": -0.1
-              },
-              {
-                "color": "green",
-                "value": 0
-              }
-            ]
+            "lineWidth": 1,
+            "fillOpacity": 40,
+            "stacking": {
+              "mode": "normal"
+            }
           }
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
         }
       }
     },
     {
-      "id": 40,
-      "title": "Operator Performance",
-      "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 32 },
-      "collapsed": false
-    },
-    {
-      "id": 41,
-      "title": "Processing Time - Latest Values",
+      "id": 24,
+      "title": "Runtime Receive Message Rates (Stacked)",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "interactem_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}",
+          "expr": "rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])",
+          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_short"
+        },
+        {
+          "expr": "rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])",
+          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_long"
+        }
+      ],
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 33 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "msg/s",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 40,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      },
+      "options": {
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 30,
+      "title": "Operator Performance",
+      "type": "row",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 43 }
+    },
+    {
+      "id": 31,
+      "title": "Combined Processing Time - Latest Values",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "max by (operator_id, operator_type) (interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"})",
           "legendFormat": "{{operator_id}} ({{operator_type}})"
         }
       ],
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 33 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
       "fieldConfig": {
         "defaults": {
           "unit": "µs",
@@ -476,20 +417,43 @@
       }
     },
     {
-      "id": 42,
-      "title": "Processing Time - P95 Percentiles",
+      "id": 32,
+      "title": "Runtime Processing Times - Latest Values",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, rate(interactem_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]))",
-          "legendFormat": "P95 $rate_interval_short - {{operator_id}} ({{operator_type}})"
-        },
-        {
-          "expr": "histogram_quantile(0.95, rate(interactem_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]))",
-          "legendFormat": "P95 $rate_interval_long - {{operator_id}} ({{operator_type}})"
+          "expr": "interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}",
+          "legendFormat": "{{runtime_operator_id}} ({{operator_type}})"
         }
       ],
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 41 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "µs",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 5,
+            "showPoints": "always",
+            "pointSize": 3
+          }
+        }
+      }
+    },
+    {
+      "id": 33,
+      "title": "Combined Processing Time - P95 Percentiles",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "max by (operator_id, operator_type) (histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])))",
+          "legendFormat": "P95 {{operator_id}} ({{operator_type}}) - $rate_interval_short"
+        },
+        {
+          "expr": "max by (operator_id, operator_type) (histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])))",
+          "legendFormat": "P95 {{operator_id}} ({{operator_type}}) - $rate_interval_long"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 52 },
       "fieldConfig": {
         "defaults": {
           "unit": "µs",
@@ -500,20 +464,44 @@
       }
     },
     {
-      "id": 43,
-      "title": "Processing Time - Averages",
+      "id": 34,
+      "title": "Runtime Processing Times - P95 Percentiles",
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_operator_processing_time_histogram_microseconds_sum{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]) / rate(interactem_operator_processing_time_histogram_microseconds_count{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])",
-          "legendFormat": "Avg $rate_interval_short - {{operator_id}} ({{operator_type}})"
+          "expr": "histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]))",
+          "legendFormat": "P95 {{runtime_operator_id}} ({{operator_type}}) - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_operator_processing_time_histogram_microseconds_sum{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]) / rate(interactem_operator_processing_time_histogram_microseconds_count{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])",
-          "legendFormat": "Avg $rate_interval_long - {{operator_id}} ({{operator_type}})"
+          "expr": "histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]))",
+          "legendFormat": "P95 {{runtime_operator_id}} ({{operator_type}}) - $rate_interval_long"
         }
       ],
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 41 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 52 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "µs",
+          "custom": {
+            "lineWidth": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 35,
+      "title": "Combined Processing Time - Averages",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "avg by (operator_id, operator_type) (avg_over_time(interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]))",
+          "legendFormat": "Avg {{operator_id}} ({{operator_type}}) - $rate_interval_short"
+        },
+        {
+          "expr": "avg by (operator_id, operator_type) (avg_over_time(interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]))",
+          "legendFormat": "Avg {{operator_id}} ({{operator_type}}) - $rate_interval_long"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 60 },
       "fieldConfig": {
         "defaults": {
           "unit": "µs",
@@ -524,14 +512,37 @@
       }
     },
     {
-      "id": 50,
+      "id": 36,
+      "title": "Runtime Processing Time - Averages",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "rate(interactem_runtime_operator_processing_time_histogram_microseconds_sum{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]) / rate(interactem_runtime_operator_processing_time_histogram_microseconds_count{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])",
+          "legendFormat": "Avg {{runtime_operator_id}} [{{operator_type}}] - $rate_interval_short"
+        },
+        {
+          "expr": "rate(interactem_runtime_operator_processing_time_histogram_microseconds_sum{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]) / rate(interactem_runtime_operator_processing_time_histogram_microseconds_count{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])",
+          "legendFormat": "Avg {{runtime_operator_id}} [{{operator_type}}] - $rate_interval_long"
+        }
+      ],
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 60 },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "µs",
+          "custom": {
+            "lineWidth": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 40,
       "title": "Pipeline Status",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 49 },
-      "collapsed": false
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 68 }
     },
     {
-      "id": 51,
+      "id": 41,
       "title": "Active Ports per Pipeline",
       "type": "timeseries",
       "targets": [
@@ -540,7 +551,7 @@
           "legendFormat": "{{pipeline_id}}"
         }
       ],
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 50 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 69 },
       "fieldConfig": {
         "defaults": {
           "unit": "short"
@@ -548,7 +559,7 @@
       }
     },
     {
-      "id": 52,
+      "id": 42,
       "title": "Active Operators per Pipeline",
       "type": "timeseries",
       "targets": [
@@ -557,7 +568,7 @@
           "legendFormat": "{{pipeline_id}}"
         }
       ],
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 50 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 69 },
       "fieldConfig": {
         "defaults": {
           "unit": "short"
@@ -565,14 +576,13 @@
       }
     },
     {
-      "id": 60,
+      "id": 50,
       "title": "System Metrics",
       "type": "row",
-      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 58 },
-      "collapsed": false
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 77 }
     },
     {
-      "id": 61,
+      "id": 51,
       "title": "Metrics Collection Duration",
       "type": "timeseries",
       "targets": [
@@ -581,7 +591,7 @@
           "legendFormat": "P95"
         }
       ],
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 59 },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 78 },
       "fieldConfig": {
         "defaults": {
           "unit": "s"
@@ -589,7 +599,7 @@
       }
     },
     {
-      "id": 62,
+      "id": 52,
       "title": "Collection Error Rate",
       "type": "timeseries",
       "targets": [
@@ -598,7 +608,7 @@
           "legendFormat": "{{error_type}}"
         }
       ],
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 59 },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 78 },
       "fieldConfig": {
         "defaults": {
           "unit": "errors/s"

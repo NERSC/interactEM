@@ -4,42 +4,52 @@
       {
         "id": "3d95fc79-1234-4ca6-a011-d01ada81f5fc",
         "label": "Benchmark Sender",
+        "description": "Sends messages in varying sizes for benchmarking purposes",
         "image": "ghcr.io/nersc/interactem/benchmark-sender:latest",
+        "inputs": [],
         "outputs": ["dc190de2-abcd-4a15-aadc-367727879868"],
         "parameters": [
           {
             "name": "interval",
             "label": "Interval",
             "type": "int",
-            "default": "2",
+            "default": "45",
             "description": "The interval at which to send the frame",
-            "required": true
+            "required": true,
+            "options": null
           }
         ],
         "tags": [],
-        "type": "operator"
+        "parallel_config": null,
+        "spec_id": "92345678-2222-3333-4444-1234567890ab"
       },
       {
         "id": "5f823986-12ab-4ad1-bedb-b355e5216f77",
         "label": "Benchmark Receiver",
+        "description": "Receives messages in varying sizes from Sender for benchmarking purposes",
         "image": "ghcr.io/nersc/interactem/benchmark-receiver:latest",
         "inputs": ["e16aa883-4701-abcd-9904-a071277b76d9"],
+        "outputs": [],
+        "parameters": null,
         "tags": [],
-        "type": "operator"
+        "parallel_config": {
+          "type": "embarrassing"
+        },
+        "spec_id": "12345678-5555-6666-7777-1234567890ac"
       }
     ],
     "ports": [
       {
         "node_type": "port",
         "id": "dc190de2-abcd-4a15-aadc-367727879868",
-        "operator_id": "3d95fc79-1234-4ca6-a011-d01ada81f5fc",
+        "canonical_operator_id": "3d95fc79-1234-4ca6-a011-d01ada81f5fc",
         "portkey": "dc190de2-abcd-4a15-aadc-367727879868",
         "port_type": "output"
       },
       {
         "node_type": "port",
         "id": "e16aa883-4701-abcd-9904-a071277b76d9",
-        "operator_id": "5f823986-12ab-4ad1-bedb-b355e5216f77",
+        "canonical_operator_id": "5f823986-12ab-4ad1-bedb-b355e5216f77",
         "portkey": "e16aa883-4701-abcd-9904-a071277b76d9",
         "port_type": "input"
       }
@@ -47,8 +57,7 @@
     "edges": [
       {
         "input_id": "dc190de2-abcd-4a15-aadc-367727879868",
-        "output_id": "e16aa883-4701-abcd-9904-a071277b76d9",
-        "num_connections": 1
+        "output_id": "e16aa883-4701-abcd-9904-a071277b76d9"
       }
     ]
   }

@@ -37,7 +37,6 @@ class PipelineResponse(BaseModel):
     id: str
     name: str
     data: PipelineData
-    running: bool
     owner_id: str
     created_at: datetime
     updated_at: datetime

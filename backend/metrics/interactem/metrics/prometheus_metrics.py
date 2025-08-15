@@ -1,34 +1,15 @@
-from prometheus_client import Counter, Gauge, Histogram, Info
+from prometheus_client import Counter, Gauge, Histogram
 from pydantic import BaseModel, Field
 
 from interactem.core.logger import get_logger
+from interactem.core.models.metrics import OperatorMetrics, PortMetrics
 
 logger = get_logger()
-
-class PortMetrics(BaseModel):
-    port_id: str
-    pipeline_id: str
-    operator_type: str
-    send_count: int = Field(ge=0, description="Total messages sent")
-    recv_count: int = Field(ge=0, description="Total messages received")
-    send_bytes: int = Field(ge=0, description="Total bytes sent")
-    recv_bytes: int = Field(ge=0, description="Total bytes received")
-
-class OperatorProcessingTime(BaseModel):
-    operator_id: str
-    pipeline_id: str
-    operator_type: str
-    processing_time_us: float = Field(ge=0, description="Processing time in microseconds")
 
 class PipelineStatus(BaseModel):
     pipeline_id: str
     active_ports: int = Field(ge=0, description="Number of active ports")
     active_operators: int = Field(ge=0, description="Number of active operators")
-
-class EdgeConnection(BaseModel):
-    input_port_id: str
-    output_port_id: str
-    pipeline_id: str
 
 class CollectionDuration(BaseModel):
     duration_seconds: float = Field(ge=0, description="Duration in seconds")
@@ -41,50 +22,6 @@ class PipelineInfoData(BaseModel):
 
 class ServiceStatus(BaseModel):
     is_active: bool = Field(default=True, description="Whether service is active")
-
-# Prometheus Metrics - Only raw counters and gauges
-port_messages_sent_total = Gauge(
-    'interactem_port_messages_sent_total',
-    'Total messages sent through port',
-    ['port_id', 'pipeline_id', 'operator_type']
-)
-
-port_messages_received_total = Gauge(
-    'interactem_port_messages_received_total',
-    'Total messages received through port',
-    ['port_id', 'pipeline_id', 'operator_type']
-)
-
-port_bytes_sent_total = Gauge(
-    'interactem_port_bytes_sent_total',
-    'Total bytes sent through port',
-    ['port_id', 'pipeline_id', 'operator_type']
-)
-
-port_bytes_received_total = Gauge(
-    'interactem_port_bytes_received_total',
-    'Total bytes received through port',
-    ['port_id', 'pipeline_id', 'operator_type']
-)
-
-operator_processing_time_histogram = Histogram(
-    'interactem_operator_processing_time_histogram_microseconds',
-    'Operator processing time histogram in microseconds',
-    ['operator_id', 'pipeline_id', 'operator_type'],
-    buckets=[1, 10, 100, 1000, 10000, 100000, 1000000, float('inf')]
-)
-
-operator_processing_time_latest = Gauge(
-    'interactem_operator_processing_time_latest_microseconds',
-    'Latest operator processing time in microseconds',
-    ['operator_id', 'pipeline_id', 'operator_type']
-)
-
-edge_active = Gauge(
-    'interactem_edge_active',
-    'Active edge connections (always 1 when edge exists)',
-    ['input_port_id', 'output_port_id', 'pipeline_id']
-)
 
 pipeline_active_ports = Gauge(
     'interactem_pipeline_active_ports',
@@ -116,42 +53,64 @@ metrics_collection_errors_total = Counter(
     ['error_type']
 )
 
-pipeline_info = Info(
-    'interactem_pipeline_info',
-    'Information about the current pipeline'
+runtime_port_messages_sent_total = Gauge(
+    'interactem_runtime_port_messages_sent_total',
+    'Total messages sent on a single runtime port instance',
+    ['runtime_port_id','port_id','pipeline_id','operator_type']
+)
+runtime_port_messages_received_total = Gauge(
+    'interactem_runtime_port_messages_received_total',
+    'Total messages received on a single runtime port instance',
+    ['runtime_port_id','port_id','pipeline_id','operator_type']
+)
+runtime_port_bytes_sent_total = Gauge(
+    'interactem_runtime_port_bytes_sent_total',
+    'Total bytes sent on a single runtime port instance',
+    ['runtime_port_id','port_id','pipeline_id','operator_type']
+)
+runtime_port_bytes_received_total = Gauge(
+    'interactem_runtime_port_bytes_received_total',
+    'Total bytes received on a single runtime port instance',
+    ['runtime_port_id','port_id','pipeline_id','operator_type']
 )
 
-# Initialize service as active
+runtime_operator_processing_time_latest = Gauge(
+    'interactem_runtime_operator_processing_time_latest_microseconds',
+    'Latest operator processing time on a single runtime operator instance',
+    ['runtime_operator_id','operator_id','pipeline_id','operator_type']
+)
+runtime_operator_processing_time_histogram = Histogram(
+    'interactem_runtime_operator_processing_time_histogram_microseconds',
+    'Operator processing time histogram per‐runtime instance',
+    ['runtime_operator_id','operator_id','pipeline_id','operator_type'],
+    buckets=[1,10,100,1000,10000,100000,1000000,float('inf')]
+)
+
 service_status.labels(service='metrics').set(1)
 
-def update_port_metrics(metrics: PortMetrics):
+def update_runtime_port_metrics(port_metrics: PortMetrics, pipeline_id: str, operator_label: str):
     labels = {
-        'port_id': metrics.port_id,
-        'pipeline_id': metrics.pipeline_id,
-        'operator_type': metrics.operator_type
+        'runtime_port_id': str(port_metrics.id),
+        'port_id': str(port_metrics.canonical_id),
+        'pipeline_id': pipeline_id,
+        'operator_type': operator_label
     }
+    runtime_port_messages_sent_total.labels(**labels).set(port_metrics.send_count)
+    runtime_port_messages_received_total.labels(**labels).set(port_metrics.recv_count)
+    runtime_port_bytes_sent_total.labels(**labels).set(port_metrics.send_bytes)
+    runtime_port_bytes_received_total.labels(**labels).set(port_metrics.recv_bytes)
 
-    port_messages_sent_total.labels(**labels).set(metrics.send_count)
-    port_messages_received_total.labels(**labels).set(metrics.recv_count)
-    port_bytes_sent_total.labels(**labels).set(metrics.send_bytes)
-    port_bytes_received_total.labels(**labels).set(metrics.recv_bytes)
-
-def record_operator_processing_time(processing: OperatorProcessingTime):
+def record_runtime_operator_processing_time(op_metrics : OperatorMetrics, pipeline_id: str, operator_label: str):
     labels = {
-        'operator_id': processing.operator_id,
-        'pipeline_id': processing.pipeline_id,
-        'operator_type': processing.operator_type
+        'runtime_operator_id': op_metrics.id,
+        'operator_id': op_metrics.canonical_id,
+        'pipeline_id': pipeline_id,
+        'operator_type': operator_label
     }
-
-    operator_processing_time_latest.labels(**labels).set(processing.processing_time_us)
-    operator_processing_time_histogram.labels(**labels).observe(processing.processing_time_us)
-
-def update_edge_connection(edge: EdgeConnection):
-    edge_active.labels(
-        input_port_id=edge.input_port_id,
-        output_port_id=edge.output_port_id,
-        pipeline_id=edge.pipeline_id
-    ).set(1)
+    processing_time_us = (op_metrics.timing.after_kernel - op_metrics.timing.before_kernel).microseconds
+    if processing_time_us > 0:
+        runtime_operator_processing_time_latest.labels(**labels).set(processing_time_us)
+        runtime_operator_processing_time_histogram.labels(**labels).observe(processing_time_us)
 
 def update_pipeline_status(status: PipelineStatus):
     pipeline_active_ports.labels(pipeline_id=status.pipeline_id).set(status.active_ports)
@@ -162,12 +121,9 @@ def record_collection_duration(duration: CollectionDuration):
 
 def record_collection_error(error: ErrorType):
     service_status.labels(service='metrics').set(0)
-    if error.error_type in ["no_pipelines", "no_pipeline_data"]:
-        return
-    metrics_collection_errors_total.labels(error_type=error.error_type).inc()
-
-def update_pipeline_info(pipeline_data: PipelineInfoData):
-    pipeline_info.info(pipeline_data.info_data)
+    # don’t increment for “no_pipelines” or “no_pipeline_data”, not counted as errors
+    if error.error_type not in ('no_pipelines','no_pipeline_data'):
+        metrics_collection_errors_total.labels(error_type=error.error_type).inc()
 
 def update_service_status(status: ServiceStatus):
     service_status.labels(service='metrics').set(1 if status.is_active else 0)
