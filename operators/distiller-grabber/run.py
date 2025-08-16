@@ -117,8 +117,12 @@ def grabber(
                 f"Received new dataset (Scan: {scan_number}, "
                 f"Shape: {new_sparse_array.scan_shape}, Frames: {new_sparse_array.num_scans})."
             )
+            batch_size_mb = float(parameters.get("batch_size_mb", 1.0))
+
             emitter = FrameEmitter(
-                sparse_array=new_sparse_array, scan_number=scan_number
+                sparse_array=new_sparse_array,
+                scan_number=scan_number,
+                batch_size_mb=batch_size_mb,
             )
             emitter_cache.append(emitter)
 
