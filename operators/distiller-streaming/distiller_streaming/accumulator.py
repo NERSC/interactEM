@@ -1,8 +1,13 @@
 import numpy as np
 from stempy.io import SparseArray
 
-from distiller_streaming.models import FrameHeader
+from distiller_streaming.models import BatchedFrameHeader, FrameHeader
+from distiller_streaming.util import (
+    extract_header_frame_pairs,
+    validate_message,
+)
 from interactem.core.logger import get_logger
+from interactem.core.models.messages import BytesMessage
 
 logger = get_logger()
 
@@ -33,16 +38,18 @@ class FrameAccumulator(SparseArray):
 
         # Initialize data storage
         initial_data = np.empty((num_scan_positions, 1), dtype=object)
-        empty_array = np.array([], dtype=np.uint32)
+        empty_array = np.array([], dtype=dtype)
         for i in range(num_scan_positions):
             initial_data[i, 0] = empty_array
 
         # Initialize parent
+        if "dtype" not in kwargs:
+            kwargs["dtype"] = dtype
+
         super().__init__(
             data=initial_data,
             scan_shape=scan_shape,
             frame_shape=frame_shape,
-            dtype=dtype,
             **kwargs,
         )
 
@@ -53,15 +60,29 @@ class FrameAccumulator(SparseArray):
             f"Initialized FrameAccumulator for scan {scan_number} with shape {scan_shape}x{frame_shape}"
         )
 
+    @classmethod
+    def from_message(cls, message: BytesMessage):
+        header, _ = validate_message(message)
+        accumulator = cls(
+            scan_number=header.scan_number,
+            scan_shape=header.scan_shape,
+            frame_shape=header.frame_shape,
+        )
+        return accumulator
+
+    @classmethod
+    def from_header(cls, header: FrameHeader | BatchedFrameHeader):
+        accumulator = cls(
+            scan_number=header.scan_number,
+            scan_shape=header.scan_shape,
+            frame_shape=header.frame_shape,
+        )
+        return accumulator
+
     @property
     def frames_added_indices(self) -> set[int]:
         """Set of scan position indices for which at least one frame has been added."""
         return set(self._frames_per_position.keys())
-
-    @property
-    def num_positions_with_frames(self) -> int:
-        """Number of scan positions that have at least one frame."""
-        return len(self._frames_per_position)
 
     def add_frame(self, header: FrameHeader, frame_data: np.ndarray) -> None:
         """
@@ -97,51 +118,87 @@ class FrameAccumulator(SparseArray):
                 f"Scan {self.scan_number}: Mismatch between header frame shape "
                 f"{header.frame_shape} and accumulator frame shape {self.frame_shape}"
             )
+        # Determine which frame slot to use at this scan position
+        # This should be based on how many frames we already have at this position
+        flat_position = header.scan_position_flat
+        frames_at_position = self._frames_per_position.get(flat_position, 0)
+        frame_idx = frames_at_position  # Use the next available slot
 
-        # Calculate flat index from 2D position
-        scan_position_flat = (
-            header.STEM_row_in_scan * header.nSTEM_positions_per_row_m1
-            + header.STEM_x_position_in_row
+        # Expand if needed based on local frame count at this position
+        if frame_idx >= self.data.shape[1]:
+            self.expand_frame_dimension_if_needed(frame_idx + 1)
+
+        # Store the frame
+        self.data[flat_position, frame_idx] = frame_data
+
+        # Update tracking
+        self._frames_per_position[flat_position] = frames_at_position + 1
+        self.num_frames_added += 1
+
+    def add_message(self, message: BytesMessage) -> None:
+        """
+        Process a BytesMessage that may contain either a single frame or batched frames.
+
+        Args:
+            message: BytesMessage containing frame data
+
+        Raises:
+            ValueError: If message format is invalid or data doesn't match headers
+        """
+        meta, data = validate_message(message)
+
+        # Check if this is a batched message
+        if isinstance(meta, BatchedFrameHeader):
+            self._process_batched_frames(meta, data)
+        elif isinstance(meta, FrameHeader):
+            self._process_single_frame(meta, data)
+
+    def _process_single_frame(self, header: FrameHeader, data: bytes) -> None:
+        frame_data = np.frombuffer(
+            data,
+            dtype=header.np_dtype,
         )
+        self.add_frame(header, frame_data)
 
-        # Ensure position is within bounds
-        if not (0 <= scan_position_flat < self.num_scans):
-            raise IndexError(
-                f"Invalid scan position {scan_position_flat}. Max expected: {self.num_scans - 1}"
+    def _process_batched_frames(
+        self, batched_header: BatchedFrameHeader, data: bytes
+    ) -> None:
+        # Verify total size matches
+        if len(data) != batched_header.total_batch_size_bytes:
+            raise ValueError(
+                f"Data size mismatch: expected {batched_header.total_batch_size_bytes} bytes, "
+                f"got {len(data)} bytes"
             )
 
-        # Count frames already at this position
-        frames_at_position = self._frames_per_position.get(scan_position_flat, 0)
+        pairs = extract_header_frame_pairs(data, batched_header.headers)
 
-        # If this is the first frame at this position
-        if frames_at_position == 0:
-            # Store at index 0
-            self.data[scan_position_flat, 0] = frame_data
-        else:
-            current_frames_dim = self.data.shape[1]
+        # Add each frame
+        for header, frame_data in pairs:
+            self.add_frame(header, frame_data)
 
-            # Check if we need to expand the data array
-            if frames_at_position >= current_frames_dim:
-                # Increase the frame dimension by exactly one
-                new_frame_dim = frames_at_position + 1
-                new_shape = (self.data.shape[0], new_frame_dim)
-                new_data = np.empty(new_shape, dtype=object)
+    def expand_frame_dimension_if_needed(self, required_frames: int) -> None:
+        """
+        Expand the frame dimension of the data array if needed to accommodate more frames.
 
-                # Copy existing data
-                new_data[:, :current_frames_dim] = self.data
+        Args:
+            required_frames: The number of frame slots required
+        """
+        current_frames = self.data.shape[1]
 
-                # Initialize remaining slots with empty arrays
-                empty_array = np.array([], dtype=self.dtype)
-                for i in range(self.data.shape[0]):
-                    for j in range(current_frames_dim, new_frame_dim):
-                        new_data[i, j] = empty_array
+        if required_frames <= current_frames:
+            return
 
-                # Replace data with expanded array
-                self.data = new_data
+        # Create new expanded array
+        new_data = np.empty((self.data.shape[0], required_frames), dtype=object)
 
-            # Store the new frame at the next available index
-            self.data[scan_position_flat, frames_at_position] = frame_data
+        # Copy existing data
+        new_data[:, :current_frames] = self.data
 
-        # Update tracking information
-        self._frames_per_position[scan_position_flat] = frames_at_position + 1
-        self.num_frames_added += 1
+        # Initialize new slots with empty arrays
+        empty_array = np.array([], dtype=self.dtype)
+        for i in range(self.data.shape[0]):
+            for j in range(current_frames, required_frames):
+                new_data[i, j] = empty_array
+
+        # Replace data
+        self.data = new_data
