@@ -1,0 +1,59 @@
+{
+  "id": "70dd71a7-5ebf-4515-8bf9-941d1284328c",
+  "image": "ghcr.io/nersc/interactem/center-of-mass-partial",
+  "label": "Partial Center of Mass",
+  "description": "Calculates the center of mass for a frame",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "frame",
+      "description": "Input frame"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "com_partial",
+      "label": "The output",
+      "type": "com_partial",
+      "description": "Partial center of mass"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "crop_to_x",
+      "label": "Crop To X",
+      "type": "int",
+      "default": "255",
+      "description": "X-coordinate to crop to",
+      "required": false
+    },
+    {
+      "name": "crop_to_y",
+      "label": "Crop To Y",
+      "type": "int",
+      "default": "255",
+      "description": "Y-coordinate to crop to",
+      "required": false
+    },
+    {
+      "name": "init_center_x",
+      "label": "Initial Center X",
+      "default": "255",
+      "type": "int",
+      "description": "Initial Center X-coordinate for center of mass calculation",
+      "required": false
+    },
+    {
+      "name": "init_center_y",
+      "label": "Initial Center Y",
+      "default": "255",
+      "type": "int",
+      "description": "Initial Center Y-coordinate for center of mass calculation",
+      "required": false
+    }
+  ],
+  "parallel_config": {
+    "type": "embarrassing"
+  }
+}
