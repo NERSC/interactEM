@@ -4,7 +4,8 @@ from typing import Any
 
 import numpy as np
 import stempy.io as stio
-from pydantic import BaseModel, ValidationError
+from distiller_streaming.models import FrameHeader
+from pydantic import ValidationError
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
@@ -13,21 +14,11 @@ from interactem.operators.operator import DATA_DIRECTORY, operator
 logger = get_logger()
 
 
-class FrameHeader(BaseModel):
-    scan_number: int
-    frame_number: int
-    nSTEM_positions_per_row_m1: int
-    nSTEM_rows_m1: int
-    STEM_x_position_in_row: int
-    STEM_row_in_scan: int
-    modules: list[int]
-
-
 # Setup data paths
 path = Path(f"{DATA_DIRECTORY}/raw_data_dir")
 
 # Initialize global variables
-reader = None
+reader: stio.SectorThreadedMultiPassReader
 scan_positions_cycle = None
 n_cols = 0
 n_rows = 0
@@ -35,7 +26,9 @@ send_count = 0
 current_scan_num = -1
 
 
-def read_scan_metadata(scan_num: int) -> tuple[stio.reader, itertools.cycle, int, int]:
+def read_scan_metadata(
+    scan_num: int,
+) -> tuple[stio.SectorThreadedMultiPassReader, itertools.cycle, int, int]:
     scan_name_path = f"data_scan{scan_num:010d}_*.data"
     logger.info(f"Looking for files with pattern: {scan_name_path} in {path}")
     files = list(path.glob(scan_name_path))
