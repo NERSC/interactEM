@@ -31,6 +31,13 @@ group "operators" {
     "array-image-converter",
     "virtual-bfdf",
     "benchmark-sender",
+    "benchmark-receiver",
+    "center-of-mass-partial",
+    "center-of-mass-reduce",
+    "center-of-mass-plot",
+    "dpc"
+  ]
+}
 
 target "common" {
   platforms = ["linux/amd64", "linux/arm64"]
@@ -224,4 +231,32 @@ target "benchmark-receiver" {
   context = "operators/benchmark-receiver"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/benchmark-receiver:${TAG}"]
+}
+
+target "center-of-mass-partial" {
+  inherits = ["common"]
+  context = "operators/center-of-mass-partial"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/center-of-mass-partial:${TAG}"]
+}
+
+target "center-of-mass-reduce" {
+  inherits = ["common"]
+  context = "operators/center-of-mass-reduce"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/center-of-mass-reduce:${TAG}"]
+}
+
+target "center-of-mass-plot" {
+  inherits = ["common"]
+  context = "operators/center-of-mass-plot"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/center-of-mass-plot:${TAG}"]
+}
+
+target "dpc" {
+  inherits = ["common"]
+  context = "operators/dpc"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/dpc:${TAG}"]
 }

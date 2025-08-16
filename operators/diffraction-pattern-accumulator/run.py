@@ -1,13 +1,10 @@
+from collections import OrderedDict
 from typing import Any
 
-import numpy as np
 from distiller_streaming.accumulator import FrameAccumulator
-from distiller_streaming.models import FrameHeader
 
 # Import FrameAccumulator and FrameHeader
-from distiller_streaming.util import (
-    get_summed_diffraction_pattern,
-)
+from distiller_streaming.util import get_summed_diffraction_pattern, validate_message
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import (
@@ -20,8 +17,8 @@ from interactem.operators.operator import operator
 logger = get_logger()
 
 # --- Operator State ---
-# Dictionary to hold FrameAccumulator instances, keyed by scan_number
-accumulators: dict[int, FrameAccumulator] = {}
+# OrderedDict to hold FrameAccumulator instances with LRU behavior
+accumulators: OrderedDict[int, FrameAccumulator] = OrderedDict()
 
 
 # --- Operator Kernel ---
@@ -39,18 +36,23 @@ def accumulate_diffraction(
         return None
 
     # --- 1. Extract Metadata and Frame Data ---
-    header = FrameHeader(**inputs.header.meta) # Use FrameHeader directly
+    header, data = validate_message(inputs)
     scan_number = header.scan_number
-    scan_shape = (header.nSTEM_rows_m1, header.nSTEM_positions_per_row_m1)
+    scan_shape = header.scan_shape
     frame_shape = header.frame_shape
-    sparse_indices = np.frombuffer(inputs.data, dtype=np.uint32)
 
     # --- 2. Get or Create FrameAccumulator ---
+    max_concurrent_scans = parameters.get("max_concurrent_scans", 2)
+
     if scan_number not in accumulators:
-        # Clear existing accumulators if a new scan starts
-        if accumulators:
-            logger.info(f"New scan {scan_number} detected. Clearing previous accumulators.")
-            accumulators.clear()
+        # Check if we need to evict old accumulators before creating new one
+        if len(accumulators) >= max_concurrent_scans:
+            # Remove the oldest accumulator (first item in OrderedDict)
+            oldest_scan, oldest_accumulator = accumulators.popitem(last=False)
+            logger.info(
+                f"Evicting accumulator for scan {oldest_scan} to make room for scan {scan_number}"
+            )
+
         try:
             logger.info(f"Creating new FrameAccumulator for scan {scan_number}")
             accumulators[scan_number] = FrameAccumulator(
@@ -63,8 +65,10 @@ def accumulate_diffraction(
              raise
 
     # --- 3. Accumulate Frame ---
+    # Move the accessed scan to the end (most recently used)
     accumulator = accumulators[scan_number]
-    accumulator.add_frame(header, sparse_indices)
+    accumulators.move_to_end(scan_number)
+    accumulator.add_message(inputs)
 
     # --- 4. Check Emission Frequency ---
     update_frequency = int(parameters.get("update_frequency", 100))
