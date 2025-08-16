@@ -36,6 +36,8 @@ def array_image_converter(
     image_format = parameters.get("image_format", "PNG").upper()
     percentile_min = float(parameters.get("percentile_min", 0.5))
     percentile_max = float(parameters.get("percentile_max", 99.5))
+    ignore_blank = parameters.get("ignore_blank", True)
+    blank_value = parameters.get("blank_value", 0)
 
     if image_format not in ["JPEG", "PNG"]:
         raise ValueError(
@@ -47,10 +49,32 @@ def array_image_converter(
     image = np.frombuffer(inputs.data, dtype=original_dtype).reshape(meta.shape)
 
     # Normalize using percentile clipping to handle outliers
-    min_val = np.percentile(image, percentile_min)
-    max_val = np.percentile(image, percentile_max)
+    if ignore_blank:
+        # create mask of valid (non-blank) pixels
+        valid_mask = image != blank_value
+        valid_pixels = image[valid_mask]
+
+        if valid_pixels.size == 0:
+            # fallback to whole-image stats when everything is blank
+            min_val = float(np.min(image))
+            max_val = float(np.max(image))
+        else:
+            min_val = float(np.percentile(valid_pixels, percentile_min))
+            max_val = float(np.percentile(valid_pixels, percentile_max))
+    else:
+        valid_mask = np.ones_like(image, dtype=bool)
+        min_val = float(np.percentile(image, percentile_min))
+        max_val = float(np.percentile(image, percentile_max))
+
     denominator = max_val - min_val
+    if denominator == 0:
+        denominator = 1.0
+
     normalized_pattern = np.clip((image - min_val) / denominator, 0.0, 1.0).astype(np.float32)
+
+    # ensure blank pixels are set to 0 intensity so they don't affect colormap
+    if ignore_blank:
+        normalized_pattern[~valid_mask] = 0.0
 
     colormap = cm.get_cmap(colormap_name)
     colored_image_data = colormap(normalized_pattern)
