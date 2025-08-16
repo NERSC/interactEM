@@ -35,11 +35,10 @@ def patched_create_stem_images(
 ):
     """Patched version of stempy.image.create_stem_images for NumPy 2.x compatibility"""
 
-
     # Ensure the inner and outer radii are tuples or lists
-    if not isinstance(inner_radii, (tuple, list)):
+    if not isinstance(inner_radii, tuple | list):
         inner_radii = [inner_radii]
-    if not isinstance(outer_radii, (tuple, list)):
+    if not isinstance(outer_radii, tuple | list):
         outer_radii = [outer_radii]
 
     # Electron counted data attributes
@@ -101,32 +100,41 @@ def calculate_bright_field(
             logger.info(f"Creating new FrameAccumulator for scan {scan_number}")
             accumulators[scan_number] = FrameAccumulator.from_header(header)
         except ValueError as e:
-             logger.error(f"Failed to initialize FrameAccumulator for scan {scan_number}: {e}")
-             # Cannot proceed with this scan if accumulator fails
-             raise
-
+            logger.error(
+                f"Failed to initialize FrameAccumulator for scan {scan_number}: {e}"
+            )
+            raise
 
     # Move the accessed scan to the end (most recently used)
     accumulator = accumulators[scan_number]
     accumulators.move_to_end(scan_number)
     accumulator.add_message(inputs)
 
-   # --- 4. Check Calculation Frequency ---
+    # --- 4. Check Calculation Frequency ---
     calc_freq = int(parameters.get("calculation_frequency", 100))
     if calc_freq <= 0:
         calc_freq = 100
 
-    if accumulator.num_frames_added == 0 or accumulator.num_frames_added % calc_freq != 0:
-        logger.debug(f"Scan {scan_number}: Not time to calculate yet. Frames added: {accumulator.num_frames_added}.")
+    if (
+        accumulator.num_frames_added == 0
+        or accumulator.num_frames_added % calc_freq != 0
+    ):
+        logger.debug(
+            f"Scan {scan_number}: Not time to calculate yet. Frames added: {accumulator.num_frames_added}."
+        )
         return None
 
-    logger.debug(f"Scan {scan_number}: Triggering calculation after {accumulator.num_frames_added} frames.")
+    logger.debug(
+        f"Scan {scan_number}: Triggering calculation after {accumulator.num_frames_added} frames."
+    )
 
     subsample_step = int(parameters.get("subsample_step_center", 2))
     if subsample_step <= 0:
         subsample_step = 2
 
-    logger.debug(f"Scan {scan_number}: Calculating center (subsample_step={subsample_step}).")
+    logger.debug(
+        f"Scan {scan_number}: Calculating center (subsample_step={subsample_step})."
+    )
     dp = get_summed_diffraction_pattern(accumulator, subsample_step=subsample_step)
     center = calculate_diffraction_center(dp)
     logger.debug(f"Scan {scan_number}: Center calculated: {center}.")
@@ -158,12 +166,10 @@ def calculate_bright_field(
         "center_used": center,
         "inner_radius": inner_radius,
         "outer_radius": outer_radius,
-        "source_operator": "bright-field"
+        "source_operator": "bright-field",
     }
     output_message = BytesMessage(
-        header=MessageHeader(
-            subject=MessageSubject.BYTES, meta=output_meta
-        ),
+        header=MessageHeader(subject=MessageSubject.BYTES, meta=output_meta),
         data=array_bytes,
     )
     logger.info(f"Scan {scan_number}: Emitting BF image ({bf_image.shape}).")
