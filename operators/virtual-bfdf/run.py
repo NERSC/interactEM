@@ -1,13 +1,16 @@
+from collections import OrderedDict
 from typing import Any
 
 import numpy as np
 import stempy.image as stim  # Import stim
 from distiller_streaming.accumulator import FrameAccumulator
-from distiller_streaming.models import FrameHeader
 from distiller_streaming.util import (
     calculate_diffraction_center,
     get_summed_diffraction_pattern,
+    validate_message,
 )
+from stempy import _image
+from stempy.io import SparseArray
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import (
@@ -20,8 +23,48 @@ from interactem.operators.operator import operator
 logger = get_logger()
 
 # --- Operator State ---
-# Dictionary to hold FrameAccumulator instances, keyed by scan_number
-accumulators: dict[int, FrameAccumulator] = {}
+# OrderedDict to hold FrameAccumulator instances with LRU behavior
+accumulators: OrderedDict[int, FrameAccumulator] = OrderedDict()
+
+
+def patched_create_stem_images(
+    input,
+    inner_radii,
+    outer_radii,
+    center=(-1, -1),
+):
+    """Patched version of stempy.image.create_stem_images for NumPy 2.x compatibility"""
+
+
+    # Ensure the inner and outer radii are tuples or lists
+    if not isinstance(inner_radii, (tuple, list)):
+        inner_radii = [inner_radii]
+    if not isinstance(outer_radii, (tuple, list)):
+        outer_radii = [outer_radii]
+
+    # Electron counted data attributes
+    if isinstance(input, SparseArray):
+        imgs = _image.create_stem_images(
+            input.data,
+            inner_radii,
+            outer_radii,
+            input.scan_shape[::-1],
+            input.frame_shape,
+            center,
+        )
+    else:
+        raise Exception(
+            "Type of input, "
+            + str(type(input))
+            + ", is not known to stempy.image.create_stem_images()"
+        )
+
+    images = [np.asarray(img) for img in imgs]
+    return np.asarray(images)
+
+
+# Replace the original function
+stim.create_stem_images = patched_create_stem_images
 
 
 # --- Operator Kernel ---
@@ -39,37 +82,34 @@ def calculate_bright_field(
         return None
 
     # --- 1. Extract Metadata and Frame Data ---
-
-    # Parse the full header first
-    header = FrameHeader(**inputs.header.meta)
+    header, data = validate_message(inputs)
     scan_number = header.scan_number
-    # Construct scan_shape from metadata (height, width)
-    scan_shape = (header.nSTEM_rows_m1, header.nSTEM_positions_per_row_m1)
-    frame_shape = header.frame_shape
-
-    sparse_indices = np.frombuffer(inputs.data, dtype=np.uint32)
 
     # --- 2. Get or Create FrameAccumulator ---
+    max_concurrent_scans = int(parameters.get("max_concurrent_scans", 3))
+
     if scan_number not in accumulators:
-        # Clear existing accumulators if a new scan starts
-        if accumulators:
-            logger.info(f"New scan {scan_number} detected. Clearing previous accumulators.")
-            accumulators.clear()
+        # Check if we need to evict old accumulators before creating new one
+        if len(accumulators) >= max_concurrent_scans:
+            # Remove the oldest accumulator (first item in OrderedDict)
+            oldest_scan, oldest_accumulator = accumulators.popitem(last=False)
+            logger.info(
+                f"Evicting accumulator for scan {oldest_scan} to make room for scan {scan_number}"
+            )
+
         try:
             logger.info(f"Creating new FrameAccumulator for scan {scan_number}")
-            accumulators[scan_number] = FrameAccumulator(
-                scan_number=scan_number,
-                scan_shape=scan_shape,
-                frame_shape=frame_shape,
-            )
+            accumulators[scan_number] = FrameAccumulator.from_header(header)
         except ValueError as e:
              logger.error(f"Failed to initialize FrameAccumulator for scan {scan_number}: {e}")
              # Cannot proceed with this scan if accumulator fails
              raise
 
 
+    # Move the accessed scan to the end (most recently used)
     accumulator = accumulators[scan_number]
-    accumulator.add_frame(header, sparse_indices)
+    accumulators.move_to_end(scan_number)
+    accumulator.add_message(inputs)
 
    # --- 4. Check Calculation Frequency ---
     calc_freq = int(parameters.get("calculation_frequency", 100))
