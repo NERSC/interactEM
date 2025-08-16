@@ -4,8 +4,15 @@ from typing import Any
 import ncempy
 import numpy as np
 import stempy.io as stio
+from distiller_streaming.models import BatchedFrameHeader, FrameHeader
+from distiller_streaming.util import (
+    create_batch_message,
+    extract_header_frame_pairs,
+    separate_header_datas,
+    validate_message,
+)
 from numpy.linalg import svd
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from scipy import ndimage
 
 from interactem.core.logger import get_logger
@@ -39,34 +46,22 @@ def planeFit(points):
     return ctr, svd(M)[0][:, -1]
 
 
-class FrameHeader(BaseModel):
-    scan_number: int
-    frame_number: int | None = None
-    nSTEM_positions_per_row_m1: int
-    nSTEM_rows_m1: int
-    STEM_x_position_in_row: int
-    STEM_row_in_scan: int
-    modules: list[int]
-
-
 # Params:
 keep_flyback: bool = False
 
 # Load the offsets for the vacuum scan subtraction
-vacuum_scan_id = 20132
-vacuum_scan_num = 714
 offsets_path = Path(f"{DATA_DIRECTORY}/offsets.emd")
-
 offsets_data = ncempy.read(offsets_path)["data"]
 
 current_scan_num = -1
-current_camera_length = -1
-current_stem_magnification = "50x"
 
 factor = (
     0 / offsets_data.shape[1],
     0 / offsets_data.shape[2],
 )
+
+# Dictionary to store shifts for each scan number
+scan_shifts_cache = {}
 
 row_shifts = None
 column_shifts = None
@@ -92,11 +87,10 @@ com2_filt_median = np.median(offsets_data, axis=(1, 2))
 planeCOM0 = planeFit(np.stack((YY, XX, offsets_data[0,] - com2_filt_median[0])))
 planeCOM1 = planeFit(np.stack((YY, XX, offsets_data[1,] - com2_filt_median[1])))
 
-print(f"plane fit to COM0: {planeCOM0}")
-print(f"plane fit to COM1: {planeCOM1}")
-
 
 def generate_shifts(scan_shape, com2_filt, planeCOM0, planeCOM1, method):
+    global com2_filt_median
+
     n_rows, n_cols = scan_shape
     factor = (
         n_rows / offsets_data.shape[2],
@@ -138,54 +132,12 @@ def generate_shifts(scan_shape, com2_filt, planeCOM0, planeCOM1, method):
     return shift_axis0, shift_axis1
 
 
-@operator
-def subtract(
-    inputs: BytesMessage | None, parameters: dict[str, Any]
-) -> BytesMessage | None:
-    global \
-        current_scan_num, \
-        current_camera_length, \
-        current_stem_magnification, \
-        offsets_data, \
-        factor, \
-        planeCOM0, \
-        planeCOM1, \
-        row_shifts, \
-        column_shifts
-
-    if not inputs:
-        logger.warning("No input provided to the subtract operator.")
-        return None
-
-    try:
-        header = FrameHeader(**inputs.header.meta)
-    except ValidationError as e:
-        logger.error(f"Invalid message: {e}")
-        return None
-
-    scan_shape = (header.nSTEM_rows_m1, header.nSTEM_positions_per_row_m1)
-    frame_shape = (576, 576)
-    scan_num = header.scan_number
-
-    if scan_num != current_scan_num:
-        logger.info(
-            f"New scan detected. Previous scan: {current_scan_num}, Current scan: {scan_num}"
-        )
-        method = parameters.get("method", "interp")
-        logger.info(f"Parameters: {parameters}")
-        if method not in ["interp", "plane"]:
-            method = "interp"
-
-        logger.info(f"Generating shifts using method: {method}")
-
-        row_shifts, column_shifts = generate_shifts(
-            scan_shape, offsets_data, planeCOM0, planeCOM1, method
-        )
-        logger.debug("Shifts generated for new scan...")
-
-        current_scan_num = scan_num
-
-    sparse_frame = np.frombuffer(inputs.data, dtype=np.uint32)
+def _subtract_one(
+    pair: tuple[FrameHeader, np.ndarray],
+) -> tuple[FrameHeader, np.ndarray]:
+    global row_shifts, column_shifts
+    header, sparse_frame = pair
+    frame_shape = header.frame_shape
     position = (header.STEM_row_in_scan, header.STEM_x_position_in_row)
     row_idx, col_idx = position
     row_shift = row_shifts[row_idx, col_idx]  # type: ignore
@@ -210,7 +162,61 @@ def subtract(
         (ev_columns_centered, ev_rows_centered), frame_shape
     )
     experiment_centered = stio.SparseArray(centered, (1, 1), frame_shape)
-    return BytesMessage(
-        header=inputs.header,
-        data=experiment_centered.data[0][0].astype(np.uint32).tobytes(),
-    )
+    data = experiment_centered.data[0][0].astype(np.uint32, copy=False)
+    header.data_size_bytes = data.nbytes
+    return header, data
+
+
+def _subtract(header: FrameHeader | BatchedFrameHeader, data: bytes) -> BytesMessage:
+    if isinstance(header, BatchedFrameHeader):
+        _headers = header.headers
+    elif isinstance(header, FrameHeader):
+        _headers = [header]
+    else:
+        raise ValueError("Invalid header type.")
+
+    pairs = extract_header_frame_pairs(data, _headers)
+    header_datas = [_subtract_one(pair) for pair in pairs]
+    headers, sparse_arrays = separate_header_datas(header_datas)
+    return create_batch_message(headers, sparse_arrays)
+
+
+@operator
+def subtract(
+    inputs: BytesMessage | None, parameters: dict[str, Any]
+) -> BytesMessage | None:
+    global current_scan_num, row_shifts, column_shifts, scan_shifts_cache
+
+    if not inputs:
+        logger.warning("No input provided to the subtract operator.")
+        return None
+
+    try:
+        header, data = validate_message(inputs)
+    except ValidationError as e:
+        logger.error(f"Invalid message: {e}")
+        return None
+
+    scan_num = header.scan_number
+    # Check if we have shifts cached for this scan number
+    if scan_num not in scan_shifts_cache:
+        method = parameters.get("method", "interp")
+        if method not in ["interp", "plane"]:
+            method = "interp"
+
+        logger.info(f"Generating shifts using method: {method}")
+        scan_shape = header.scan_shape
+
+        row_shifts, column_shifts = generate_shifts(
+            scan_shape, offsets_data, planeCOM0, planeCOM1, method
+        )
+
+        # Cache the shifts for this scan number
+        scan_shifts_cache[scan_num] = (row_shifts, column_shifts)
+        logger.debug(f"Shifts generated and cached for scan {scan_num}")
+    else:
+        # Use cached shifts
+        row_shifts, column_shifts = scan_shifts_cache[scan_num]
+        logger.debug(f"Using cached shifts for scan {scan_num}")
+
+    return _subtract(header, data)

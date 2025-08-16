@@ -1,6 +1,7 @@
-FROM ghcr.io/nersc/interactem/operator
+FROM ghcr.io/nersc/interactem/distiller-streaming
 
-RUN pip install scipy ncempy stempy
+# had to add cffi because ncempy messes with that package when adding, and nkeys acts up...
+RUN poetry add ncempy cffi
 
 COPY ./run.py /app/run.py
 
