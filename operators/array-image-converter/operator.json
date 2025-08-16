@@ -69,6 +69,22 @@
       "description": "Output image encoding format",
       "required": false,
       "options": ["JPEG", "PNG"]
+    },
+    {
+      "name": "ignore_blank",
+      "label": "Ignore blank pixels",
+      "type": "bool",
+      "default": true,
+      "description": "When true, pixels equal to `blank_value` are ignored when computing percentiles and normalization",
+      "required": false
+    },
+    {
+      "name": "blank_value",
+      "label": "Blank pixel value",
+      "type": "float",
+      "default": 0,
+      "description": "Numeric value treated as 'blank' and ignored when `ignore_blank` is true",
+      "required": false
     }
   ]
 }
