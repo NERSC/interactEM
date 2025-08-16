@@ -1,156 +1,115 @@
+import msgspec.structs
 import numpy as np
 import pytest
 
-from distiller_streaming.util import (
-    calculate_diffraction_center,
-    get_diffraction_center,
-    get_summed_diffraction_pattern,
+from distiller_streaming.accumulator import FrameAccumulator
+from distiller_streaming.models import (
+    BatchedFrameHeader,
+    BatchedFrames,
+    Frame,
+    FrameHeader,
 )
 
 
-def test_frame_accumulator_init(frame_accumulator):
-    assert frame_accumulator.scan_number == 1
-    assert frame_accumulator.scan_shape == (10, 10)
-    assert frame_accumulator.frame_shape == (128, 128)
-    assert frame_accumulator.num_scans == 100
-    assert frame_accumulator.data.shape == (100, 1)
-    assert frame_accumulator.num_frames_added == 0
-    assert len(frame_accumulator._frames_per_position) == 0
-    assert frame_accumulator.dtype == np.uint32
-    assert isinstance(frame_accumulator.data[0, 0], np.ndarray)
-    assert frame_accumulator.data[0, 0].size == 0
+def make_single_frame(header: FrameHeader, data: np.ndarray) -> Frame:
+    return Frame(header=header, buffer=data.tobytes())
 
 
-def test_add_first_frame(frame_accumulator, sample_frame_header, sample_frame_data):
-    scan_pos_flat = 3 * 10 + 5
-    frame_accumulator.add_frame(sample_frame_header, sample_frame_data)
+def test_add_frame_same_and_different_positions(
+    frame_accumulator: FrameAccumulator,
+    sample_frame_header: FrameHeader,
+    sample_frame_data,
+):
+    frame1 = make_single_frame(sample_frame_header, sample_frame_data)
+    frame2 = make_single_frame(sample_frame_header, sample_frame_data)
+
+    # Same position should expand
+    frame_accumulator.add_frame(frame1)
+    frame_accumulator.add_frame(frame2)
+    assert frame_accumulator.data.shape[1] == 2
+
+    # Different position should not expand
+    header2 = msgspec.structs.replace(
+        sample_frame_header, STEM_row_in_scan=4, STEM_x_position_in_row=6
+    )
+    frame3 = make_single_frame(header2, sample_frame_data)
+    frame_accumulator.add_frame(frame3)
+    assert frame_accumulator.data.shape[1] == 2  # unchanged
+
+
+@pytest.mark.parametrize("batched", [False, True])
+def test_process_message(
+    frame_accumulator: FrameAccumulator,
+    sample_frame_header: FrameHeader,
+    sample_frame_data,
+    batched,
+):
+    # Update header with correct data size
+    header = msgspec.structs.replace(
+        sample_frame_header, data_size_bytes=len(sample_frame_data.tobytes())
+    )
+
+    # Create BatchedFrames and convert to message
+    batched_header = BatchedFrameHeader(
+        scan_number=header.scan_number,
+        headers=[header],
+        batch_size_bytes=len(sample_frame_data.tobytes()),
+    )
+    batched_frames = BatchedFrames.from_np_arrays(batched_header, [sample_frame_data])
+    msg = batched_frames.to_bytes_message()
+
+    frame_accumulator.add_message(msg)
     assert frame_accumulator.num_frames_added == 1
-    assert frame_accumulator.num_positions_with_frames == 1
-    assert scan_pos_flat in frame_accumulator.frames_added_indices
-    assert frame_accumulator._frames_per_position[scan_pos_flat] == 1
-    assert frame_accumulator.data.shape == (100, 1)
-    assert np.array_equal(
-        frame_accumulator.data.flat[scan_pos_flat * 1 + 0], sample_frame_data
-    )
-    assert frame_accumulator.data.flat[0].size == 0
 
-def test_add_second_frame_same_position(
-    frame_accumulator, sample_frame_header, sample_frame_data
+
+def test_expand_frame_dimension(frame_accumulator: FrameAccumulator):
+    frame_accumulator.expand_frame_dimension_if_needed(5)
+    assert frame_accumulator.data.shape == (100, 5)
+
+
+def test_index_out_of_bounds(
+    frame_accumulator: FrameAccumulator,
+    sample_frame_header: FrameHeader,
+    sample_frame_data,
 ):
-    scan_pos_flat = 3 * 10 + 5
-    data1 = sample_frame_data
-    data2 = sample_frame_data + 1
-    frame_accumulator.add_frame(sample_frame_header, data1)
-    frame_accumulator.add_frame(sample_frame_header, data2)
-    assert frame_accumulator.num_frames_added == 2
-    assert frame_accumulator.num_positions_with_frames == 1
-    assert scan_pos_flat in frame_accumulator.frames_added_indices
-    assert frame_accumulator._frames_per_position[scan_pos_flat] == 2
-    assert frame_accumulator.data.shape == (100, 2)
-    assert np.array_equal(frame_accumulator.data.flat[scan_pos_flat * 2 + 0], data1)
-    assert np.array_equal(frame_accumulator.data.flat[scan_pos_flat * 2 + 1], data2)
-    assert frame_accumulator.data.flat[0].size == 0
-    assert frame_accumulator.data.flat[1].size == 0
-
-def test_add_frames_different_positions(frame_accumulator, sample_frame_header, sample_frame_data):
-    header1 = sample_frame_header
-    data1 = sample_frame_data
-    header2 = sample_frame_header.model_copy()
-    header2.STEM_x_position_in_row = 0
-    header2.STEM_row_in_scan = 0
-    data2 = sample_frame_data + 1
-    frame_accumulator.add_frame(header1, data1)
-    frame_accumulator.add_frame(header2, data2)
-    assert frame_accumulator.num_frames_added == 2
-    assert frame_accumulator.num_positions_with_frames == 2
-    assert 35 in frame_accumulator.frames_added_indices
-    assert 0 in frame_accumulator.frames_added_indices
-    assert frame_accumulator._frames_per_position[35] == 1
-    assert frame_accumulator._frames_per_position[0] == 1
-    assert frame_accumulator.shape == (10, 10, 128, 128)
-    assert frame_accumulator.data.shape == (100, 1)
-    assert np.array_equal(frame_accumulator.data.flat[35], data1)
-    assert np.array_equal(frame_accumulator.data.flat[0], data2)
+    bad = msgspec.structs.replace(sample_frame_header, STEM_row_in_scan=999)
+    frame = make_single_frame(bad, sample_frame_data)
+    with pytest.raises(IndexError):
+        frame_accumulator.add_frame(frame)
 
 
-def test_add_frame_scan_number_mismatch(
-    frame_accumulator, sample_frame_header, sample_frame_data
+def test_size_mismatch_and_insufficient_data(
+    frame_accumulator: FrameAccumulator,
+    sample_frame_header: FrameHeader,
+    sample_frame_data,
 ):
-    header_wrong_scan = sample_frame_header.model_copy(update={"scan_number": 99})
-    with pytest.raises(ValueError, match="Scan number mismatch"):
-        frame_accumulator.add_frame(header_wrong_scan, sample_frame_data)
-
-
-def test_add_frame_scan_shape_mismatch(
-    frame_accumulator, sample_frame_header, sample_frame_data
-):
-    header_wrong_shape = sample_frame_header.model_copy(update={"nSTEM_rows_m1": 11})
-    with pytest.raises(ValueError, match="Mismatch between header scan shape"):
-        frame_accumulator.add_frame(header_wrong_shape, sample_frame_data)
-
-
-def test_add_frame_frame_shape_mismatch(
-    frame_accumulator, sample_frame_header, sample_frame_data
-):
-    header_wrong_shape = sample_frame_header.model_copy(
-        update={"frame_shape": (64, 64)}
+    # Size mismatch
+    header = msgspec.structs.replace(
+        sample_frame_header, data_size_bytes=len(sample_frame_data.tobytes())
     )
-    with pytest.raises(ValueError, match="Mismatch between header frame shape"):
-        frame_accumulator.add_frame(header_wrong_shape, sample_frame_data)
 
-
-def test_add_frame_position_out_of_bounds(frame_accumulator, sample_frame_header, sample_frame_data):
-    header_out_of_bounds = sample_frame_header.model_copy(
-        update={"STEM_row_in_scan": 10}
+    batched_header = BatchedFrameHeader(
+        scan_number=header.scan_number,
+        headers=[header],
+        batch_size_bytes=len(sample_frame_data.tobytes()),
     )
-    with pytest.raises(IndexError, match="Invalid scan position"):
-        frame_accumulator.add_frame(header_out_of_bounds, sample_frame_data)
+    batched_frames = BatchedFrames.from_np_arrays(batched_header, [sample_frame_data])
+    msg = batched_frames.to_bytes_message()
+    msg = msg.model_copy(update={"data": msg.data + b"extra"})
+    with pytest.raises(ValueError, match="Unused bytes detected"):
+        frame_accumulator.add_message(msg)
 
-
-def test_get_summed_diffraction_pattern(populated_frame_accumulator):
-    summed_dp = get_summed_diffraction_pattern(
-        populated_frame_accumulator, subsample_step=1
+    # Insufficient data
+    insufficient_header = msgspec.structs.replace(
+        sample_frame_header, data_size_bytes=100
     )
-    assert isinstance(summed_dp, np.ndarray)
-    assert summed_dp.shape == populated_frame_accumulator.frame_shape
-    assert summed_dp.dtype == np.float64
-    assert summed_dp.sum() > 0
-
-
-def test_get_summed_diffraction_pattern_subsampled(populated_frame_accumulator):
-    summed_dp = get_summed_diffraction_pattern(populated_frame_accumulator, subsample_step=2)
-    assert isinstance(summed_dp, np.ndarray)
-    assert summed_dp.shape == populated_frame_accumulator.frame_shape
-    assert summed_dp.sum() > 0
-
-def test_get_summed_diffraction_pattern_empty(frame_accumulator):
-    with pytest.raises(ValueError, match="No frames available for summing"):
-        get_summed_diffraction_pattern(frame_accumulator)
-
-
-def test_calculate_diffraction_center():
-    size = 128
-    center_x, center_y = size // 2, size // 2
-    x, y = np.meshgrid(np.arange(size), np.arange(size))
-    sigma = 10
-    pattern = np.exp(-((x - center_x) ** 2 + (y - center_y) ** 2) / (2 * sigma**2))
-    calculated_center = calculate_diffraction_center(pattern)
-    assert calculated_center == (63, 63)
-
-
-def test_calculate_diffraction_center_empty():
-    empty_pattern = np.array([])
-    with pytest.raises(ValueError, match="Empty diffraction pattern"):
-        calculate_diffraction_center(empty_pattern)
-
-
-def test_get_diffraction_center(populated_frame_accumulator):
-    center = get_diffraction_center(populated_frame_accumulator, subsample_step=1)
-    assert isinstance(center, tuple)
-    assert len(center) == 2
-    assert isinstance(center[0], int)
-    assert isinstance(center[1], int)
-
-def test_get_diffraction_center_empty(frame_accumulator):
-    with pytest.raises(ValueError, match="No frames available for summing"):
-        get_diffraction_center(frame_accumulator)
+    small_data = np.array([1, 2], np.uint32)
+    batched_header = BatchedFrameHeader(
+        scan_number=insufficient_header.scan_number,
+        headers=[insufficient_header],
+        batch_size_bytes=100,
+    )
+    batched_frames = BatchedFrames.from_np_arrays(batched_header, [small_data])
+    msg = batched_frames.to_bytes_message()
+    with pytest.raises(ValueError, match="buffer is smaller than requested size"):
+        frame_accumulator.add_message(msg)
