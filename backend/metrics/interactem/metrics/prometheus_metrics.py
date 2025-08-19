@@ -1,8 +1,8 @@
-from prometheus_client import Counter, Gauge, Histogram
 from enum import Enum
-from pydantic import BaseModel, Field
-from typing import Dict
 from uuid import UUID
+
+from prometheus_client import Counter, Gauge, Histogram
+from pydantic import BaseModel, Field
 
 from interactem.core.logger import get_logger
 from interactem.core.models.metrics import OperatorMetrics, PortMetrics
@@ -26,8 +26,8 @@ class PortMetricLabelsSchema(BaseModel):
     port_id: UUID
     pipeline_id: UUID
     operator_label: str
-    
-    def to_dict(self) -> Dict[str, str]:
+
+    def to_dict(self) -> dict[str, str]:
         return {
             MetricLabels.RUNTIME_PORT_ID: self.runtime_port_id,
             MetricLabels.PORT_ID: self.port_id,
@@ -40,8 +40,8 @@ class OperatorMetricLabelsSchema(BaseModel):
     operator_id: UUID
     pipeline_id: UUID
     operator_label: str
-    
-    def to_dict(self) -> Dict[str, str]:
+
+    def to_dict(self) -> dict[str, str]:
         return {
             MetricLabels.RUNTIME_OPERATOR_ID: self.runtime_operator_id,
             MetricLabels.OPERATOR_ID: self.operator_id,
@@ -51,20 +51,20 @@ class OperatorMetricLabelsSchema(BaseModel):
 
 class PipelineMetricLabelsSchema(BaseModel):
     pipeline_id: UUID
-    
-    def to_dict(self) -> Dict[str, str]:
+
+    def to_dict(self) -> dict[str, str]:
         return {MetricLabels.PIPELINE_ID: self.pipeline_id}
 
 class ServiceMetricLabelsSchema(BaseModel):
     service: str = Field(default=MetricLabels.METRICS_SERVICE_NAME)
-    
-    def to_dict(self) -> Dict[str, str]:
+
+    def to_dict(self) -> dict[str, str]:
         return {MetricLabels.SERVICE: self.service}
 
 class ErrorMetricLabelsSchema(BaseModel):
     error_type: str
-    
-    def to_dict(self) -> Dict[str, str]:
+
+    def to_dict(self) -> dict[str, str]:
         return {MetricLabels.ERROR_TYPE: self.error_type}
 
 class PipelineActivity(BaseModel):
@@ -194,7 +194,7 @@ def update_runtime_port_metrics(port_metrics: PortMetrics, pipeline_id: UUID, op
         operator_label=operator_label
     )
     labels_dict = labels.to_dict()
-    
+
     runtime_port_messages_sent_total.labels(**labels_dict).set(port_metrics.send_count)
     runtime_port_messages_received_total.labels(**labels_dict).set(port_metrics.recv_count)
     runtime_port_bytes_sent_total.labels(**labels_dict).set(port_metrics.send_bytes)
@@ -208,7 +208,7 @@ def record_runtime_operator_processing_time(op_metrics: OperatorMetrics, pipelin
         operator_label=operator_label
     )
     labels_dict = labels.to_dict()
-    
+
     processing_time_us = (op_metrics.timing.after_kernel - op_metrics.timing.before_kernel).microseconds
     if processing_time_us > 0:
         runtime_operator_processing_time_latest.labels(**labels_dict).set(processing_time_us)
@@ -217,7 +217,7 @@ def record_runtime_operator_processing_time(op_metrics: OperatorMetrics, pipelin
 def update_pipeline_state(state: PipelineActivity):
     labels = PipelineMetricLabelsSchema(pipeline_id=state.pipeline_id)
     labels_dict = labels.to_dict()
-    
+
     pipeline_active_ports.labels(**labels_dict).set(state.active_ports)
     pipeline_active_operators.labels(**labels_dict).set(state.active_operators)
 
@@ -227,7 +227,7 @@ def record_collection_duration(duration_seconds: float):
 def record_collection_error(error: ErrorType):
     service_labels = ServiceMetricLabelsSchema()
     service_status.labels(**service_labels.to_dict()).set(0)
-    
+
     # Don't increment for "no_pipelines" or "no_pipeline_data", not counted as errors
     if error.error_type not in (ErrorTypeEnum.NO_PIPELINES, ErrorTypeEnum.NO_PIPELINE_DATA):
         error_labels = ErrorMetricLabelsSchema(error_type=error.error_type.value)

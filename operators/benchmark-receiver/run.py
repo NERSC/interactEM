@@ -16,14 +16,14 @@ class FrameHeader(BaseModel):
 # Global state variables for tracking (keyed by frame size)
 received_frame_counts = {} # count of frames received
 total_bytes_received = {} # total bytes received
-last_frame_size = None
+prev_batch_frame_size = None
 
 @operator
 def receive_benchmark_frame(
     inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> None:
 
-    global received_frame_counts, total_bytes_received, last_frame_size
+    global received_frame_counts, total_bytes_received, prev_batch_frame_size
 
     if not inputs:
         return None
@@ -39,17 +39,18 @@ def receive_benchmark_frame(
 
     # Use frame_size as the key for tracking
     if frame_size not in received_frame_counts:
-        if last_frame_size is not None and last_frame_size in received_frame_counts:
+        if prev_batch_frame_size is not None and prev_batch_frame_size in received_frame_counts:
             logger.info(
-                f"Finished receiving frames of {last_frame_size/1024:.1f} KB: "
-                f"count={received_frame_counts[last_frame_size]}, "
-                f"total_bytes={total_bytes_received[last_frame_size]} "
-                f"({total_bytes_received[last_frame_size]/1024:.1f} KB)"
+                f"Finished receiving frames of {prev_batch_frame_size/1024:.1f} KB: "
+                f"count={received_frame_counts[prev_batch_frame_size]}, "
+                f"total_bytes={total_bytes_received[prev_batch_frame_size]} "
+                f"({total_bytes_received[prev_batch_frame_size]/1024:.1f} KB)"
             )
         total_bytes_received[frame_size] = 0
         received_frame_counts[frame_size] = 0
+
         logger.info(f"Started receiving frames of {frame_size/1024:.1f} KB")
-        last_frame_size = frame_size
+        prev_batch_frame_size = frame_size
 
     # Update counters
     received_frame_counts[frame_size] += 1

@@ -268,7 +268,7 @@ class RuntimePipeline(CanonicalPipeline):
         port = next((p for p in self.ports if p.id == port_id), None)
         if not port:
             return "unknown"
-        
+
         operator = next((op for op in self.operators if op.id == port.operator_id), None)
         return operator.label if operator else "unknown"
 

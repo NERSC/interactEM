@@ -25,12 +25,13 @@ accumulated_data = [DataFrame(size) for size in sizes_in_bytes]
 current_size_index = 0
 current_frame_repeat_count = 0
 first_time = True
+cumulative_frames = 0
 
 @operator
 def send_benchmark_frame(inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> BytesMessage | None:
 
-    global current_size_index, current_frame_repeat_count, first_time
+    global current_size_index, current_frame_repeat_count, first_time, cumulative_frames
 
     # Completed sending frames
     if current_size_index >= len(sizes_in_bytes):
@@ -43,8 +44,6 @@ def send_benchmark_frame(inputs: BytesMessage | None, parameters: dict[str, Any]
 
     current_frame = accumulated_data[current_size_index]
 
-    # Calculate cumulative frame_id across all sizes
-    cumulative_frames = sum(num_frames_per_size[:current_size_index])
     frame_id = cumulative_frames + current_frame_repeat_count
 
     # Prepare metadata
@@ -72,6 +71,7 @@ def send_benchmark_frame(inputs: BytesMessage | None, parameters: dict[str, Any]
         interval = int(parameters.get("interval", 45))
         time.sleep(interval)
 
+        cumulative_frames += num_frames_per_size[current_size_index]
         current_size_index += 1
         current_frame_repeat_count = 0
 
