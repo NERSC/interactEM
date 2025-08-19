@@ -21,11 +21,7 @@ from interactem.core.models.messages import (
     OutputPortTrackingMetadata,
 )
 from interactem.core.models.metrics import OperatorMetrics, PortMetrics
-from interactem.core.models.runtime import (
-    RuntimeOperatorID,
-    RuntimePipeline,
-    RuntimePortID,
-)
+from interactem.core.models.runtime import RuntimePipeline
 from interactem.core.nats import (
     consume_messages,
     get_keys,
@@ -37,14 +33,14 @@ from interactem.core.nats import (
 from interactem.core.nats.consumers import create_metrics_consumer
 from interactem.core.pipeline import Pipeline
 from interactem.metrics.prometheus_metrics import (
-    CollectionDuration,
     ErrorType,
-    PipelineStatus,
+    ErrorTypeEnum,
+    PipelineActivity,
     ServiceStatus,
     record_collection_duration,
     record_collection_error,
     record_runtime_operator_processing_time,
-    update_pipeline_status,
+    update_pipeline_state,
     update_runtime_port_metrics,
     update_service_status,
 )
@@ -64,20 +60,20 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
         try:
             pipeline_keys = await get_keys(pipeline_bucket, filters=[f"{PIPELINES}"])
             if not pipeline_keys:
-                record_collection_error(ErrorType(error_type="no_pipelines"))
+                record_collection_error(ErrorType(error_type=ErrorTypeEnum.NO_PIPELINES))
                 logger.info("No pipelines found...")
                 await asyncio.sleep(update_interval)
                 continue
 
             if len(pipeline_keys) > 1:
-                record_collection_error(ErrorType(error_type="multiple_pipelines"))
+                record_collection_error(ErrorType(error_type=ErrorTypeEnum.MULTIPLE_PIPELINES))
                 logger.error("More than one pipeline found...")
                 await asyncio.sleep(update_interval)
                 continue
 
             pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineRunVal)
             if not pipeline:
-                record_collection_error(ErrorType(error_type="no_pipeline_data"))
+                record_collection_error(ErrorType(error_type=ErrorTypeEnum.NO_PIPELINE_DATA))
                 logger.info("No pipeline found...")
                 await asyncio.sleep(update_interval)
                 continue
@@ -103,7 +99,7 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
                 metric = await fut
                 if not metric:
                     continue
-                operator_label = get_operator_label_for_port(metric.id, valid_pipeline)
+                operator_label = valid_pipeline.get_operator_label_by_port_id(metric.id)
                 update_runtime_port_metrics(metric, pipeline_canonical_id, operator_label)
 
             # Process operator metrics - send timing with pipeline and operator context
@@ -113,21 +109,20 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
                     logger.info("Operator metric not found...")
                     continue
                 if metric.timing.after_kernel and metric.timing.before_kernel:
-                    operator_label = get_operator_label_for_id(metric.id, valid_pipeline)
+                    operator_label = valid_pipeline.get_operator_label_by_id(metric.id)
                     record_runtime_operator_processing_time(metric, pipeline_canonical_id, operator_label)
                 else:
                     logger.info(f"Operator {metric.canonical_id} has incomplete timing data")
 
-            pipeline_status_data = PipelineStatus(
+            pipeline_status_data = PipelineActivity(
                 pipeline_id=pipeline_canonical_id,
                 active_ports=len(port_keys),
                 active_operators=len(operator_keys)
             )
-            update_pipeline_status(pipeline_status_data)
+            update_pipeline_state(pipeline_status_data)
 
             collection_duration = time.time() - start_time
-            duration_data = CollectionDuration(duration_seconds=collection_duration)
-            record_collection_duration(duration_data)
+            record_collection_duration(collection_duration)
 
             service_status_data = ServiceStatus(is_active=True)
             update_service_status(service_status_data)
@@ -136,7 +131,7 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
 
         except Exception as e:
             logger.error(f"Error in metrics collection: {e}")
-            record_collection_error(ErrorType(error_type="collection_exception"))
+            record_collection_error(ErrorType(error_type=ErrorTypeEnum.COLLECTION_EXCEPTION))
             update_service_status(ServiceStatus(is_active=False))
 
         await asyncio.sleep(update_interval)
@@ -262,28 +257,9 @@ async def handle_metrics(msg: NATSMsg, js: JetStreamContext):
         logger.warning(f"Failed to log comparison... {str(e)}")
 
 
-def get_operator_label_for_port(port_id: RuntimePortID, pipeline: RuntimePipeline) -> str:
-    if isinstance(pipeline, RuntimePipeline):
-        for port in pipeline.ports:
-            if port.id == port_id:
-                for operator in pipeline.operators:
-                    if (operator.id == port.operator_id):
-                        return operator.label
-
-    return "unknown"
-
-
-def get_operator_label_for_id(operator_id: RuntimeOperatorID, pipeline: RuntimePipeline) -> str:
-    for operator in pipeline.operators:
-        if isinstance(pipeline, RuntimePipeline):
-            if operator.id == operator_id:
-                return operator.label
-    return "unknown"
-
-
 async def main():
     update_interval = 1  # Time between collections in seconds
-    prometheus_port = cfg.METRICS_PORT
+    prometheus_port = cfg.PROMETHEUS_PORT
 
     nats_client: NATSClient = await nc(
         servers=[str(cfg.NATS_SERVER_URL)], name="metrics"

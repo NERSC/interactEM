@@ -24,9 +24,9 @@
         "label": "Pipeline ID"
       },
       {
-        "name": "operator_type",
+        "name": "operator_label",
         "type": "query",
-        "query": "label_values(interactem_runtime_port_messages_sent_total, operator_type)",
+        "query": "label_values(interactem_runtime_port_messages_sent_total, operator_label)",
         "refresh": 1,
         "includeAll": true,
         "allValue": ".*",
@@ -151,12 +151,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])) * 8 / 1000000",
-          "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "sum by (port_id, operator_label) (rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short])) * 8 / 1000000",
+          "legendFormat": "{{port_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])) * 8 / 1000000",
-          "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "sum by (port_id, operator_label) (rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long])) * 8 / 1000000",
+          "legendFormat": "{{port_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
@@ -176,12 +176,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])) * 8 / 1000000",
-          "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "sum by (port_id, operator_label) (rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short])) * 8 / 1000000",
+          "legendFormat": "{{port_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])) * 8 / 1000000",
-          "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "sum by (port_id, operator_label) (rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long])) * 8 / 1000000",
+          "legendFormat": "{{port_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
@@ -201,12 +201,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]) * 8 / 1000000",
-          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short]) * 8 / 1000000",
+          "legendFormat": "{{runtime_port_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]) * 8 / 1000000",
-          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "rate(interactem_runtime_port_bytes_sent_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long]) * 8 / 1000000",
+          "legendFormat": "{{runtime_port_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 14 },
@@ -235,12 +235,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]) * 8 / 1000000",
-          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short]) * 8 / 1000000",
+          "legendFormat": "{{runtime_port_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]) * 8 / 1000000",
-          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "rate(interactem_runtime_port_bytes_received_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long]) * 8 / 1000000",
+          "legendFormat": "{{runtime_port_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 10, "w": 12, "x": 12, "y": 14 },
@@ -275,12 +275,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]))",
-          "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "sum by (port_id, operator_label) (rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short]))",
+          "legendFormat": "{{port_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]))",
-          "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "sum by (port_id, operator_label) (rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long]))",
+          "legendFormat": "{{port_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 25 },
@@ -300,12 +300,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]))",
-          "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "sum by (port_id, operator_label) (rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short]))",
+          "legendFormat": "{{port_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "sum by (port_id, operator_type) (rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]))",
-          "legendFormat": "{{port_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "sum by (port_id, operator_label) (rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long]))",
+          "legendFormat": "{{port_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 25 },
@@ -325,12 +325,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])",
-          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short])",
+          "legendFormat": "{{runtime_port_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])",
-          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "rate(interactem_runtime_port_messages_sent_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long])",
+          "legendFormat": "{{runtime_port_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 10, "w": 12, "x": 0, "y": 33 },
@@ -359,12 +359,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])",
-          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short])",
+          "legendFormat": "{{runtime_port_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])",
-          "legendFormat": "{{runtime_port_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "rate(interactem_runtime_port_messages_received_total{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long])",
+          "legendFormat": "{{runtime_port_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 10, "w": 12, "x": 12, "y": 33 },
@@ -399,8 +399,8 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "max by (operator_id, operator_type) (interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"})",
-          "legendFormat": "{{operator_id}} ({{operator_type}})"
+          "expr": "max by (operator_id, operator_label) (interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"})",
+          "legendFormat": "{{operator_id}} ({{operator_label}})"
         }
       ],
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 44 },
@@ -422,8 +422,8 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}",
-          "legendFormat": "{{runtime_operator_id}} ({{operator_type}})"
+          "expr": "interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}",
+          "legendFormat": "{{runtime_operator_id}} ({{operator_label}})"
         }
       ],
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 44 },
@@ -445,12 +445,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "max by (operator_id, operator_type) (histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])))",
-          "legendFormat": "P95 {{operator_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "max by (operator_id, operator_label) (histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short])))",
+          "legendFormat": "P95 {{operator_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "max by (operator_id, operator_type) (histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])))",
-          "legendFormat": "P95 {{operator_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "max by (operator_id, operator_label) (histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long])))",
+          "legendFormat": "P95 {{operator_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 52 },
@@ -469,12 +469,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]))",
-          "legendFormat": "P95 {{runtime_operator_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short]))",
+          "legendFormat": "P95 {{runtime_operator_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]))",
-          "legendFormat": "P95 {{runtime_operator_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "histogram_quantile(0.95, rate(interactem_runtime_operator_processing_time_histogram_microseconds_bucket{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long]))",
+          "legendFormat": "P95 {{runtime_operator_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 52 },
@@ -493,12 +493,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "avg by (operator_id, operator_type) (avg_over_time(interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]))",
-          "legendFormat": "Avg {{operator_id}} ({{operator_type}}) - $rate_interval_short"
+          "expr": "avg by (operator_id, operator_label) (avg_over_time(interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short]))",
+          "legendFormat": "Avg {{operator_id}} ({{operator_label}}) - $rate_interval_short"
         },
         {
-          "expr": "avg by (operator_id, operator_type) (avg_over_time(interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]))",
-          "legendFormat": "Avg {{operator_id}} ({{operator_type}}) - $rate_interval_long"
+          "expr": "avg by (operator_id, operator_label) (avg_over_time(interactem_runtime_operator_processing_time_latest_microseconds{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long]))",
+          "legendFormat": "Avg {{operator_id}} ({{operator_label}}) - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 8, "w": 12, "x": 0, "y": 60 },
@@ -517,12 +517,12 @@
       "type": "timeseries",
       "targets": [
         {
-          "expr": "rate(interactem_runtime_operator_processing_time_histogram_microseconds_sum{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short]) / rate(interactem_runtime_operator_processing_time_histogram_microseconds_count{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_short])",
-          "legendFormat": "Avg {{runtime_operator_id}} [{{operator_type}}] - $rate_interval_short"
+          "expr": "rate(interactem_runtime_operator_processing_time_histogram_microseconds_sum{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short]) / rate(interactem_runtime_operator_processing_time_histogram_microseconds_count{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_short])",
+          "legendFormat": "Avg {{runtime_operator_id}} [{{operator_label}}] - $rate_interval_short"
         },
         {
-          "expr": "rate(interactem_runtime_operator_processing_time_histogram_microseconds_sum{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long]) / rate(interactem_runtime_operator_processing_time_histogram_microseconds_count{pipeline_id=~\"$pipeline_id\", operator_type=~\"$operator_type\"}[$rate_interval_long])",
-          "legendFormat": "Avg {{runtime_operator_id}} [{{operator_type}}] - $rate_interval_long"
+          "expr": "rate(interactem_runtime_operator_processing_time_histogram_microseconds_sum{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long]) / rate(interactem_runtime_operator_processing_time_histogram_microseconds_count{pipeline_id=~\"$pipeline_id\", operator_label=~\"$operator_label\"}[$rate_interval_long])",
+          "legendFormat": "Avg {{runtime_operator_id}} [{{operator_label}}] - $rate_interval_long"
         }
       ],
       "gridPos": { "h": 8, "w": 12, "x": 12, "y": 60 },
