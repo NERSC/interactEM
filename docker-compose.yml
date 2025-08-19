@@ -184,8 +184,6 @@ services:
 
   metrics:
     image: '${DOCKER_IMAGE_METRICS?Variable not set}:${TAG-latest}'
-    ports:
-    - "8001:8001"
     restart: always
     depends_on:
       db:
@@ -209,8 +207,6 @@ services:
   prometheus:
     image: prom/prometheus:latest
     container_name: prometheus
-    ports:
-      - "9090:9090"
     volumes:
       - ./backend/metrics/monitoring-conf/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
