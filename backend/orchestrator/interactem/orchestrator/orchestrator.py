@@ -113,15 +113,16 @@ async def clean_up_old_pipelines(js: JetStreamContext, valid_pipeline: RuntimePi
     bucket = await get_status_bucket(js)
     current_pipeline_keys = await get_keys(bucket, filters=[f"{PIPELINES}"])
     delete_tasks = []
+    prefix = f"{PIPELINES}."
     for key in current_pipeline_keys:
-        key = key.strip(f"{PIPELINES}.")
-        if key != str(valid_pipeline.id):
+        id = key.removeprefix(prefix)
+        if id != str(valid_pipeline.id):
             try:
-                uid = UUID(key)
+                uid = UUID(id)
                 delete_tasks.append(delete_pipeline_kv(js, uid))
-                logger.debug(f"Scheduled deletion for old pipeline key: {key}")
+                logger.debug(f"Scheduled deletion for old pipeline id: {id}")
             except ValueError:
-                logger.warning(f"Skipping deletion of non-UUID pipeline key: {key}")
+                logger.warning(f"Skipping deletion of non-UUID pipeline id: {id}")
     if delete_tasks:
         await asyncio.gather(*delete_tasks)
         logger.info(f"Deleted {len(delete_tasks)} old pipeline entries from KV store.")
@@ -517,7 +518,7 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
         )
         return
 
-    agent_ids = [UUID(agent_key.strip(f"{AGENTS}.")) for agent_key in agent_keys]
+    agent_ids = [UUID(agent_key.removeprefix(f"{AGENTS}.")) for agent_key in agent_keys]
 
     # Create a runtime pipeline w/o operators for killing the pipelin
 
