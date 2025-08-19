@@ -1,4 +1,5 @@
 from enum import Enum
+from typing import ClassVar
 from uuid import UUID
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -9,63 +10,45 @@ from interactem.core.models.metrics import OperatorMetrics, PortMetrics
 
 logger = get_logger()
 
-class MetricLabels:
-    METRICS_SERVICE_NAME = 'metrics'
-    PIPELINE_ID = 'pipeline_id'
-    OPERATOR_ID = 'operator_id'
-    RUNTIME_OPERATOR_ID = 'runtime_operator_id'
-    OPERATOR_LABEL = 'operator_label'
-    PORT_ID = 'port_id'
-    RUNTIME_PORT_ID = 'runtime_port_id'
-    SERVICE = 'service'
-    ERROR_TYPE = 'error_type'
-
-# Schema for metric label values
+# Schema for metric label values with label names as class attributes
 class PortMetricLabelsSchema(BaseModel):
+    # Class variables for label names
+    RUNTIME_PORT_ID: ClassVar[str] = 'runtime_port_id'
+    PORT_ID: ClassVar[str] = 'port_id'
+    PIPELINE_ID: ClassVar[str] = 'pipeline_id'
+    OPERATOR_LABEL: ClassVar[str] = 'operator_label'
+
+    # Instance attributes
     runtime_port_id: UUID
     port_id: UUID
     pipeline_id: UUID
     operator_label: str
 
-    def to_dict(self) -> dict[str, str]:
-        return {
-            MetricLabels.RUNTIME_PORT_ID: self.runtime_port_id,
-            MetricLabels.PORT_ID: self.port_id,
-            MetricLabels.PIPELINE_ID: self.pipeline_id,
-            MetricLabels.OPERATOR_LABEL: self.operator_label
-        }
-
 class OperatorMetricLabelsSchema(BaseModel):
+    RUNTIME_OPERATOR_ID: ClassVar[str] = 'runtime_operator_id'
+    OPERATOR_ID: ClassVar[str] = 'operator_id'
+    PIPELINE_ID: ClassVar[str] = 'pipeline_id'
+    OPERATOR_LABEL: ClassVar[str] = 'operator_label'
+
     runtime_operator_id: UUID
     operator_id: UUID
     pipeline_id: UUID
     operator_label: str
 
-    def to_dict(self) -> dict[str, str]:
-        return {
-            MetricLabels.RUNTIME_OPERATOR_ID: self.runtime_operator_id,
-            MetricLabels.OPERATOR_ID: self.operator_id,
-            MetricLabels.PIPELINE_ID: self.pipeline_id,
-            MetricLabels.OPERATOR_LABEL: self.operator_label
-        }
-
 class PipelineMetricLabelsSchema(BaseModel):
+    PIPELINE_ID: ClassVar[str] = 'pipeline_id'
+
     pipeline_id: UUID
 
-    def to_dict(self) -> dict[str, str]:
-        return {MetricLabels.PIPELINE_ID: self.pipeline_id}
-
 class ServiceMetricLabelsSchema(BaseModel):
-    service: str = Field(default=MetricLabels.METRICS_SERVICE_NAME)
+    SERVICE: ClassVar[str] = 'service'
 
-    def to_dict(self) -> dict[str, str]:
-        return {MetricLabels.SERVICE: self.service}
+    service: str = Field(default='metrics')
 
 class ErrorMetricLabelsSchema(BaseModel):
-    error_type: str
+    ERROR_TYPE: ClassVar[str] = 'error_type'
 
-    def to_dict(self) -> dict[str, str]:
-        return {MetricLabels.ERROR_TYPE: self.error_type}
+    error_type: str
 
 class PipelineActivity(BaseModel):
     pipeline_id: UUID
@@ -84,23 +67,23 @@ class ErrorType(BaseModel):
 class ServiceStatus(BaseModel):
     is_active: bool = Field(default=True, description="Whether any pipeline is active")
 
-# Metric definitions
+# Metric definitions using class attributes
 pipeline_active_ports = Gauge(
     'interactem_pipeline_active_ports',
     'Number of active ports in pipeline',
-    [MetricLabels.PIPELINE_ID]
+    [PipelineMetricLabelsSchema.PIPELINE_ID]
 )
 
 pipeline_active_operators = Gauge(
     'interactem_pipeline_active_operators',
     'Number of active operators in pipeline',
-    [MetricLabels.PIPELINE_ID]
+    [PipelineMetricLabelsSchema.PIPELINE_ID]
 )
 
 service_status = Gauge(
     'interactem_service_status',
     'Service status (1=active, 0=inactive)',
-    [MetricLabels.SERVICE]
+    [ServiceMetricLabelsSchema.SERVICE]
 )
 
 metrics_collection_duration_seconds = Histogram(
@@ -112,17 +95,17 @@ metrics_collection_duration_seconds = Histogram(
 metrics_collection_errors_total = Counter(
     'interactem_metrics_collection_errors_total',
     'Total number of metric collection errors',
-    [MetricLabels.ERROR_TYPE]
+    [ErrorMetricLabelsSchema.ERROR_TYPE]
 )
 
 runtime_port_messages_sent_total = Gauge(
     'interactem_runtime_port_messages_sent_total',
     'Total messages sent on a single runtime port instance',
     [
-        MetricLabels.RUNTIME_PORT_ID,
-        MetricLabels.PORT_ID,
-        MetricLabels.PIPELINE_ID,
-        MetricLabels.OPERATOR_LABEL
+        PortMetricLabelsSchema.RUNTIME_PORT_ID,
+        PortMetricLabelsSchema.PORT_ID,
+        PortMetricLabelsSchema.PIPELINE_ID,
+        PortMetricLabelsSchema.OPERATOR_LABEL
     ]
 )
 
@@ -130,10 +113,10 @@ runtime_port_messages_received_total = Gauge(
     'interactem_runtime_port_messages_received_total',
     'Total messages received on a single runtime port instance',
     [
-        MetricLabels.RUNTIME_PORT_ID,
-        MetricLabels.PORT_ID,
-        MetricLabels.PIPELINE_ID,
-        MetricLabels.OPERATOR_LABEL
+        PortMetricLabelsSchema.RUNTIME_PORT_ID,
+        PortMetricLabelsSchema.PORT_ID,
+        PortMetricLabelsSchema.PIPELINE_ID,
+        PortMetricLabelsSchema.OPERATOR_LABEL
     ]
 )
 
@@ -141,10 +124,10 @@ runtime_port_bytes_sent_total = Gauge(
     'interactem_runtime_port_bytes_sent_total',
     'Total bytes sent on a single runtime port instance',
     [
-        MetricLabels.RUNTIME_PORT_ID,
-        MetricLabels.PORT_ID,
-        MetricLabels.PIPELINE_ID,
-        MetricLabels.OPERATOR_LABEL
+        PortMetricLabelsSchema.RUNTIME_PORT_ID,
+        PortMetricLabelsSchema.PORT_ID,
+        PortMetricLabelsSchema.PIPELINE_ID,
+        PortMetricLabelsSchema.OPERATOR_LABEL
     ]
 )
 
@@ -152,10 +135,10 @@ runtime_port_bytes_received_total = Gauge(
     'interactem_runtime_port_bytes_received_total',
     'Total bytes received on a single runtime port instance',
     [
-        MetricLabels.RUNTIME_PORT_ID,
-        MetricLabels.PORT_ID,
-        MetricLabels.PIPELINE_ID,
-        MetricLabels.OPERATOR_LABEL
+        PortMetricLabelsSchema.RUNTIME_PORT_ID,
+        PortMetricLabelsSchema.PORT_ID,
+        PortMetricLabelsSchema.PIPELINE_ID,
+        PortMetricLabelsSchema.OPERATOR_LABEL
     ]
 )
 
@@ -163,10 +146,10 @@ runtime_operator_processing_time_latest = Gauge(
     'interactem_runtime_operator_processing_time_latest_microseconds',
     'Latest operator processing time on a single runtime operator instance',
     [
-        MetricLabels.RUNTIME_OPERATOR_ID,
-        MetricLabels.OPERATOR_ID,
-        MetricLabels.PIPELINE_ID,
-        MetricLabels.OPERATOR_LABEL
+        OperatorMetricLabelsSchema.RUNTIME_OPERATOR_ID,
+        OperatorMetricLabelsSchema.OPERATOR_ID,
+        OperatorMetricLabelsSchema.PIPELINE_ID,
+        OperatorMetricLabelsSchema.OPERATOR_LABEL
     ]
 )
 
@@ -174,26 +157,26 @@ runtime_operator_processing_time_histogram = Histogram(
     'interactem_runtime_operator_processing_time_histogram_microseconds',
     'Operator processing time histogram per‐runtime instance',
     [
-        MetricLabels.RUNTIME_OPERATOR_ID,
-        MetricLabels.OPERATOR_ID,
-        MetricLabels.PIPELINE_ID,
-        MetricLabels.OPERATOR_LABEL
+        OperatorMetricLabelsSchema.RUNTIME_OPERATOR_ID,
+        OperatorMetricLabelsSchema.OPERATOR_ID,
+        OperatorMetricLabelsSchema.PIPELINE_ID,
+        OperatorMetricLabelsSchema.OPERATOR_LABEL
     ],
     buckets=[1,10,100,1000,10000,100000,1000000,float('inf')]
 )
 
 # Initialize service status
 _initial_service_labels = ServiceMetricLabelsSchema()
-service_status.labels(**_initial_service_labels.to_dict()).set(1)
+service_status.labels(**_initial_service_labels.model_dump()).set(1)
 
 def update_runtime_port_metrics(port_metrics: PortMetrics, pipeline_id: UUID, operator_label: str):
     labels = PortMetricLabelsSchema(
-        runtime_port_id=str(port_metrics.id),
-        port_id=str(port_metrics.canonical_id),
+        runtime_port_id=port_metrics.id,
+        port_id=port_metrics.canonical_id,
         pipeline_id=pipeline_id,
         operator_label=operator_label
     )
-    labels_dict = labels.to_dict()
+    labels_dict = labels.model_dump()
 
     runtime_port_messages_sent_total.labels(**labels_dict).set(port_metrics.send_count)
     runtime_port_messages_received_total.labels(**labels_dict).set(port_metrics.recv_count)
@@ -207,7 +190,7 @@ def record_runtime_operator_processing_time(op_metrics: OperatorMetrics, pipelin
         pipeline_id=pipeline_id,
         operator_label=operator_label
     )
-    labels_dict = labels.to_dict()
+    labels_dict = labels.model_dump()
 
     processing_time_us = (op_metrics.timing.after_kernel - op_metrics.timing.before_kernel).microseconds
     if processing_time_us > 0:
@@ -216,7 +199,7 @@ def record_runtime_operator_processing_time(op_metrics: OperatorMetrics, pipelin
 
 def update_pipeline_state(state: PipelineActivity):
     labels = PipelineMetricLabelsSchema(pipeline_id=state.pipeline_id)
-    labels_dict = labels.to_dict()
+    labels_dict = labels.model_dump()
 
     pipeline_active_ports.labels(**labels_dict).set(state.active_ports)
     pipeline_active_operators.labels(**labels_dict).set(state.active_operators)
@@ -226,13 +209,13 @@ def record_collection_duration(duration_seconds: float):
 
 def record_collection_error(error: ErrorType):
     service_labels = ServiceMetricLabelsSchema()
-    service_status.labels(**service_labels.to_dict()).set(0)
+    service_status.labels(**service_labels.model_dump()).set(0)
 
     # Don't increment for "no_pipelines" or "no_pipeline_data", not counted as errors
     if error.error_type not in (ErrorTypeEnum.NO_PIPELINES, ErrorTypeEnum.NO_PIPELINE_DATA):
         error_labels = ErrorMetricLabelsSchema(error_type=error.error_type.value)
-        metrics_collection_errors_total.labels(**error_labels.to_dict()).inc()
+        metrics_collection_errors_total.labels(**error_labels.model_dump()).inc()
 
 def update_service_status(status: ServiceStatus):
     service_labels = ServiceMetricLabelsSchema()
-    service_status.labels(**service_labels.to_dict()).set(1 if status.is_active else 0)
+    service_status.labels(**service_labels.model_dump()).set(1 if status.is_active else 0)
