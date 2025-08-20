@@ -264,6 +264,18 @@ class RuntimePipeline(CanonicalPipeline):
     ports: Sequence[RuntimePort] = []
     edges: Sequence[RuntimeEdge] = []
 
+    def get_operator_label_by_port_id(self, port_id: RuntimePortID) -> str:
+        port = next((p for p in self.ports if p.id == port_id), None)
+        if not port:
+            return "unknown"
+
+        operator = next((op for op in self.operators if op.id == port.operator_id), None)
+        return operator.label if operator else "unknown"
+
+    def get_operator_label_by_id(self, operator_id: RuntimeOperatorID) -> str:
+        operator = next((op for op in self.operators if op.id == operator_id), None)
+        return operator.label if operator else "unknown"
+
 
 class AgentRuntimePipeline(RuntimePipeline):
     operators: Sequence[AgentRuntimeOperator] = []

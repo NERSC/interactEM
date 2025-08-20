@@ -1,4 +1,3 @@
-import time
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -14,20 +13,17 @@ class FrameHeader(BaseModel):
     frame_id: int
     size: int
 
-NUM_FRAMES_PER_SIZE = 1000 # expected number of frames per size
-
-# Global state variables for tracking metrics (keyed by frame size)
+# Global state variables for tracking (keyed by frame size)
 received_frame_counts = {} # count of frames received
 total_bytes_received = {} # total bytes received
-start_times = {} # timestamp when first frame received
-end_times = {} # timestamp when last frame received
+prev_batch_frame_size = None
 
 @operator
 def receive_benchmark_frame(
     inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> None:
 
-    global received_frame_counts, total_bytes_received, start_times, end_times
+    global received_frame_counts, total_bytes_received, prev_batch_frame_size
 
     if not inputs:
         return None
@@ -43,25 +39,20 @@ def receive_benchmark_frame(
 
     # Use frame_size as the key for tracking
     if frame_size not in received_frame_counts:
+        if prev_batch_frame_size is not None and prev_batch_frame_size in received_frame_counts:
+            logger.info(
+                f"Finished receiving frames of {prev_batch_frame_size/1024:.1f} KB: "
+                f"count={received_frame_counts[prev_batch_frame_size]}, "
+                f"total_bytes={total_bytes_received[prev_batch_frame_size]} "
+                f"({total_bytes_received[prev_batch_frame_size]/1024:.1f} KB)"
+            )
         total_bytes_received[frame_size] = 0
         received_frame_counts[frame_size] = 0
-        start_times[frame_size] = time.time()
+
         logger.info(f"Started receiving frames of {frame_size/1024:.1f} KB")
+        prev_batch_frame_size = frame_size
 
     # Update counters
     received_frame_counts[frame_size] += 1
     total_bytes_received[frame_size] += actual_data_size
-
-    if received_frame_counts[frame_size] == NUM_FRAMES_PER_SIZE:
-        end_times[frame_size] = time.time()
-        total_time = end_times[frame_size] - start_times[frame_size]
-        total_mb = total_bytes_received[frame_size] / (1024 * 1024)
-        throughput_mbps = (total_bytes_received[frame_size] * 8) / (total_time * 1_000_000)
-        message_rate = NUM_FRAMES_PER_SIZE / total_time
-        logger.info(
-            f"COMPLETED {NUM_FRAMES_PER_SIZE} frames of {frame_size/1024:.1f} KB | "
-            f"Total: {total_mb:.2f} MB | Time: {total_time:.2f}s | "
-            f"Throughput: {throughput_mbps:.2f} Mbps | Rate: {message_rate:.1f} msg/s | "
-        )
-
     return None

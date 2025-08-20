@@ -1,0 +1,14 @@
+FROM ghcr.io/nersc/interactem/interactem:latest
+
+WORKDIR /interactem/metrics/
+
+COPY ./metrics/README.md ./metrics/pyproject.toml ./metrics/poetry.lock* ./
+
+RUN poetry install --no-root
+
+COPY ./metrics/interactem/ ./interactem/
+RUN poetry install
+
+COPY ./metrics/run.py ./run.py
+
+CMD ["python", "run.py"]
