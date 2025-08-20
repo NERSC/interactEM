@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import ClassVar
 from uuid import UUID
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -10,44 +9,25 @@ from interactem.core.models.metrics import OperatorMetrics, PortMetrics
 
 logger = get_logger()
 
-# Schema for metric label values with label names as class attributes
 class PortMetricLabelsSchema(BaseModel):
-    # Class variables for label names
-    RUNTIME_PORT_ID: ClassVar[str] = 'runtime_port_id'
-    PORT_ID: ClassVar[str] = 'port_id'
-    PIPELINE_ID: ClassVar[str] = 'pipeline_id'
-    OPERATOR_LABEL: ClassVar[str] = 'operator_label'
-
-    # Instance attributes
     runtime_port_id: UUID
     port_id: UUID
     pipeline_id: UUID
     operator_label: str
 
 class OperatorMetricLabelsSchema(BaseModel):
-    RUNTIME_OPERATOR_ID: ClassVar[str] = 'runtime_operator_id'
-    OPERATOR_ID: ClassVar[str] = 'operator_id'
-    PIPELINE_ID: ClassVar[str] = 'pipeline_id'
-    OPERATOR_LABEL: ClassVar[str] = 'operator_label'
-
     runtime_operator_id: UUID
     operator_id: UUID
     pipeline_id: UUID
     operator_label: str
 
 class PipelineMetricLabelsSchema(BaseModel):
-    PIPELINE_ID: ClassVar[str] = 'pipeline_id'
-
     pipeline_id: UUID
 
 class ServiceMetricLabelsSchema(BaseModel):
-    SERVICE: ClassVar[str] = 'service'
-
     service: str = Field(default='metrics')
 
 class ErrorMetricLabelsSchema(BaseModel):
-    ERROR_TYPE: ClassVar[str] = 'error_type'
-
     error_type: str
 
 class PipelineActivity(BaseModel):
@@ -71,19 +51,19 @@ class ServiceStatus(BaseModel):
 pipeline_active_ports = Gauge(
     'interactem_pipeline_active_ports',
     'Number of active ports in pipeline',
-    [PipelineMetricLabelsSchema.PIPELINE_ID]
+    [*PipelineMetricLabelsSchema.model_fields]
 )
 
 pipeline_active_operators = Gauge(
     'interactem_pipeline_active_operators',
     'Number of active operators in pipeline',
-    [PipelineMetricLabelsSchema.PIPELINE_ID]
+    [*PipelineMetricLabelsSchema.model_fields]
 )
 
 service_status = Gauge(
     'interactem_service_status',
     'Service status (1=active, 0=inactive)',
-    [ServiceMetricLabelsSchema.SERVICE]
+    [*ServiceMetricLabelsSchema.model_fields]
 )
 
 metrics_collection_duration_seconds = Histogram(
@@ -95,73 +75,43 @@ metrics_collection_duration_seconds = Histogram(
 metrics_collection_errors_total = Counter(
     'interactem_metrics_collection_errors_total',
     'Total number of metric collection errors',
-    [ErrorMetricLabelsSchema.ERROR_TYPE]
+    [*ErrorMetricLabelsSchema.model_fields]
 )
 
 runtime_port_messages_sent_total = Gauge(
     'interactem_runtime_port_messages_sent_total',
     'Total messages sent on a single runtime port instance',
-    [
-        PortMetricLabelsSchema.RUNTIME_PORT_ID,
-        PortMetricLabelsSchema.PORT_ID,
-        PortMetricLabelsSchema.PIPELINE_ID,
-        PortMetricLabelsSchema.OPERATOR_LABEL
-    ]
+    [*PortMetricLabelsSchema.model_fields]
 )
 
 runtime_port_messages_received_total = Gauge(
     'interactem_runtime_port_messages_received_total',
     'Total messages received on a single runtime port instance',
-    [
-        PortMetricLabelsSchema.RUNTIME_PORT_ID,
-        PortMetricLabelsSchema.PORT_ID,
-        PortMetricLabelsSchema.PIPELINE_ID,
-        PortMetricLabelsSchema.OPERATOR_LABEL
-    ]
+    [*PortMetricLabelsSchema.model_fields]
 )
 
 runtime_port_bytes_sent_total = Gauge(
     'interactem_runtime_port_bytes_sent_total',
     'Total bytes sent on a single runtime port instance',
-    [
-        PortMetricLabelsSchema.RUNTIME_PORT_ID,
-        PortMetricLabelsSchema.PORT_ID,
-        PortMetricLabelsSchema.PIPELINE_ID,
-        PortMetricLabelsSchema.OPERATOR_LABEL
-    ]
+    [*PortMetricLabelsSchema.model_fields]
 )
 
 runtime_port_bytes_received_total = Gauge(
     'interactem_runtime_port_bytes_received_total',
     'Total bytes received on a single runtime port instance',
-    [
-        PortMetricLabelsSchema.RUNTIME_PORT_ID,
-        PortMetricLabelsSchema.PORT_ID,
-        PortMetricLabelsSchema.PIPELINE_ID,
-        PortMetricLabelsSchema.OPERATOR_LABEL
-    ]
+    [*PortMetricLabelsSchema.model_fields]
 )
 
 runtime_operator_processing_time_latest = Gauge(
     'interactem_runtime_operator_processing_time_latest_microseconds',
     'Latest operator processing time on a single runtime operator instance',
-    [
-        OperatorMetricLabelsSchema.RUNTIME_OPERATOR_ID,
-        OperatorMetricLabelsSchema.OPERATOR_ID,
-        OperatorMetricLabelsSchema.PIPELINE_ID,
-        OperatorMetricLabelsSchema.OPERATOR_LABEL
-    ]
+    [*OperatorMetricLabelsSchema.model_fields]
 )
 
 runtime_operator_processing_time_histogram = Histogram(
     'interactem_runtime_operator_processing_time_histogram_microseconds',
     'Operator processing time histogram per‐runtime instance',
-    [
-        OperatorMetricLabelsSchema.RUNTIME_OPERATOR_ID,
-        OperatorMetricLabelsSchema.OPERATOR_ID,
-        OperatorMetricLabelsSchema.PIPELINE_ID,
-        OperatorMetricLabelsSchema.OPERATOR_LABEL
-    ],
+    [*OperatorMetricLabelsSchema.model_fields],
     buckets=[1,10,100,1000,10000,100000,1000000,float('inf')]
 )
 
