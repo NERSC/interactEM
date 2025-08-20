@@ -147,46 +147,18 @@ def log_comparison(header: MessageHeader, pipeline: RuntimePipeline):
     # Create a dictionary to map node IDs to their tracking metadata
     tracking_dict = {meta.id: meta for meta in tracking}
 
-    try:
-        pipeline_obj = Pipeline.from_runtime_pipeline(pipeline)
-        # Check if last_id exists in the pipeline before creating subgraph
-        if last_id not in pipeline_obj.nodes():
-            logger.warning(f"Node {last_id} from tracking not found in pipeline graph. Available nodes: {list(pipeline_obj.nodes())}")
-            return
-
-        pipeline_obj = Pipeline.from_upstream_subgraph(pipeline_obj, last_id)
-    except networkx.exception.NetworkXError as e:
-        logger.error(f"NetworkX Error while creating pipeline subgraph: {e}")
-        logger.error(f"last_id: {last_id}")
-        logger.error(f"Available nodes in pipeline: {list(Pipeline.from_pipeline(pipeline).nodes()) if pipeline else 'No pipeline'}")
-        return
-    except Exception as e:
-        logger.error(f"Unexpected error while creating pipeline subgraph: {e}")
-        return
+    pipeline_obj = Pipeline.from_pipeline(pipeline)
+    pipeline_obj = Pipeline.from_upstream_subgraph(pipeline_obj, last_id)
 
     previous_node_id = None
     previous_metadata = None
     first_line = True
 
-    for line in generate_network_text(pipeline_obj):
-        parts = line.split()
-        if not parts:
-            logger.warning(f"Empty line encountered: '{line}'")
-            continue
-        # Check if the last part looks like a UUID (contains dashes and hex characters)
-        potential_uuid = parts[-1].strip()
-        # Simple UUID pattern check - UUIDs have 36 chars and contain dashes
-        if len(potential_uuid) == 36 and '-' in potential_uuid:
-            try:
-                node_id = UUID(potential_uuid)
-            except ValueError:
-                logger.debug(f"Skipping non-UUID line: '{line}'")
-                continue
-        else:
-            # This is a human-readable name line, skip it
-            logger.debug(f"Skipping name line: '{line}'")
-            continue
+    for node in pipeline_obj.nodes():
+        pipeline_obj.nodes[node]['label'] = str(node)
 
+    for line in generate_network_text(pipeline_obj):
+        node_id = UUID(line.split()[-1])
         image = None
         for idx, id in enumerate([op.id for op in pipeline.operators]):
             if id == node_id:
