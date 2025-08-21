@@ -1,16 +1,113 @@
 from collections.abc import Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import msgpack
 import numpy as np
 import stempy.image as stim
 import zmq
+from pydantic import ValidationError
 from stempy.io import SparseArray
 
-from distiller_streaming.accumulator import FrameAccumulator
+from distiller_streaming.models import BatchedFrameHeader, FrameHeader
 from interactem.core.logger import get_logger
+from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
+
+if TYPE_CHECKING:
+    from distiller_streaming.accumulator import FrameAccumulator
+else:
+    from pydantic import BaseModel
+
+    FrameAccumulator = BaseModel
+
 
 logger = get_logger()
+
+
+def validate_message(
+    message: BytesMessage,
+) -> tuple[BatchedFrameHeader | FrameHeader, bytes]:
+    meta = message.header.meta
+    try:
+        meta = BatchedFrameHeader(**meta)
+    except ValidationError:
+        meta = FrameHeader(**meta)
+
+    data = message.data
+    return meta, data
+
+
+def extract_header_frame_pairs(
+    buffer: bytes, headers: list[FrameHeader]
+) -> list[tuple[FrameHeader, np.ndarray]]:
+    pairs: list[tuple[FrameHeader, np.ndarray]] = []
+    offset = 0
+
+    for header in headers:
+        # Validate enough bytes remain for this frame
+        if offset + header.data_size_bytes > len(buffer):
+            raise ValueError(
+                f"Insufficient data for frame at position "
+                f"({header.STEM_row_in_scan}, {header.STEM_x_position_in_row}). "
+                f"Expected {header.data_size_bytes} bytes at offset {offset}, "
+                f"but only {len(buffer) - offset} bytes remaining."
+            )
+
+        # Slice and convert
+        frame_bytes = buffer[offset : offset + header.data_size_bytes]
+        frame_data = np.frombuffer(frame_bytes, dtype=header.np_dtype)
+        pairs.append((header, frame_data))
+
+        offset += header.data_size_bytes
+
+    if offset != len(buffer):
+        raise ValueError(f"Unused bytes detected: {len(buffer) - offset}")
+
+    return pairs
+
+
+def are_all_same_scan_number(headers: list[FrameHeader]) -> bool:
+    if not headers:
+        return True
+    first_scan_number = headers[0].scan_number
+    return all(header.scan_number == first_scan_number for header in headers)
+
+
+def separate_header_datas(
+    pairs: list[tuple[FrameHeader, np.ndarray]],
+) -> tuple[list[FrameHeader], list[np.ndarray]]:
+    if not pairs:
+        return [], []
+    headers, data = zip(*pairs, strict=True)
+    return list(headers), list(data)
+
+
+def create_batch_message(
+    headers: list[FrameHeader], data: list[np.ndarray]
+) -> BytesMessage:
+    """
+    Creates a batch message from the given headers and data arrays.
+    """
+    if not headers or not data or len(headers) != len(data):
+        raise ValueError("Headers and data must be non-empty and of the same length.")
+
+    scan_number = headers[0].scan_number
+    all_same = are_all_same_scan_number(headers)
+    if not all_same:
+        raise ValueError("All headers must have the same scan number.")
+
+    message = BytesMessage(
+        header=MessageHeader(
+            subject=MessageSubject.BYTES,
+            meta=BatchedFrameHeader(
+                scan_number=scan_number,
+                headers=headers,
+                total_batch_size_bytes=sum(h.data_size_bytes for h in headers),
+            ).model_dump(),
+        ),
+        data=b"".join(d.tobytes() for d in data),
+    )
+
+    return message
 
 
 def get_summed_diffraction_pattern(

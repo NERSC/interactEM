@@ -40,6 +40,7 @@ build_dirs=(
     "beam-compensation"
     "data-replay"
     "detstream-aggregator"
+    "distiller-counted-data-reader"
     "detstream-assembler"
     "detstream-producer"
     "detstream-state-server"
@@ -53,6 +54,7 @@ build_dirs=(
     "sparse-frame-image-converter"
     "benchmark-sender"
     "benchmark-receiver"
+    "virtual-bfdf"
 )
 
 # Function to check if a directory is in the build_dirs array

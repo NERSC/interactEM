@@ -1,6 +1,6 @@
-FROM ghcr.io/nersc/interactem/operator
+FROM ghcr.io/nersc/interactem/distiller_streaming
 
-RUN pip install scipy ncempy stempy
+RUN poetry add scipy ncempy cffi
 
 COPY ./run.py /app/run.py
 

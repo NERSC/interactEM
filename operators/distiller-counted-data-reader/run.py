@@ -27,10 +27,11 @@ def reader(
     global source_dataset_path, active_emitter, current_scan_number
     global current_filename
 
-    # Handle Parameter Updates
     filename = parameters.get("filename", None)
     frame_delay_ns = float(parameters.get("frame_delay_ns", 1000))
     frame_delay_sec = frame_delay_ns / 1_000_000_000.0 if frame_delay_ns > 0 else 0
+    batch_size_mb = parameters.get("batch_size_mb", 1.0)
+    acquisition_delay_sec = parameters.get("acquisition_delay_s", 30)
 
     if not filename:
         raise ValueError("Filename parameter 'filename' is not set.")
@@ -53,14 +54,19 @@ def reader(
             logger.info(f"Loading dataset from: {source_dataset_path} for Scan {current_scan_number}")
             loaded_sparse_array = stempy.io.load_electron_counts(source_dataset_path)
             active_emitter = FrameEmitter(
-                sparse_array=loaded_sparse_array, scan_number=current_scan_number
+                sparse_array=loaded_sparse_array,
+                scan_number=current_scan_number,
+                batch_size_mb=batch_size_mb,
             )
             logger.info(
                 f"Emitter created for Scan {current_scan_number}. "
                 f"Scan Shape: {loaded_sparse_array.scan_shape}, "
                 f"Frame Shape: {loaded_sparse_array.frame_shape}, "
-                f"Total Frames: {active_emitter.total_frames}."
+                f"Total Frames: {active_emitter.total_frames}. "
+                f"Batch size: {batch_size_mb} MB)."
             )
+            logger.info(f"Sleeping for {acquisition_delay_sec} seconds.")
+            time.sleep(acquisition_delay_sec)
         except Exception as e:
             logger.error(f"Failed to load dataset or create emitter from {source_dataset_path}: {e}")
             active_emitter = None
