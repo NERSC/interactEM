@@ -31,7 +31,7 @@ class MessageSubject(str, Enum):
 
 class MessageHeader(BaseModel):
     subject: MessageSubject
-    meta: dict[str, Any] = {}
+    meta: bytes | dict[str, Any] = b"{}"
     tracking: (
         list[
             OperatorTrackingMetadata
