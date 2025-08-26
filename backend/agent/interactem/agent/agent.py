@@ -161,6 +161,8 @@ class Agent:
         self.agent_kv: KeyValueLoop[AgentVal]
         self.container_trackers: dict[RuntimeOperatorID, ContainerTracker] = {}
         self._container_monitor_task: asyncio.Task | None = None
+        # suppress monitor during container cleanup
+        self._suppress_monitor = False
         self._task_refs: set[asyncio.Task] = set()
 
     async def _start_podman_service(self, create_process=False):
@@ -203,17 +205,20 @@ class Agent:
 
     async def _cleanup_containers(self):
         logger.info("Cleaning up containers...")
-
-        with PodmanClient(base_url=self._podman_service_uri) as client:
-            containers = client.containers.list(
-                filters={"label": f"agent.id={self.id}"}
-            )
-            tasks = [stop_and_remove_container(container) for container in containers]
-
-            # Run the tasks concurrently
-            await asyncio.gather(*tasks)
-
-        self.container_trackers = {}
+        self._suppress_monitor = True
+        try:
+            # Clear trackers first to avoid restarts
+            self.container_trackers.clear()
+            with PodmanClient(base_url=self._podman_service_uri) as client:
+                containers = client.containers.list(
+                    filters={"label": f"agent.id={self.id}"}
+                )
+                tasks = [
+                    stop_and_remove_container(container) for container in containers
+                ]
+                await asyncio.gather(*tasks)
+        finally:
+            self._suppress_monitor = False
 
     async def run(self):
         logger.info(f"Starting agent with configuration: {cfg.model_dump()}")
@@ -248,7 +253,9 @@ class Agent:
             self.agent_val.status = AgentStatus.BUSY
             self.agent_val.status_message = "Cleaning up containers..."
             await self.agent_kv.update_now()
+            self._suppress_monitor = True
             await self._cleanup_containers()
+            self._suppress_monitor = False
             self.agent_val.status_message = "Starting operators..."
             await self.agent_kv.update_now()
             await self.start_operators()
@@ -467,6 +474,11 @@ class Agent:
     async def monitor_containers(self):
         while not self._shutdown_event.is_set():
             await asyncio.sleep(3)
+
+            if self._suppress_monitor:
+                logger.debug("Container monitoring suppressed.")
+                continue
+
             for _, tracker in list(self.container_trackers.items()):
                 if tracker.marked_for_restart:
                     await self.restart_operator(tracker)
