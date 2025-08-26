@@ -10,6 +10,7 @@ services:
       - ./backend/app/:/interactem/app
       - ./backend/core/:/interactem/core
       - ./backend/sfapi_models/:/interactem/sfapi_models
+      - ./operators/:/operators
     command: 
       - fastapi
       - run
