@@ -449,7 +449,7 @@ class OperatorMixin(RunnableKernel):
                 processed_msg = await self.run_kernel(msg, self.parameters.values)
                 error_count = 0
             except Exception as e:
-                logger.error(f"Error in kernel: {e}")
+                logger.exception(f"Error in kernel: {e}")
                 if not error_state:
                     error_state = True
                     self.val.add_error(str(e))
