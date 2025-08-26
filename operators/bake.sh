@@ -1,60 +1,126 @@
 #!/bin/bash
+set -e
+
 SCRIPT_DIR=$(dirname "$0")
 REPO_ROOT_DIR=$(git rev-parse --show-toplevel)
 TAG=$(git rev-parse --short=6 HEAD)
+OPERATORS_DIR="$REPO_ROOT_DIR/operators"
+BAKE_FILE="$OPERATORS_DIR/docker-bake.hcl"
+OPERATOR_JSON="operator.json"
+VENV_DIR="$OPERATORS_DIR/distiller-streaming/.venv"
 
-cd $REPO_ROOT_DIR
+BUILD_BASE=false
+PUSH_LOCAL=false
+PUSH_REMOTE=false
+TARGET=""
 
-# Build all images using Docker Bake
-docker buildx bake base --file $REPO_ROOT_DIR/operators/docker-bake.hcl
-docker buildx bake operator --file $REPO_ROOT_DIR/operators/docker-bake.hcl
-docker buildx bake distiller-streaming --file $REPO_ROOT_DIR/operators/docker-bake.hcl
-docker buildx bake operators --file $REPO_ROOT_DIR/operators/docker-bake.hcl --provenance=false
+# Parse args
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --build-base)
+            BUILD_BASE=true
+            shift
+            ;;
+        --push-local)
+            PUSH_LOCAL=true
+            VARS="$OPERATORS_DIR/vars-local.hcl"
+            shift
+            ;;
+        --push-remote)
+            PUSH_REMOTE=true
+            VARS="$OPERATORS_DIR/vars-prod.hcl"
+            shift
+            ;;
+        --target)
+            TARGET="$2"
+            shift 2
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
 
-if [ $? -ne 0 ]; then
-    echo "Failed to build images"
+if [ -z "$VARS" ]; then
+    echo "Error: Must specify either --push-local or --push-remote"
     exit 1
 fi
 
-generate_label_args() {
-    local label_args=""
-    # Process each operator directory
-    for dir in "$REPO_ROOT_DIR/operators"/*; do
-        if [ -d "$dir" ] && [ -f "$dir/operator.json" ] && [ -f "$dir/Containerfile" ]; then
-            op_name=$(basename "$dir")
+BASE_VARS="$OPERATORS_DIR/vars-base.hcl"
 
-            # Get json
-            operator_json=$(jq -c . "$dir/operator.json" 2>/dev/null)
-            if [ $? -ne 0 ] || [ -z "$operator_json" ]; then
-                continue
+cd "$REPO_ROOT_DIR"
+
+
+if $BUILD_BASE; then
+    echo "=== Building base images ==="
+    docker buildx bake base --file "$BAKE_FILE" \
+        --file "$BASE_VARS"
+
+    docker buildx bake operator --file "$BAKE_FILE" \
+        --file "$BASE_VARS"
+
+    docker buildx bake distiller-streaming --file "$BAKE_FILE" \
+        --file "$BASE_VARS"
+fi
+
+#
+# === Build operators ===
+#
+build_operators() {
+    local cmd=(docker buildx bake)
+    local has_labels=false
+    
+    if [ -n "$TARGET" ]; then
+        cmd+=("$TARGET")
+        cmd+=(--provenance=false)
+    else
+        cmd+=(operators)
+    fi
+
+    cmd+=(--file "$BAKE_FILE")
+    cmd+=(--file "$VARS")
+    
+    # Add labels from operator.json files
+    for dir in "$OPERATORS_DIR"/*; do
+        if [ -d "$dir" ] && [ -f "$dir/$OPERATOR_JSON" ] && [ -f "$dir/Containerfile" ]; then
+            op_name=$(basename "$dir")
+            operator_json_file=$(jq -c . "$dir/$OPERATOR_JSON" 2>/dev/null)
+            if [ $? -eq 0 ] && [ -n "$operator_json_file" ]; then
+                cmd+=(--set "${op_name}.labels.interactem.operator.spec=${operator_json_file}")
+                has_labels=true
             fi
-            # Add set argument using file instead of inline string
-            label_args="${label_args} --set ${op_name}.labels.interactem.operator.spec='${operator_json}'"
         fi
     done
     
-    echo "$label_args"
+    # Check if we found any labels
+    if [ "$has_labels" = false ]; then
+        echo "No operator.json files found or all are empty."
+        return 1
+    fi
+    
+    cmd+=(--push)
+    
+    # Execute the command
+    "${cmd[@]}"
 }
 
-LABEL_ARGS=$(generate_label_args)
-if [ -z "$LABEL_ARGS" ]; then
-    echo "No operator.json files found or all are empty."
-    exit 1
-fi
-
-# Create a temporary script because escaping json is hard
-TMP_SCRIPT="/tmp/docker_buildx_script.sh"
-cat > "$TMP_SCRIPT" << EOL
-#!/bin/bash
-docker buildx bake operators --file $REPO_ROOT_DIR/operators/docker-bake.hcl --push --provenance=false $LABEL_ARGS
-EOL
-
-chmod +x "$TMP_SCRIPT"
-"$TMP_SCRIPT"
+echo "=== Building operators ==="
+build_operators
 build_status=$?
-rm -f "$TMP_SCRIPT"
 
 if [ $build_status -ne 0 ]; then
     echo "Failed to build/push images"
     exit 1
 fi
+
+#
+# === Pull locally built images to podman ===
+#
+if $PUSH_LOCAL; then
+    echo "=== Pulling images back from local registry ==="
+    cd $OPERATORS_DIR
+    source $VENV_DIR/bin/activate
+    poetry run python pull_images_from_bake.py
+fi
+
+echo "=== Done ==="
