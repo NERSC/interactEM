@@ -84,6 +84,15 @@ export const toJSON = (nodes: OperatorNodeTypes[], edges: Edge[]) => {
   const edgesJSON: CanonicalEdge[] = []
   const portIDs: Set<string> = new Set<string>()
 
+  // Find which ports are referenced by edges in the graph
+  // We don't want to include these ports if they are not on
+  // the graph 
+  const usedPortIDs: Set<string> = new Set<string>()
+  for (const e of edges) {
+    if (e.sourceHandle != null) usedPortIDs.add(e.sourceHandle)
+    if (e.targetHandle != null) usedPortIDs.add(e.targetHandle)
+  }
+
   // Generate the ports and operators
   for (const node of nodes) {
     const data = node.data
@@ -92,11 +101,9 @@ export const toJSON = (nodes: OperatorNodeTypes[], edges: Edge[]) => {
     const parameters = data.parameters
     const tags = data.tags
 
-    // Ports
     for (const portID of inputs ?? []) {
-      if (portIDs.has(portID)) {
-        continue
-      }
+      if (portIDs.has(portID)) continue
+      if (!usedPortIDs.has(portID)) continue
       portIDs.add(portID)
 
       const port: CanonicalPort = {
@@ -110,9 +117,8 @@ export const toJSON = (nodes: OperatorNodeTypes[], edges: Edge[]) => {
     }
 
     for (const portID of outputs ?? []) {
-      if (portIDs.has(portID)) {
-        continue
-      }
+      if (portIDs.has(portID)) continue
+      if (!usedPortIDs.has(portID)) continue
       portIDs.add(portID)
 
       const port: CanonicalPort = {
