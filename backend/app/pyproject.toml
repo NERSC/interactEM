@@ -7,7 +7,7 @@ packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-fastapi = {extras= ["standard"], version = "^0.115"}
+fastapi = {extras= ["standard-no-fastapi-cloud-cli"], version = "^0.116"}
 python-multipart = "^0.0.18"
 email-validator = "^2.1.0.post1"
 passlib = {extras = ["bcrypt"], version = "^1.7.4"}
