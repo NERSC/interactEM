@@ -1,16 +1,18 @@
 import json
-from typing import Any
+from typing import Any, Coroutine
 import asyncio
+from pathlib import Path
 
 import httpx
 from jsonpath_ng import parse
 
 from interactem.app.core.config import settings
 from interactem.app.operators.registry import ContainerRegistry
-from interactem.core.models.spec import OperatorSpec
+from interactem.core.models.spec import OperatorSpec, OperatorSpecID
 from interactem.core.logger import get_logger
 
 OPERATOR_SPEC_KEY = "interactem.operator.spec"
+OPERATOR_JSON_FILENAME = "operator.json"
 logger = get_logger()
 
 
@@ -64,18 +66,38 @@ async def _operator(
 
 async def _fetch_operator(
     registry: ContainerRegistry, image: str
-) -> dict[str, Any] | None:
+) -> OperatorSpec | None:
     tags = await registry.tags(image)
     # For now only include images with a latest tag
     if "latest" in tags:
         operator = await _operator(registry, image, "latest")
         if operator:
-            return operator
+            return OperatorSpec(**operator)
 
     return None
 
 
 async def fetch_operators() -> list[OperatorSpec]:
+    # Load local operators from mounted directory
+    local_ops: list[OperatorSpec] = []
+    local_dir = Path(settings.LOCAL_OPERATORS_DIR)
+    if local_dir.exists() and local_dir.is_dir():
+        for sub in local_dir.iterdir():
+            if not sub.is_dir():
+                continue
+            op_file = sub / OPERATOR_JSON_FILENAME
+            if not op_file.exists():
+                continue
+            try:
+                with op_file.open("r", encoding="utf-8") as f:
+                    op = json.load(f)
+                    local_ops.append(OperatorSpec(**op))
+            except Exception:
+                logger.warning(f"Failed to load local operator file: {op_file}")
+
+    logger.info("Loaded local operators: %s", [op.label for op in local_ops])
+
+    # Fetch operators from the container registry
     async with ContainerRegistry(
         str(settings.CONTAINER_REGISTRY_URL),
         settings.GITHUB_USERNAME,
@@ -85,10 +107,14 @@ async def fetch_operators() -> list[OperatorSpec]:
         prefix = f"{settings.CONTAINER_REGISTRY_NAMESPACE}/{settings.OPERATOR_CONTAINER_PREFIX}"
         images = [image for image in images if image.startswith(prefix)]
 
-        fetch_operator_tasks = []
+        fetch_operator_tasks: list[Coroutine[Any, Any, OperatorSpec | None]] = []
         for image in images:
             fetch_operator_tasks.append(_fetch_operator(registry, image))
 
-        ops = await asyncio.gather(*fetch_operator_tasks)
+        registry_ops = await asyncio.gather(*fetch_operator_tasks)
+        registry_ops = [op for op in registry_ops if op]
 
-        return [OperatorSpec(**op) for op in ops if op]
+    merged: dict[OperatorSpecID, OperatorSpec] = {op.id: op for op in registry_ops}
+    merged.update({op.id: op for op in local_ops})
+
+    return [op for op in merged.values()]
