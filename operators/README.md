@@ -26,6 +26,6 @@
     poetry run python pull_images_from_bake.py
     ```
 
-    This will pull local registry images into podman and tag them appropriately with [`pull_images_from_bake.py`](./pull_images_from_bake.py). This also runs at the end of [`bake.sh`](./bake.sh)
+    This will pull local registry images into podman and tag them appropriately with [`pull_images_from_bake.py`](./pull_images_from_bake.py). This also runs at the end of [`bake.sh`](./bake.sh) if `--pull-local` is given.
 
 The [build_all.sh](./build_all.sh) script was used before, but it is cumbersome so I am not updating it.

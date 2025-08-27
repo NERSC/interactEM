@@ -12,6 +12,7 @@ VENV_DIR="$OPERATORS_DIR/distiller-streaming/.venv"
 BUILD_BASE=false
 PUSH_LOCAL=false
 PUSH_REMOTE=false
+PULL_LOCAL=false
 TARGET=""
 
 # Parse args
@@ -24,6 +25,10 @@ while [[ $# -gt 0 ]]; do
         --push-local)
             PUSH_LOCAL=true
             VARS="$OPERATORS_DIR/vars-local.hcl"
+            shift
+            ;;
+        --pull-local)
+            PULL_LOCAL=true
             shift
             ;;
         --push-remote)
@@ -116,7 +121,7 @@ fi
 #
 # === Pull locally built images to podman ===
 #
-if $PUSH_LOCAL; then
+if $PUSH_LOCAL && $PULL_LOCAL; then
     echo "=== Pulling images back from local registry ==="
     cd $OPERATORS_DIR
     source $VENV_DIR/bin/activate
