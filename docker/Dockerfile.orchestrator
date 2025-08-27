@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/interactem:latest
+FROM interactem-base
 
 WORKDIR /interactem/orchestrator/
 COPY ./orchestrator/README.md ./orchestrator/pyproject.toml ./orchestrator/poetry.lock* ./

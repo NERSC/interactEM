@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/interactem:latest
+FROM interactem-base
 
 # --- Install interactem operators deps ---
 WORKDIR /interactem/operators
