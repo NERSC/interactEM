@@ -1,0 +1,32 @@
+{
+  "id": "4e4abf43-0464-42b7-8020-b6acea28a6f6",
+  "image": "ghcr.io/nersc/interactem/center-of-mass-reduce",
+  "label": "Reduce Center of Mass",
+  "description": "Reduces partial centers of mass for a particular scan",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "frame",
+      "description": "inputs frame"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "com",
+      "label": "Output com",
+      "type": "array",
+      "description": "Center of mass"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "emit_every",
+      "type": "int",
+      "description": "Emit every N frames",
+      "default": "50",
+      "label": "Emit Every",
+      "required": true
+    }
+  ]
+}

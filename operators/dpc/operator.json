@@ -1,0 +1,48 @@
+{
+  "id": "585e9605-088e-4190-8b21-a8338cddd39b",
+  "image": "ghcr.io/nersc/interactem/dpc",
+  "label": "DPC",
+  "description": "Differential Phase Contrast",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "com",
+      "description": "Center of Mass"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "image",
+      "label": "Output matplotlib image",
+      "type": "image",
+      "description": "Differential Phase Contrast image"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "flip",
+      "type": "bool",
+      "description": "Whether to flip the image",
+      "default": "true",
+      "label": "Flip",
+      "required": true
+    },
+    {
+      "name": "theta",
+      "type": "float",
+      "description": "Angle to rotate the image",
+      "default": "-9",
+      "label": "Theta",
+      "required": true
+    },
+    {
+      "name": "reg",
+      "type": "float",
+      "description": "Regularization parameter",
+      "default": "0.1",
+      "label": "Regularization",
+      "required": true
+    }
+  ]
+}

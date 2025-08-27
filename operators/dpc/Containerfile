@@ -1,0 +1,5 @@
+FROM ghcr.io/nersc/interactem/distiller-streaming
+
+RUN poetry add matplotlib cffi
+
+COPY ./run.py /app/run.py

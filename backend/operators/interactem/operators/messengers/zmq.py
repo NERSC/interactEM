@@ -98,23 +98,29 @@ class ZmqMessenger(BaseMessenger):
         all_messages: list[BytesMessage] = []
 
         for id, msg_parts in id_msgs:
+            raw_meta = None
+
             if len(msg_parts) == 2:
                 _header, _data = msg_parts
             elif len(msg_parts) == 3:
-                _, _header, _data = msg_parts
+                _header, raw_meta, _data = msg_parts
             else:
-                logger.error(
-                    "Received an unexpected number of message parts: %s", len(msg_parts)
-                )
                 return None
 
+            # Decode header JSON
             if isinstance(_header, zmq.Message):
                 header = MessageHeader.model_validate_json(_header.bytes)
             elif isinstance(_header, bytes):
                 header = MessageHeader.model_validate_json(_header)
             else:
-                logger.error("Received an unexpected message type: %s", type(_header))
                 continue
+
+            # If meta was sent separately as bytes, restore it
+            if raw_meta is not None:
+                if isinstance(raw_meta, zmq.Message):
+                    header.meta = raw_meta.bytes
+                else:
+                    header.meta = raw_meta
 
             if header.subject != MessageSubject.BYTES:
                 logger.error(
@@ -122,11 +128,12 @@ class ZmqMessenger(BaseMessenger):
                 )
                 continue
 
-            msg = (
-                BytesMessage(header=header, data=_data.bytes)
-                if isinstance(_data, zmq.Message)
-                else BytesMessage(header=header, data=_data)
-            )
+            if isinstance(_data, zmq.Message):
+                msg = BytesMessage(header=header, data=_data.bytes)
+            else:
+                msg = BytesMessage(header=header, data=_data)
+
+            # Tracking update
             if header.tracking is not None:
                 header.tracking.append(
                     InputPortTrackingMetadata(
@@ -157,21 +164,32 @@ class ZmqMessenger(BaseMessenger):
         msg_futures = []
         data = message.data
         should_copy_header = len(self.output_ports) > 1
-        time_before_send = datetime.now()
         for socket in self.output_sockets.values():
-            # need to copy to send same message to multple sockets
-            # otherwise we will continue to append to the same header
             if should_copy_header:
-                header = message.header.model_copy(deep=True)
+                header = message.header.model_copy()
             else:
                 header = message.header
+
             if header.tracking is not None:
+                time_before_send = datetime.now()
                 meta = OutputPortTrackingMetadata(
                     id=socket.info.port_id, time_before_send=time_before_send
                 )
                 header.tracking.append(meta)
-            header = header.model_dump_json().encode()
-            things_to_send = [header, data]
+
+            # --- Separate meta if it's bytes ---
+            raw_meta = None
+            if isinstance(header.meta, bytes):
+                raw_meta = header.meta
+                header_json = header.model_dump_json(exclude={"meta"}).encode()
+            else:
+                header_json = header.model_dump_json().encode()
+
+            # --- Build multipart message ---
+            if raw_meta is not None:
+                things_to_send = [header_json, raw_meta, data]
+            else:
+                things_to_send = [header_json, data]
 
             msg_futures.append(self._send_and_update_metrics(socket, things_to_send))
         # TODO: look into creating tasks
