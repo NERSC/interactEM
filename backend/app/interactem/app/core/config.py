@@ -118,6 +118,10 @@ class Settings(BaseSettings):
     CONTAINER_REGISTRY_NAMESPACE: str = "nersc"
     OPERATOR_CONTAINER_PREFIX: str = "interactem"
 
+    # Local operators - mount your local operators directory to make
+    # changes to operator specs locally
+    LOCAL_OPERATORS_DIR: Path = Path("/operators")
+
     # Internal API key
     ORCHESTRATOR_API_KEY: str = "changeme"
 
