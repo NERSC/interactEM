@@ -1,11 +1,12 @@
 from pathlib import Path
 from typing import Any
 
+import msgspec
 import ncempy
 import numpy as np
-import stempy.io as stio
+from distiller_streaming.models import BatchedFrames, Frame
 from numpy.linalg import svd
-from pydantic import BaseModel, ValidationError
+from pydantic import ValidationError
 from scipy import ndimage
 
 from interactem.core.logger import get_logger
@@ -39,34 +40,22 @@ def planeFit(points):
     return ctr, svd(M)[0][:, -1]
 
 
-class FrameHeader(BaseModel):
-    scan_number: int
-    frame_number: int | None = None
-    nSTEM_positions_per_row_m1: int
-    nSTEM_rows_m1: int
-    STEM_x_position_in_row: int
-    STEM_row_in_scan: int
-    modules: list[int]
-
-
 # Params:
 keep_flyback: bool = False
 
 # Load the offsets for the vacuum scan subtraction
-vacuum_scan_id = 20132
-vacuum_scan_num = 714
 offsets_path = Path(f"{DATA_DIRECTORY}/offsets.emd")
-
 offsets_data = ncempy.read(offsets_path)["data"]
 
 current_scan_num = -1
-current_camera_length = -1
-current_stem_magnification = "50x"
 
 factor = (
     0 / offsets_data.shape[1],
     0 / offsets_data.shape[2],
 )
+
+# Dictionary to store shifts for each scan number
+scan_shifts_cache = {}
 
 row_shifts = None
 column_shifts = None
@@ -92,11 +81,10 @@ com2_filt_median = np.median(offsets_data, axis=(1, 2))
 planeCOM0 = planeFit(np.stack((YY, XX, offsets_data[0,] - com2_filt_median[0])))
 planeCOM1 = planeFit(np.stack((YY, XX, offsets_data[1,] - com2_filt_median[1])))
 
-print(f"plane fit to COM0: {planeCOM0}")
-print(f"plane fit to COM1: {planeCOM1}")
-
 
 def generate_shifts(scan_shape, com2_filt, planeCOM0, planeCOM1, method):
+    global com2_filt_median
+
     n_rows, n_cols = scan_shape
     factor = (
         n_rows / offsets_data.shape[2],
@@ -138,58 +126,15 @@ def generate_shifts(scan_shape, com2_filt, planeCOM0, planeCOM1, method):
     return shift_axis0, shift_axis1
 
 
-@operator
-def subtract(
-    inputs: BytesMessage | None, parameters: dict[str, Any]
-) -> BytesMessage | None:
-    global \
-        current_scan_num, \
-        current_camera_length, \
-        current_stem_magnification, \
-        offsets_data, \
-        factor, \
-        planeCOM0, \
-        planeCOM1, \
-        row_shifts, \
-        column_shifts
-
-    if not inputs:
-        logger.warning("No input provided to the subtract operator.")
-        return None
-
-    try:
-        header = FrameHeader(**inputs.header.meta)
-    except ValidationError as e:
-        logger.error(f"Invalid message: {e}")
-        return None
-
-    scan_shape = (header.nSTEM_rows_m1, header.nSTEM_positions_per_row_m1)
-    frame_shape = (576, 576)
-    scan_num = header.scan_number
-
-    if scan_num != current_scan_num:
-        logger.info(
-            f"New scan detected. Previous scan: {current_scan_num}, Current scan: {scan_num}"
-        )
-        method = parameters.get("method", "interp")
-        logger.info(f"Parameters: {parameters}")
-        if method not in ["interp", "plane"]:
-            method = "interp"
-
-        logger.info(f"Generating shifts using method: {method}")
-
-        row_shifts, column_shifts = generate_shifts(
-            scan_shape, offsets_data, planeCOM0, planeCOM1, method
-        )
-        logger.debug("Shifts generated for new scan...")
-
-        current_scan_num = scan_num
-
-    sparse_frame = np.frombuffer(inputs.data, dtype=np.uint32)
+def _subtract_one(frame: Frame) -> Frame:
+    global row_shifts, column_shifts
+    header = frame.header
+    sparse_frame = frame.array
+    frame_shape = header.frame_shape
     position = (header.STEM_row_in_scan, header.STEM_x_position_in_row)
     row_idx, col_idx = position
-    row_shift = row_shifts[row_idx, col_idx]  # type: ignore
-    column_shift = column_shifts[row_idx, col_idx]  # type: ignore
+    row_shift = row_shifts[row_idx, col_idx]
+    column_shift = column_shifts[row_idx, col_idx]
 
     ev_columns, ev_rows = np.unravel_index(sparse_frame, frame_shape)
     ev_rows_centered = ev_rows - row_shift
@@ -205,12 +150,55 @@ def subtract(
     ev_rows_centered = ev_rows_centered[keep]
     ev_columns_centered = ev_columns_centered[keep]
 
-    centered = np.empty((1, 1), dtype=object)
-    centered[0, 0] = np.ravel_multi_index(
+    centered_indices = np.ravel_multi_index(
         (ev_columns_centered, ev_rows_centered), frame_shape
-    )
-    experiment_centered = stio.SparseArray(centered, (1, 1), frame_shape)
-    return BytesMessage(
-        header=inputs.header,
-        data=experiment_centered.data[0][0].astype(np.uint32).tobytes(),
-    )
+    ).astype(np.uint32)
+
+    data = centered_indices.tobytes()
+
+    new_header = msgspec.structs.replace(header, data_size_bytes=len(data))
+    return Frame(header=new_header, buffer=data)
+
+@operator
+def subtract(
+    inputs: BytesMessage | None, parameters: dict[str, Any]
+) -> BytesMessage | None:
+    global current_scan_num, row_shifts, column_shifts, scan_shifts_cache
+
+    if not inputs:
+        logger.warning("No input provided to the subtract operator.")
+        return None
+
+    try:
+        batch = BatchedFrames.from_bytes_message(inputs)
+    except ValidationError as e:
+        logger.error(f"Invalid message: {e}")
+        return None
+
+    header = batch.header
+
+    scan_num = header.scan_number
+    # Check if we have shifts cached for this scan number
+    if scan_num not in scan_shifts_cache:
+        method = parameters.get("method", "interp")
+        if method not in ["interp", "plane"]:
+            method = "interp"
+
+        logger.info(f"Generating shifts using method: {method}")
+        scan_shape = header.scan_shape
+
+        row_shifts, column_shifts = generate_shifts(
+            scan_shape, offsets_data, planeCOM0, planeCOM1, method
+        )
+
+        # Cache the shifts for this scan number
+        scan_shifts_cache[scan_num] = (row_shifts, column_shifts)
+        logger.debug(f"Shifts generated and cached for scan {scan_num}")
+    else:
+        # Use cached shifts
+        row_shifts, column_shifts = scan_shifts_cache[scan_num]
+        logger.debug(f"Using cached shifts for scan {scan_num}")
+
+    # beam compensation per frame
+    compensated = [_subtract_one(frame) for frame in batch.iter_frames()]
+    return BatchedFrames.from_frames(compensated).to_bytes_message()

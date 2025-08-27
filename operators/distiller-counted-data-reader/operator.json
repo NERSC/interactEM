@@ -29,11 +29,11 @@
       "required": true
     },
     {
-      "name": "frame_delay_ns",
-      "label": "Frame delay (nanoseconds)",
+      "name": "acquisition_delay_s",
+      "label": "Acquisition delay (seconds)",
       "type": "int",
-      "default": "1000",
-      "description": "The frame delay in nanoseconds",
+      "default": "30",
+      "description": "The time between acquisitions in seconds",
       "required": true
     }
   ]

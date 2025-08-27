@@ -1,0 +1,36 @@
+{
+  "id": "585e9605-088e-4190-8b21-a8338cddd39b",
+  "image": "ghcr.io/nersc/interactem/center-of-mass-plot",
+  "label": "Center of Mass Plot",
+  "description": "Plots the center of mass for a particular scan",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "com",
+      "description": "Center of Mass"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "image",
+      "label": "Output matplotlib image",
+      "type": "image",
+      "description": "Center of mass image"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "xy_rtheta",
+      "type": "str-enum",
+      "description": "Colormap to use for the plot",
+      "options": [
+        "xy",
+        "rtheta"
+      ],
+      "default": "xy",
+      "label": "Mode",
+      "required": true
+    }
+  ]
+}

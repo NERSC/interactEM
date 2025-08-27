@@ -51,6 +51,14 @@
       "default": "20",
       "description": "Step size for subsampling scan positions when calculating the center.",
       "required": true
+    },
+    {
+      "name": "max_concurrent_scans",
+      "label": "Max Concurrent Scans",
+      "type": "int",
+      "default": "3",
+      "description": "Maximum number of scans to keep in memory simultaneously. Oldest scans are evicted when this limit is exceeded.",
+      "required": false
     }
   ]
 }
