@@ -56,6 +56,12 @@ target "platform" {
   platforms = ["linux/amd64", "linux/arm64"]
 }
 
+target "contexts" {
+  contexts = {
+    interactem-base = "target:base"
+  }
+}
+
 variable "CACHE_PLATFORM" {
   default = "amd64"
 }
@@ -72,13 +78,10 @@ target "base" {
 
 // Service definitions
 target "operator" {
-  inherits = ["platform"]
+  inherits = ["platform", "contexts"]
   context = "backend/"
   dockerfile = "../docker/Dockerfile.operator"
   tags = generate_tags("operator")
-  contexts = {
-    interactem-base = "target:base"
-  }
   cache-from = generate_cache_from("operator")
   cache-to = generate_cache_to("operator")
 }
@@ -93,37 +96,28 @@ target "callout" {
 }
 
 target "fastapi" {
-  inherits = ["platform"]
+  inherits = ["platform", "contexts"]
   context = "backend/"
   dockerfile = "../docker/Dockerfile.fastapi"
   tags = generate_tags("fastapi")
-  contexts = {
-    interactem-base = "target:base"
-  }
   cache-from = generate_cache_from("fastapi")
   cache-to = generate_cache_to("fastapi")
 }
 
 target "launcher" {
-  inherits = ["platform"]
+  inherits = ["platform", "contexts"]
   context = "backend/"
   dockerfile = "../docker/Dockerfile.launcher"
   tags = generate_tags("launcher")
-  contexts = {
-    interactem-base = "target:base"
-  }
   cache-from = generate_cache_from("launcher")
   cache-to = generate_cache_to("launcher")
 }
 
 target "orchestrator" {
-  inherits = ["platform"]
+  inherits = ["platform", "contexts"]
   context = "backend/"
   dockerfile = "../docker/Dockerfile.orchestrator"
   tags = generate_tags("orchestrator")
-  contexts = {
-    interactem-base = "target:base"
-  }
   cache-from = generate_cache_from("orchestrator")
   cache-to = generate_cache_to("orchestrator")
 }
@@ -138,13 +132,10 @@ target "frontend" {
 }
 
 target "metrics" {
-  inherits = ["platform"]
+  inherits = ["platform", "contexts"]
   context = "backend/"
   dockerfile = "../docker/Dockerfile.metrics"
   tags = generate_tags("metrics")
-  contexts = {
-    interactem-base = "target:base"
-  }
   cache-from = generate_cache_from("metrics")
   cache-to = generate_cache_to("metrics")
 }
