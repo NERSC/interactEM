@@ -54,6 +54,9 @@ target "base" {
 target "operator" {
   inherits = [ "common" ]
   context = "backend/"
+  contexts = {
+    interactem-base = "target:base"
+  }
   dockerfile = "../docker/Dockerfile.operator"
   tags = ["${REGISTRY}/operator:${TAG}"]
 }
