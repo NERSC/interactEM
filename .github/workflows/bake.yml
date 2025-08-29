@@ -10,9 +10,6 @@ on:
 env:
   REGISTRY: ghcr.io/nersc/interactem
 
-permissions:
-  contents: read
-
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -92,19 +89,21 @@ jobs:
           targets: base
           set: |
             *.platform=${{ matrix.docker-platform }}
-            *.output=type=image,push-by-digest=true,name-canonical=true,push=true
+            ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
             *.tags=${{ env.REGISTRY }}/interactem
         env:
           TAG: ${{ needs.prepare.outputs.tag }}
           CACHE_PLATFORM: ${{ matrix.platform }}
 
       - name: Export digest
+        if: github.event_name != 'pull_request'
         run: |
           mkdir -p /tmp/digests
           digest="${{ fromJSON(steps.bake.outputs.metadata).base['containerimage.digest'] }}"
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: interactem-digest-${{ matrix.platform }}
@@ -149,19 +148,21 @@ jobs:
           targets: ${{ matrix.service }}
           set: |
             *.platform=${{ matrix.platform.docker }}
-            *.output=type=image,push-by-digest=true,name-canonical=true,push=true
+            ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
             *.tags=${{ env.REGISTRY }}/${{ matrix.service }}
         env:
           TAG: ${{ needs.prepare.outputs.tag }}
           CACHE_PLATFORM: ${{ matrix.platform.name }}
 
       - name: Export digest
+        if: github.event_name != 'pull_request'
         run: |
           mkdir -p /tmp/digests
           digest="${{ fromJSON(steps.bake.outputs.metadata)[matrix.service]['containerimage.digest'] }}"
           touch "/tmp/digests/${digest#sha256:}"
 
       - name: Upload digest
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.service }}-digest-${{ matrix.platform.name }}
@@ -170,6 +171,7 @@ jobs:
           retention-days: 1
 
   merge-manifests:
+    if: github.event_name != 'pull_request'
     needs: [prepare, build-base, build-services]
     runs-on: ubuntu-latest
     permissions:
@@ -199,19 +201,12 @@ jobs:
       - name: Create manifest list and push
         working-directory: /tmp/digests
         run: |
-          # Set dry-run flag for PRs
-          DRY_RUN=""
-          # if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          #   DRY_RUN="--dry-run"
-          # fi
-          
           # Create manifest
-          docker buildx imagetools create ${DRY_RUN} \
+          docker buildx imagetools create \
             -t ${{ env.REGISTRY }}/${{ matrix.service }}:${{ needs.prepare.outputs.tag }} \
             -t ${{ env.REGISTRY }}/${{ matrix.service }}:latest \
             $(printf '${{ env.REGISTRY }}/${{ matrix.service }}@sha256:%s ' *)
 
       - name: Inspect image
-        if: github.event_name != 'pull_request'
         run: |
           docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ matrix.service }}:${{ needs.prepare.outputs.tag }}
