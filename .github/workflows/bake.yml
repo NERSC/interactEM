@@ -1,5 +1,6 @@
 name: Docker Bake Build and Push
-
+# This is mostly taken from
+# here: https://docs.docker.com/build/ci/github-actions/multi-platform/#with-bake
 on:
   push:
     branches: [ main ]
