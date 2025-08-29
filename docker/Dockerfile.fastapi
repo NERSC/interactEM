@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/interactem:latest
+FROM interactem-base
 
 WORKDIR /interactem/app
 COPY ./app/pyproject.toml ./app/poetry.lock* ./

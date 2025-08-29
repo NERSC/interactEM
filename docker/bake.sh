@@ -9,8 +9,9 @@ cd $ROOT_DIR
 
 # Build all images using Docker Bake
 echo "Building all images with tag $TAG..."
-TAG=${TAG} BUILDX_BAKE_ENTITLEMENTS_FS=0 $DOCKER buildx bake --file $ROOT_DIR/docker/docker-bake.hcl base
-TAG=${TAG} BUILDX_BAKE_ENTITLEMENTS_FS=0 $DOCKER buildx bake --file $ROOT_DIR/docker/docker-bake.hcl prod
+TAG=${TAG} BUILDX_BAKE_ENTITLEMENTS_FS=0 $DOCKER buildx bake \
+    --set *.cache-from="" --set *.cache-to="" \
+    --file $ROOT_DIR/docker/docker-bake.hcl prod
 
 if [ $? -ne 0 ]; then
     echo "Failed to build images"

@@ -6,6 +6,8 @@ x-backend-base:
       args:
         INSTALL_DEV: ${INSTALL_DEV-false}
       dockerfile: ../docker/Dockerfile.fastapi
+      additional_contexts:
+        - interactem-base=docker-image://ghcr.io/nersc/interactem/interactem
     env_file:
       - .env
     environment:
@@ -141,6 +143,8 @@ services:
 
     build:
       context: backend/
+      additional_contexts:
+        - interactem-base=docker-image://ghcr.io/nersc/interactem/interactem
       dockerfile: ../docker/Dockerfile.orchestrator
 
 
@@ -180,6 +184,8 @@ services:
       - "${HOME}/.superfacility/key.pem:/key.pem"
     build: 
       context: backend/
+      additional_contexts:
+        - interactem-base=docker-image://ghcr.io/nersc/interactem/interactem
       dockerfile: ../docker/Dockerfile.launcher
 
   metrics:
@@ -202,6 +208,8 @@ services:
 
     build:
       context: backend/
+      additional_contexts:
+        - interactem-base=docker-image://ghcr.io/nersc/interactem/interactem
       dockerfile: ../docker/Dockerfile.metrics
 
   prometheus:
