@@ -7,4 +7,5 @@ class Settings(BaseSettings):
     NATS_SERVER_URL: AnyWebsocketUrl | NatsDsn = NatsDsn("nats://localhost:4222")
     PROMETHEUS_PORT: int = 8001
 
+
 cfg = Settings()
