@@ -60,26 +60,32 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
         try:
             pipeline_keys = await get_keys(pipeline_bucket, filters=[f"{PIPELINES}"])
             if not pipeline_keys:
-                record_collection_error(ErrorType(error_type=ErrorTypeEnum.NO_PIPELINES))
+                record_collection_error(
+                    ErrorType(error_type=ErrorTypeEnum.NO_PIPELINES)
+                )
                 logger.info("No pipelines found...")
                 await asyncio.sleep(update_interval)
                 continue
 
             if len(pipeline_keys) > 1:
-                record_collection_error(ErrorType(error_type=ErrorTypeEnum.MULTIPLE_PIPELINES))
+                record_collection_error(
+                    ErrorType(error_type=ErrorTypeEnum.MULTIPLE_PIPELINES)
+                )
                 logger.error("More than one pipeline found...")
                 await asyncio.sleep(update_interval)
                 continue
 
             pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineRunVal)
             if not pipeline:
-                record_collection_error(ErrorType(error_type=ErrorTypeEnum.NO_PIPELINE_DATA))
+                record_collection_error(
+                    ErrorType(error_type=ErrorTypeEnum.NO_PIPELINE_DATA)
+                )
                 logger.info("No pipeline found...")
                 await asyncio.sleep(update_interval)
                 continue
 
             valid_pipeline = pipeline.pipeline
-            pipeline_canonical_id = str(valid_pipeline.canonical_id)
+            pipeline_canonical_id = valid_pipeline.canonical_id
 
             keys = await get_keys(metrics_bucket)
             if not keys:
@@ -100,7 +106,9 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
                 if not metric:
                     continue
                 operator_label = valid_pipeline.get_operator_label_by_port_id(metric.id)
-                update_runtime_port_metrics(metric, pipeline_canonical_id, operator_label)
+                update_runtime_port_metrics(
+                    metric, pipeline_canonical_id, operator_label
+                )
 
             # Process operator metrics - send timing with pipeline and operator context
             for of in asyncio.as_completed(operator_futs):
@@ -110,14 +118,18 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
                     continue
                 if metric.timing.after_kernel and metric.timing.before_kernel:
                     operator_label = valid_pipeline.get_operator_label_by_id(metric.id)
-                    record_runtime_operator_processing_time(metric, pipeline_canonical_id, operator_label)
+                    record_runtime_operator_processing_time(
+                        metric, pipeline_canonical_id, operator_label
+                    )
                 else:
-                    logger.info(f"Operator {metric.canonical_id} has incomplete timing data")
+                    logger.info(
+                        f"Operator {metric.canonical_id} has incomplete timing data"
+                    )
 
             pipeline_status_data = PipelineActivity(
                 pipeline_id=pipeline_canonical_id,
                 active_ports=len(port_keys),
-                active_operators=len(operator_keys)
+                active_operators=len(operator_keys),
             )
             update_pipeline_state(pipeline_status_data)
 
@@ -131,7 +143,9 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
 
         except Exception as e:
             logger.error(f"Error in metrics collection: {e}")
-            record_collection_error(ErrorType(error_type=ErrorTypeEnum.COLLECTION_EXCEPTION))
+            record_collection_error(
+                ErrorType(error_type=ErrorTypeEnum.COLLECTION_EXCEPTION)
+            )
             update_service_status(ServiceStatus(is_active=False))
 
         await asyncio.sleep(update_interval)
@@ -155,7 +169,7 @@ def log_comparison(header: MessageHeader, pipeline: RuntimePipeline):
     first_line = True
 
     for node in pipeline_obj.nodes():
-        pipeline_obj.nodes[node]['label'] = str(node)
+        pipeline_obj.nodes[node]["label"] = str(node)
 
     for line in generate_network_text(pipeline_obj):
         node_id = UUID(line.split()[-1])
@@ -210,14 +224,14 @@ async def handle_metrics(msg: NATSMsg, js: JetStreamContext):
     pipeline_bucket = await get_status_bucket(js)
     pipeline_keys = await get_keys(pipeline_bucket, filters=[f"{PIPELINES}"])
     if not pipeline_keys:
-        logger.info("No pipelines found...")
+        logger.debug("No pipelines found...")
         return
     if len(pipeline_keys) > 1:
         logger.error("More than one pipeline found...")
         return
     pipeline = await get_val(pipeline_bucket, pipeline_keys[0], PipelineRunVal)
     if not pipeline:
-        logger.info("No pipeline found...")
+        logger.debug("No pipeline found...")
         return
 
     valid_pipeline = pipeline.pipeline
