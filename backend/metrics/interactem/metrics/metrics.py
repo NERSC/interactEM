@@ -85,7 +85,7 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
                 continue
 
             valid_pipeline = pipeline.pipeline
-            pipeline_canonical_id = str(valid_pipeline.canonical_id)
+            pipeline_canonical_id = valid_pipeline.canonical_id
 
             keys = await get_keys(metrics_bucket)
             if not keys:
