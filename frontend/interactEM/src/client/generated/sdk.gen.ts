@@ -30,6 +30,7 @@ import type {
   LoginTestTokenData,
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
+  OperatorsReadOperatorsError,
   OperatorsReadOperatorsResponse,
   PipelinesAddPipelineRevisionData,
   PipelinesAddPipelineRevisionError,
@@ -793,14 +794,14 @@ export const deploymentsUpdatePipelineDeployment = <
 
 /**
  * Read Operators
- * Retrieve available operators.
+ * Retrieve available operators. Use refresh=true to invalidate cache and fetch fresh data.
  */
 export const operatorsReadOperators = <ThrowOnError extends boolean = false>(
   options?: Options<OperatorsReadOperatorsData, ThrowOnError>,
 ) => {
   return (options?.client ?? _heyApiClient).get<
     OperatorsReadOperatorsResponse,
-    unknown,
+    OperatorsReadOperatorsError,
     ThrowOnError
   >({
     security: [

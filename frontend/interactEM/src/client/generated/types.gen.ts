@@ -992,9 +992,24 @@ export type DeploymentsUpdatePipelineDeploymentResponse =
 export type OperatorsReadOperatorsData = {
   body?: never
   path?: never
-  query?: never
+  query?: {
+    /**
+     * Force refresh of operators cache
+     */
+    refresh?: boolean
+  }
   url: "/api/v1/operators/"
 }
+
+export type OperatorsReadOperatorsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type OperatorsReadOperatorsError =
+  OperatorsReadOperatorsErrors[keyof OperatorsReadOperatorsErrors]
 
 export type OperatorsReadOperatorsResponses = {
   /**
