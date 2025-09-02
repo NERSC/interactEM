@@ -159,6 +159,9 @@ def record_runtime_operator_processing_time(
         operator_label=operator_label,
     )
     labels_dict = labels.model_dump()
+    if not op_metrics.timing.after_kernel or not op_metrics.timing.before_kernel:
+        logger.error("Incomplete timing data for operator...")
+        return
 
     processing_time_us = (
         op_metrics.timing.after_kernel - op_metrics.timing.before_kernel
