@@ -42,10 +42,19 @@ const OperatorMenuItem: React.FC<OperatorMenuItemProps> = ({ operator }) => {
 }
 
 export const OperatorMenu: React.FC = () => {
-  const { operatorSpecs } = useOperatorSpecs()
+  const { operatorSpecs, isLoading, isRefreshing, refetch } = useOperatorSpecs()
   return (
     <aside>
-      <div className="description">Drag your operators into your pipeline!</div>
+      <div className="operator-menu-controls">
+        <button
+          type="button"
+          onClick={refetch}
+          disabled={isRefreshing || isLoading}
+          className="refresh-button"
+        >
+          {isRefreshing ? "Refreshing..." : "Refresh Operators"}
+        </button>
+      </div>
 
       {operatorSpecs?.map((operator: OperatorSpec) => (
         <OperatorMenuItem operator={operator} key={operator.id} />
