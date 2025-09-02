@@ -13,6 +13,7 @@ BUILD_BASE=false
 PUSH_LOCAL=false
 PUSH_REMOTE=false
 PULL_LOCAL=false
+DRY_RUN=false
 TARGET=""
 
 # Parse args
@@ -36,6 +37,10 @@ while [[ $# -gt 0 ]]; do
             VARS="$OPERATORS_DIR/vars-prod.hcl"
             shift
             ;;
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
         --target)
             TARGET="$2"
             shift 2
@@ -57,14 +62,18 @@ cd "$REPO_ROOT_DIR"
 
 
 if $BUILD_BASE; then
+    base_cmd=(docker buildx bake)
+    if $DRY_RUN; then
+        base_cmd+=(--print)
+    fi
     echo "=== Building base images ==="
-    docker buildx bake base --file "$BAKE_FILE" \
+    "${base_cmd[@]}" base --file "$BAKE_FILE" \
         --file "$BASE_VARS"
 
-    docker buildx bake operator --file "$BAKE_FILE" \
+    "${base_cmd[@]}" operator --file "$BAKE_FILE" \
         --file "$BASE_VARS"
 
-    docker buildx bake distiller-streaming --file "$BAKE_FILE" \
+    "${base_cmd[@]}" distiller-streaming --file "$BAKE_FILE" \
         --file "$BASE_VARS"
 fi
 
@@ -105,6 +114,11 @@ build_operators() {
     
     cmd+=(--push)
     
+
+    if $DRY_RUN; then
+        cmd+=(--print)
+    fi
+
     # Execute the command
     "${cmd[@]}"
 }
