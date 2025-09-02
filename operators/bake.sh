@@ -86,11 +86,15 @@ build_operators() {
     
     if [ -n "$TARGET" ]; then
         cmd+=("$TARGET")
-        cmd+=(--provenance=false)
     else
         cmd+=(operators)
     fi
 
+    cmd+=(--provenance=false)
+
+    # https://docs.docker.com/build/exporters/image-registry/
+    # https://docs.docker.com/reference/cli/docker/buildx/build/#output
+    cmd+=(--set "*.output=type=registry,oci-mediatypes=true")
     cmd+=(--file "$BAKE_FILE")
     cmd+=(--file "$VARS")
     
@@ -105,15 +109,12 @@ build_operators() {
             fi
         fi
     done
-    
+
     # Check if we found any labels
     if [ "$has_labels" = false ]; then
         echo "No operator.json files found or all are empty."
         return 1
     fi
-    
-    cmd+=(--push)
-    
 
     if $DRY_RUN; then
         cmd+=(--print)
