@@ -1,31 +1,38 @@
-import { useEffect, useState } from "react"
-import type { OperatorSpec } from "../../client"
-import { operatorsReadOperators } from "../../client"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { operatorsReadOperatorsOptions } from "../../client"
+import { zOperatorSpecs } from "../../client/generated/zod.gen"
 
-const useOperatorSpecs = () => {
-  const [operatorSpecs, setOperators] = useState<OperatorSpec[] | null>(null)
-  const [error, setError] = useState<Error | null>(null)
-  const [loading, setLoading] = useState<boolean>(false)
+export const useOperatorSpecs = () => {
+  const queryClient = useQueryClient()
+  const operatorsQuery = useQuery({
+    ...operatorsReadOperatorsOptions(),
+  })
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      try {
-        const response = await operatorsReadOperators()
-        if (response.data) {
-          setOperators((response.data.data as OperatorSpec[]) ?? null)
-        }
-      } catch (err) {
-        setError(err as Error)
-      } finally {
-        setLoading(false)
-      }
-    }
+  // Mutation to handle explicit refresh
+  const refreshMutation = useMutation({
+    mutationFn: () => {
+      return queryClient.fetchQuery({
+        ...operatorsReadOperatorsOptions({
+          query: { refresh: true },
+        }),
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: operatorsReadOperatorsOptions().queryKey,
+      })
+    },
+  })
 
-    fetchData()
-  }, [])
+  const response = zOperatorSpecs.safeParse(operatorsQuery.data)
+  const operatorSpecs = response.data?.data
 
-  return { operatorSpecs, error, loading }
+  return {
+    operatorSpecs,
+    isRefreshing: refreshMutation.isPending,
+    isLoading: operatorsQuery.isLoading,
+    refetch: () => refreshMutation.mutate(),
+  }
 }
 
 export default useOperatorSpecs

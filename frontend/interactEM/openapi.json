@@ -1091,8 +1091,23 @@
       "get": {
         "tags": ["operators"],
         "summary": "Read Operators",
-        "description": "Retrieve available operators.",
+        "description": "Retrieve available operators. Use refresh=true to invalidate cache and fetch fresh data.",
         "operationId": "operators-read_operators",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "refresh",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Force refresh of operators cache",
+              "default": false,
+              "title": "Refresh"
+            },
+            "description": "Force refresh of operators cache"
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -1101,9 +1116,16 @@
                 "schema": { "$ref": "#/components/schemas/OperatorSpecs" }
               }
             }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
           }
-        },
-        "security": [{ "OAuth2PasswordBearer": [] }]
+        }
       }
     },
     "/api/v1/agents/launch": {

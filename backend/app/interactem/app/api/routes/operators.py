@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from interactem.app.api.deps import CurrentUser
 from interactem.app.models import OperatorSpecs
@@ -13,13 +13,18 @@ _operators = None
 
 
 @router.get("/", response_model=OperatorSpecs)
-async def read_operators(current_user: CurrentUser) -> OperatorSpecs:
+async def read_operators(
+    current_user: CurrentUser,
+    refresh: bool = Query(False, description="Force refresh of operators cache"),
+) -> OperatorSpecs:
     """
-    Retrieve available operators.
+    Retrieve available operators. Use refresh=true to invalidate cache and fetch fresh data.
     """
     global _operators
 
-    if _operators is None:
+    if refresh or _operators is None:
+        if refresh:
+            logger.info("Refreshing operators cache due to refresh parameter")
         _operators = await fetch_operators()
 
     return OperatorSpecs(data=_operators)

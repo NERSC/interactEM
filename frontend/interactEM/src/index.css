@@ -63,6 +63,32 @@ body,
   margin-bottom: 10px;
 }
 
+.operator-menu-controls {
+  margin-bottom: 15px;
+}
+
+.refresh-button {
+  padding: 8px 16px;
+  background: #4a5568;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  width: 100%;
+}
+
+.refresh-button:hover:not(:disabled) {
+  background: #2d3748;
+}
+
+.refresh-button:disabled {
+  background: #a0aec0;
+  cursor: not-allowed;
+}
+
 .operator {
   padding: 10px;
   background: #ffffff;
