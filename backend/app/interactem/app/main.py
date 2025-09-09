@@ -13,6 +13,8 @@ from interactem.app.events.producer import start as start_producer
 from interactem.app.events.producer import stop as stop_producer
 
 logging.basicConfig(level=logging.INFO)
+# Reduce noise from httpx request logs
+logging.getLogger("httpx").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
