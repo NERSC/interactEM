@@ -57,16 +57,37 @@ class ContainerRegistry:
 
     async def _ghcr_images(self, org: str) -> list[str]:
         url = f"{GITHUB_API_URL}/orgs/{org}/packages"
-        params = {"package_type": "container"}
         headers = {
             "Accept": GITHUB_API_MIME_TYPE,
             "Authorization": f"Bearer {self._password}",
         }
-        r = await self._client.get(url, headers=headers, params=params)
-        r.raise_for_status()
+
+        all_packages = []
+        page = 1
+        per_page = 100
+
+        while True:
+            params = {
+                "package_type": "container",
+                "page": page,
+                "per_page": per_page,
+            }
+            r = await self._client.get(url, headers=headers, params=params)
+            r.raise_for_status()
+
+            page_data = r.json()
+            if not page_data:
+                break
+
+            all_packages.extend(page_data)
+
+            if len(page_data) < per_page:
+                break
+
+            page += 1
 
         path = parse("$[*].name")
-        matches = path.find(r.json())
+        matches = path.find(all_packages)
         if not matches:
             raise Exception("Images not found")
 
