@@ -28,7 +28,7 @@ interactem-core = {path = "../core", develop = true}
 interactem-sfapi-models = {path = "../sfapi_models", develop = true}
 aiohttp = "^3.10.5"
 jsonpath-ng = "^1.7.0"
-starlette = "^0.40.0"
+starlette = "^0.47.2"
 h11 = "^0.16.0"
 
 [tool.poetry.group.dev.dependencies]
