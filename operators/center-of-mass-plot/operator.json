@@ -1,5 +1,5 @@
 {
-  "id": "585e9605-088e-4190-8b21-a8338cddd39b",
+  "id": "287f81c7-4549-4fe6-aa1e-c915761a02e8",
   "image": "ghcr.io/nersc/interactem/center-of-mass-plot",
   "label": "Center of Mass Plot",
   "description": "Plots the center of mass for a particular scan",
