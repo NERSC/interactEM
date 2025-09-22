@@ -1,6 +1,6 @@
 {
   "name": "@interactem/interactem",
-  "version": "0.0.4",
+  "version": "0.0.12",
   "type": "module",
   "files": [
     "dist"
