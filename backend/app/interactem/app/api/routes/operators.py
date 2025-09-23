@@ -27,4 +27,6 @@ async def read_operators(
             logger.info("Refreshing operators cache due to refresh parameter")
         _operators = await fetch_operators()
 
-    return OperatorSpecs(data=_operators)
+    ops = OperatorSpecs(data=_operators)
+    logger.info(f"Operators found: {[op.image for op in ops.data]}")
+    return ops
