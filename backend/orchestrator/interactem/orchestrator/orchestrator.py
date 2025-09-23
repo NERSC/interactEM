@@ -10,8 +10,6 @@ from pydantic import BaseModel, ValidationError
 
 from interactem.core.constants import (
     AGENTS,
-    BUCKET_STATUS,
-    BUCKET_STATUS_TTL,
     NATS_API_KEY_HEADER,
     PIPELINES,
     STREAM_DEPLOYMENTS,
@@ -33,8 +31,6 @@ from interactem.core.models.runtime import (
 )
 from interactem.core.nats import (
     consume_messages,
-    create_bucket_if_doesnt_exist,
-    create_or_update_stream,
     get_keys,
     get_status_bucket,
     get_val,
@@ -42,7 +38,6 @@ from interactem.core.nats import (
     publish_error,
     publish_notification,
 )
-from interactem.core.nats.config import DEPLOYMENTS_STREAM_CONFIG
 from interactem.core.nats.consumers import (
     create_orchestrator_pipeline_new_consumer,
     create_orchestrator_pipeline_stop_consumer,
@@ -563,11 +558,6 @@ async def main():
     logger.info(f"Orchestrator instance {instance_id} starting...")
 
     try:
-        startup_tasks = [
-            create_bucket_if_doesnt_exist(js, BUCKET_STATUS, BUCKET_STATUS_TTL),
-            create_or_update_stream(DEPLOYMENTS_STREAM_CONFIG, js),
-        ]
-        await asyncio.gather(*startup_tasks)
         logger.info("NATS buckets and streams initialized/verified.")
 
         pipeline_run_psub = await create_orchestrator_pipeline_new_consumer(

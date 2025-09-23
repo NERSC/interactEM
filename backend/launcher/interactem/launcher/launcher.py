@@ -27,12 +27,10 @@ from interactem.core.constants import (
 from interactem.core.logger import get_logger
 from interactem.core.nats import (
     consume_messages,
-    create_or_update_stream,
     nc,
     publish_error,
     publish_notification,
 )
-from interactem.core.nats.config import NOTIFICATIONS_STREAM_CONFIG, SFAPI_STREAM_CONFIG
 from interactem.core.nats.consumers import create_sfapi_submit_consumer
 from interactem.core.util import create_task_with_ref
 from interactem.sfapi_models import (
@@ -189,16 +187,6 @@ async def main():
         )
         js: JetStreamContext = nats_client.jetstream()
 
-        startup_tasks: list[asyncio.Task] = []
-        startup_tasks.append(
-            asyncio.create_task(create_or_update_stream(SFAPI_STREAM_CONFIG, js))
-        )
-        startup_tasks.append(
-            asyncio.create_task(
-                create_or_update_stream(NOTIFICATIONS_STREAM_CONFIG, js)
-            )
-        )
-        await asyncio.gather(*startup_tasks)
 
         config = ServiceConfig(
             name=SFAPI_SERVICE_NAME,
