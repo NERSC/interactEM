@@ -313,29 +313,6 @@ body,
   overflow: hidden;
 }
 
-.composer-agents-overlay {
-  position: absolute;
-  top: 1.5em;
-  left: 1.5em;
-  z-index: 10;
-  background: rgba(249, 249, 249, 0.95);
-  border-radius: 1em;
-  box-shadow: 0 4px 4px rgba(0, 0, 0, 0.07);
-  padding: 1em;
-  min-width: 8em;
-  max-width: 18em;
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1em;
-}
-
-.composer-agents-launchfab {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 0.5em;
-}
-
 .composer-operators {
   min-width: 12em;
   max-width: 22em;
@@ -355,66 +332,4 @@ body,
 .reactflow-wrapper {
   height: 100%;
   width: 100%;
-}
-
-.pageswitcher-root {
-  display: flex;
-  height: 100vh;
-  width: 100vw;
-  overflow: hidden;
-}
-
-.pageswitcher-sidebar {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #23272f;
-  padding: 1em 0;
-  width: 4em;
-  min-width: 4em;
-  max-width: 4em;
-  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.04);
-  gap: 1em;
-  border-right: 1px solid #222;
-  z-index: 100;
-}
-
-.pageswitcher-icon-btn {
-  background: none;
-  border: none;
-  color: #b0b8c1; /* Lighter default icon color */
-  padding: 0.5em;
-  border-radius: 0.75em;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  outline: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Make icon color lighter by default, and even lighter on hover/active */
-.pageswitcher-icon-btn .MuiSvgIcon-root {
-  color: #b0b8c1;
-  transition: color 0.15s;
-}
-
-.pageswitcher-icon-btn.active,
-.pageswitcher-icon-btn:hover {
-  background: #38404a;
-  color: #fff;
-}
-
-.pageswitcher-icon-btn.active .MuiSvgIcon-root,
-.pageswitcher-icon-btn:hover .MuiSvgIcon-root {
-  color: #fff;
-}
-
-.pageswitcher-content {
-  flex: 1 1 0;
-  height: 100vh;
-  overflow: hidden;
-  background: #f5f6fa;
-  display: flex;
-  flex-direction: column;
 }
