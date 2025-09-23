@@ -13,36 +13,45 @@ export default function ComposerPage() {
 
   return (
     <div className="composer-page">
+      {/* Controls Container */}
       <Box
         sx={{
           position: "absolute",
-          top: 16,
-          left: 16,
-          zIndex: 10,
+          zIndex: 2,
           display: "flex",
           flexDirection: "column",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          pointerEvents: "none",
           alignItems: "flex-start",
           gap: 1,
+          margin: 1,
         }}
       >
         {/* Pipeline HUD */}
         <Box
           sx={{
-            flexShrink: 0,
-            width: "100%",
-            alignSelf: "flex-start",
+            position: "relative",
+            pointerEvents: "auto",
           }}
         >
           <PipelineHud />
         </Box>
 
         {/* Agents Accordion */}
-        <Box>
+        <Box
+          sx={{
+            position: "relative",
+            pointerEvents: "auto",
+          }}
+        >
           <AgentsAccordion />
         </Box>
       </Box>
 
-      {/* Main Flow Area */}
+      {/* Main Flow Area - Base layer */}
       <div className="composer-flow">
         {viewMode === ViewMode.Composer ? (
           <ComposerPipelineFlow key={pipeline?.id} pipelineData={revision} />
