@@ -13,7 +13,7 @@ from interactem.core.constants import (
     SUBJECT_NOTIFICATIONS_INFO,
 )
 from nats.js import JetStreamContext
-from nats.js.api import KeyValueConfig
+from nats.js.api import KeyValueConfig, StorageType
 from nats.js.errors import BucketNotFoundError, KeyNotFoundError, NoKeysError
 from nats.js.kv import KeyValue
 from nats.aio.msg import Msg as NATSMsg
@@ -77,7 +77,10 @@ async def create_bucket_if_doesnt_exist(
     try:
         kv = await js.key_value(bucket_name)
     except BucketNotFoundError:
-        bucket_cfg = KeyValueConfig(bucket=bucket_name, ttl=ttl)
+        logger.info(f"Creating bucket {bucket_name}...")
+        bucket_cfg = KeyValueConfig(
+            bucket=bucket_name, ttl=ttl, storage=StorageType.MEMORY
+        )
         kv = await js.create_key_value(config=bucket_cfg)
     return kv
 
