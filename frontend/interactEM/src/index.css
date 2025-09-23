@@ -300,7 +300,7 @@ body,
 
 .composer-page {
   display: flex;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -309,7 +309,7 @@ body,
   position: relative;
   background-color: #ffffff;
   min-width: 0;
-  height: 100vh;
+  height: 100%;
   overflow: hidden;
 }
 
