@@ -207,6 +207,25 @@ async def create_all_streams(js: JetStreamContext) -> list[StreamInfo]:
         raise
     return stream_infos
 
+async def create_all_buckets(js: JetStreamContext) -> list[KeyValue]:
+    bucket_infos: list[KeyValue] = []
+    tasks: set[asyncio.Task] = set()
+    create_task_with_ref(
+        tasks,
+        get_status_bucket(js),
+    )
+    create_task_with_ref(
+        tasks,
+        get_metrics_bucket(js),
+    )
+    try:
+        bucket_infos = await asyncio.gather(*tasks)
+        logger.info(f"All buckets created or verified successfully.")
+    except Exception as e:
+        logger.error(f"Failed to create or verify buckets: {e}")
+        raise
+    return bucket_infos
+
 
 def publish_error(js: JetStreamContext, msg: str, task_refs: Set[asyncio.Task]) -> None:
     create_task_with_ref(
