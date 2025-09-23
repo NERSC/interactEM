@@ -35,6 +35,7 @@ from .config import (
     PARAMETERS_STREAM_CONFIG,
     TABLE_STREAM_CONFIG,
     METRICS_STREAM_CONFIG,
+    ALL_STORAGE_TYPE,
 )
 
 ValType = TypeVar("ValType", bound=BaseModel)
@@ -77,7 +78,10 @@ async def create_bucket_if_doesnt_exist(
     try:
         kv = await js.key_value(bucket_name)
     except BucketNotFoundError:
-        bucket_cfg = KeyValueConfig(bucket=bucket_name, ttl=ttl)
+        logger.info(f"Creating bucket {bucket_name}...")
+        bucket_cfg = KeyValueConfig(
+            bucket=bucket_name, ttl=ttl, storage=ALL_STORAGE_TYPE
+        )
         kv = await js.create_key_value(config=bucket_cfg)
     return kv
 
