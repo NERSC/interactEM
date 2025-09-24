@@ -1,3 +1,4 @@
+import msgspec
 import msgspec.msgpack
 import numpy as np
 import pytest
@@ -69,3 +70,46 @@ def test_exhaustion(sparse_array):
     assert e.finished
     with pytest.raises(StopIteration):
         e.get_next_frame_message()
+
+
+@pytest.mark.parametrize(
+    "batch_size_mb",
+    [0.00001, 0.0001, 0.001, 1.0, 10.0],  # Include both small and large batch sizes
+)
+def test_batch_count_and_metadata(sparse_array, batch_size_mb):
+    """Test that batch count prediction and metadata are correct for various batch sizes."""
+    e = BatchEmitter(sparse_array, 42, batch_size_mb)
+
+    # Check predicted batch count
+    predicted_batches = e.total_batches
+    assert isinstance(predicted_batches, int)
+    assert predicted_batches > 0
+
+    # Generate all messages
+    msgs = emit_all(e)
+    actual_batches = len(msgs)
+
+    # Predicted count should match actual
+    assert predicted_batches == actual_batches, (
+        f"Batch size {batch_size_mb} MB: predicted {predicted_batches} "
+        f"batches but got {actual_batches}"
+    )
+
+    # Check metadata in each message
+    for i, msg in enumerate(msgs):
+        header = msgspec.msgpack.decode(msg.header.meta, type=BatchedFrameHeader)
+
+        assert header.total_batches == predicted_batches
+        assert header.total_batches is not None
+
+        assert header.current_batch_index == i
+        assert header.current_batch_index is not None
+        assert 0 <= header.current_batch_index < header.total_batches
+
+    # Special case: single batch
+    if batch_size_mb >= 10.0:  # Large enough to fit all frames
+        assert predicted_batches == 1
+        assert actual_batches == 1
+        header = msgspec.msgpack.decode(msgs[0].header.meta, type=BatchedFrameHeader)
+        assert header.total_batches == 1
+        assert header.current_batch_index == 0
