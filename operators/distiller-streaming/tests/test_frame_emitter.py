@@ -18,7 +18,7 @@ def emit_all(emitter):
 
 def test_init_and_invalid_args(sparse_array):
     e = BatchEmitter(sparse_array, 42, 1.0)
-    assert e.total_frames == 50 and not e.is_finished()
+    assert e.total_frames == 50 and not e.finished
     with pytest.raises(TypeError):
         BatchEmitter("bad", 1, 1)  # type: ignore
     with pytest.raises(TypeError):
@@ -66,6 +66,6 @@ def test_batching_counts(sparse_array):
 def test_exhaustion(sparse_array):
     e = BatchEmitter(sparse_array, 42, 1.0)
     emit_all(e)
-    assert e.is_finished()
+    assert e.finished
     with pytest.raises(StopIteration):
         e.get_next_frame_message()
