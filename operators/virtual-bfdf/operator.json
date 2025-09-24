@@ -56,7 +56,7 @@
       "name": "max_concurrent_scans",
       "label": "Max Concurrent Scans",
       "type": "int",
-      "default": "3",
+      "default": "1",
       "description": "Maximum number of scans to keep in memory simultaneously. Oldest scans are evicted when this limit is exceeded.",
       "required": false
     }
