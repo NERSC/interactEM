@@ -140,6 +140,7 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
         // 6. reconnect
         ;(async () => {
           for await (const status of nc.status()) {
+            console.log("NATS status change:", status.type, status)
             switch (status.type) {
               case "reconnect":
                 setState((prev) => ({ ...prev, isConnected: true }))
