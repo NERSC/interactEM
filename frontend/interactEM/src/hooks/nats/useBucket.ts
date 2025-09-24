@@ -1,4 +1,5 @@
 import type { KV } from "@nats-io/kv"
+import { DrainingConnectionError } from "@nats-io/nats-core"
 import { useEffect, useRef, useState } from "react"
 import { useNats } from "../../contexts/nats"
 
@@ -18,6 +19,10 @@ export const useBucket = (bucketName: string): KV | null => {
             setBucket(openedBucket)
           }
         } catch (error) {
+          if (error instanceof DrainingConnectionError) {
+            // quietly ignore if connection is draining
+            return
+          }
           console.error(`Failed to open bucket "${bucketName}":`, error)
         }
       }
