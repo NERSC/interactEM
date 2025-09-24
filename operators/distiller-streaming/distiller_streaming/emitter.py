@@ -55,7 +55,7 @@ class BatchEmitter:
         self._frames_emitted = 0
         self._messages_emitted = 0
         self._iterator = self._batch_generator()
-        self._finished = False
+        self.finished = False
 
         # Pre-compute template dictionary for frame headers (avoids dict unpacking overhead)
         self._frame_header_template = {
@@ -89,8 +89,6 @@ class BatchEmitter:
             self.batch_size_bytes,
         )
 
-    def is_finished(self) -> bool:
-        return self._finished
 
     def _batch_generator(self):
         batch_headers = []
@@ -143,7 +141,7 @@ class BatchEmitter:
         Gets the next valid frame message from the internal generator.
         May return a single frame or batched frames depending on the configured size limit.
         """
-        if self._finished:
+        if self.finished:
             raise StopIteration("BatchEmitter is finished.")
 
         try:
@@ -167,7 +165,7 @@ class BatchEmitter:
                 header=batched_header, arrays=data
             ).to_bytes_message()
         except StopIteration:
-            self._finished = True
+            self.finished = True
             logger.info(
                 f"BatchEmitter for Scan {self.scan_number}: Finished after emitting "
                 f"{self._frames_emitted} frames in {self._messages_emitted} messages."
