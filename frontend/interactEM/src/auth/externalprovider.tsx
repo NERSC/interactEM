@@ -1,9 +1,20 @@
 import { createClient } from "@hey-api/client-axios"
 import { CircularProgress } from "@mui/material"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { client, loginLoginWithExternalToken } from "../client"
+import {
+  type LoginLoginWithExternalTokenResponse,
+  client,
+  loginLoginWithExternalToken,
+} from "../client"
 import { AUTH_QUERY_KEYS } from "../constants/tanstack"
 import { AuthContext, type AuthProviderProps, type AuthState } from "./base"
+
+class MissingExternalTokenError extends Error {
+  constructor() {
+    super("No external token available")
+    this.name = "MissingExternalTokenError"
+  }
+}
 
 export default function ExternalAuthProvider({
   children,
@@ -21,7 +32,10 @@ export default function ExternalAuthProvider({
     isLoading,
     isError,
     error,
-  } = useQuery({
+  } = useQuery<
+    LoginLoginWithExternalTokenResponse,
+    MissingExternalTokenError | Error
+  >({
     queryKey: AUTH_QUERY_KEYS.internalToken,
     queryFn: async () => {
       const externalToken = queryClient.getQueryData<string>(
@@ -29,7 +43,7 @@ export default function ExternalAuthProvider({
       )
 
       if (!externalToken) {
-        throw new Error("No external token available")
+        throw new MissingExternalTokenError()
       }
 
       const { data: token, status } = await loginLoginWithExternalToken<true>({
@@ -45,11 +59,16 @@ export default function ExternalAuthProvider({
 
       return token
     },
-    retry: 1,
+    retry: (failureCount, error) => {
+      console.log(`Retrying login attempt ${failureCount} after error:`, error)
+      return failureCount < 3
+    },
+    retryDelay: (failureCount) => Math.min(1000 * 2 ** failureCount, 30000),
     enabled: !!queryClient.getQueryData(AUTH_QUERY_KEYS.externalToken),
   })
 
   if (isError) {
+    console.error("Error during external auth:", error)
     return <div>Authorization error</div>
   }
 
