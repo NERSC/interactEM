@@ -76,6 +76,8 @@ class BatchedFrameHeader(msgspec.Struct):
     scan_number: int
     headers: list[FrameHeader]
     batch_size_bytes: int
+    total_batches: int | None = None
+    current_batch_index: int | None = None
 
     def __post_init__(self):
         # Validate headers not empty

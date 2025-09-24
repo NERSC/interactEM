@@ -77,23 +77,53 @@ class BatchEmitter:
             )
             self._position_bytes.append(position_bytes)
 
+        self.total_batches = self._calculate_total_batches()
+
         logger.debug(
             "BatchEmitter initialized for Scan %d with %d positions, "
             "%d frames per position (%d total frames), "
-            "max batch size=%.1f MB (%d bytes).",
+            "max batch size=%.1f MB (%d bytes), "
+            "estimated %d batches.",
             self.scan_number,
             self.total_positions,
             self.frames_per_position,
             self.total_frames,
             batch_size_mb,
             self.batch_size_bytes,
+            self.total_batches,
         )
 
+    def _calculate_total_batches(self) -> int:
+        if not self._position_bytes:
+            return 0
+
+        batch_count = 0
+        current_batch_bytes = 0
+
+        for position_bytes in self._position_bytes:
+            # Check if adding this position would exceed batch size
+            if (
+                current_batch_bytes > 0
+                and current_batch_bytes + position_bytes >= self.batch_size_bytes
+            ):
+                # Would exceed batch size, so finish current batch
+                batch_count += 1
+                current_batch_bytes = position_bytes
+            else:
+                # Add to current batch
+                current_batch_bytes += position_bytes
+
+        # Count the final batch if it has any data
+        if current_batch_bytes > 0:
+            batch_count += 1
+
+        return batch_count
 
     def _batch_generator(self):
         batch_headers = []
         batch_data = []
         current_batch_bytes = 0
+        current_batch_index = 0
 
         # Process positions in scan order
         for position_idx in range(self.total_positions):
@@ -109,10 +139,11 @@ class BatchEmitter:
                 and current_batch_bytes + position_bytes >= self.batch_size_bytes
             ):
                 # Yield current batch before processing this position
-                yield batch_headers, batch_data
+                yield batch_headers, batch_data, current_batch_index
                 batch_headers = []
                 batch_data = []
                 current_batch_bytes = 0
+                current_batch_index += 1
 
             # Add all frames for this position
             for frame_idx in range(self.frames_per_position):
@@ -129,7 +160,7 @@ class BatchEmitter:
 
         # Yield any remaining frames
         if batch_headers:
-            yield batch_headers, batch_data
+            yield batch_headers, batch_data, current_batch_index
 
         logger.info(
             f"BatchEmitter batched generator finished for Scan {self.scan_number}. "
@@ -145,12 +176,14 @@ class BatchEmitter:
             raise StopIteration("BatchEmitter is finished.")
 
         try:
-            headers, data = next(self._iterator)
+            headers, data, batch_index = next(self._iterator)
             total_bytes = sum(arr.nbytes for arr in data)
             batched_header = BatchedFrameHeader(
                 scan_number=self.scan_number,
                 headers=headers,
                 batch_size_bytes=total_bytes,
+                total_batches=self.total_batches,
+                current_batch_index=batch_index,
             )
 
             self._frames_emitted += len(headers)
