@@ -25,6 +25,11 @@ interface ViewModeState {
   setViewMode: (mode: ViewMode) => void
 }
 
+interface AuthState {
+  externalToken: string | null
+  setExternalToken: (token: string | null) => void
+}
+
 const usePipelineStoreZustand = create<PipelineState>()(
   persist(
     (set) => ({
@@ -49,6 +54,16 @@ const useViewModeStoreZustand = create<ViewModeState>()(
       setViewMode: (mode) => set({ viewMode: mode }),
     }),
     { name: "view-mode-storage" },
+  ),
+)
+
+const useAuthStoreZustand = create<AuthState>()(
+  persist(
+    (set) => ({
+      externalToken: null,
+      setExternalToken: (token) => set({ externalToken: token }),
+    }),
+    { name: "auth-storage" },
   ),
 )
 
@@ -115,3 +130,18 @@ export const useViewModeStore = () => {
     setViewMode,
   }
 }
+
+export const useAuthStore = () => {
+  const externalToken = useAuthStoreZustand((state) => state.externalToken)
+  const setExternalToken = useAuthStoreZustand(
+    (state) => state.setExternalToken,
+  )
+
+  return {
+    externalToken,
+    setExternalToken,
+  }
+}
+
+// Export the raw store for use outside of components
+export { useAuthStoreZustand as authStore }
