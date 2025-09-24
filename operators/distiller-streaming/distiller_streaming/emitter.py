@@ -9,7 +9,7 @@ from interactem.core.models.messages import BytesMessage
 logger = get_logger()
 
 
-class FrameEmitter:
+class BatchEmitter:
     """
     Manages iterating through frames of a SparseArray and generating BytesMessages for each frame.
     Supports batching multiple frames into a single message, where the batch limit is defined
@@ -78,7 +78,7 @@ class FrameEmitter:
             self._position_bytes.append(position_bytes)
 
         logger.debug(
-            "FrameEmitter initialized for Scan %d with %d positions, "
+            "BatchEmitter initialized for Scan %d with %d positions, "
             "%d frames per position (%d total frames), "
             "max batch size=%.1f MB (%d bytes).",
             self.scan_number,
@@ -134,7 +134,7 @@ class FrameEmitter:
             yield batch_headers, batch_data
 
         logger.info(
-            f"FrameEmitter batched generator finished for Scan {self.scan_number}. "
+            f"BatchEmitter batched generator finished for Scan {self.scan_number}. "
             f"Emitted {self._frames_emitted} frames in {self._messages_emitted} messages."
         )
 
@@ -144,7 +144,7 @@ class FrameEmitter:
         May return a single frame or batched frames depending on the configured size limit.
         """
         if self._finished:
-            raise StopIteration("FrameEmitter is finished.")
+            raise StopIteration("BatchEmitter is finished.")
 
         try:
             headers, data = next(self._iterator)
@@ -158,7 +158,7 @@ class FrameEmitter:
             self._frames_emitted += len(headers)
             self._messages_emitted += 1
             logger.debug(
-                "FrameEmitter for Scan %d: Emitted %.2f MB for %d frames.",
+                "BatchEmitter for Scan %d: Emitted %.2f MB for %d frames.",
                 self.scan_number,
                 total_bytes / 1024 / 1024,
                 len(headers),
@@ -169,7 +169,7 @@ class FrameEmitter:
         except StopIteration:
             self._finished = True
             logger.info(
-                f"FrameEmitter for Scan {self.scan_number}: Finished after emitting "
+                f"BatchEmitter for Scan {self.scan_number}: Finished after emitting "
                 f"{self._frames_emitted} frames in {self._messages_emitted} messages."
             )
             raise
