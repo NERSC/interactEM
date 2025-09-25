@@ -1,9 +1,6 @@
 import asyncio
 import json
-import pickle
 from typing import Any
-
-import pandas as pd
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
@@ -49,8 +46,8 @@ class TableDisplay(AsyncOperator):
             logger.debug("No input message received.")
             return
 
-        input_data = pickle.loads(inputs.data)
-        logger.debug("Successfully deserialized input data using pickle.")
+        input_data = json.loads(inputs.data.decode("utf-8"))
+        logger.debug("Successfully deserialized input data using JSON.")
 
         if not isinstance(input_data, dict):
             raise ValueError("Deserialized data is not a dictionary. Cannot process.")
@@ -58,9 +55,14 @@ class TableDisplay(AsyncOperator):
         publishable_data: dict[str, Any] = {"tables": {}}
 
         for key, value in input_data.items():
-            if isinstance(value, pd.DataFrame):
-                publishable_data["tables"][key] = value.to_dict(orient="records")
-                logger.debug(f"Converted DataFrame '{key}' to list of records.")
+            if isinstance(value, list):
+                publishable_data["tables"][key] = value
+                logger.debug(f"Using pre-serialized records for '{key}'.")
+            else:
+                logger.warning(
+                    f"Data for key '{key}' is not a list. Skipping this entry."
+                )
+                return
 
         serialized_json_data = json.dumps(publishable_data).encode("utf-8")
         logger.debug(
