@@ -81,19 +81,18 @@ def state_monitor(
                 "Node Groups": df_node_groups,
             }
 
-            serialized_data = pickle.dumps(state_data_for_display)
-            logger.debug(f"Serialized state DataFrames using pickle ({len(serialized_data)} bytes).")
+            time.sleep(0.5)
 
             return BytesMessage(
                 header=MessageHeader(subject=MessageSubject.BYTES),
                 data=serialized_data,
             )
         except Exception as e:
-            logger.error(f"Error processing or serializing state data with pickle: {e}")
+            time.sleep(0.5)
             return None
     else:
         # No state received yet or client not connected
         logger.debug("No state data available from client.")
-        # Optionally wait briefly before checking again
-        time.sleep(0.1)
+        # Wait briefly before checking again
+        time.sleep(0.5)
         return None
