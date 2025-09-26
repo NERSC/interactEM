@@ -806,41 +806,35 @@ files = [
 
 [[package]]
 name = "stempy"
-version = "3.4.0"
+version = "3.4.1"
 description = "A package for the ingestion of 4D STEM data."
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "stempy-3.4.0-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:1cea2447e1752795d76c8285b4013060beee2938853c95d2e635f37260559a7e"},
-    {file = "stempy-3.4.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e67996514714e731599f245f08fed09bed0cbf7a5ad494e4312ef894e7089a50"},
-    {file = "stempy-3.4.0-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:1281429f182542faa7361264db58336a09e3edcc4998b5bdde6db077fb3a978b"},
-    {file = "stempy-3.4.0-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:838ae3425d7702a07259a5f5828b81a9e426d04131dc7eacf2345b72a39746c3"},
-    {file = "stempy-3.4.0-cp310-cp310-win_amd64.whl", hash = "sha256:3d1ba16144901ffcc074f32d066fa7e578e68ae4350c619a563306e677f718e9"},
-    {file = "stempy-3.4.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:e91cc23afeccc4cf2879d84beb7a5d31d4930e80348c34af35685d4b4aae4937"},
-    {file = "stempy-3.4.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:79502465d452f67f5a983df806b00ede303228fc92e7bb29ecc9a76a8aafa588"},
-    {file = "stempy-3.4.0-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:0032af32bcba14dbf351947310274a87cac2d3fb06a02c7de172298aee5be63b"},
-    {file = "stempy-3.4.0-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:7cda472eba9eaac4028a88b96c071bfb7c64da838111d1781cc2ae679458c5a2"},
-    {file = "stempy-3.4.0-cp311-cp311-win_amd64.whl", hash = "sha256:88c719745465a9712381376045f1573e95038833ac0453c66351538e388ba089"},
-    {file = "stempy-3.4.0-cp312-cp312-macosx_10_13_x86_64.whl", hash = "sha256:1b49b0c32342c5104b1eb37d5efc4d05ea9118fdbe988f9288be8e24ef1b1793"},
-    {file = "stempy-3.4.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:45d908a3e64a96458d6b21457aa7e92b4fec2d885a61765aec551c3e2ca671d8"},
-    {file = "stempy-3.4.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:3061c68695205ea8fe70687e4f5149e2b3c6f6eef5153e9b13e1be405b3ada1b"},
-    {file = "stempy-3.4.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:901f839f390841a043a41f4411f9f2684dcedb38c0e29b65375698f167ce54ca"},
-    {file = "stempy-3.4.0-cp312-cp312-win_amd64.whl", hash = "sha256:9833748053ae210b48b72a930861a70efd47026c54aa5251744fd04106f35169"},
-    {file = "stempy-3.4.0-cp37-cp37m-macosx_10_9_x86_64.whl", hash = "sha256:169b506ad69eb76ad18117c524b4d9609fc5cd70221f6c1eb804c8e61d5a0167"},
-    {file = "stempy-3.4.0-cp37-cp37m-manylinux_2_28_aarch64.whl", hash = "sha256:676a6d64b3f632b9cf0eafe683d0eb80c739e0feb06064013eed9664c6b9de19"},
-    {file = "stempy-3.4.0-cp37-cp37m-manylinux_2_28_x86_64.whl", hash = "sha256:4941aefaa2e14995e672f2feac669f06a0d06373349a83ba75d0ffc9fcee6c2b"},
-    {file = "stempy-3.4.0-cp37-cp37m-win_amd64.whl", hash = "sha256:fb62791051b1bb4777b1bbfc3ae888744ed0bcda69442ddedecbc598af8a5b35"},
-    {file = "stempy-3.4.0-cp38-cp38-macosx_10_9_x86_64.whl", hash = "sha256:02fc8a541d521a3d379f6203b4ecbd6ea91b4035651c22992ed197f3e1c93cc8"},
-    {file = "stempy-3.4.0-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:914abc4d5112018962cb2db34cb362d896dee80568662628081933c5ac0b6f17"},
-    {file = "stempy-3.4.0-cp38-cp38-manylinux_2_28_aarch64.whl", hash = "sha256:6a2004fc9ae9bd8f554f86a71749c0f8f897bb1809010e22df7835d54c3bc9f4"},
-    {file = "stempy-3.4.0-cp38-cp38-manylinux_2_28_x86_64.whl", hash = "sha256:948aa381a854e71322127e7e23d597dc5bb3a0a86e19eaa52a5660da6def8ad5"},
-    {file = "stempy-3.4.0-cp38-cp38-win_amd64.whl", hash = "sha256:2c4c571564e7d289feaa0ee559b0df44f997d0cc676365e7552bc5480079d2e5"},
-    {file = "stempy-3.4.0-cp39-cp39-macosx_10_9_x86_64.whl", hash = "sha256:624a64fc4b1a9564fb007c1797fd5960e094092f16de9200d08d59110932eb0a"},
-    {file = "stempy-3.4.0-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:77b36c05c11b0d6ebd59c0fa82b6b48744ca209952b14661fe820238062898b6"},
-    {file = "stempy-3.4.0-cp39-cp39-manylinux_2_28_aarch64.whl", hash = "sha256:54172f4c7dd1e42c91c6ff451fb1234c91cb6841985948d329b2a75aa36bffe5"},
-    {file = "stempy-3.4.0-cp39-cp39-manylinux_2_28_x86_64.whl", hash = "sha256:5f0c1838af18d448c2ffb8469ffa021dc00a8ab0d8fc0af2de14ce42ef07f807"},
-    {file = "stempy-3.4.0-cp39-cp39-win_amd64.whl", hash = "sha256:b2c95d375ae8759af5f772de2955f9411ab13ee898d9628b9a88ffc76f779af3"},
+    {file = "stempy-3.4.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:9c35b5a9125c86f0545f0f049baf333cc40a60d3fc3a0996abe7260228d9cdfb"},
+    {file = "stempy-3.4.1-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:497aec5e144c9e8e8eb9f7c4446e23ea22bc56a7d554240b02238c26b46c8ada"},
+    {file = "stempy-3.4.1-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:ec1bbd26e9f954da7282da773f5d718a4a230640f5c3d0518b918377d59b8573"},
+    {file = "stempy-3.4.1-cp310-cp310-win_amd64.whl", hash = "sha256:27c1fd9900a278a8385289c102df00de11c441915204e4dadefed1d7909ba31c"},
+    {file = "stempy-3.4.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:80be626643c3559b604910bcb25737c03ca9d2d13166954977af61c497d6691b"},
+    {file = "stempy-3.4.1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:715f87e4b623d8a9f37542a09544ea617d6b7269c285416697096c2086082002"},
+    {file = "stempy-3.4.1-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:c204595a7de77e8725d65c40ada0cab6dd08f8ad3e439069f5d9670d4e150da8"},
+    {file = "stempy-3.4.1-cp311-cp311-win_amd64.whl", hash = "sha256:4e088e7a37651cf466ce9df5631046870543e812a3cdeea8ab4581b1a9167b58"},
+    {file = "stempy-3.4.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4c2c09e95a70dbb5429c93fc816c0494e51886eab533f5491ba1df16e21930af"},
+    {file = "stempy-3.4.1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:67940221bb6494cdf1cd5a5f0dfd84682f3c2e58ffc7195e21aa2f22922fb237"},
+    {file = "stempy-3.4.1-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:fb3dac8b861bce8039c0eef1f25227fddf8a21e2ac9b6104a04244dbc818fdbd"},
+    {file = "stempy-3.4.1-cp312-cp312-win_amd64.whl", hash = "sha256:bb85f2e583a7db54eb0d2da61ec9cde576265546fcc0da905642c514db049fae"},
+    {file = "stempy-3.4.1-cp37-cp37m-manylinux_2_28_aarch64.whl", hash = "sha256:4f67828c679c57da86be0a76abf79993a1abd89eba9abc7e04ed8d4620564552"},
+    {file = "stempy-3.4.1-cp37-cp37m-manylinux_2_28_x86_64.whl", hash = "sha256:021b0f5d2656c4636b8eb1c49995c444682d5db07944166a0bfe84b5c2f15124"},
+    {file = "stempy-3.4.1-cp37-cp37m-win_amd64.whl", hash = "sha256:d828b3f7216e2d832fd0da32ce1d949bf8fb53cb32d4c5c2c9992abfb529f800"},
+    {file = "stempy-3.4.1-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:6d9d142eb5cfac02c5824fd5d0336a986312b39f322a0e6a1008175d435629a9"},
+    {file = "stempy-3.4.1-cp38-cp38-manylinux_2_28_aarch64.whl", hash = "sha256:285efd374d48f30c4693b32a29ba9a0a9c6e39683ba44d6e2d9e60e875ab4b57"},
+    {file = "stempy-3.4.1-cp38-cp38-manylinux_2_28_x86_64.whl", hash = "sha256:f8f5246db9673455e51488ceec086a8a02b7735810d0b9e17a9f294374339a6f"},
+    {file = "stempy-3.4.1-cp38-cp38-win_amd64.whl", hash = "sha256:ac35340d58b92ae73b084d58c2c6992df9c70675e69c57dfd02f78001a1274f7"},
+    {file = "stempy-3.4.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:b226f2f6be1165bb9363815b095bf69b08c0226e473145550434bfc051c46c67"},
+    {file = "stempy-3.4.1-cp39-cp39-manylinux_2_28_aarch64.whl", hash = "sha256:e2898461f9b918b0723527ba02c18b3be8192133b32a8a5249190b13d3c9fb13"},
+    {file = "stempy-3.4.1-cp39-cp39-manylinux_2_28_x86_64.whl", hash = "sha256:640c637f912f06e5d537f064542b3332fa18d4aae7d33e801ff997ed703b5eb7"},
+    {file = "stempy-3.4.1-cp39-cp39-win_amd64.whl", hash = "sha256:52ba846cd7bd114fabdd0508154c7cb38459b56b302413dece94152d92fc54ac"},
 ]
 
 [package.dependencies]
