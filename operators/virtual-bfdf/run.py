@@ -1,7 +1,6 @@
 from collections import OrderedDict
 from typing import Any
 
-import numpy as np
 import stempy.image as stim  # Import stim
 from distiller_streaming.accumulator import FrameAccumulator
 from distiller_streaming.models import BatchedFrames
@@ -9,8 +8,6 @@ from distiller_streaming.util import (
     calculate_diffraction_center,
     get_summed_diffraction_pattern,
 )
-from stempy import _image
-from stempy.io import SparseArray
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import (
@@ -25,45 +22,6 @@ logger = get_logger()
 # --- Operator State ---
 # OrderedDict to hold FrameAccumulator instances with LRU behavior
 accumulators: OrderedDict[int, FrameAccumulator] = OrderedDict()
-
-
-def patched_create_stem_images(
-    input,
-    inner_radii,
-    outer_radii,
-    center=(-1, -1),
-):
-    """Patched version of stempy.image.create_stem_images for NumPy 2.x compatibility"""
-
-    # Ensure the inner and outer radii are tuples or lists
-    if not isinstance(inner_radii, tuple | list):
-        inner_radii = [inner_radii]
-    if not isinstance(outer_radii, tuple | list):
-        outer_radii = [outer_radii]
-
-    # Electron counted data attributes
-    if isinstance(input, SparseArray):
-        imgs = _image.create_stem_images(
-            input.data,
-            inner_radii,
-            outer_radii,
-            input.scan_shape[::-1],
-            input.frame_shape,
-            center,
-        )
-    else:
-        raise Exception(
-            "Type of input, "
-            + str(type(input))
-            + ", is not known to stempy.image.create_stem_images()"
-        )
-
-    images = [np.asarray(img) for img in imgs]
-    return np.asarray(images)
-
-
-# Replace the original function
-stim.create_stem_images = patched_create_stem_images
 
 
 # --- Operator Kernel ---
