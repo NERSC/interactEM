@@ -702,6 +702,7 @@ class SharedStateClient:
     def receive_update(self, timeout_ms: int = 0) -> None:
         """
         Checks for and processes updates from the background process.
+        Drains all available messages to ensure we get the latest state.
 
         Args:
             timeout_ms: Poll timeout in milliseconds. 0 for non-blocking.
@@ -718,24 +719,34 @@ class SharedStateClient:
 
         try:
             socks = dict(self._update_poller.poll(timeout_ms))
-            if (
+            if not (
                 self._update_pull_socket in socks
                 and socks[self._update_pull_socket] == zmq.POLLIN
             ):
-                update = self._update_pull_socket.recv_pyobj(zmq.NOBLOCK)
+                return
+
+            # Drain all available messages to get the latest update
+            messages_processed = 0
+            while True:
+                try:
+                    update = self._update_pull_socket.recv_pyobj(zmq.NOBLOCK)
+                except zmq.Again:
+                    break
                 if not isinstance(update, BaseUpdate):
                     raise TypeError(f"[Client] Expected BaseUpdate, got {type(update)}")
 
                 handler = update_handlers.get(update.update_type)
                 if handler:
                     handler(update)
+                    messages_processed += 1
                 else:
                     raise RuntimeError(
                         f"[Client] Unknown update type: {update.update_type}"
                     )
 
-        except zmq.Again:
-            pass  # No messages available
+            if messages_processed > 1:
+                logger.debug(f"[Client] Processed {messages_processed} queued messages")
+
         except zmq.ZMQError as e:
             logger.error(f"[Client] ZMQ Error: {e}")
             if e.errno == zmq.ETERM:
