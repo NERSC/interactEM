@@ -77,7 +77,9 @@ class BatchEmitter:
             )
             self._position_bytes.append(position_bytes)
 
-        self.total_batches = self._calculate_total_batches()
+        self.total_batches, self.total_frames_expected = (
+            self._calculate_batch_and_frame_totals()
+        )
 
         logger.debug(
             "BatchEmitter initialized for Scan %d with %d positions, "
@@ -93,11 +95,12 @@ class BatchEmitter:
             self.total_batches,
         )
 
-    def _calculate_total_batches(self) -> int:
+    def _calculate_batch_and_frame_totals(self) -> tuple[int, int]:
         if not self._position_bytes:
-            return 0
+            return 0, 0
 
         batch_count = 0
+        frame_count = 0
         current_batch_bytes = 0
 
         for position_bytes in self._position_bytes:
@@ -113,11 +116,13 @@ class BatchEmitter:
                 # Add to current batch
                 current_batch_bytes += position_bytes
 
+            frame_count += self.frames_per_position
+
         # Count the final batch if it has any data
         if current_batch_bytes > 0:
             batch_count += 1
 
-        return batch_count
+        return batch_count, frame_count
 
     def _batch_generator(self):
         batch_headers = []
@@ -183,6 +188,7 @@ class BatchEmitter:
                 headers=headers,
                 batch_size_bytes=total_bytes,
                 total_batches=self.total_batches,
+                total_frames=self.total_frames_expected,
                 current_batch_index=batch_index,
             )
 
