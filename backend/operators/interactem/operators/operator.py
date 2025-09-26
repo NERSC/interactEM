@@ -308,14 +308,9 @@ class OperatorMixin(RunnableKernel):
                 # try to reinitialize the consumer
                 # TODO: this could be done elsewhere...
                 # note, we want to make sure we aren't doing this every loop.
-                try:
-                    await self.params_psub.consumer_info()
-                except Exception as e:
-                    logger.error(f"Consumer info error: {e}")
-                    logger.info("Initializing a new consumer...")
-                    self.params_psub = await create_operator_parameter_consumer(
-                        self.js, self.info.canonical_id
-                    )
+                self.params_psub = await create_operator_parameter_consumer(
+                    self.js, self.info.canonical_id
+                )
                 continue
             except Exception as e:
                 logger.error(f"Error fetching parameter messages: {e}")
