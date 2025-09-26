@@ -115,17 +115,17 @@ def calculate_bright_field(
     if calc_freq <= 0:
         calc_freq = 100
 
-    if (
-        accumulator.num_messages_added == 0
-        or accumulator.num_messages_added % calc_freq != 0
+    if not accumulator.finished and (
+        accumulator.num_batches_added == 0
+        or accumulator.num_batches_added % calc_freq != 0
     ):
         logger.debug(
-            f"Scan {scan_number}: Not time to calculate yet. Messages added: {accumulator.num_messages_added}."
+            f"Scan {scan_number}: Not time to calculate yet. Messages added: {accumulator.num_batches_added}."
         )
         return None
 
     logger.debug(
-        f"Scan {scan_number}: Triggering calculation after {accumulator.num_messages_added} messages."
+        f"Scan {scan_number}: Triggering calculation after {accumulator.num_batches_added} messages."
     )
 
     subsample_step = int(parameters.get("subsample_step_center", 2))
@@ -160,7 +160,7 @@ def calculate_bright_field(
 
     output_meta = {
         "scan_number": scan_number,
-        "accumulated_messages": accumulator.num_messages_added,
+        "accumulated_messages": accumulator.num_batches_added,
         "shape": bf_image.shape,
         "dtype": str(bf_image.dtype),
         "center_used": center,
@@ -173,6 +173,6 @@ def calculate_bright_field(
         data=array_bytes,
     )
     logger.info(
-        f"Scan {scan_number}: Emitting BF image ({bf_image.shape}). Num messages added so far: {accumulator.num_messages_added}"
+        f"Scan {scan_number}: Emitting BF image ({bf_image.shape}). Num messages added so far: {accumulator.num_batches_added}"
     )
     return output_message

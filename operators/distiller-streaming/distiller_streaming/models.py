@@ -77,6 +77,7 @@ class BatchedFrameHeader(msgspec.Struct):
     headers: list[FrameHeader]
     batch_size_bytes: int
     total_batches: int | None = None
+    total_frames: int | None = None
     current_batch_index: int | None = None
 
     def __post_init__(self):
