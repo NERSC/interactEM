@@ -549,48 +549,44 @@ class SharedStateClient:
         """Process incoming messages and detect head node changes."""
         try:
             message_bytes = subscriber.recv(zmq.NOBLOCK)
-            unpacked_list = msgpack.unpackb(
-                message_bytes, raw=True, use_list=True, strict_map_key=False
-            )
-            shared_state_msg = SharedStateMsg.from_msgpack(unpacked_list)
-
-            # Skip heartbeat messages
-            if shared_state_msg.body == "HUGZ":
-                return last_head_node_id
-
-            # Process state update
-            shared_state_data = shared_state_msg.shared_state
-            update_pusher.send_pyobj(StateUpdate(shared_state=shared_state_data))
-
-            # Check for head node changes
-            new_head_node_id = None
-            if shared_state_data.node_map:
-                for node_info in shared_state_data.node_map.values():
-                    if any(
-                        0 in short_id_dict
-                        for short_id_dict in node_info.node_group_thread_info.values()
-                    ):
-                        new_head_node_id = node_info.node_id
-                        break
-
-            # Send notifications if head node status changed
-            if new_head_node_id != last_head_node_id:
-                if new_head_node_id is not None:
-                    update_pusher.send_pyobj(
-                        NodeConnectedUpdate(head_node_id=new_head_node_id)
-                    )
-                else:
-                    update_pusher.send_pyobj(NodeDisconnectedUpdate())
-                return new_head_node_id
-
-            return last_head_node_id
-
         except zmq.Again:
             # No message available
             return last_head_node_id
-        except Exception:
-            # Let errors propagate to main loop
-            raise
+        unpacked_list = msgpack.unpackb(
+            message_bytes, raw=True, use_list=True, strict_map_key=False
+        )
+        shared_state_msg = SharedStateMsg.from_msgpack(unpacked_list)
+
+        # Skip heartbeat messages
+        if shared_state_msg.body == "HUGZ":
+            return last_head_node_id
+
+        # Process state update
+        shared_state_data = shared_state_msg.shared_state
+        update_pusher.send_pyobj(StateUpdate(shared_state=shared_state_data))
+
+        # Check for head node changes
+        new_head_node_id = None
+        if shared_state_data.node_map:
+            for node_info in shared_state_data.node_map.values():
+                if any(
+                    0 in short_id_dict
+                    for short_id_dict in node_info.node_group_thread_info.values()
+                ):
+                    new_head_node_id = node_info.node_id
+                    break
+
+        # Send notifications if head node status changed
+        if new_head_node_id != last_head_node_id:
+            if new_head_node_id is not None:
+                update_pusher.send_pyobj(
+                    NodeConnectedUpdate(head_node_id=new_head_node_id)
+                )
+            else:
+                update_pusher.send_pyobj(NodeDisconnectedUpdate())
+            return new_head_node_id
+
+        return last_head_node_id
 
     @staticmethod
     def _cleanup_zmq_resources(
