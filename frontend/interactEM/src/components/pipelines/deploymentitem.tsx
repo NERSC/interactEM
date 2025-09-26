@@ -9,7 +9,6 @@ import {
 } from "@mui/material"
 import { formatDistanceToNow } from "date-fns"
 import type React from "react"
-import { toast } from "react-toastify"
 import type {
   PipelineDeploymentPublic,
   PipelineDeploymentState,
@@ -47,12 +46,13 @@ export const DeploymentItem: React.FC<DeploymentItemProps> = ({
 }) => {
   const pipelineName = usePipelineName(deployment.pipeline_id)
 
+  // Don't render if we don't have the basic deployment data
+  if (!deployment) {
+    return null
+  }
+
   const handleDeploymentClick = () => {
     if (disableClick) return
-    if (!pipeline) {
-      toast.error("This deployment is not currently running")
-      return
-    }
     onDeploymentClick?.(deployment)
   }
 
@@ -74,7 +74,6 @@ export const DeploymentItem: React.FC<DeploymentItemProps> = ({
 
     return {
       cursor: isClickable ? "pointer" : "default",
-      opacity: pipeline ? 1 : 0.7,
       borderLeft: "3px solid",
       borderLeftColor:
         !hideActiveIndicator && isActive ? "primary.main" : "transparent",
