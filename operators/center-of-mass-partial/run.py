@@ -3,7 +3,6 @@ from typing import Any
 from distiller_streaming.com import com_sparse
 from distiller_streaming.models import BatchedFrames, COMPartial
 
-# from stempy.image import com_sparse
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
 from interactem.operators.operator import operator
@@ -18,24 +17,19 @@ def com_partial(
         logger.warning("No input provided to the subtract operator.")
         return None
 
-    # Centering
     center = None
     init_center_x = parameters.get("init_center_x")
     init_center_y = parameters.get("init_center_y")
     if init_center_x is not None and init_center_y is not None:
         center = (init_center_x, init_center_y)
 
-    # Cropping
     crop = None
     crop_to_x = parameters.get("crop_to_x")
     crop_to_y = parameters.get("crop_to_y")
     if crop_to_x is not None and crop_to_y is not None:
         crop = (crop_to_x, crop_to_y)
 
-    # Parse BatchedFrames directly - no FrameAccumulator needed!
     batch = BatchedFrames.from_bytes_message(inputs)
-
-    # Compute COM directly from BatchedFrames
     com = com_sparse(batch, init_center=center, crop_to=crop, replace_nans=False)
 
     return COMPartial(header=batch.header, array=com).to_bytes_message()
@@ -59,7 +53,6 @@ def profile_com_partial():
             "crop_to_y": 128,
         }
 
-        # Create the operator instance and call its kernel method
         ret = com_partial(inputs, parameters)
         if not ret:
             continue
