@@ -19,6 +19,7 @@ from pydantic import ValidationError
 
 from interactem.core.constants import (
     MOUNT_DIR,
+    NATS_TIMEOUT_DEFAULT,
     OPERATOR_CLASS_NAME,
     OPERATOR_ID_ENV_VAR,
 )
@@ -298,7 +299,7 @@ class OperatorMixin(RunnableKernel):
         while not self._shutdown_event.is_set():
             msgs = None
             try:
-                msgs = await self.params_psub.fetch(20, timeout=1)
+                msgs = await self.params_psub.fetch(1, timeout=NATS_TIMEOUT_DEFAULT)
             except nats.js.errors.FetchTimeoutError:
                 # If we can't get any messages, we just continue
                 continue
