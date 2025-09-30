@@ -334,13 +334,21 @@ class OperatorMixin(RunnableKernel):
                     if self.info:
                         self.info.update_parameter_value(update.name, update.value)
 
+                    # Publish only the updated parameter instead of all parameters
+                    updated_param = self.parameters.parameters.get(update.name)
+                    if updated_param and self.info:
+                        create_task_with_ref(
+                            self._task_refs,
+                            publish_operator_parameter_ack(
+                                self.js, self.info.canonical_id, updated_param
+                            ),
+                        )
+
                 except (ValidationError, KeyError) as e:
                     logger.error(f"Parameter update failed: {e}")
                     await msg.term()
 
                 create_task_with_ref(self._task_refs, msg.ack())
-
-            self.publish_parameters()
 
     async def initialize_messenger(self):
         # TODO: put this somewhere else
