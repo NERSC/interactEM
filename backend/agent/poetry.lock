@@ -673,7 +673,7 @@ develop = true
 [package.dependencies]
 coloredlogs = "^15.0.1"
 faststream = {version = "^0.5.48", extras = ["cli", "nats"]}
-nats-py = "^2.10.0"
+nats-py = {git = "https://github.com/swelborn/nats.py.git", rev = "fce1f3a4a917c2bb0f4adaf1698fe2fa7a13a971"}
 networkx = "^3.3"
 nkeys = "^0.2.1"
 pydantic = "^2.9"
@@ -846,19 +846,24 @@ typing-extensions = {version = ">=4.1.0", markers = "python_version < \"3.11\""}
 
 [[package]]
 name = "nats-py"
-version = "2.10.0"
+version = "2.11.0"
 description = "NATS client for Python"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
-files = [
-    {file = "nats_py-2.10.0.tar.gz", hash = "sha256:9d44265a097edb30d40e214c1dd1a7405c1451d33480ce714c041fb73bb66a10"},
-]
+files = []
+develop = false
 
 [package.extras]
 aiohttp = ["aiohttp"]
 fast-parse = ["fast-mail-parser"]
 nkeys = ["nkeys"]
+
+[package.source]
+type = "git"
+url = "https://github.com/swelborn/nats.py.git"
+reference = "fce1f3a4a917c2bb0f4adaf1698fe2fa7a13a971"
+resolved_reference = "fce1f3a4a917c2bb0f4adaf1698fe2fa7a13a971"
 
 [[package]]
 name = "netifaces2"
@@ -966,7 +971,7 @@ toml = "*"
 
 [[package]]
 name = "podman-hpc-py"
-version = "0.1.dev6+g577e467"
+version = "0.1.dev6+g577e467ab"
 description = ""
 optional = false
 python-versions = "*"
