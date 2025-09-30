@@ -314,19 +314,24 @@ files = [
 
 [[package]]
 name = "nats-py"
-version = "2.10.0"
+version = "2.11.0"
 description = "NATS client for Python"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
-files = [
-    {file = "nats_py-2.10.0.tar.gz", hash = "sha256:9d44265a097edb30d40e214c1dd1a7405c1451d33480ce714c041fb73bb66a10"},
-]
+files = []
+develop = false
 
 [package.extras]
 aiohttp = ["aiohttp"]
 fast-parse = ["fast-mail-parser"]
 nkeys = ["nkeys"]
+
+[package.source]
+type = "git"
+url = "https://github.com/swelborn/nats.py.git"
+reference = "fce1f3a4a917c2bb0f4adaf1698fe2fa7a13a971"
+resolved_reference = "fce1f3a4a917c2bb0f4adaf1698fe2fa7a13a971"
 
 [[package]]
 name = "networkx"
@@ -944,4 +949,4 @@ anyio = ">=3.0.0"
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "577a265804322c359d18697f68804d21e07e2d10984310059aebf5dec5f8a611"
+content-hash = "e56fe9bae5dfbad94214d968a42cd081086198d2833c3f7edb2b5c0bbf0cea2d"
