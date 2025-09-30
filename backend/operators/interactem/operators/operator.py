@@ -68,6 +68,9 @@ BACKEND_TO_MESSENGER: dict[CommBackend, type[BaseMessenger]] = {
 OPERATOR_ID = UUID(os.getenv(OPERATOR_ID_ENV_VAR))
 assert OPERATOR_ID, "Operator ID not set in environment variables"
 
+OPERATOR_STATUS_UPDATE_INTERVAL = 5.0  # seconds
+OPERATOR_METRICS_UPDATE_INTERVAL = 5.0  # seconds
+
 
 dependencies_funcs: list[Callable[[], Generator[None, None, None]]] = []
 
@@ -178,7 +181,7 @@ class OperatorMixin(RunnableKernel):
             self.js,
             shutdown_event=self._shutdown_event,
             bucket=InteractemBucket.METRICS,
-            update_interval=1.0,
+            update_interval=OPERATOR_METRICS_UPDATE_INTERVAL,
             data_model=OperatorMetrics,
         )
         self.metrics = OperatorMetrics(
@@ -193,7 +196,7 @@ class OperatorMixin(RunnableKernel):
             self.js,
             shutdown_event=self._shutdown_event,
             bucket=InteractemBucket.STATUS,
-            update_interval=5.0,
+            update_interval=OPERATOR_STATUS_UPDATE_INTERVAL,
             data_model=OperatorVal,
         )
         self.val = OperatorVal(
