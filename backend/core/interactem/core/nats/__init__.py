@@ -132,6 +132,7 @@ async def consume_messages(
         try:
             msgs = await psub.fetch(num_msgs, timeout=NATS_TIMEOUT_DEFAULT)
         except nats.errors.TimeoutError:
+            await asyncio.sleep(0.1)
             continue
         for msg in msgs:
             create_task_with_ref(handler_tasks, handler(msg, js))

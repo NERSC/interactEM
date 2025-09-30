@@ -302,6 +302,7 @@ class OperatorMixin(RunnableKernel):
                 msgs = await self.params_psub.fetch(1, timeout=NATS_TIMEOUT_DEFAULT)
             except nats.js.errors.FetchTimeoutError:
                 # If we can't get any messages, we just continue
+                await asyncio.sleep(0.1)
                 continue
             except nats.errors.Error:
                 # If we can't fetch messages for a nats error, then we
@@ -317,6 +318,7 @@ class OperatorMixin(RunnableKernel):
                 continue
 
             if not msgs:
+                await asyncio.sleep(0.1)
                 continue
 
             # Process parameter updates
