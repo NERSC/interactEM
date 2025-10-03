@@ -374,6 +374,9 @@ class Agent:
             operator.add_internal_mount(CORE_MOUNT)
             operator.add_internal_mount(OPERATORS_MOUNT)
 
+        if cfg.ALWAYS_PULL_IMAGES:
+            await pull_image(client, operator.image)
+
         container = await create_container(self.id, client, operator)
         if not container:
             raise RuntimeError(f"Failed to create container for operator {operator.id}")
@@ -547,6 +550,22 @@ def is_name_conflict_error(exc: Exception) -> bool:
     else:
         return False
 
+async def pull_image(client: PodmanClient, image: str) -> None:
+    if not image.startswith(INTERACTEM_IMAGE_REGISTRY):
+        _msg = f"Image {image} is not from the interactem registry ({INTERACTEM_IMAGE_REGISTRY})."
+        logger.error(_msg)
+        raise RuntimeError(_msg)
+
+    try:
+        logger.info(f"Pulling image {image}...")
+        # Run the blocking pull in a thread
+        client.images.pull(image)
+        logger.info(f"Successfully pulled image {image}")
+    except Exception as e:
+        error_msg = f"Failed to pull image {image}: {e}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg) from e
+
 
 async def create_container(
     agent_id: uuid.UUID,
@@ -565,17 +584,7 @@ async def create_container(
         logger.debug(f"Image {operator.image} is already available")
     except podman.errors.exceptions.ImageNotFound:
         logger.info(f"Image {operator.image} not found locally, attempting to pull...")
-        if not operator.image.startswith(INTERACTEM_IMAGE_REGISTRY):
-            _msg = f"Image {operator.image} is not from the interactem registry ({INTERACTEM_IMAGE_REGISTRY})."
-            logger.error(_msg)
-            raise RuntimeError(_msg)
-        try:
-            client.images.pull(operator.image)
-            logger.info(f"Successfully pulled image {operator.image}")
-        except Exception as e:
-            error_msg = f"Failed to pull image {operator.image}: {e}"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg) from e
+        await pull_image(client, operator.image)
 
     for attempt in stamina.retry_context(on=is_name_conflict_error):
         # Expand users
