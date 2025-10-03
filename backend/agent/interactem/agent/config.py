@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     ZMQ_BIND_HOSTNAME: str = ""
     ZMQ_BIND_INTERFACE: str
 
+    # Always pull images
+    ALWAYS_PULL_IMAGES: bool = False
+
     @model_validator(mode="after")
     def ensure_operator_creds_file(self) -> "Settings":
         self.OPERATOR_CREDS_FILE = self.OPERATOR_CREDS_FILE.expanduser().resolve()
