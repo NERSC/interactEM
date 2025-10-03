@@ -88,6 +88,9 @@ OPERATOR_CREDS_MOUNT = PodmanMount(
 INTERACTEM_IMAGE_REGISTRY = "ghcr.io/nersc/interactem/"
 
 
+PODMAN_MAX_POOL_SIZE = 100
+
+
 class ContainerTracker:
     MAX_RESTARTS: int = 3
 
@@ -209,7 +212,9 @@ class Agent:
         try:
             # Clear trackers first to avoid restarts
             self.container_trackers.clear()
-            with PodmanClient(base_url=self._podman_service_uri) as client:
+            with PodmanClient(
+                base_url=self._podman_service_uri, max_pool_size=PODMAN_MAX_POOL_SIZE
+            ) as client:
                 containers = client.containers.list(
                     filters={"label": f"agent.id={self.id}"}
                 )
@@ -302,7 +307,9 @@ class Agent:
 
         logger.info("Starting operators...")
 
-        with PodmanClient(base_url=self._podman_service_uri) as client:
+        with PodmanClient(
+            base_url=self._podman_service_uri, max_pool_size=PODMAN_MAX_POOL_SIZE
+        ) as client:
             tasks: list[asyncio.Task] = []
             for op_id, op_info in self.pipeline.operators.items():
                 if op_id not in self._my_operator_ids:
