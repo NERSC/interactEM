@@ -19,7 +19,7 @@ from interactem.core.constants import (
     SUBJECT_SFAPI_JOBS,
 )
 from interactem.core.events.pipelines import PipelineDeploymentEvent, PipelineStopEvent
-from interactem.core.nats import create_all_streams, nc
+from interactem.core.nats import create_all_buckets, create_all_streams, nc
 from interactem.sfapi_models import AgentCreateEvent, StatusRequest
 
 from ..core.config import settings
@@ -40,6 +40,7 @@ async def start():
     nats_client = await nc([str(settings.NATS_SERVER_URL)], "api")
     nats_jetstream = nats_client.jetstream()
     await create_all_streams(nats_jetstream)
+    await create_all_buckets(nats_jetstream)
 
 
 async def stop():

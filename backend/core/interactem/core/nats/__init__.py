@@ -13,7 +13,7 @@ from interactem.core.constants import (
     SUBJECT_NOTIFICATIONS_INFO,
 )
 from nats.js import JetStreamContext
-from nats.js.api import KeyValueConfig
+from nats.js.api import KeyValueConfig, StorageType
 from nats.js.errors import BucketNotFoundError, KeyNotFoundError, NoKeysError
 from nats.js.kv import KeyValue
 from nats.aio.msg import Msg as NATSMsg
@@ -77,7 +77,10 @@ async def create_bucket_if_doesnt_exist(
     try:
         kv = await js.key_value(bucket_name)
     except BucketNotFoundError:
-        bucket_cfg = KeyValueConfig(bucket=bucket_name, ttl=ttl)
+        logger.info(f"Creating bucket {bucket_name}...")
+        bucket_cfg = KeyValueConfig(
+            bucket=bucket_name, ttl=ttl, storage=StorageType.MEMORY
+        )
         kv = await js.create_key_value(config=bucket_cfg)
     return kv
 
@@ -202,6 +205,25 @@ async def create_all_streams(js: JetStreamContext) -> list[StreamInfo]:
         logger.error(f"Failed to create or update streams: {e}")
         raise
     return stream_infos
+
+async def create_all_buckets(js: JetStreamContext) -> list[KeyValue]:
+    bucket_infos: list[KeyValue] = []
+    tasks: set[asyncio.Task] = set()
+    create_task_with_ref(
+        tasks,
+        get_status_bucket(js),
+    )
+    create_task_with_ref(
+        tasks,
+        get_metrics_bucket(js),
+    )
+    try:
+        bucket_infos = await asyncio.gather(*tasks)
+        logger.info(f"All buckets created or verified successfully.")
+    except Exception as e:
+        logger.error(f"Failed to create or verify buckets: {e}")
+        raise
+    return bucket_infos
 
 
 def publish_error(js: JetStreamContext, msg: str, task_refs: Set[asyncio.Task]) -> None:
