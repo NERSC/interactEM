@@ -4,7 +4,7 @@ from typing import Any
 
 import zmq
 from distiller_streaming.client import SharedStateClient
-from distiller_streaming.emitter import FrameEmitter
+from distiller_streaming.emitter import BatchEmitter
 from distiller_streaming.util import (
     receive_and_unpack_sparse_array,
 )
@@ -25,8 +25,8 @@ DEFAULT_PUB_ADDRESS = "tcp://localhost:7082"
 DEFAULT_DATA_PORT = 17000
 DATA_CHECK_INTERVAL = 1.0
 
-emitter_cache: deque[FrameEmitter] = deque()
-active_emitter: FrameEmitter | None = None
+emitter_cache: deque[BatchEmitter] = deque()
+active_emitter: BatchEmitter | None = None
 last_data_check_time: float = 0.0
 
 
@@ -119,7 +119,7 @@ def grabber(
             )
             batch_size_mb = float(parameters.get("batch_size_mb", 1.0))
 
-            emitter = FrameEmitter(
+            emitter = BatchEmitter(
                 sparse_array=new_sparse_array,
                 scan_number=scan_number,
                 batch_size_mb=batch_size_mb,

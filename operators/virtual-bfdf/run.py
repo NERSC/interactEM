@@ -1,7 +1,6 @@
 from collections import OrderedDict
 from typing import Any
 
-import numpy as np
 import stempy.image as stim  # Import stim
 from distiller_streaming.accumulator import FrameAccumulator
 from distiller_streaming.models import BatchedFrames
@@ -9,8 +8,6 @@ from distiller_streaming.util import (
     calculate_diffraction_center,
     get_summed_diffraction_pattern,
 )
-from stempy import _image
-from stempy.io import SparseArray
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import (
@@ -25,45 +22,6 @@ logger = get_logger()
 # --- Operator State ---
 # OrderedDict to hold FrameAccumulator instances with LRU behavior
 accumulators: OrderedDict[int, FrameAccumulator] = OrderedDict()
-
-
-def patched_create_stem_images(
-    input,
-    inner_radii,
-    outer_radii,
-    center=(-1, -1),
-):
-    """Patched version of stempy.image.create_stem_images for NumPy 2.x compatibility"""
-
-    # Ensure the inner and outer radii are tuples or lists
-    if not isinstance(inner_radii, tuple | list):
-        inner_radii = [inner_radii]
-    if not isinstance(outer_radii, tuple | list):
-        outer_radii = [outer_radii]
-
-    # Electron counted data attributes
-    if isinstance(input, SparseArray):
-        imgs = _image.create_stem_images(
-            input.data,
-            inner_radii,
-            outer_radii,
-            input.scan_shape[::-1],
-            input.frame_shape,
-            center,
-        )
-    else:
-        raise Exception(
-            "Type of input, "
-            + str(type(input))
-            + ", is not known to stempy.image.create_stem_images()"
-        )
-
-    images = [np.asarray(img) for img in imgs]
-    return np.asarray(images)
-
-
-# Replace the original function
-stim.create_stem_images = patched_create_stem_images
 
 
 # --- Operator Kernel ---
@@ -115,17 +73,17 @@ def calculate_bright_field(
     if calc_freq <= 0:
         calc_freq = 100
 
-    if (
-        accumulator.num_messages_added == 0
-        or accumulator.num_messages_added % calc_freq != 0
+    if not accumulator.finished and (
+        accumulator.num_batches_added == 0
+        or accumulator.num_batches_added % calc_freq != 0
     ):
         logger.debug(
-            f"Scan {scan_number}: Not time to calculate yet. Messages added: {accumulator.num_messages_added}."
+            f"Scan {scan_number}: Not time to calculate yet. Messages added: {accumulator.num_batches_added}."
         )
         return None
 
     logger.debug(
-        f"Scan {scan_number}: Triggering calculation after {accumulator.num_messages_added} messages."
+        f"Scan {scan_number}: Triggering calculation after {accumulator.num_batches_added} messages."
     )
 
     subsample_step = int(parameters.get("subsample_step_center", 2))
@@ -160,7 +118,7 @@ def calculate_bright_field(
 
     output_meta = {
         "scan_number": scan_number,
-        "accumulated_messages": accumulator.num_messages_added,
+        "accumulated_messages": accumulator.num_batches_added,
         "shape": bf_image.shape,
         "dtype": str(bf_image.dtype),
         "center_used": center,
@@ -173,6 +131,6 @@ def calculate_bright_field(
         data=array_bytes,
     )
     logger.info(
-        f"Scan {scan_number}: Emitting BF image ({bf_image.shape}). Num messages added so far: {accumulator.num_messages_added}"
+        f"Scan {scan_number}: Emitting BF image ({bf_image.shape}). Num messages added so far: {accumulator.num_batches_added}"
     )
     return output_message

@@ -9,7 +9,7 @@ from interactem.core.models.messages import BytesMessage
 logger = get_logger()
 
 
-class FrameEmitter:
+class BatchEmitter:
     """
     Manages iterating through frames of a SparseArray and generating BytesMessages for each frame.
     Supports batching multiple frames into a single message, where the batch limit is defined
@@ -55,7 +55,7 @@ class FrameEmitter:
         self._frames_emitted = 0
         self._messages_emitted = 0
         self._iterator = self._batch_generator()
-        self._finished = False
+        self.finished = False
 
         # Pre-compute template dictionary for frame headers (avoids dict unpacking overhead)
         self._frame_header_template = {
@@ -77,25 +77,58 @@ class FrameEmitter:
             )
             self._position_bytes.append(position_bytes)
 
+        self.total_batches, self.total_frames_expected = (
+            self._calculate_batch_and_frame_totals()
+        )
+
         logger.debug(
-            "FrameEmitter initialized for Scan %d with %d positions, "
+            "BatchEmitter initialized for Scan %d with %d positions, "
             "%d frames per position (%d total frames), "
-            "max batch size=%.1f MB (%d bytes).",
+            "max batch size=%.1f MB (%d bytes), "
+            "estimated %d batches.",
             self.scan_number,
             self.total_positions,
             self.frames_per_position,
             self.total_frames,
             batch_size_mb,
             self.batch_size_bytes,
+            self.total_batches,
         )
 
-    def is_finished(self) -> bool:
-        return self._finished
+    def _calculate_batch_and_frame_totals(self) -> tuple[int, int]:
+        if not self._position_bytes:
+            return 0, 0
+
+        batch_count = 0
+        frame_count = 0
+        current_batch_bytes = 0
+
+        for position_bytes in self._position_bytes:
+            # Check if adding this position would exceed batch size
+            if (
+                current_batch_bytes > 0
+                and current_batch_bytes + position_bytes >= self.batch_size_bytes
+            ):
+                # Would exceed batch size, so finish current batch
+                batch_count += 1
+                current_batch_bytes = position_bytes
+            else:
+                # Add to current batch
+                current_batch_bytes += position_bytes
+
+            frame_count += self.frames_per_position
+
+        # Count the final batch if it has any data
+        if current_batch_bytes > 0:
+            batch_count += 1
+
+        return batch_count, frame_count
 
     def _batch_generator(self):
         batch_headers = []
         batch_data = []
         current_batch_bytes = 0
+        current_batch_index = 0
 
         # Process positions in scan order
         for position_idx in range(self.total_positions):
@@ -111,10 +144,11 @@ class FrameEmitter:
                 and current_batch_bytes + position_bytes >= self.batch_size_bytes
             ):
                 # Yield current batch before processing this position
-                yield batch_headers, batch_data
+                yield batch_headers, batch_data, current_batch_index
                 batch_headers = []
                 batch_data = []
                 current_batch_bytes = 0
+                current_batch_index += 1
 
             # Add all frames for this position
             for frame_idx in range(self.frames_per_position):
@@ -131,10 +165,10 @@ class FrameEmitter:
 
         # Yield any remaining frames
         if batch_headers:
-            yield batch_headers, batch_data
+            yield batch_headers, batch_data, current_batch_index
 
         logger.info(
-            f"FrameEmitter batched generator finished for Scan {self.scan_number}. "
+            f"BatchEmitter batched generator finished for Scan {self.scan_number}. "
             f"Emitted {self._frames_emitted} frames in {self._messages_emitted} messages."
         )
 
@@ -143,22 +177,25 @@ class FrameEmitter:
         Gets the next valid frame message from the internal generator.
         May return a single frame or batched frames depending on the configured size limit.
         """
-        if self._finished:
-            raise StopIteration("FrameEmitter is finished.")
+        if self.finished:
+            raise StopIteration("BatchEmitter is finished.")
 
         try:
-            headers, data = next(self._iterator)
+            headers, data, batch_index = next(self._iterator)
             total_bytes = sum(arr.nbytes for arr in data)
             batched_header = BatchedFrameHeader(
                 scan_number=self.scan_number,
                 headers=headers,
                 batch_size_bytes=total_bytes,
+                total_batches=self.total_batches,
+                total_frames=self.total_frames_expected,
+                current_batch_index=batch_index,
             )
 
             self._frames_emitted += len(headers)
             self._messages_emitted += 1
             logger.debug(
-                "FrameEmitter for Scan %d: Emitted %.2f MB for %d frames.",
+                "BatchEmitter for Scan %d: Emitted %.2f MB for %d frames.",
                 self.scan_number,
                 total_bytes / 1024 / 1024,
                 len(headers),
@@ -167,9 +204,9 @@ class FrameEmitter:
                 header=batched_header, arrays=data
             ).to_bytes_message()
         except StopIteration:
-            self._finished = True
+            self.finished = True
             logger.info(
-                f"FrameEmitter for Scan {self.scan_number}: Finished after emitting "
+                f"BatchEmitter for Scan {self.scan_number}: Finished after emitting "
                 f"{self._frames_emitted} frames in {self._messages_emitted} messages."
             )
             raise

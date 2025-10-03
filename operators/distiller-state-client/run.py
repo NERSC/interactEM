@@ -1,4 +1,4 @@
-import pickle
+import json
 import time
 from typing import Any
 
@@ -76,24 +76,30 @@ def state_monitor(
             df_node_groups = latest_state.get_node_group_dataframe()
 
             state_data_for_display = {
-                "Receivers": df_receivers,
-                "Aggregators": df_aggregators,
-                "Node Groups": df_node_groups,
+                "Receivers": df_receivers.to_dict(orient="records")
+                if df_receivers is not None
+                else [],
+                "Aggregators": df_aggregators.to_dict(orient="records")
+                if df_aggregators is not None
+                else [],
+                "Node Groups": df_node_groups.to_dict(orient="records")
+                if df_node_groups is not None
+                else [],
             }
 
-            serialized_data = pickle.dumps(state_data_for_display)
-            logger.debug(f"Serialized state DataFrames using pickle ({len(serialized_data)} bytes).")
+            serialized_data = json.dumps(state_data_for_display).encode("utf-8")
+            time.sleep(0.5)
 
             return BytesMessage(
                 header=MessageHeader(subject=MessageSubject.BYTES),
                 data=serialized_data,
             )
         except Exception as e:
-            logger.error(f"Error processing or serializing state data with pickle: {e}")
+            logger.error(f"Error processing or serializing state data with JSON: {e}")
+            time.sleep(0.5)
             return None
     else:
         # No state received yet or client not connected
         logger.debug("No state data available from client.")
-        # Optionally wait briefly before checking again
-        time.sleep(0.1)
+        time.sleep(0.5)
         return None

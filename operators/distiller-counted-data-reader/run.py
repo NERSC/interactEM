@@ -3,7 +3,7 @@ import time
 from typing import Any
 
 import stempy.io
-from distiller_streaming.emitter import FrameEmitter
+from distiller_streaming.emitter import BatchEmitter
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
@@ -13,7 +13,7 @@ logger = get_logger()
 
 # --- Operator State ---
 source_dataset_path: pathlib.Path = pathlib.Path()
-active_emitter: FrameEmitter | None = None
+active_emitter: BatchEmitter | None = None
 current_scan_number: int = 1
 current_filename: str | None = None
 
@@ -52,7 +52,7 @@ def reader(
         try:
             logger.info(f"Loading dataset from: {source_dataset_path} for Scan {current_scan_number}")
             loaded_sparse_array = stempy.io.load_electron_counts(source_dataset_path)
-            active_emitter = FrameEmitter(
+            active_emitter = BatchEmitter(
                 sparse_array=loaded_sparse_array,
                 scan_number=current_scan_number,
                 batch_size_mb=batch_size_mb,
