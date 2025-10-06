@@ -237,8 +237,46 @@ services:
       - grafana_data:/var/lib/grafana
       - ./backend/metrics/monitoring-conf/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./backend/metrics/monitoring-conf/grafana/dashboards:/var/lib/grafana/dashboards:ro
-  
+
+  vector:
+    image: timberio/vector:0.50.0-alpine
+    container_name: vector-aggregator
+    ports:
+      - "6000:6000"
+      - "8686:8686"
+    volumes:
+      - vector_data:/vector-data-dir
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /tmp/vector.yaml <<EOF
+        data_dir: /vector-data-dir
+        
+        api:
+          enabled: true
+          address: 0.0.0.0:8686
+          playground: false
+        
+        sources:
+          vector:
+            type: vector
+            address: 0.0.0.0:6000
+            version: "2"
+        
+        sinks:
+          console:
+            type: console
+            inputs:
+              - vector
+            target: stdout
+            encoding:
+              codec: json
+        EOF
+        vector --config /tmp/vector.yaml
+
+
 volumes:
   app-db-data:
   prometheus_data:
   grafana_data:
+  vector_data:
