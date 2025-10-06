@@ -244,9 +244,7 @@ class Agent:
         self.agent_kv.add_or_update_value(self.agent_val.key(), self.agent_val)
 
         await self.agent_kv.start()
-        self._container_monitor_task = await asyncio.create_task(
-            self.monitor_containers()
-        )
+        self._container_monitor_task = asyncio.create_task(self.monitor_containers())
 
     async def receive_assignment(self, assignment: PipelineAssignment):
         try:
