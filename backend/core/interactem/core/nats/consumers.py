@@ -3,10 +3,17 @@ from uuid import UUID
 
 from faststream.nats.broker import NatsBroker
 from faststream.nats.subscriber.asyncapi import AsyncAPISubscriber
+from nats.errors import Error as GenericNatsError
 from nats.js import JetStreamContext
 from nats.js.api import (
     ConsumerConfig,
     DeliverPolicy,
+)
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
 )
 
 from interactem.core.constants import (
@@ -55,18 +62,31 @@ METRICS_CONSUMER_CONFIG = ConsumerConfig(
 )
 
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=0.5, min=0.5, max=2),
+    retry=retry_if_exception_type(GenericNatsError),
+    reraise=True,
+)
+async def create_pull_sub(
+    js: JetStreamContext, stream: str, subject: str, cfg: ConsumerConfig
+) -> JetStreamContext.PullSubscription:
+    psub = await js.pull_subscribe(
+        stream=stream,
+        subject=subject,
+        config=cfg,
+    )
+    logger.info(f"Subscribed to {subject}")
+    return psub
+
+
 async def create_agent_consumer(
     js: JetStreamContext,
     agent_id: UUID,
 ) -> JetStreamContext.PullSubscription:
     subject = f"{SUBJECT_AGENTS_DEPLOYMENTS}.{agent_id}"
     cfg = replace(AGENT_CONSUMER_CONFIG, description=f"agent-{agent_id}")
-    psub = await js.pull_subscribe(
-        stream=STREAM_DEPLOYMENTS,
-        subject=subject,
-        config=cfg,
-    )
-    logger.info(f"Subscribed to {subject}")
+    psub = await create_pull_sub(js, STREAM_DEPLOYMENTS, subject, cfg)
     return psub
 
 
@@ -102,14 +122,7 @@ async def create_operator_parameter_consumer(
         PIPELINE_UPDATE_CONSUMER_CONFIG,
         description=f"operator-{operator_id}",
     )
-    psub = await js.pull_subscribe(
-        stream=STREAM_PARAMETERS,
-        subject=subject,
-        config=cfg,
-    )
-    # TODO: Things like "offsets.emd" with file suffixes will be consumed on a offsets.emd.
-    # We need to make a better way to handle file names as parameters.
-    logger.info(f"Subscribed to {subject}")
+    psub = await create_pull_sub(js, STREAM_PARAMETERS, subject, cfg)
     return psub
 
 
@@ -122,12 +135,7 @@ async def create_operator_pipeline_consumer(
         DEPLOYMENTS_CONSUMER_CONFIG,
         description=f"operator-pipelines-{operator_id}",
     )
-    psub = await js.pull_subscribe(
-        stream=STREAM_DEPLOYMENTS,
-        subject=subject,
-        config=cfg,
-    )
-    logger.info(f"Subscribed to {subject}")
+    psub = await create_pull_sub(js, STREAM_DEPLOYMENTS, subject, cfg)
     return psub
 
 
@@ -140,12 +148,7 @@ async def create_orchestrator_deployment_consumer(
         DEPLOYMENTS_CONSUMER_CONFIG,
         description=f"orchestrator-{orchestrator_id}",
     )
-    psub = await js.pull_subscribe(
-        stream=STREAM_DEPLOYMENTS,
-        subject=subject,
-        config=cfg,
-    )
-    logger.info(f"Subscribed to {subject}")
+    psub = await create_pull_sub(js, STREAM_DEPLOYMENTS, subject, cfg)
     return psub
 
 
@@ -181,12 +184,7 @@ async def create_metrics_consumer(
         METRICS_CONSUMER_CONFIG,
         description="metrics-microservice-consumer",
     )
-    psub = await js.pull_subscribe(
-        stream=STREAM_METRICS,
-        subject=subject,
-        config=cfg,
-    )
-    logger.info(f"Subscribed to {subject}")
+    psub = await create_pull_sub(js, STREAM_METRICS, subject, cfg)
     return psub
 
 
@@ -198,10 +196,5 @@ async def create_sfapi_submit_consumer(
         SFAPI_CONSUMER_CONFIG,
         description="sfapi_submit_consumer",
     )
-    psub = await js.pull_subscribe(
-        stream=STREAM_SFAPI,
-        subject=subject,
-        config=cfg,
-    )
-    logger.info(f"Subscribed to {subject}")
+    psub = await create_pull_sub(js, STREAM_SFAPI, subject, cfg)
     return psub
