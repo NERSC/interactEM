@@ -16,7 +16,12 @@ from interactem.core.constants import (
 import nats.errors
 from nats.js import JetStreamContext
 from nats.js.api import KeyValueConfig
-from nats.js.errors import BucketNotFoundError, KeyNotFoundError, NoKeysError
+from nats.js.errors import (
+    BucketNotFoundError,
+    KeyNotFoundError,
+    NoKeysError,
+    ServiceUnavailableError,
+)
 from nats.js.kv import KeyValue
 from nats.aio.msg import Msg as NATSMsg
 from nats.aio.client import Client as NATSClient
@@ -129,6 +134,7 @@ async def consume_messages(
     handler: Callable[[NATSMsg, JetStreamContext], Awaitable],
     js: JetStreamContext,
     num_msgs: int = 1,
+    create_consumer: Callable[[], Awaitable[JetStreamContext.PullSubscription]] | None = None,
 ):
     logger.info(f"Consuming messages on pull subscription {await psub.consumer_info()}")
     handler_tasks: set[asyncio.Task] = set()
@@ -137,6 +143,31 @@ async def consume_messages(
             msgs = await psub.fetch(num_msgs, timeout=NATS_TIMEOUT_DEFAULT)
         except nats.errors.TimeoutError:
             await asyncio.sleep(0.1)
+            continue
+        except ServiceUnavailableError as e:
+            logger.warning(
+                f"NATS JetStream temporarily unavailable (likely during leader election): {e}. "
+                "Retrying in 1s..."
+            )
+            await asyncio.sleep(1.0)
+            continue
+        except nats.errors.Error as e:
+            # If we can't fetch messages for a nats error, try to reinitialize the consumer
+            if create_consumer:
+                logger.warning(
+                    f"NATS error while fetching messages: {e}. Attempting to recreate consumer..."
+                )
+                try:
+                    psub = await create_consumer()
+                    logger.info("Consumer recreated successfully")
+                except Exception as recreate_err:
+                    logger.error(f"Failed to recreate consumer: {recreate_err}")
+                    await asyncio.sleep(1.0)
+            else:
+                logger.error(
+                    f"NATS error while fetching messages: {e}. No consumer factory provided, cannot recreate."
+                )
+                await asyncio.sleep(1.0)
             continue
         for msg in msgs:
             create_task_with_ref(handler_tasks, handler(msg, js))

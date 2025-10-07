@@ -4,7 +4,7 @@ import signal
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Coroutine, Generator
 from datetime import datetime
-from functools import wraps
+from functools import partial, wraps
 from typing import Any
 from uuid import UUID
 
@@ -19,7 +19,6 @@ from pydantic import ValidationError
 
 from interactem.core.constants import (
     MOUNT_DIR,
-    NATS_TIMEOUT_DEFAULT,
     OPERATOR_CLASS_NAME,
     OPERATOR_ID_ENV_VAR,
 )
@@ -39,6 +38,7 @@ from interactem.core.models.runtime import (
     RuntimePipeline,
 )
 from interactem.core.nats import (
+    consume_messages,
     nc,
 )
 from interactem.core.nats.consumers import (
@@ -156,6 +156,7 @@ class OperatorMixin(RunnableKernel):
         self._tracking_ready: asyncio.Event = asyncio.Event()
         self._tracking_timer_task: asyncio.Task | None = None
         self._task_refs: set[asyncio.Task] = set()
+        self.params_psub: JetStreamContext.PullSubscription | None = None
 
     @property
     def input_queue(self) -> str:
@@ -289,69 +290,52 @@ class OperatorMixin(RunnableKernel):
             )
         logger.info(f"Publishing parameters for operator {self.id}...")
 
+    async def handle_parameter_update(self, msg: NATSMsg, js: JetStreamContext):
+        """Handler for processing parameter update messages."""
+        try:
+            update = RuntimeOperatorParameterUpdate.model_validate_json(msg.data)
+            # Use the parameter collection's update method
+            self.parameters.update_value(update.name, update.value)
+
+            # Also update the operator info parameter list for consistency
+            if self.info:
+                self.info.update_parameter_value(update.name, update.value)
+
+            # Publish only the updated parameter instead of all parameters
+            updated_param = self.parameters.parameters.get(update.name)
+            if updated_param and self.info:
+                create_task_with_ref(
+                    self._task_refs,
+                    publish_operator_parameter_ack(
+                        js, self.info.canonical_id, updated_param
+                    ),
+                )
+
+        except (ValidationError, KeyError) as e:
+            logger.error(f"Parameter update failed: {e}")
+            await msg.term()
+            return
+
+        await msg.ack()
+
     async def consume_params(self):
         if not self.js:
             raise ValueError("JetStream context not initialized")
         if not self.info:
             raise ValueError("Operator info not initialized")
 
-        self.params_psub = await create_operator_parameter_consumer(
-            self.js, self.info.canonical_id
+        create_consumer = partial(
+            create_operator_parameter_consumer, self.js, self.info.canonical_id
         )
+        self.params_psub = await create_consumer()
 
-        while not self._shutdown_event.is_set():
-            msgs = None
-            try:
-                msgs = await self.params_psub.fetch(1, timeout=NATS_TIMEOUT_DEFAULT)
-            except nats.js.errors.FetchTimeoutError:
-                # If we can't get any messages, we just continue
-                await asyncio.sleep(0.1)
-                continue
-            except nats.errors.Error:
-                # If we can't fetch messages for a nats error, then we
-                # try to reinitialize the consumer
-                # TODO: this could be done elsewhere...
-                # note, we want to make sure we aren't doing this every loop.
-                self.params_psub = await create_operator_parameter_consumer(
-                    self.js, self.info.canonical_id
-                )
-                continue
-            except Exception as e:
-                logger.error(f"Error fetching parameter messages: {e}")
-                continue
-
-            if not msgs:
-                await asyncio.sleep(0.1)
-                continue
-
-            # Process parameter updates
-            for msg in msgs:
-                try:
-                    update = RuntimeOperatorParameterUpdate.model_validate_json(
-                        msg.data
-                    )
-                    # Use the parameter collection's update method
-                    self.parameters.update_value(update.name, update.value)
-
-                    # Also update the operator info parameter list for consistency
-                    if self.info:
-                        self.info.update_parameter_value(update.name, update.value)
-
-                    # Publish only the updated parameter instead of all parameters
-                    updated_param = self.parameters.parameters.get(update.name)
-                    if updated_param and self.info:
-                        create_task_with_ref(
-                            self._task_refs,
-                            publish_operator_parameter_ack(
-                                self.js, self.info.canonical_id, updated_param
-                            ),
-                        )
-
-                except (ValidationError, KeyError) as e:
-                    logger.error(f"Parameter update failed: {e}")
-                    await msg.term()
-
-                create_task_with_ref(self._task_refs, msg.ack())
+        await consume_messages(
+            self.params_psub,
+            self.handle_parameter_update,
+            self.js,
+            num_msgs=1,
+            create_consumer=create_consumer,
+        )
 
     async def initialize_messenger(self):
         # TODO: put this somewhere else

@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import json
 import signal
+from functools import partial
 from pprint import pformat
 
 import nats
@@ -221,9 +222,15 @@ async def main():
         logger.info("SFAPI service is running...")
         logger.info(f"Service Info:\n{pformat(service.info(), depth=3)}")
 
-        sfapi_submit_psub = await create_sfapi_submit_consumer(js)
+        create_consumer = partial(create_sfapi_submit_consumer, js)
+        sfapi_submit_psub = await create_consumer()
         submit_task = asyncio.create_task(
-            consume_messages(sfapi_submit_psub, submit, js)
+            consume_messages(
+                sfapi_submit_psub,
+                submit,
+                js,
+                create_consumer=create_consumer,
+            )
         )
         # Wait for the quit event
         await quit_event.wait()

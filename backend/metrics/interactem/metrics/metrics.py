@@ -1,5 +1,6 @@
 import asyncio
 import time
+from functools import partial
 from uuid import UUID
 
 import networkx
@@ -261,7 +262,12 @@ async def main():
 
     metrics_watch_task = asyncio.create_task(metrics_watch(js, update_interval))
     consume_messages_task = asyncio.create_task(
-        consume_messages(metrics_psub, handler=handle_metrics, js=js)
+        consume_messages(
+            metrics_psub,
+            handler=handle_metrics,
+            js=js,
+            create_consumer=partial(create_metrics_consumer, js),
+        )
     )
 
     await asyncio.gather(metrics_watch_task, consume_messages_task)
