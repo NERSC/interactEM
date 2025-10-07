@@ -40,6 +40,10 @@ from .base import (
     BaseMessenger,
 )
 
+PORTS_KV_UPDATE_INTERVAL = 1.0  # seconds
+METRICS_KV_UPDATE_INTERVAL = 1.0
+
+
 logger = get_logger()
 
 UpstreamPortID = RuntimePortID
@@ -209,7 +213,7 @@ class ZmqMessenger(BaseMessenger):
             js=self.js,
             shutdown_event=self._shutdown_event,
             bucket=InteractemBucket.STATUS,
-            update_interval=1.0,
+            update_interval=PORTS_KV_UPDATE_INTERVAL,
             data_model=PortVal,
         )
         await self.port_kv_loop.start()
@@ -220,7 +224,7 @@ class ZmqMessenger(BaseMessenger):
             js=self.js,
             shutdown_event=self._shutdown_event,
             bucket=InteractemBucket.METRICS,
-            update_interval=1.0,
+            update_interval=METRICS_KV_UPDATE_INTERVAL,
             data_model=PortMetrics,
         )
         await self.port_metrics_kv_loop.start()
