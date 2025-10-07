@@ -11,6 +11,7 @@ from pydantic import BaseModel, ValidationError
 from interactem.core.constants import (
     AGENTS,
     NATS_API_KEY_HEADER,
+    NATS_TIMEOUT_DEFAULT,
     PIPELINES,
     STREAM_DEPLOYMENTS,
     SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE,
@@ -103,6 +104,7 @@ async def update_pipeline_status(
         stream=STREAM_DEPLOYMENTS,
         payload=update_event.model_dump_json().encode(),
         headers={NATS_API_KEY_HEADER: cfg.ORCHESTRATOR_API_KEY},
+        timeout=NATS_TIMEOUT_DEFAULT,
     )
 
 

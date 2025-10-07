@@ -11,7 +11,9 @@ from interactem.core.constants import (
     BUCKET_STATUS_TTL,
     SUBJECT_NOTIFICATIONS_ERRORS,
     SUBJECT_NOTIFICATIONS_INFO,
+    NATS_TIMEOUT_DEFAULT,
 )
+import nats.errors
 from nats.js import JetStreamContext
 from nats.js.api import KeyValueConfig
 from nats.js.errors import BucketNotFoundError, KeyNotFoundError, NoKeysError
@@ -131,7 +133,10 @@ async def consume_messages(
     logger.info(f"Consuming messages on pull subscription {await psub.consumer_info()}")
     handler_tasks: set[asyncio.Task] = set()
     while True:
-        msgs = await psub.fetch(num_msgs, timeout=None)
+        try:
+            msgs = await psub.fetch(num_msgs, timeout=NATS_TIMEOUT_DEFAULT)
+        except nats.errors.TimeoutError:
+            continue
         for msg in msgs:
             create_task_with_ref(handler_tasks, handler(msg, js))
 
@@ -233,6 +238,7 @@ def publish_error(js: JetStreamContext, msg: str, task_refs: Set[asyncio.Task]) 
         js.publish(
             f"{SUBJECT_NOTIFICATIONS_ERRORS}",
             payload=msg.encode(),
+            timeout=NATS_TIMEOUT_DEFAULT,
         ),
     )
 
@@ -245,5 +251,6 @@ def publish_notification(
         js.publish(
             f"{SUBJECT_NOTIFICATIONS_INFO}",
             payload=msg.encode(),
+            timeout=NATS_TIMEOUT_DEFAULT,
         ),
     )
