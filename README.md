@@ -2,7 +2,7 @@
 
 An interactive [flow-based programming](https://en.wikipedia.org/wiki/Flow-based_programming) platform for streaming experimental data to High-Performance Computing (HPC). Users can wire together containerized operators through a web frontend and deploy them on both HPC and edge resources.
 
-https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08
+<https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08>
 
 ## Features
 
@@ -13,6 +13,7 @@ https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08
 ## Running locally
 
 ### Prerequisites
+
 - **Docker Desktop** and **Podman Desktop** (recommended for easiest setup)
 - **NATS Tools**: Command-line utilities for interacting with [NATS](https://github.com/nats-io/natscli?tab=readme-ov-file#installation)
 
@@ -42,7 +43,9 @@ https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08
     ```bash
     docker/build.sh
     ```
+
     or
+
     ```bash
     docker/bake.sh
     ```
