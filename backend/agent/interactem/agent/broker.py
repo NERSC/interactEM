@@ -16,8 +16,7 @@ from .agent import Agent, cfg
 logger = get_logger()
 AGENT_ID = cfg.ID
 broker = get_nats_broker(servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{AGENT_ID}")
-
-app = FastStream(broker=broker)
+app = FastStream(broker=broker, logger=logger)
 
 error_pub = create_agent_error_publisher(
     broker=broker,
