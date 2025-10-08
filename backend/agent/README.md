@@ -5,32 +5,58 @@ The agent is a core component in the InteractEM system for running operator cont
 ## Running Locally
 
 ### Prerequisites
-[**Poetry**](https://python-poetry.org/docs/)
+
+Some python environment manager (e.g., [`poetry`](https://python-poetry.org/docs/) or [`uv`](https://github.com/astral-sh/uv)).
 
 ### Configuration
+
 **Set up Environment Variables**  
 
 - Find the Podman Service Endpoint Socket. Open Podman Desktop and go to Settings. Locate and copy the Service Endpoint or Socket Path (e.g., /var/run/podman/podman.sock).
-- Alternative method (if not using Podman Desktop; requires jq to be in your `$PATH`): Run the following command from the agent directory:
+- Alternative method (requires `jq` to be in `$PATH`): run the following script:
 
 ```bash
 ./scripts/podman-socket-path.sh
 ```
 
+- Create `.env`:
+
+```bash
+cp .env.example .env
+```
+
 - Update the `.env` file for the agent. Endpoint goes to `PODMAN_SERVICE_URI` and set default `AGENT_NAME`.
 
 ```makefile
+# note **3** slashes in unix:///var....
 PODMAN_SERVICE_URI=<your_socket_goes_here>
 AGENT_NAME=default_agent_name
 ```
 
-### Run Agents
-**Use `poetry run` in agent directory where `.env` is present:**
+### Install and run
 
 ```bash
-poetry run interactem-agent
+poetry install
 ```
-To run with custom agent's name and tags, set the following environment variables before running the agent (useful while running multiple agents):
+
+or
+
 ```bash
-AGENT_NAME="agent_name" AGENT_TAGS='["agent_tag"]' poetry run interactem-agent
+uv venv .venv --python=3.12
+uv pip install -e .
+source .venv/bin/activate
+```
+
+### Run Agents
+
+Run the following inside the [directory](backend/agent/) where `.env` is.
+
+```bash
+interactem-agent
+```
+
+To run with custom agent's name and tags, set the following environment variables before running the agent (useful while running multiple agents):
+
+```bash
+AGENT_NAME="agent_name" AGENT_TAGS='["agent_tag"]' interactem-agent
 ```
