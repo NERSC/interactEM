@@ -17,6 +17,7 @@ from stamina.instrumentation import set_on_retry_hooks
 
 from interactem.core.constants import (
     OPERATOR_ID_ENV_VAR,
+    VECTOR_IMAGE,
 )
 from interactem.core.constants.mounts import CORE_MOUNT, OPERATORS_MOUNT
 from interactem.core.logger import get_logger
@@ -65,8 +66,9 @@ else:
     PODMAN_COMMAND = "podman-hpc"
     from podman_hpc_client import PodmanHpcClient as PodmanClient
 
-
-logger = get_logger()
+agent_log_file = cfg.LOG_DIR / "agent.log"
+logger = get_logger(log_file=agent_log_file)
+logger.info(f"Agent logging initialized. Log file: {agent_log_file}")
 
 
 def log_hook(details: stamina.instrumentation.RetryDetails) -> None:
@@ -126,6 +128,7 @@ class Agent:
         self.pipeline: Pipeline | None = None
         self._my_operator_ids: list[uuid.UUID] = []
         self._start_time = time.time()
+        self._current_deployment_id: uuid.UUID | None = None
 
         if PODMAN_SERVICE_URI:
             self._podman_service_uri = PODMAN_SERVICE_URI
@@ -218,8 +221,15 @@ class Agent:
                 containers = client.containers.list(
                     filters={"label": f"agent.id={self.id}"}
                 )
+                # Exclude vector container from cleanup
+                operator_containers = [
+                    container
+                    for container in containers
+                    if container.labels.get("container.type") != "vector"
+                ]
                 tasks = [
-                    stop_and_remove_container(container) for container in containers
+                    stop_and_remove_container(container)
+                    for container in operator_containers
                 ]
                 await asyncio.gather(*tasks)
         finally:
@@ -245,12 +255,47 @@ class Agent:
 
         await self.agent_kv.start()
         self._container_monitor_task = asyncio.create_task(self.monitor_containers())
+        self._vector_container = await self._start_vector_container()
+
+    async def _start_vector_container(self) -> Container:
+        logger.info("Starting Vector container for log aggregation...")
+
+        with PodmanClient(
+            base_url=self._podman_service_uri, max_pool_size=PODMAN_MAX_POOL_SIZE
+        ) as client:
+            await pull_image(client, VECTOR_IMAGE)
+
+            log_config = {
+                "Type": "k8s-file",
+                "Config": {"path": f"{cfg.LOG_DIR}/vector.log"},
+            }
+            container = client.containers.create(
+                image=VECTOR_IMAGE,
+                environment=GLOBAL_ENV,
+                name=f"vector-{self.id}",
+                detach=True,
+                stdout=True,
+                stderr=True,
+                log_config=log_config,
+                network_mode="host",
+                remove=True,
+                labels={"agent.id": str(self.id), "container.type": "vector"},
+                mounts=[mount.model_dump() for mount in cfg.vector_mounts],
+            )
+            container.start()
+            return container
 
     async def receive_assignment(self, assignment: PipelineAssignment):
         try:
             self.pipeline = Pipeline.from_pipeline(assignment.pipeline)
             self._my_operator_ids = assignment.operators_assigned
+            self._current_deployment_id = assignment.pipeline.id
             self.agent_val.operator_assignments = assignment.operators_assigned
+
+            # Create deployment-specific log directory
+            deployment_log_dir = cfg.LOG_DIR / str(self._current_deployment_id)
+            deployment_log_dir.mkdir(parents=True, exist_ok=True)
+            logger.info(f"Created deployment log directory: {deployment_log_dir}")
 
             logger.info(f"Operators assigned: {self._my_operator_ids}")
             self.agent_val.status = AgentStatus.BUSY
@@ -291,6 +336,12 @@ class Agent:
         self._task_refs.clear()
 
         await self._cleanup_containers()
+
+        # Stop the vector container
+        if self._vector_container:
+            logger.info("Stopping Vector container...")
+            await stop_and_remove_container(self._vector_container)
+
         await self._stop_podman_service()
 
         if self.agent_kv:
@@ -372,10 +423,19 @@ class Agent:
             operator.add_internal_mount(CORE_MOUNT)
             operator.add_internal_mount(OPERATORS_MOUNT)
 
+        # If we doing logging, mount in the logs directory
+        if cfg.log_mount:
+            operator.add_internal_mount(cfg.log_mount)
+
         if cfg.ALWAYS_PULL_IMAGES:
             await pull_image(client, operator.image)
 
-        container = await create_container(self.id, client, operator)
+        if self._current_deployment_id is None:
+            raise RuntimeError("No deployment_id set for operator creation")
+
+        container = await create_container(
+            self.id, client, operator, self._current_deployment_id
+        )
         if not container:
             raise RuntimeError(f"Failed to create container for operator {operator.id}")
         container.start()
@@ -526,8 +586,14 @@ class Agent:
         operator = tracker.operator
         logger.info(f"Restarting operator {tracker.operator.id}")
         await stop_and_remove_container(container)
+
+        if self._current_deployment_id is None:
+            raise RuntimeError("No deployment_id set for operator restart")
+
         with PodmanClient(base_url=self._podman_service_uri) as client:
-            new_container = await create_container(self.id, client, operator)
+            new_container = await create_container(
+                self.id, client, operator, self._current_deployment_id
+            )
             new_container.start()
             self.container_trackers[operator.id].container = new_container
 
@@ -548,8 +614,9 @@ def is_name_conflict_error(exc: Exception) -> bool:
     else:
         return False
 
+
 async def pull_image(client: PodmanClient, image: str) -> None:
-    if not image.startswith(INTERACTEM_IMAGE_REGISTRY):
+    if not image.startswith(INTERACTEM_IMAGE_REGISTRY) and image != VECTOR_IMAGE:
         _msg = f"Image {image} is not from the interactem registry ({INTERACTEM_IMAGE_REGISTRY})."
         logger.error(_msg)
         raise RuntimeError(_msg)
@@ -568,12 +635,16 @@ async def create_container(
     agent_id: uuid.UUID,
     client: PodmanClient,
     operator: AgentRuntimeOperator,
+    deployment_id: uuid.UUID,
 ) -> Container:
-    name = f"operator-{operator.id}"
+    op_name = f"operator-{operator.id}"
     network_mode = operator.network_mode or "host"
-    log_config = {}
-    if PODMAN_COMMAND == "podman-hpc":
-        log_config = {"Type": "json-file"}
+
+    # Logs save to file so we can extract using vector
+    log_config = {
+        "Type": "k8s-file",
+        "Config": {"path": f"{cfg.LOG_DIR}/{deployment_id}/op-{operator.id}.log"},
+    }
 
     # Try to pull the image first if it doesn't exist
     try:
@@ -588,11 +659,11 @@ async def create_container(
         # This should only be done at the agent (where data resides)
         with attempt:
             if attempt.num > 1:
-                await handle_name_conflict(client, name)
+                await handle_name_conflict(client, op_name)
             return client.containers.create(
                 image=operator.image,
                 environment=operator.env,
-                name=name,
+                name=op_name,
                 command=operator.command,
                 detach=True,
                 stdout=True,
