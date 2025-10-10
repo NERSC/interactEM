@@ -112,11 +112,13 @@ export const DeploymentItem: React.FC<DeploymentItemProps> = ({
           </Box>
         }
         secondary={
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}>
-            <Typography variant="caption">
-              Revision {deployment.revision_id} • {timeAgo}
-            </Typography>
-          </Box>
+          <Typography
+            variant="caption"
+            component="span"
+            sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.5 }}
+          >
+            Revision {deployment.revision_id} • {timeAgo}
+          </Typography>
         }
       />
       {isActive && (

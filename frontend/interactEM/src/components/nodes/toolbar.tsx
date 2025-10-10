@@ -1,9 +1,13 @@
+import DescriptionIcon from "@mui/icons-material/Description"
 import InfoIcon from "@mui/icons-material/Info"
 import { IconButton, Tooltip } from "@mui/material"
 import { useNodesData } from "@xyflow/react"
 import type React from "react"
+import { useState } from "react"
 import type { OperatorSpecParameter, OperatorSpecTag } from "../../client"
+import { ViewMode, useViewModeStore } from "../../stores"
 import type { OperatorNodeType } from "../../types/nodes"
+import OperatorLogsDialog from "../logs/operatordialog"
 import ParametersButton from "./parametersbutton"
 
 interface OperatorToolbarProps {
@@ -21,6 +25,8 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
 }) => {
   const nodeData = useNodesData<OperatorNodeType>(id)
   const nodeTags = nodeData?.data.tags || []
+  const { viewMode } = useViewModeStore()
+  const [logsDialogOpen, setLogsDialogOpen] = useState(false)
 
   return (
     <div className="operator-toolbar">
@@ -31,6 +37,28 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
             parameters={parameters}
             nodeRef={nodeRef}
           />
+        )}
+
+        {viewMode === ViewMode.Runtime && (
+          <>
+            <Tooltip title="View Logs" placement="top">
+              <IconButton
+                size="small"
+                aria-label="Logs"
+                onClick={() => setLogsDialogOpen(true)}
+              >
+                <DescriptionIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            {logsDialogOpen && (
+              <OperatorLogsDialog
+                open={logsDialogOpen}
+                onClose={() => setLogsDialogOpen(false)}
+                canonicalOperatorId={id}
+                operatorLabel={nodeData?.data.label || "Unknown"}
+              />
+            )}
+          </>
         )}
 
         <Tooltip
