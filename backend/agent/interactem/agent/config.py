@@ -2,10 +2,18 @@ import uuid
 from pathlib import Path
 
 import netifaces
+from jinja2 import Template
 from pydantic import AnyWebsocketUrl, Field, NatsDsn, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from interactem.core.constants import LOGS_DIR_IN_CONTAINER
 from interactem.core.logger import get_logger
+from interactem.core.models.containers import (
+    PodmanMount,
+    PodmanMountType,
+)
+
+from ._vector_template import VECTOR_CONFIG_TEMPLATE
 
 logger = get_logger()
 
@@ -32,6 +40,11 @@ class Settings(BaseSettings):
 
     # Always pull images
     ALWAYS_PULL_IMAGES: bool = False
+
+    # Vector configuration
+    VECTOR_AGGREGATOR_ADDR: str | None = None
+    LOG_DIR: Path = Path("~/.interactem/logs").expanduser().resolve()
+    VECTOR_CONFIG_PATH: Path | None = None
 
     @model_validator(mode="after")
     def ensure_operator_creds_file(self) -> "Settings":
@@ -68,5 +81,65 @@ class Settings(BaseSettings):
             )
             raise e
 
+    @model_validator(mode="after")
+    def make_log_cfg(self) -> "Settings":
+        self.LOG_DIR = self.LOG_DIR / str(self.ID)
+        self.LOG_DIR.mkdir(parents=True, exist_ok=True)
+        self.VECTOR_CONFIG_PATH = self.generate_vector_config()
+        return self
+
+    @property
+    def vector_enabled(self) -> bool:
+        return self.VECTOR_CONFIG_PATH is not None
+
+    @property
+    def log_mount(self) -> PodmanMount | None:
+        if not self.vector_enabled:
+            return None
+        return PodmanMount(
+            type=PodmanMountType.bind,
+            source=str(self.LOG_DIR),
+            target=LOGS_DIR_IN_CONTAINER,
+        )
+
+    @property
+    def vector_mounts(self) -> list[PodmanMount]:
+        if not self.vector_enabled:
+            return []
+        config_mount = PodmanMount(
+            type=PodmanMountType.bind,
+            source=str(self.VECTOR_CONFIG_PATH),
+            target="/etc/vector/vector.yaml",
+        )
+        log_mount = self.log_mount
+        if log_mount:
+            return [config_mount, log_mount]
+        return [config_mount]
+
+    def generate_vector_config(self) -> Path | None:
+        """Generates a vector config file and returns path to it"""
+
+        if not self.VECTOR_AGGREGATOR_ADDR:
+            logger.warning("VECTOR_AGGREGATOR_ADDR not set, skipping log aggregation.")
+            return None
+
+        if not self.LOG_DIR.exists():
+            raise RuntimeError(
+                f"Log directory {self.LOG_DIR} does not exist. Should not happen."
+            )
+        templ: Template = Template(VECTOR_CONFIG_TEMPLATE)
+        vector_yaml = templ.render(
+            logs_dir=LOGS_DIR_IN_CONTAINER,
+            agent_id=self.ID,
+            vector_addr=self.VECTOR_AGGREGATOR_ADDR,
+        )
+        output_path = self.LOG_DIR / "vector.yaml"
+        with open(output_path, "w") as f:
+            f.write(vector_yaml)
+
+        logger.info(f"Generated vector config at {output_path}")
+        return output_path
+
 
 cfg = Settings()  # pyright: ignore[reportCallIssue]
+

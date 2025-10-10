@@ -22,3 +22,6 @@ RUN poetry install --no-root
 # --- Install interactem core ---
 COPY ./core/interactem/ ./interactem
 RUN poetry install --only main
+
+# --- Add logs directory to all containers ---
+RUN mkdir -p /interactem/logs
