@@ -52,6 +52,9 @@ ERRORS_THAT_REQUIRE_RECONNECT = (
     nats.errors.TimeoutError,
 )
 
+ATTEMPTS_BEFORE_GIVING_UP = 10
+DEFAULT_UPDATE_INTERVAL = 10.0  # seconds
+
 V = TypeVar("V", bound=BaseModel)
 
 
@@ -63,7 +66,7 @@ class KeyValueLoop(Generic[V]):
         shutdown_event: asyncio.Event,
         bucket: InteractemBucket,
         data_model: type[V],
-        update_interval: float = 10.0,
+        update_interval: float = DEFAULT_UPDATE_INTERVAL,
     ):
         self._nc = nc
         self._js = js
@@ -200,9 +203,9 @@ class KeyValueLoop(Generic[V]):
             raise
 
     @retry(
-        stop=stop_after_attempt(3),
+        stop=stop_after_attempt(ATTEMPTS_BEFORE_GIVING_UP),
         wait=wait_exponential(multiplier=0.5, min=0.5, max=2),
-        retry=retry_if_exception_type(Exception),
+        retry=retry_if_exception_type(ERRORS_THAT_REQUIRE_RECONNECT),
         reraise=True,
     )
     async def _attempt_reconnect(self) -> bool:
@@ -248,7 +251,7 @@ class KeyValueLoop(Generic[V]):
         await asyncio.gather(*delete_tasks, return_exceptions=True)
 
     @retry(
-        stop=stop_after_attempt(3),
+        stop=stop_after_attempt(ATTEMPTS_BEFORE_GIVING_UP),
         wait=wait_exponential(multiplier=0.5, min=0.5, max=2),
         retry=retry_if_exception_type(ERRORS_THAT_REQUIRE_RECONNECT),
         reraise=True,
