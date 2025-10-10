@@ -75,6 +75,7 @@ async def nc(servers: list[str], name: str) -> NATSClient:
         reconnected_cb=reconnected_cb,
         disconnected_cb=disconnected_cb,
         closed_cb=closed_cb,
+        max_reconnect_attempts=-1,  # Retry indefinitely
         **options,
     )
 
