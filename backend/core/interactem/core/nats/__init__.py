@@ -152,6 +152,9 @@ async def consume_messages(
             )
             await asyncio.sleep(1.0)
             continue
+        except nats.errors.ConnectionClosedError:
+            logger.error("NATS connection closed.")
+            raise
         except nats.errors.Error as e:
             # If we can't fetch messages for a nats error, try to reinitialize the consumer
             if create_consumer:
