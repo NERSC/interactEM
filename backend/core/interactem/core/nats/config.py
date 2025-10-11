@@ -4,6 +4,7 @@ from nats.js.api import RetentionPolicy, StorageType, StreamConfig
 from interactem.core.constants import (
     STREAM_DEPLOYMENTS,
     STREAM_IMAGES,
+    STREAM_LOGS,
     STREAM_METRICS,
     STREAM_NOTIFICATIONS,
     STREAM_PARAMETERS,
@@ -11,6 +12,7 @@ from interactem.core.constants import (
     STREAM_TABLES,
     SUBJECT_DEPLOYMENTS_ALL,
     SUBJECT_IMAGES_ALL,
+    SUBJECT_LOGS_ALL,
     SUBJECT_NOTIFICATIONS_ALL,
     SUBJECT_PARAMETERS_ALL,
     SUBJECT_SFAPI_ALL,
@@ -88,4 +90,13 @@ TABLE_STREAM_CONFIG = StreamConfig(
     retention=RetentionPolicy.LIMITS,
     max_msgs_per_subject=1,
     storage=ALL_STORAGE_TYPE,
+)
+
+LOGS_STREAM_CONFIG = StreamConfig(
+    name=STREAM_LOGS,
+    subjects=[SUBJECT_LOGS_ALL],
+    description="A stream for logs.",
+    retention=RetentionPolicy.LIMITS,
+    max_msgs_per_subject=10000,  # max log messages (TODO: temporary)
+    max_age=3600 * 24 * 7,  # 1 week
 )

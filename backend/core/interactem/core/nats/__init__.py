@@ -41,6 +41,7 @@ from .config import (
     NOTIFICATIONS_STREAM_CONFIG,
     PARAMETERS_STREAM_CONFIG,
     TABLE_STREAM_CONFIG,
+    LOGS_STREAM_CONFIG,
     METRICS_STREAM_CONFIG,
     ALL_STORAGE_TYPE,
 )
@@ -239,6 +240,10 @@ async def create_all_streams(js: JetStreamContext) -> list[StreamInfo]:
     create_task_with_ref(
         tasks,
         create_or_update_stream(METRICS_STREAM_CONFIG, js),
+    )
+    create_task_with_ref(
+        tasks,
+        create_or_update_stream(LOGS_STREAM_CONFIG, js),
     )
     try:
         stream_infos = await asyncio.gather(*tasks)
