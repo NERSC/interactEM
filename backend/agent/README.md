@@ -1,6 +1,6 @@
 # InteractEM - Agent
 
-The agent is a core component in the InteractEM system for running operator containers, and coordinating their lifecycle and configuration via NATS messaging.
+The agent is core component in the InteractEM system for running operator containers, and coordinating their lifecycle and configuration via NATS messaging.
 
 ## Running Locally
 
