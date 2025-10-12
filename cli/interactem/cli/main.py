@@ -20,18 +20,19 @@ class Settings(BaseSettings):
     api_base_url: str = "http://localhost:8080/api/v1"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
-        env_file_encoding="utf-8",
-        case_sensitive=False
+        env_file=".env", env_file_encoding="utf-8", case_sensitive=False
     )
+
 
 class PipelineData(BaseModel):
     operators: list[dict] = []
     ports: list[dict] = []
     edges: list[dict] = []
 
+
 class PipelinePayload(BaseModel):
     data: PipelineData
+
 
 class PipelineResponse(BaseModel):
     id: str
@@ -42,13 +43,15 @@ class PipelineResponse(BaseModel):
     updated_at: datetime
     current_revision_id: int
 
+
 class PipelinesListResponse(BaseModel):
     data: list[PipelineResponse]
     count: int
 
+
 def get_settings() -> Settings:
     try:
-        return Settings()
+        return Settings()  # type: ignore[call-arg]
     except ValidationError as e:
         print("[red]Configuration error:[/red]")
         for error in e.errors():
@@ -57,12 +60,10 @@ def get_settings() -> Settings:
             print(f"[red]  - {field}: {msg}[/red]")
         raise typer.Exit(1)
 
+
 def get_token(api_base: str, username: str, password: str) -> str:
     url = f"{api_base}/login/access-token"
-    data = {
-        "username": username,
-        "password": password
-    }
+    data = {"username": username, "password": password}
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     resp = httpx.post(url, data=data, headers=headers)
     resp.raise_for_status()
@@ -70,21 +71,26 @@ def get_token(api_base: str, username: str, password: str) -> str:
 
 
 def get_auth_headers(token: str) -> dict[str, str]:
-    return {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json"
-    }
+    return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+
 
 def get_env_and_token():
     settings = get_settings()
     try:
-        token = get_token(settings.api_base_url, settings.interactem_username, settings.interactem_password)
+        token = get_token(
+            settings.api_base_url,
+            settings.interactem_username,
+            settings.interactem_password,
+        )
     except Exception as e:
         print(f"[red]Login failed: {e}[/red]")
         raise typer.Exit(1)
     return settings.api_base_url, get_auth_headers(token)
 
-def api_request(method: str, url: str, headers: dict | None = None, json: dict | None = None) -> dict:
+
+def api_request(
+    method: str, url: str, headers: dict | None = None, json: dict | None = None
+) -> dict:
     try:
         resp = httpx.request(method, url, headers=headers, json=json)
         resp.raise_for_status()
@@ -96,9 +102,15 @@ def api_request(method: str, url: str, headers: dict | None = None, json: dict |
         print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
 
+
 @pipeline_app.command("create", help="Create a new pipeline from a JSON file.")
 def create(
-    file: Path = typer.Option(..., "--file", "-f", exists=True, readable=True, help="Path to pipeline.json"),
+    file: Annotated[
+        Path,
+        typer.Option(
+            "--file", "-f", exists=True, readable=True, help="Path to pipeline.json"
+        ),
+    ],
 ):
     api_base, headers = get_env_and_token()
 
@@ -118,7 +130,9 @@ def create(
 
     print("[yellow]Creating pipeline...[/yellow]")
     pipeline_url = f"{api_base}/pipelines/"
-    pipeline_data = api_request("POST", pipeline_url, headers=headers, json=payload.model_dump())
+    pipeline_data = api_request(
+        "POST", pipeline_url, headers=headers, json=payload.model_dump()
+    )
 
     try:
         pipeline_response = PipelineResponse(**pipeline_data)
@@ -137,6 +151,7 @@ def create(
     else:
         print("[red]Failed to create pipeline")
         raise typer.Exit(1)
+
 
 @pipeline_app.command("ls", help="List all pipelines.")
 def ls():
@@ -169,14 +184,15 @@ def ls():
             p.name,
             str(p.current_revision_id),
             p.owner_id,
-            p.created_at.isoformat()
+            p.created_at.isoformat(),
         )
     Console().print(table)
 
+
 @pipeline_app.command("run", help="Run a pipeline revision.")
 def run(
-    pipeline_id: str = typer.Argument(..., help="Pipeline ID"),
-    revision_id: str = typer.Argument(..., help="Revision ID"),
+    pipeline_id: Annotated[str, typer.Argument(help="Pipeline ID")],
+    revision_id: Annotated[str, typer.Argument(help="Revision ID")],
 ):
     api_base, headers = get_env_and_token()
     url = f"{api_base}/pipelines/{pipeline_id}/revisions/{revision_id}/run"
@@ -189,10 +205,11 @@ def run(
         print("[red]Failed to run pipeline[/red]")
         raise typer.Exit(1)
 
+
 @pipeline_app.command("stop", help="Stop a pipeline revision.")
 def stop(
-    pipeline_id: str = typer.Argument(..., help="Pipeline ID"),
-    revision_id: str = typer.Argument(..., help="Revision ID"),
+    pipeline_id: Annotated[str, typer.Argument(help="Pipeline ID")],
+    revision_id: Annotated[str, typer.Argument(help="Revision ID")],
 ):
     api_base, headers = get_env_and_token()
     url = f"{api_base}/pipelines/{pipeline_id}/revisions/{revision_id}/stop"
@@ -205,9 +222,10 @@ def stop(
         print("[red]Failed to stop pipeline[/red]")
         raise typer.Exit(1)
 
+
 @pipeline_app.command("rm", help="Delete a pipeline.")
 def remove(
-    pipeline_id: str = typer.Argument(..., help="Pipeline ID"),
+    pipeline_id: Annotated[str, typer.Argument(help="Pipeline ID")],
 ):
     api_base, headers = get_env_and_token()
     url = f"{api_base}/pipelines/{pipeline_id}"
