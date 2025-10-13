@@ -10,7 +10,6 @@ packages = [{ include = "interactem" }]
 python = "^3.10"
 interactem-core = {path = "../core", develop = true}
 pyzmq = "^26.1.0"
-networkx = "^3.3"
 aiohttp = "^3.10.5"
 
 
