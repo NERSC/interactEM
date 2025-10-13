@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlmodel import SQLModel
 
 from interactem.core.constants import (
+    NATS_TIMEOUT_DEFAULT,
     SFAPI_GROUP_NAME,
     SFAPI_STATUS_ENDPOINT,
     STREAM_DEPLOYMENTS,
@@ -60,7 +61,7 @@ async def publish_jetstream_event(
         await nats_jetstream.publish(
             subject=subject,
             payload=event.model_dump_json().encode(),
-            timeout=None,
+            timeout=NATS_TIMEOUT_DEFAULT,
             stream=stream,
             headers=None,
         )

@@ -18,7 +18,9 @@ python = "^3.10"
 pydantic = "^2.9"
 coloredlogs = "^15.0.1"
 networkx = "^3.3"
-nats-py = "^2.10.0"
+# Use draft version of nats-py because it helps with connection issues
+# See https://github.com/nats-io/nats.py/pull/675
+nats-py = {git = "https://github.com/swelborn/nats.py.git", rev = "fce1f3a4a917c2bb0f4adaf1698fe2fa7a13a971"}
 nkeys = "^0.2.1"
 tenacity = "^9.0.0"
 pydantic-settings = "^2.10.1"

@@ -6,6 +6,7 @@ from interactem.core.models.kvs import CanonicalOperatorID
 from interactem.core.models.runtime import RuntimeOperatorParameter
 
 from ..constants import (
+    NATS_TIMEOUT_DEFAULT,
     STREAM_DEPLOYMENTS,
     STREAM_IMAGES,
     STREAM_PARAMETERS,
@@ -35,7 +36,11 @@ async def publish_pipeline_metrics(
 ):
     """Used to send out the tracking information.
     TODO: we may not want to publish the entire header here"""
-    await js.publish(SUBJECT_PIPELINES_METRICS, msg.header.model_dump_json().encode())
+    await js.publish(
+        SUBJECT_PIPELINES_METRICS,
+        msg.header.model_dump_json().encode(),
+        timeout=NATS_TIMEOUT_DEFAULT,
+    )
 
 
 async def publish_operator_parameter_ack(
@@ -53,6 +58,7 @@ async def publish_operator_parameter_ack(
         subject=f"{SUBJECT_OPERATORS_PARAMETERS}.{id}.{parameter.name}",
         stream=STREAM_PARAMETERS,
         payload=event.model_dump_json().encode(),
+        timeout=NATS_TIMEOUT_DEFAULT,
     )
 
 
@@ -61,6 +67,7 @@ async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignmen
         f"{SUBJECT_AGENTS_DEPLOYMENTS}.{assignment.agent_id}",
         stream=STREAM_DEPLOYMENTS,
         payload=assignment.model_dump_json().encode(),
+        timeout=NATS_TIMEOUT_DEFAULT,
     )
 
 async def publish_image(
@@ -72,6 +79,7 @@ async def publish_image(
     await js.publish(
         subject=f"{STREAM_IMAGES}.{canonical_operator_id}",
         payload=image_data,
+        timeout=NATS_TIMEOUT_DEFAULT,
     )
 
 
@@ -83,6 +91,7 @@ async def publish_table_data(
     await js.publish(
         subject=f"{STREAM_TABLES}.{operator_id}",
         payload=table_data_json,
+        timeout=NATS_TIMEOUT_DEFAULT,
     )
 
 async def publish_pipeline_to_operators(
@@ -91,10 +100,11 @@ async def publish_pipeline_to_operators(
     operator_id: RuntimeOperatorID,
 ):
     await broker.publish(
-            subject=f"{SUBJECT_OPERATORS_DEPLOYMENTS}.{operator_id}",
-            message=pipeline.to_runtime().model_dump_json(),
-            stream=STREAM_DEPLOYMENTS,
-        )
+        subject=f"{SUBJECT_OPERATORS_DEPLOYMENTS}.{operator_id}",
+        message=pipeline.to_runtime().model_dump_json(),
+        stream=STREAM_DEPLOYMENTS,
+        timeout=NATS_TIMEOUT_DEFAULT,
+    )
 
 def create_agent_mount_publisher(
     broker: NatsBroker,
@@ -103,9 +113,10 @@ def create_agent_mount_publisher(
 ) -> AsyncAPIPublisher:
     subject = f"{SUBJECT_OPERATORS_PARAMETERS}.{canonical_operator_id}.{parameter_name}"
     return broker.publisher(
-            stream=STREAM_PARAMETERS,
-            subject=subject,
-        )
+        stream=STREAM_PARAMETERS,
+        subject=subject,
+        timeout=NATS_TIMEOUT_DEFAULT,
+    )
 
 async def publish_agent_mount_parameter_ack(
     publisher: AsyncAPIPublisher,
@@ -120,6 +131,7 @@ async def publish_agent_mount_parameter_ack(
     )
     await publisher.publish(
         message=event.model_dump_json().encode(),
+        timeout=NATS_TIMEOUT_DEFAULT,
     )
 
 
@@ -131,4 +143,5 @@ def create_agent_error_publisher(
     return broker.publisher(
         stream=NOTIFICATIONS_JSTREAM,
         subject=subject,
+        timeout=NATS_TIMEOUT_DEFAULT,
     )

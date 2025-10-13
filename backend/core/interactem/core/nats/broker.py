@@ -29,6 +29,7 @@ def get_nats_broker(servers: list[str], name: str) -> NatsBroker:
         servers=servers,
         name=name,
         allow_reconnect=True,
+        max_reconnect_attempts=-1,  # Retry indefinitely
         reconnected_cb=reconnected_cb,
         disconnected_cb=disconnected_cb,
         closed_cb=closed_cb,

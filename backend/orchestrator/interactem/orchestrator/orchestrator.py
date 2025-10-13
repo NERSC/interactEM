@@ -1,5 +1,6 @@
 import asyncio
 import random
+from functools import partial
 from uuid import UUID, uuid4
 
 import networkx as nx
@@ -11,6 +12,7 @@ from pydantic import BaseModel, ValidationError
 from interactem.core.constants import (
     AGENTS,
     NATS_API_KEY_HEADER,
+    NATS_TIMEOUT_DEFAULT,
     PIPELINES,
     STREAM_DEPLOYMENTS,
     SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE,
@@ -103,6 +105,7 @@ async def update_pipeline_status(
         stream=STREAM_DEPLOYMENTS,
         payload=update_event.model_dump_json().encode(),
         headers={NATS_API_KEY_HEADER: cfg.ORCHESTRATOR_API_KEY},
+        timeout=NATS_TIMEOUT_DEFAULT,
     )
 
 
@@ -560,26 +563,38 @@ async def main():
     try:
         logger.info("NATS buckets and streams initialized/verified.")
 
-        pipeline_run_psub = await create_orchestrator_pipeline_new_consumer(
-            js, instance_id
+        create_new_pipeline_psub = partial(
+            create_orchestrator_pipeline_new_consumer, js, instance_id
         )
+        pipeline_run_psub = await create_new_pipeline_psub()
         logger.info("Pipeline run event consumer created.")
 
-        pipeline_stop_psub = await create_orchestrator_pipeline_stop_consumer(
-            js, instance_id
+        create_stop_pipeline_psub = partial(
+            create_orchestrator_pipeline_stop_consumer, js, instance_id
         )
+        pipeline_stop_psub = await create_stop_pipeline_psub()
         logger.info("Pipeline stop event consumer created.")
 
         update_task = asyncio.create_task(continuous_update_kv(js))
         task_refs.add(update_task)
 
         run_consumer_task = asyncio.create_task(
-            consume_messages(pipeline_run_psub, handle_run_pipeline, js)
+            consume_messages(
+                pipeline_run_psub,
+                handle_run_pipeline,
+                js,
+                create_consumer=create_new_pipeline_psub,
+            )
         )
         task_refs.add(run_consumer_task)
 
         stop_consumer_task = asyncio.create_task(
-            consume_messages(pipeline_stop_psub, handle_stop_pipeline, js)
+            consume_messages(
+                pipeline_stop_psub,
+                handle_stop_pipeline,
+                js,
+                create_consumer=create_stop_pipeline_psub,
+            )
         )
         task_refs.add(stop_consumer_task)
 
