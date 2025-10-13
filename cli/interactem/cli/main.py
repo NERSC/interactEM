@@ -579,17 +579,18 @@ def _create_operator_files(operator_dir: Path, context: TemplateContext):
     for template_name, output_name in [
         ("run.py.j2", "run.py"),
         ("Containerfile.j2", "Containerfile"),
-        ("operator.json.j2", "operator.json"),
     ]:
         template = env.get_template(template_name)
         content = template.render(context.model_dump())
         filename = operator_dir / output_name
         filename.write_text(content)
         print(f"[green]Generated {output_name}[/green]")
-        if not output_name == "operator.json":
-            continue
-        # Validate the generated spec
-        read_and_validate_operator_spec(filename)
+
+    operator_json_path = operator_dir / "operator.json"
+    spec_dict = context.spec.model_dump(mode="json", exclude_none=True)
+    operator_json_path.write_text(json.dumps(spec_dict, indent=2))
+    print("[green]Generated operator.json[/green]")
+    read_and_validate_operator_spec(operator_json_path)
 
 
 def _print_next_steps(operator_dir: Path):
