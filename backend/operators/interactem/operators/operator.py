@@ -28,7 +28,11 @@ from interactem.core.models.kvs import (
     OperatorStatus,
     OperatorVal,
 )
-from interactem.core.models.messages import BytesMessage, OperatorTrackingMetadata
+from interactem.core.models.messages import (
+    BytesMessage,
+    OperatorTrackingMetadata,
+    TrackingMetadatas,
+)
 from interactem.core.models.metrics import OperatorMetrics, OperatorTiming
 from interactem.core.models.runtime import (
     RuntimeOperator,
@@ -473,7 +477,9 @@ class OperatorMixin(RunnableKernel):
                     await self.messenger.send(processed_msg)
                 # if last operator in pipeline, publish tracking information
                 elif timing_this_iter:
-                    tasks.append(self._publish_pipeline_metrics(processed_msg))
+                    tasks.append(
+                        self._publish_pipeline_metrics(processed_msg.header.tracking)
+                    )
             elif timing_this_iter and msg:
                 tasks.append(
                     self._update_and_publish_pipeline_metrics(
@@ -495,17 +501,20 @@ class OperatorMixin(RunnableKernel):
             await asyncio.sleep(self._tracking_interval)
             self._tracking_ready.set()
 
-    async def _publish_pipeline_metrics(self, msg: BytesMessage):
+    async def _publish_pipeline_metrics(self, tracking: TrackingMetadatas | None):
         """These are the metrics from the tracking information
         that should be sent through the full pipeline."""
         if not self.js:
             logger.warning("JetStream context not initialized...")
             return
-        if not msg.header.tracking:
-            logger.warning("No tracking data in message to publish...")
+
+        if not tracking:
+            logger.warning(
+                "Attempt to publish failing because tracking is non-existent. "
+            )
             return
 
-        await publish_pipeline_metrics(self.js, msg)
+        await publish_pipeline_metrics(self.js, tracking)
 
     def _update_metrics(
         self,
@@ -523,8 +532,9 @@ class OperatorMixin(RunnableKernel):
             time_after_operate=after_kernel,
         )
         if msg.header.tracking is None:
-            msg.header.tracking = []
-        msg.header.tracking.append(meta)
+            msg.header.tracking = TrackingMetadatas(metadatas=[])
+        if msg.header.tracking.metadatas:
+            msg.header.tracking.metadatas.append(meta)
         return msg
 
     async def _update_and_publish_pipeline_metrics(
@@ -541,7 +551,7 @@ class OperatorMixin(RunnableKernel):
         if not msg:
             return
 
-        await self._publish_pipeline_metrics(msg)
+        await self._publish_pipeline_metrics(msg.header.tracking)
 
 
 class Operator(OperatorMixin, OperatorInterface):

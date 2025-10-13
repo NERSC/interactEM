@@ -23,6 +23,16 @@ class OperatorTrackingMetadata(TrackingMetadataBase):
     time_before_operate: datetime
     time_after_operate: datetime
 
+class TrackingMetadatas(BaseModel):
+    metadatas: (
+        list[
+            OperatorTrackingMetadata
+            | OutputPortTrackingMetadata
+            | InputPortTrackingMetadata
+        ]
+        | None
+    ) = None
+
 
 class MessageSubject(str, Enum):
     BYTES = "bytes"
@@ -32,15 +42,7 @@ class MessageSubject(str, Enum):
 class MessageHeader(BaseModel):
     subject: MessageSubject
     meta: bytes | dict[str, Any] = b"{}"
-    tracking: (
-        list[
-            OperatorTrackingMetadata
-            | OutputPortTrackingMetadata
-            | InputPortTrackingMetadata
-        ]
-        | None
-    ) = None
-
+    tracking: TrackingMetadatas | None = None
 
 class BaseMessage(BaseModel):
     header: MessageHeader
