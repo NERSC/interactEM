@@ -23,3 +23,6 @@ poetry lock
 
 cd ../metrics
 poetry lock
+
+cd ../launcher
+poetry lock
