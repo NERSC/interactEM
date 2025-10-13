@@ -1,6 +1,7 @@
 import pathlib
 from enum import Enum
 
+from nats.js.api import StorageType
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -33,6 +34,7 @@ class Settings(BaseSettings):
 
     # If creds mode, we need to supply the creds file
     NATS_CREDS_FILE: pathlib.Path | None = None
+    NATS_STREAM_STORAGE_TYPE: StorageType = StorageType.MEMORY
 
     @model_validator(mode="after")
     def validate_nats(self) -> "Settings":
