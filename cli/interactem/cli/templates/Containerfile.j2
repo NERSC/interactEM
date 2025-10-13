@@ -1,0 +1,7 @@
+FROM {{ base_image }}
+{% if additional_packages %}
+# Install additional dependencies
+RUN poetry add {{ additional_packages | join(' ') }}
+{% endif %}
+# Copy the operator script
+COPY ./run.py /app/run.py

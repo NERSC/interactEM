@@ -12,9 +12,10 @@ interactem = "interactem.cli.main:app"
 [tool.poetry.dependencies]
 python = "^3.10"
 interactem-core = {path = "../backend/core", develop = true}
-typer = "^0.16.0"
+typer = "^0.19.2"
 rich = "^13.7.1"
 httpx = "^0.28.1"
+jinja2 = "^3.1.0"
 
 [build-system]
 requires = ["poetry-core"]

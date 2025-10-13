@@ -16,6 +16,7 @@ from pydantic import ValidationError
 from stamina.instrumentation import set_on_retry_hooks
 
 from interactem.core.constants import (
+    INTERACTEM_IMAGE_REGISTRY,
     OPERATOR_ID_ENV_VAR,
     VECTOR_IMAGE,
 )
@@ -86,8 +87,6 @@ OPERATOR_CREDS_MOUNT = PodmanMount(
     source=str(cfg.OPERATOR_CREDS_FILE),
     target=OPERATOR_CREDS_TARGET,
 )
-
-INTERACTEM_IMAGE_REGISTRY = "ghcr.io/nersc/interactem/"
 
 
 PODMAN_MAX_POOL_SIZE = 100

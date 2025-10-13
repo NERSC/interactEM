@@ -24,7 +24,7 @@ nats-py = {git = "https://github.com/swelborn/nats.py.git", rev = "fce1f3a4a917c
 nkeys = "^0.2.1"
 tenacity = "^9.0.0"
 pydantic-settings = "^2.10.1"
-faststream = {version="^0.5.48", extras=["nats", "cli"]}
+faststream = {version="^0.5.48", extras=["nats"]}
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.3"

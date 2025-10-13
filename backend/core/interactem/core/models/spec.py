@@ -13,13 +13,17 @@ to the container labels.
 
 
 class OperatorSpecInput(BaseModel):
+    name: str  # Name of the input, to be used as parameter name
     label: str  # Human readable name of the input
     description: str  # Human readable description of the input
+    type: str  # Type of the input, e.g., BatchedFrames, Frame, etc.
 
 
 class OperatorSpecOutput(BaseModel):
-    label: str  # Human readable name of the output
-    description: str  # Human readable description of the output
+    name: str  # Name of the input, to be used as parameter name
+    label: str  # Human readable name of the input
+    description: str  # Human readable description of the input
+    type: str  # Type of the input, e.g., BatchedFrames, Frame, etc.
 
 
 class ParameterSpecType(str, Enum):

@@ -699,9 +699,7 @@ files = [
 anyio = ">=3.7.1,<5"
 fast-depends = ">=2.4.0b0,<3.0.0"
 nats-py = {version = ">=2.7.0,<=3.0.0", optional = true, markers = "extra == \"nats\""}
-typer = {version = ">=0.9,<0.12 || >0.12,<=0.16.0", optional = true, markers = "extra == \"cli\""}
 typing-extensions = ">=4.8.0"
-watchfiles = {version = ">=0.15.0,<1.2.0", optional = true, markers = "extra == \"cli\""}
 
 [package.extras]
 cli = ["typer (>=0.9,!=0.12,<=0.16.0)", "watchfiles (>=0.15.0,<1.2.0)"]
@@ -1105,7 +1103,7 @@ develop = true
 
 [package.dependencies]
 coloredlogs = "^15.0.1"
-faststream = {version = "^0.5.48", extras = ["cli", "nats"]}
+faststream = {version = "^0.5.48", extras = ["nats"]}
 nats-py = {git = "https://github.com/swelborn/nats.py.git", rev = "fce1f3a4a917c2bb0f4adaf1698fe2fa7a13a971"}
 networkx = "^3.3"
 nkeys = "^0.2.1"
