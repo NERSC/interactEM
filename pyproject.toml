@@ -20,6 +20,7 @@ interactem-agent = {path = "backend/agent", develop = true}
 interactem-launcher = {path = "backend/launcher", develop = true}
 interactem-operators = {path = "backend/operators", develop = true}
 interactem-metrics = {path = "backend/metrics", develop = true}
+interactem-cli = {path = "cli", develop = true}
 interactem-orchestrator = {path = "backend/orchestrator", develop = true}
 
 
