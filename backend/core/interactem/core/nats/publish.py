@@ -19,7 +19,7 @@ from ..constants import (
 )
 from ..models.base import IdType
 from ..models.messages import (
-    BytesMessage,
+    TrackingMetadatas,
 )
 from ..models.runtime import (
     PipelineAssignment,
@@ -32,13 +32,12 @@ from ..pipeline import Pipeline as PipelineGraph
 
 async def publish_pipeline_metrics(
     js: JetStreamContext,
-    msg: BytesMessage,
+    tracking: TrackingMetadatas,
 ):
-    """Used to send out the tracking information.
-    TODO: we may not want to publish the entire header here"""
+    """Used to send out the tracking information."""
     await js.publish(
         SUBJECT_PIPELINES_METRICS,
-        msg.header.model_dump_json().encode(),
+        tracking.model_dump_json().encode(),
         timeout=NATS_TIMEOUT_DEFAULT,
     )
 

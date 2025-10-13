@@ -17,9 +17,9 @@ from interactem.core.logger import get_logger
 from interactem.core.models.kvs import PipelineRunVal
 from interactem.core.models.messages import (
     InputPortTrackingMetadata,
-    MessageHeader,
     OperatorTrackingMetadata,
     OutputPortTrackingMetadata,
+    TrackingMetadatas,
 )
 from interactem.core.models.metrics import OperatorMetrics, PortMetrics
 from interactem.core.models.runtime import RuntimePipeline
@@ -152,8 +152,8 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
         await asyncio.sleep(update_interval)
 
 
-def log_comparison(header: MessageHeader, pipeline: RuntimePipeline):
-    tracking = header.tracking
+def log_comparison(header: TrackingMetadatas, pipeline: RuntimePipeline):
+    tracking = header.metadatas
     if not tracking:
         logger.warning("No tracking information found...")
         return
@@ -237,7 +237,7 @@ async def handle_metrics(msg: NATSMsg, js: JetStreamContext):
 
     valid_pipeline = pipeline.pipeline
 
-    data = MessageHeader.model_validate_json(msg.data.decode("utf-8"))
+    data = TrackingMetadatas.model_validate_json(msg.data.decode("utf-8"))
     try:
         log_comparison(data, valid_pipeline)
     except networkx.exception.NetworkXError as e:
