@@ -7,3 +7,4 @@
 
    getting-started
    launch-agent
+   authoring-operators
