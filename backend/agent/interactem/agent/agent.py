@@ -556,7 +556,6 @@ async def pull_image(client: PodmanClient, image: str) -> None:
 
     try:
         logger.info(f"Pulling image {image}...")
-        # Run the blocking pull in a thread
         client.images.pull(image)
         logger.info(f"Successfully pulled image {image}")
     except Exception as e:
