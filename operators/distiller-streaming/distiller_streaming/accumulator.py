@@ -16,6 +16,8 @@ logger = get_logger()
 class FrameAccumulator(SparseArrayWithoutValidation):
     """Accumulates sparse frames for a single scan, tracking which frames have been added."""
 
+    PERCENTAGE_COMPLETE_THRESHOLD = 0.99
+
     def __init__(
         self,
         scan_number: int,
@@ -45,7 +47,10 @@ class FrameAccumulator(SparseArrayWithoutValidation):
         )
 
         self._frames_per_position = {}
-        self.num_messages_added = 0
+        self.num_batches_added = 0
+        self._num_frames_added = 0
+        self._total_batches_expected: int | None = None
+        self._total_frames_expected: int | None = None
 
         logger.info(
             f"Initialized FrameAccumulator for scan {scan_number} with shape {scan_shape}x{frame_shape}"
@@ -73,6 +78,8 @@ class FrameAccumulator(SparseArrayWithoutValidation):
             frame_shape=batch.header.frame_shape,
         )
         accumulator.add_batch(batch)
+        accumulator._total_batches_expected = batch.header.total_batches
+        accumulator._total_frames_expected = batch.header.total_frames
         return accumulator
 
     @classmethod
@@ -119,15 +126,16 @@ class FrameAccumulator(SparseArrayWithoutValidation):
 
         # Update tracking
         self._frames_per_position[flat_position] = frames_at_position + 1
+        self._num_frames_added += 1
 
     @property
     def num_frames_added(self):
-        return sum(self._frames_per_position.values())
+        return self._num_frames_added
 
     def add_batch(self, batch: BatchedFrames):
         headers = batch.header.headers
-        if not headers:
-            return
+        self._total_batches_expected = batch.header.total_batches
+        self._total_frames_expected = batch.header.total_frames
 
         # Extract all scan positions at once
         scan_positions = np.array([h.scan_position_flat for h in headers])
@@ -183,11 +191,22 @@ class FrameAccumulator(SparseArrayWithoutValidation):
 
             # Update frame count for this position
             self._frames_per_position[pos] = start_frame_idx + len(frame_indices)
+            # Increment total frame counter
+            self._num_frames_added += len(frame_indices)
 
     def add_message(self, message: BytesMessage) -> None:
         batch = BatchedFrames.from_bytes_message(message)
         self.add_batch(batch)
-        self.num_messages_added += 1
+        self.num_batches_added += 1
+
+    @property
+    def finished(self) -> bool:
+        if self._total_frames_expected is None:
+            return False
+        return (
+            self.num_frames_added
+            >= self.PERCENTAGE_COMPLETE_THRESHOLD * self._total_frames_expected
+        )
 
     def expand_frame_dimension_if_needed(self, required_frames: int) -> None:
         """

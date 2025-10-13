@@ -1,3 +1,4 @@
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -45,7 +46,10 @@ keep_flyback: bool = False
 
 # Load the offsets for the vacuum scan subtraction
 offsets_path = Path(f"{DATA_DIRECTORY}/offsets.emd")
-offsets_data = ncempy.read(offsets_path)["data"]
+# Copy to local storage to avoid HDF5 file locking issues...
+local_path = "/tmp/offsets.emd"
+shutil.copy(offsets_path, local_path)
+offsets_data = ncempy.read(local_path)["data"]
 
 current_scan_num = -1
 

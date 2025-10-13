@@ -549,48 +549,44 @@ class SharedStateClient:
         """Process incoming messages and detect head node changes."""
         try:
             message_bytes = subscriber.recv(zmq.NOBLOCK)
-            unpacked_list = msgpack.unpackb(
-                message_bytes, raw=True, use_list=True, strict_map_key=False
-            )
-            shared_state_msg = SharedStateMsg.from_msgpack(unpacked_list)
-
-            # Skip heartbeat messages
-            if shared_state_msg.body == "HUGZ":
-                return last_head_node_id
-
-            # Process state update
-            shared_state_data = shared_state_msg.shared_state
-            update_pusher.send_pyobj(StateUpdate(shared_state=shared_state_data))
-
-            # Check for head node changes
-            new_head_node_id = None
-            if shared_state_data.node_map:
-                for node_info in shared_state_data.node_map.values():
-                    if any(
-                        0 in short_id_dict
-                        for short_id_dict in node_info.node_group_thread_info.values()
-                    ):
-                        new_head_node_id = node_info.node_id
-                        break
-
-            # Send notifications if head node status changed
-            if new_head_node_id != last_head_node_id:
-                if new_head_node_id is not None:
-                    update_pusher.send_pyobj(
-                        NodeConnectedUpdate(head_node_id=new_head_node_id)
-                    )
-                else:
-                    update_pusher.send_pyobj(NodeDisconnectedUpdate())
-                return new_head_node_id
-
-            return last_head_node_id
-
         except zmq.Again:
             # No message available
             return last_head_node_id
-        except Exception:
-            # Let errors propagate to main loop
-            raise
+        unpacked_list = msgpack.unpackb(
+            message_bytes, raw=True, use_list=True, strict_map_key=False
+        )
+        shared_state_msg = SharedStateMsg.from_msgpack(unpacked_list)
+
+        # Skip heartbeat messages
+        if shared_state_msg.body == "HUGZ":
+            return last_head_node_id
+
+        # Process state update
+        shared_state_data = shared_state_msg.shared_state
+        update_pusher.send_pyobj(StateUpdate(shared_state=shared_state_data))
+
+        # Check for head node changes
+        new_head_node_id = None
+        if shared_state_data.node_map:
+            for node_info in shared_state_data.node_map.values():
+                if any(
+                    0 in short_id_dict
+                    for short_id_dict in node_info.node_group_thread_info.values()
+                ):
+                    new_head_node_id = node_info.node_id
+                    break
+
+        # Send notifications if head node status changed
+        if new_head_node_id != last_head_node_id:
+            if new_head_node_id is not None:
+                update_pusher.send_pyobj(
+                    NodeConnectedUpdate(head_node_id=new_head_node_id)
+                )
+            else:
+                update_pusher.send_pyobj(NodeDisconnectedUpdate())
+            return new_head_node_id
+
+        return last_head_node_id
 
     @staticmethod
     def _cleanup_zmq_resources(
@@ -702,6 +698,7 @@ class SharedStateClient:
     def receive_update(self, timeout_ms: int = 0) -> None:
         """
         Checks for and processes updates from the background process.
+        Drains all available messages to ensure we get the latest state.
 
         Args:
             timeout_ms: Poll timeout in milliseconds. 0 for non-blocking.
@@ -718,24 +715,34 @@ class SharedStateClient:
 
         try:
             socks = dict(self._update_poller.poll(timeout_ms))
-            if (
+            if not (
                 self._update_pull_socket in socks
                 and socks[self._update_pull_socket] == zmq.POLLIN
             ):
-                update = self._update_pull_socket.recv_pyobj(zmq.NOBLOCK)
+                return
+
+            # Drain all available messages to get the latest update
+            messages_processed = 0
+            while True:
+                try:
+                    update = self._update_pull_socket.recv_pyobj(zmq.NOBLOCK)
+                except zmq.Again:
+                    break
                 if not isinstance(update, BaseUpdate):
                     raise TypeError(f"[Client] Expected BaseUpdate, got {type(update)}")
 
                 handler = update_handlers.get(update.update_type)
                 if handler:
                     handler(update)
+                    messages_processed += 1
                 else:
                     raise RuntimeError(
                         f"[Client] Unknown update type: {update.update_type}"
                     )
 
-        except zmq.Again:
-            pass  # No messages available
+            if messages_processed > 1:
+                logger.debug(f"[Client] Processed {messages_processed} queued messages")
+
         except zmq.ZMQError as e:
             logger.error(f"[Client] ZMQ Error: {e}")
             if e.errno == zmq.ETERM:
