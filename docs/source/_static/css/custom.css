@@ -1,0 +1,44 @@
+.muted-card {
+    opacity: 0.5;
+    color: #6c757d !important;
+}
+
+.muted-card .card-title {
+    color: #6c757d !important;
+}
+
+.headerlink {
+    font-size: 0.8em;
+    vertical-align: middle;
+}
+
+/* Make h2 and below headers smaller */
+.content h2,
+article h2,
+.rst-content h2 {
+    font-size: 1.5rem !important;
+}
+
+.content h3,
+article h3,
+.rst-content h3 {
+    font-size: 1.3rem !important;
+}
+
+.content h4,
+article h4,
+.rst-content h4 {
+    font-size: 1.1rem !important;
+}
+
+.content h5,
+article h5,
+.rst-content h5 {
+    font-size: 1rem !important;
+}
+
+.content h6,
+article h6,
+.rst-content h6 {
+    font-size: 0.9rem !important;
+}

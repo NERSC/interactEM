@@ -1,6 +1,8 @@
 # interactEM
 
-An interactive [flow-based programming](https://en.wikipedia.org/wiki/Flow-based_programming) platform for streaming experimental data to High-Performance Computing (HPC). Users can wire together containerized operators through a web frontend and deploy them on both HPC and edge resources.
+`interactEM` is an interactive [flow-based programming](https://en.wikipedia.org/wiki/Flow-based_programming) platform for streaming experimental data to High-Performance Computing (HPC). Users can wire together containerized operators through a web frontend and deploy them on both HPC and edge resources.
+
+## Demo video
 
 <https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08>
 
@@ -46,13 +48,6 @@ An interactive [flow-based programming](https://en.wikipedia.org/wiki/Flow-based
 ### Building Docker Images and starting backend services
 
 1. **Build the Required Images**  
-    Use one of the following methods.
-
-    ```bash
-    docker/build.sh
-    ```
-
-    or
 
     ```bash
     docker/bake.sh
