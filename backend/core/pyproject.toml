@@ -15,7 +15,6 @@ packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-coloredlogs = "^15.0.1"
 pydantic = "^2.12"
 networkx = "^3.3"
 # Use draft version of nats-py because it helps with connection issues
