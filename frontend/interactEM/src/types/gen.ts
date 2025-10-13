@@ -5,6 +5,15 @@
 /* Do not modify it by hand - just update the pydantic models and then re-run the script
 */
 
+export interface AgentLog {
+  agent_id: string
+  host: string
+  log_type: LogType
+  level: string
+  log: string
+  module: string
+  timestamp: string
+}
 export interface AgentVal {
   error_messages?: ErrorMessage[]
   name?: string | null
@@ -31,6 +40,17 @@ export interface URI {
     [k: string]: string[]
   }
   [k: string]: unknown
+}
+export interface OperatorLog {
+  agent_id: string
+  deployment_id: string
+  operator_id: string
+  host: string
+  level: string
+  log: string
+  log_type: LogType
+  module: string
+  timestamp: string
 }
 export interface OperatorVal {
   error_messages?: ErrorMessage[]
@@ -140,6 +160,11 @@ export interface RuntimeOperatorParameterUpdate {
   value: string
 }
 
+export enum LogType {
+  agent = "agent",
+  operator = "operator",
+  vector = "vector",
+}
 export enum URILocation {
   operator = "operator",
   port = "port",

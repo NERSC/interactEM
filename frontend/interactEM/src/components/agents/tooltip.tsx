@@ -1,4 +1,5 @@
 import { Box, Divider, List, ListItem, Typography } from "@mui/material"
+import { format, fromUnixTime } from "date-fns"
 import { AgentValSchema } from "../../types/agent"
 import type { AgentVal } from "../../types/gen"
 
@@ -18,15 +19,6 @@ const InfoItem = ({
     </Typography>
   </Typography>
 )
-
-const formatTimestamp = (timestamp: number): string => {
-  const date = new Date(timestamp * 1000)
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  })
-}
 
 const AgentTooltip = ({ data: unvalidated }: AgentTooltipProps) => {
   // Format uptime to hours and minutes
@@ -68,7 +60,8 @@ const AgentTooltip = ({ data: unvalidated }: AgentTooltipProps) => {
                 }}
               >
                 <Typography variant="body2" sx={{ fontSize: "0.85rem" }}>
-                  {formatTimestamp(error.timestamp)} {error.message}
+                  {format(fromUnixTime(error.timestamp), "hh:mm:ss a")}{" "}
+                  {error.message}
                 </Typography>
               </ListItem>
             ))}

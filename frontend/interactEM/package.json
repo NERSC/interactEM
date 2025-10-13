@@ -2,7 +2,9 @@
   "name": "@interactem/interactem",
   "version": "0.0.4",
   "type": "module",
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "main": "./dist/interactem.umd.cjs",
   "module": "./dist/interactem.js",
   "exports": {
@@ -39,6 +41,7 @@
     "react-hook-form": "^7.54.2",
     "react-infinite-scroll-component": "^6.1.0",
     "react-toastify": "^11.0.3",
+    "react-virtuoso": "^4.14.1",
     "uuid": "^11.0.5"
   },
   "peerDependencies": {

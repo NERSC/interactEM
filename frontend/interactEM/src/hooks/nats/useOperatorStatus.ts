@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useMemo, useRef } from "react"
 import { useOperatorStatusContext } from "../../contexts/nats/operatorstatus"
 import { OperatorStatus } from "../../types/gen"
 
@@ -34,10 +34,31 @@ export const useOperatorsByCanonicalId = (canonicalId: string) => {
   const { operators, operatorsLoading, operatorsError } =
     useOperatorStatusContext()
 
-  const matchingOperators = useMemo(
-    () => operators.filter((op) => op.canonical_id === canonicalId),
-    [operators, canonicalId],
-  )
+  // Keep track of the previous IDs to avoid recreating array when operators update
+  // but the IDs haven't changed
+  const prevIdsRef = useRef<string>("")
+  const prevOperatorsRef = useRef<typeof operators>([])
+
+  const matchingOperators = useMemo(() => {
+    const filtered = operators.filter((op) => op.canonical_id === canonicalId)
+    const currentIds = filtered
+      .map((op) => op.id)
+      .sort()
+      .join(",")
+
+    // If the IDs haven't changed, return the previous array reference
+    if (
+      currentIds === prevIdsRef.current &&
+      prevOperatorsRef.current.length > 0
+    ) {
+      return prevOperatorsRef.current
+    }
+
+    // IDs changed, update refs and return new array
+    prevIdsRef.current = currentIds
+    prevOperatorsRef.current = filtered
+    return filtered
+  }, [operators, canonicalId])
 
   return {
     operators: matchingOperators,

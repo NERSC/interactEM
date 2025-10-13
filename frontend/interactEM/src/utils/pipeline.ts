@@ -86,7 +86,7 @@ export const toJSON = (nodes: OperatorNodeTypes[], edges: Edge[]) => {
 
   // Find which ports are referenced by edges in the graph
   // We don't want to include these ports if they are not on
-  // the graph 
+  // the graph
   const usedPortIDs: Set<string> = new Set<string>()
   for (const e of edges) {
     if (e.sourceHandle != null) usedPortIDs.add(e.sourceHandle)

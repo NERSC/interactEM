@@ -237,8 +237,124 @@ services:
       - grafana_data:/var/lib/grafana
       - ./backend/metrics/monitoring-conf/grafana/provisioning:/etc/grafana/provisioning:ro
       - ./backend/metrics/monitoring-conf/grafana/dashboards:/var/lib/grafana/dashboards:ro
-  
+
+  vector:
+    image: timberio/vector:0.50.0-alpine
+    container_name: vector-aggregator
+    ports:
+      - "6000:6000"
+      - "8686:8686"
+    depends_on:
+      nats-healthcheck:
+        condition: service_healthy
+    volumes:
+      - vector_data:/vector-data-dir
+      - "./nats-conf/out_jwt/backend.creds:/backend.creds"
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        cat > /tmp/vector.yaml <<EOF
+        data_dir: /vector-data-dir
+        
+        api:
+          enabled: true
+          address: 0.0.0.0:8686
+          playground: false
+        
+        sources:
+          vector:
+            type: vector
+            address: 0.0.0.0:6000
+            version: "2"
+
+        transforms:
+          # Clean up all logs by removing unnecessary fields based on log type
+          clean_logs:
+            type: remap
+            inputs:
+              - vector
+            source: |
+              # Remove fields from agent logs
+              if .log_type == "agent" {
+                del(.file)
+                del(.source_type)
+              }
+              # Remove fields from operator logs
+              if .log_type == "operator" {
+                del(.file)
+                del(.source_type)
+                del(.stream)
+              }
+              .
+
+          # Route logs based on their type
+          route_by_type:
+            type: route
+            inputs:
+              - clean_logs
+            route:
+              vector_logs: '.log_type == "vector"'
+              agent_logs: '.log_type == "agent"'
+              operator_logs: '.log_type == "operator"'
+        
+        sinks:
+          console:
+            type: console
+            inputs:
+              - route_by_type.vector_logs
+              - route_by_type.agent_logs
+              - route_by_type.operator_logs
+            target: stdout
+            encoding:
+              codec: json
+
+          # NATS sink for vector logs
+          nats_vector:
+            type: nats
+            inputs:
+              - route_by_type.vector_logs
+            url: nats://nats1:4222
+            subject: "log.vector.{{ agent_id }}"
+            encoding:
+              codec: json
+            auth:
+              strategy: credentials_file
+              credentials_file:
+                path: /backend.creds
+
+          # NATS sink for agent logs
+          nats_agents:
+            type: nats
+            inputs:
+              - route_by_type.agent_logs
+            url: nats://nats1:4222
+            subject: "log.agent.{{ agent_id }}"
+            encoding:
+              codec: json
+            auth:
+              strategy: credentials_file
+              credentials_file:
+                path: /backend.creds
+
+          # NATS sink for operator logs
+          nats_operators:
+            type: nats
+            inputs:
+              - route_by_type.operator_logs
+            url: nats://nats1:4222
+            subject: "log.depl.{{ deployment_id }}.op.{{ operator_id }}"
+            encoding:
+              codec: json
+            auth:
+              strategy: credentials_file
+              credentials_file:
+                path: /backend.creds
+        EOF
+        vector --config /tmp/vector.yaml
+
+
 volumes:
   app-db-data:
   prometheus_data:
   grafana_data:
+  vector_data:

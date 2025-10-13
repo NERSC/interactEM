@@ -1,5 +1,4 @@
-# Logs
-logs
+# Logs (log files only, not the logs component folder)
 *.log
 npm-debug.log*
 yarn-debug.log*
