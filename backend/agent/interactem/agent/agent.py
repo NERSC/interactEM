@@ -88,6 +88,9 @@ OPERATOR_CREDS_MOUNT = PodmanMount(
 INTERACTEM_IMAGE_REGISTRY = "ghcr.io/nersc/interactem/"
 
 
+PODMAN_MAX_POOL_SIZE = 100
+
+
 class ContainerTracker:
     MAX_RESTARTS: int = 3
 
@@ -209,7 +212,9 @@ class Agent:
         try:
             # Clear trackers first to avoid restarts
             self.container_trackers.clear()
-            with PodmanClient(base_url=self._podman_service_uri) as client:
+            with PodmanClient(
+                base_url=self._podman_service_uri, max_pool_size=PODMAN_MAX_POOL_SIZE
+            ) as client:
                 containers = client.containers.list(
                     filters={"label": f"agent.id={self.id}"}
                 )
@@ -239,9 +244,7 @@ class Agent:
         self.agent_kv.add_or_update_value(self.agent_val.key(), self.agent_val)
 
         await self.agent_kv.start()
-        self._container_monitor_task = await asyncio.create_task(
-            self.monitor_containers()
-        )
+        self._container_monitor_task = asyncio.create_task(self.monitor_containers())
 
     async def receive_assignment(self, assignment: PipelineAssignment):
         try:
@@ -302,7 +305,9 @@ class Agent:
 
         logger.info("Starting operators...")
 
-        with PodmanClient(base_url=self._podman_service_uri) as client:
+        with PodmanClient(
+            base_url=self._podman_service_uri, max_pool_size=PODMAN_MAX_POOL_SIZE
+        ) as client:
             tasks: list[asyncio.Task] = []
             for op_id, op_info in self.pipeline.operators.items():
                 if op_id not in self._my_operator_ids:
@@ -366,6 +371,9 @@ class Agent:
         if cfg.MOUNT_LOCAL_REPO:
             operator.add_internal_mount(CORE_MOUNT)
             operator.add_internal_mount(OPERATORS_MOUNT)
+
+        if cfg.ALWAYS_PULL_IMAGES:
+            await pull_image(client, operator.image)
 
         container = await create_container(self.id, client, operator)
         if not container:
@@ -540,6 +548,21 @@ def is_name_conflict_error(exc: Exception) -> bool:
     else:
         return False
 
+async def pull_image(client: PodmanClient, image: str) -> None:
+    if not image.startswith(INTERACTEM_IMAGE_REGISTRY):
+        _msg = f"Image {image} is not from the interactem registry ({INTERACTEM_IMAGE_REGISTRY})."
+        logger.error(_msg)
+        raise RuntimeError(_msg)
+
+    try:
+        logger.info(f"Pulling image {image}...")
+        client.images.pull(image)
+        logger.info(f"Successfully pulled image {image}")
+    except Exception as e:
+        error_msg = f"Failed to pull image {image}: {e}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg) from e
+
 
 async def create_container(
     agent_id: uuid.UUID,
@@ -558,17 +581,7 @@ async def create_container(
         logger.debug(f"Image {operator.image} is already available")
     except podman.errors.exceptions.ImageNotFound:
         logger.info(f"Image {operator.image} not found locally, attempting to pull...")
-        if not operator.image.startswith(INTERACTEM_IMAGE_REGISTRY):
-            _msg = f"Image {operator.image} is not from the interactem registry ({INTERACTEM_IMAGE_REGISTRY})."
-            logger.error(_msg)
-            raise RuntimeError(_msg)
-        try:
-            client.images.pull(operator.image)
-            logger.info(f"Successfully pulled image {operator.image}")
-        except Exception as e:
-            error_msg = f"Failed to pull image {operator.image}: {e}"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg) from e
+        await pull_image(client, operator.image)
 
     for attempt in stamina.retry_context(on=is_name_conflict_error):
         # Expand users
