@@ -28,6 +28,7 @@ x-backend-base:
       - NATS_SECURITY_MODE=creds
       - GITHUB_USERNAME=${GITHUB_USERNAME?Variable not set}
       - GITHUB_TOKEN=${GITHUB_TOKEN?Variable not set}
+      - NATS_STREAM_STORAGE_TYPE=file
     volumes:
       - "./nats-conf/out_jwt/backend.creds:/backend.creds"
       - "./nats-conf/out_jwt/frontend.creds:/frontend.creds"
@@ -138,6 +139,7 @@ services:
     environment:
       - NATS_CREDS_FILE=/backend.creds
       - NATS_SECURITY_MODE=creds
+      - NATS_STREAM_STORAGE_TYPE=file
     volumes:
       - "./nats-conf/out_jwt/backend.creds:/backend.creds"
 
@@ -179,6 +181,7 @@ services:
       - NATS_SECURITY_MODE=creds
       - SFAPI_KEY_PATH=/key.pem
       - NATS_SERVER_URL=nats://nats1:4222
+      - NATS_STREAM_STORAGE_TYPE=file
     volumes:
       - "./nats-conf/out_jwt/backend.creds:/backend.creds"
       - "${HOME}/.superfacility/key.pem:/key.pem"
@@ -203,6 +206,7 @@ services:
     environment:
       - NATS_CREDS_FILE=/backend.creds
       - NATS_SECURITY_MODE=creds
+      - NATS_STREAM_STORAGE_TYPE=file
     volumes:
       - "./nats-conf/out_jwt/backend.creds:/backend.creds"
 

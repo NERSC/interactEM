@@ -1,6 +1,7 @@
 from faststream.nats import JStream
-from nats.js.api import RetentionPolicy, StorageType, StreamConfig
+from nats.js.api import RetentionPolicy, StreamConfig
 
+from interactem.core.config import cfg
 from interactem.core.constants import (
     MAX_LOGS_PER_SUBJECT,
     STREAM_DEPLOYMENTS,
@@ -20,7 +21,7 @@ from interactem.core.constants import (
     SUBJECT_TABLES_ALL,
 )
 
-ALL_STORAGE_TYPE = StorageType.MEMORY
+ALL_STORAGE_TYPE = cfg.NATS_STREAM_STORAGE_TYPE
 
 PARAMETERS_STREAM_CONFIG = StreamConfig(
     name=STREAM_PARAMETERS,
