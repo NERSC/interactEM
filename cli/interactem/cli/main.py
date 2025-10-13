@@ -381,10 +381,10 @@ def new_operator(
     _print_next_steps(operator_dir)
 
 
-def _collect_tags() -> list[OperatorSpecTag]:
+def _collect_tags() -> list[OperatorSpecTag] | None:
     """Interactively collect operator tags."""
     if not typer.confirm("Does this operator have tags?", default=False):
-        return []
+        return None
     tags = []
     print("[cyan]Add tags (leave value empty to finish):[/cyan]")
 
@@ -408,15 +408,18 @@ def _collect_tags() -> list[OperatorSpecTag]:
             print(f"  [red]Error creating tag: {e}. Skipping tag.[/red]")
             continue
 
+    if not tags:
+        return None
+
     return tags
 
 
 def _collect_ports(
     type: PortType,
-) -> list[OperatorSpecInput] | list[OperatorSpecOutput]:
+) -> list[OperatorSpecInput] | list[OperatorSpecOutput] | None:
     """Interactively collect operator ports."""
     if not typer.confirm(f"Does this operator have {type.value}s?", default=False):
-        return []
+        return None
     model_cls = OperatorSpecInput if type == PortType.input else OperatorSpecOutput
     ports = []
     print(f"[cyan]Add {type.value}s (leave name empty to finish):[/cyan]")
