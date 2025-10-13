@@ -4,11 +4,6 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*' ]
-    paths:
-      - 'docs/**'
-      - '.github/workflows/docs.yml'
-      - 'README.md'
-      - '**/.env.example'
   pull_request:
     branches: [ main ]
     paths:
