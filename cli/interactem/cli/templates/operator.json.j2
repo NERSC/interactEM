@@ -1,0 +1,50 @@
+{
+  "id": "{{ spec.id }}",
+  "image": "{{ spec.image }}",
+  "label": "{{ spec.label }}",
+  "description": "{{ spec.description }}"{% if spec.inputs %},
+  "inputs": [
+    {%- for input in spec.inputs %}
+    {
+      "name": "{{ input.name }}",
+      "label": "{{ input.label }}",
+      "type": "{{ input.type }}",
+      "description": "{{ input.description }}"
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ]{% endif %}{% if spec.outputs %},
+  "outputs": [
+    {%- for output in spec.outputs %}
+    {
+      "name": "{{ output.name }}",
+      "label": "{{ output.label }}",
+      "type": "{{ output.type }}",
+      "description": "{{ output.description }}"
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ]{% endif %}{% if spec.parameters %},
+  "parameters": [
+    {%- for param in spec.parameters %}
+    {
+      "name": "{{ param.name }}",
+      "label": "{{ param.label }}",
+      "type": "{{ param.type.value }}",
+      "default": "{{ param.default }}",
+      "description": "{{ param.description }}",
+      "required": {{ param.required|lower }}{% if param.options %},
+      "options": {{ param.options|tojson }}{% endif %}
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ]{% endif %}{% if spec.tags %},
+  "tags": [
+    {%- for tag in spec.tags %}
+    {
+      "value": "{{ tag.value }}",
+      "description": "{{ tag.description }}"
+    }{% if not loop.last %},{% endif %}
+    {%- endfor %}
+  ]{% endif %}{% if spec.parallel_config %},
+  "parallel_config": {
+    "type": "{{ spec.parallel_config.type.value }}"
+  }{% endif %}
+}

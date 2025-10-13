@@ -1,0 +1,51 @@
+from typing import Any
+
+from interactem.core.logger import get_logger
+from interactem.core.models.messages import BytesMessage{% if spec.inputs %}, MessageHeader, MessageSubject{% endif %}
+from interactem.operators.operator import operator
+
+logger = get_logger()
+
+@operator
+def {{ function_name }}(
+    inputs: BytesMessage | None, parameters: dict[str, Any]
+) -> BytesMessage | None:
+    """{{ spec.description }}"""
+{% if spec.inputs %}
+    if not inputs:
+        logger.warning("No input provided to the {{ function_name }} operator.")
+        return None
+{% else %}
+    # This operator does not require inputs
+{% endif %}
+    # Extract parameters
+{% for param in spec.parameters %}
+{% if param.type == "str" %}
+    {{ param.name }} = parameters.get("{{ param.name }}", "{{ param.default }}")
+{% elif param.type == "int" %}
+    {{ param.name }} = int(parameters.get("{{ param.name }}", "{{ param.default }}"))
+{% elif param.type == "float" %}
+    {{ param.name }} = float(parameters.get("{{ param.name }}", "{{ param.default }}"))
+{% elif param.type == "bool" %}
+    {{ param.name }} = parameters.get("{{ param.name }}", "{{ param.default }}").lower() in ("true", "1", "yes")
+{% elif param.type == "mount" %}
+    {{ param.name }} = parameters.get("{{ param.name }}", "{{ param.default }}")
+{% elif param.type == "str-enum" %}
+    {{ param.name }} = parameters.get("{{ param.name }}", "{{ param.default }}")
+{% else %}
+    {{ param.name }} = parameters.get("{{ param.name }}", "{{ param.default }}")
+{% endif %}
+{% endfor %}
+    # TODO: Implement operator logic here
+    logger.info("{{ function_name }} operator running...")
+{% if spec.inputs %}
+    # Process input data
+    # data = inputs.data
+{% endif %}
+    # TODO: Process and return result
+{% if spec.outputs %}
+    header = MessageHeader(subject=MessageSubject.BYTES, meta={})
+    return BytesMessage(header=header, data=b"")
+{% else %}
+    return None
+{% endif %}
