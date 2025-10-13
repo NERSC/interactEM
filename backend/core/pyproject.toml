@@ -20,7 +20,7 @@ coloredlogs = "^15.0.1"
 networkx = "^3.3"
 # Use draft version of nats-py because it helps with connection issues
 # See https://github.com/nats-io/nats.py/pull/675
-nats-py = {git = "https://github.com/swelborn/nats.py.git", rev = "fce1f3a4a917c2bb0f4adaf1698fe2fa7a13a971"}
+nats-py = {git = "https://github.com/fielding/nats.py.git", rev = "f8c13351ca865e7cd3058c073d5455b017a136a9"}
 nkeys = "^0.2.1"
 tenacity = "^9.0.0"
 pydantic-settings = "^2.10.1"
