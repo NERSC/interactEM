@@ -2,6 +2,7 @@ from faststream.nats import JStream
 from nats.js.api import RetentionPolicy, StorageType, StreamConfig
 
 from interactem.core.constants import (
+    MAX_LOGS_PER_SUBJECT,
     STREAM_DEPLOYMENTS,
     STREAM_IMAGES,
     STREAM_LOGS,
@@ -97,6 +98,6 @@ LOGS_STREAM_CONFIG = StreamConfig(
     subjects=[SUBJECT_LOGS_ALL],
     description="A stream for logs.",
     retention=RetentionPolicy.LIMITS,
-    max_msgs_per_subject=10000,  # max log messages (TODO: temporary)
+    max_msgs_per_subject=MAX_LOGS_PER_SUBJECT,
     max_age=3600 * 24 * 7,  # 1 week
 )
