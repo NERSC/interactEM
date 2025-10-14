@@ -36,14 +36,10 @@ def start(
 
     try:
         # Import after setting environment variables so config picks them up
-        from interactem.agent.entrypoint import main
-
         print("[green]Starting agent...[/green]")
-        asyncio.run(main())
+        from interactem.agent.broker import app
 
-    except KeyboardInterrupt:
-        print("\n[yellow]Agent stopped by user.[/yellow]")
-        raise typer.Exit(0)
+        asyncio.run(app.run())
     except Exception as e:
         print(f"[red]Failed to start agent: {e}[/red]")
         raise typer.Exit(1)
