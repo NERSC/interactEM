@@ -6,5 +6,5 @@ In your Python environment, from inside the cli folder (where pyproject.toml is 
 
 ```bash
 pip install .
-interactem pipeline --help
+interactem --help
 ```
