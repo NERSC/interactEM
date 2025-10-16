@@ -3,7 +3,7 @@
 GIT_ROOT_DIR=$(git rev-parse --show-toplevel)
 cd $GIT_ROOT_DIR
 
-export NATS_CREDS_FILE=$(pwd)/nats-conf/out_jwt/backend.creds
+export NATS_CREDS_FILE=$(pwd)/conf/nats-conf/out_jwt/backend.creds
 
 cd $GIT_ROOT_DIR/backend/core
 poetry install

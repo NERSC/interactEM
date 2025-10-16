@@ -41,7 +41,7 @@
     Generate `auth.conf` for the NATS cluster and various `.creds` and `.nk` files for NATS authentication.
 
     ```bash
-    cd nats-conf
+    cd conf/nats-conf
     ./generate-auth-jwt.sh
     ```
 

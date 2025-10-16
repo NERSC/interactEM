@@ -30,8 +30,8 @@ x-backend-base:
       - GITHUB_TOKEN=${GITHUB_TOKEN?Variable not set}
       - NATS_STREAM_STORAGE_TYPE=file
     volumes:
-      - "./nats-conf/out_jwt/backend.creds:/backend.creds"
-      - "./nats-conf/out_jwt/frontend.creds:/frontend.creds"
+      - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
+      - "./conf/nats-conf/out_jwt/frontend.creds:/frontend.creds"
     platform: linux/amd64 # Patch for M1 Mac
 
 services:
@@ -44,18 +44,18 @@ services:
     command: >
       -c /etc/nats/nats.conf
     volumes:
-      - "./nats-conf/nats1.conf:/etc/nats/nats.conf"
-      - "./nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
-      - "./nats-conf/websocket.conf:/etc/nats/websocket.conf"
+      - "./conf/nats-conf/nats1.conf:/etc/nats/nats.conf"
+      - "./conf/nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
+      - "./conf/nats-conf/websocket.conf:/etc/nats/websocket.conf"
 
   nats2:
     image: nats:latest
     command: >
       -c /etc/nats/nats.conf
     volumes:
-      - "./nats-conf/nats2.conf:/etc/nats/nats.conf"
-      - "./nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
-      - "./nats-conf/websocket.conf:/etc/nats/websocket.conf"
+      - "./conf/nats-conf/nats2.conf:/etc/nats/nats.conf"
+      - "./conf/nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
+      - "./conf/nats-conf/websocket.conf:/etc/nats/websocket.conf"
     depends_on:
       - nats1
 
@@ -64,9 +64,9 @@ services:
     command: >
       -c /etc/nats/nats.conf
     volumes:
-      - "./nats-conf/nats3.conf:/etc/nats/nats.conf"
-      - "./nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
-      - "./nats-conf/websocket.conf:/etc/nats/websocket.conf"
+      - "./conf/nats-conf/nats3.conf:/etc/nats/nats.conf"
+      - "./conf/nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
+      - "./conf/nats-conf/websocket.conf:/etc/nats/websocket.conf"
     depends_on:
       - nats2
 
@@ -141,7 +141,7 @@ services:
       - NATS_SECURITY_MODE=creds
       - NATS_STREAM_STORAGE_TYPE=file
     volumes:
-      - "./nats-conf/out_jwt/backend.creds:/backend.creds"
+      - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
 
     build:
       context: backend/
@@ -162,7 +162,7 @@ services:
       - .env
     volumes:
       - "./backend/callout/service/.env:/.env"
-      - "./nats-conf/out_jwt/:/nats-conf/"
+      - "./conf/nats-conf/out_jwt/:/nats-conf/"
     build: 
       context: backend/
       dockerfile: ../docker/Dockerfile.callout
@@ -183,7 +183,7 @@ services:
       - NATS_SERVER_URL=nats://nats1:4222
       - NATS_STREAM_STORAGE_TYPE=file
     volumes:
-      - "./nats-conf/out_jwt/backend.creds:/backend.creds"
+      - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
       - "${HOME}/.superfacility/key.pem:/key.pem"
     build: 
       context: backend/
@@ -208,7 +208,7 @@ services:
       - NATS_SECURITY_MODE=creds
       - NATS_STREAM_STORAGE_TYPE=file
     volumes:
-      - "./nats-conf/out_jwt/backend.creds:/backend.creds"
+      - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
 
     build:
       context: backend/
@@ -253,7 +253,7 @@ services:
         condition: service_healthy
     volumes:
       - vector_data:/vector-data-dir
-      - "./nats-conf/out_jwt/backend.creds:/backend.creds"
+      - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
