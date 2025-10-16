@@ -233,7 +233,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
     [],
   )
 
-  const deleteKeyCode: KeyCode = "Delete"
+  const deleteKeyCode: KeyCode = ["Delete", "d"]
   const multiSelectionKeyCode: KeyCode = "Shift"
   const selectionKeyCode: KeyCode = "Space"
 
