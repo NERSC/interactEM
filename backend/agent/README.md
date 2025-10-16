@@ -16,32 +16,34 @@ Some python environment manager (e.g., [`poetry`](https://python-poetry.org/docs
 - Alternative method (requires `jq` to be in `$PATH`): run the following script:
 
 ```bash
-./scripts/podman-socket-path.sh
+backend/agent/scripts/podman-socket-path.sh
 ```
 
 - Create `.env`:
 
 ```bash
-cp .env.example .env
+cp backend/agent/.env.example backend/agent/.env
 ```
 
 - Update the `.env` file for the agent. Endpoint goes to `PODMAN_SERVICE_URI` and set default `AGENT_NAME`.
 
-```makefile
+```bash
 # note **3** slashes in unix:///var....
 PODMAN_SERVICE_URI=<your_socket_goes_here>
 AGENT_NAME=default_agent_name
 ```
 
-### Install and run
+### Install the interactem CLI tool
 
 ```bash
+cd cli
 poetry install
 ```
 
 or
 
 ```bash
+cd cli
 uv venv .venv --python=3.12
 uv pip install -e .
 source .venv/bin/activate
@@ -52,11 +54,11 @@ source .venv/bin/activate
 Run the following inside the [directory](backend/agent/) where `.env` is.
 
 ```bash
-interactem-agent
+interactem agent
 ```
 
 To run with custom agent's name and tags, set the following environment variables before running the agent (useful while running multiple agents):
 
 ```bash
-AGENT_NAME="agent_name" AGENT_TAGS='["agent_tag"]' interactem-agent
+AGENT_NAME="agent_name" AGENT_TAGS='["agent_tag"]' interactem agent
 ```

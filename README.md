@@ -70,7 +70,20 @@
 
 ### Launching an agent
 
-For operators to launch, you need to startup an agent process. See [backend/agent/README.md](backend/agent/README.md) for instructions on how to do this.
+Install the interactEM cli tool:
+
+```bash
+cd cli
+poetry install
+```
+
+Then you can launch an agent:
+
+```bash
+interactem agent start  # --dotenv path/to/dotenv
+```
+
+Note, you will need to supply an dotenv file, for example like the one in [backend/agent/.env.example](backend/agent/.env.example). More details found in [docs](https://nersc.github.io/interactEM/).
 
 ## License
 
