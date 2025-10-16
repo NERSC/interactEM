@@ -185,8 +185,8 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       const affectsTopology = changes.some(
         (change) =>
           change.type === "add" ||
-          change.type === "replace" ||
-          change.type !== "remove",
+          change.type === "remove" ||
+          change.type === "replace",
       )
       if (affectsTopology) {
         saveRevision(nodes, nextEdges)
@@ -233,7 +233,7 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
     [],
   )
 
-  const deleteKeyCode: KeyCode = "Delete"
+  const deleteKeyCode: KeyCode = ["Delete", "d"]
   const multiSelectionKeyCode: KeyCode = "Shift"
   const selectionKeyCode: KeyCode = "Space"
 
