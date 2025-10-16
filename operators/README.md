@@ -12,6 +12,18 @@ At the very least, three files are required to make an operator:
 1. [Containerfile](#containerfile)
 1. [Specification](#specification)
 
+As a part of our `cli` tool, we have some templates that can get you started. Using `uv`:
+
+```bash
+cd cli
+uv venv .venv
+uv pip install .
+source .venv/bin/activate
+interactem operator new
+```
+
+One can similarly do this with `poetry install` (either way should work), or with a plain `pip install .`.
+
 ### `run.py` file
 
 We need to define the code that will operate on incoming messages. The incoming messages will come in as [BytesMessages](https://github.com/NERSC/interactEM/blob/main/backend/core/interactem/core/models/messages.py), which contain data, metadata, and tracking information.
