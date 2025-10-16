@@ -328,6 +328,15 @@
 <li><p><a class="reference internal" href="#containerfile">Containerfile</a></p></li>
 <li><p><a class="reference internal" href="#specification">Specification</a></p></li>
 </ol>
+<p>As a part of our <code class="docutils literal notranslate"><span class="pre">cli</span></code> tool, we have some templates that can get you started. Using <code class="docutils literal notranslate"><span class="pre">uv</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>cli
+uv<span class="w"> </span>venv<span class="w"> </span>.venv
+uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>.
+<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+interactem<span class="w"> </span>operator<span class="w"> </span>new
+</pre></div>
+</div>
+<p>One can similarly do this with <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">install</span></code> (either way should work), or with a plain <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">.</span></code>.</p>
 </section>
 <section id="run-py-file">
 <h3><code class="docutils literal notranslate"><span class="pre">run.py</span></code> file<a class="headerlink" href="#run-py-file" title="Link to this heading">#</a></h3>
