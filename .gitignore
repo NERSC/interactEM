@@ -155,5 +155,5 @@ cython_debug/
 bundle-visualization.html
 
 biome.json
-/nats-conf/out_jwt/**
+/conf/nats-conf/out_jwt/**
 *.env
