@@ -343,53 +343,34 @@ cp<span class="w"> </span>.env.example<span class="w"> </span>.env
 </li>
 <li><p><strong>Generate NATS Authentication Files</strong><br />
 Generate <code class="docutils literal notranslate"><span class="pre">auth.conf</span></code> for the NATS cluster and various <code class="docutils literal notranslate"><span class="pre">.creds</span></code> and <code class="docutils literal notranslate"><span class="pre">.nk</span></code> files for NATS authentication.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>nats-conf
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>conf/nats-conf
 ./generate-auth-jwt.sh
 </pre></div>
 </div>
 </li>
 </ol>
 </section>
-<section id="building-docker-images-and-starting-backend-services">
-<h3>Building Docker Images and starting backend services<a class="headerlink" href="#building-docker-images-and-starting-backend-services" title="Link to this heading">#</a></h3>
+<section id="building-docker-images-and-starting-services">
+<h3>Building Docker Images and starting services<a class="headerlink" href="#building-docker-images-and-starting-services" title="Link to this heading">#</a></h3>
 <ol class="arabic">
 <li><p><strong>Build the Required Images</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker/bake.sh
 </pre></div>
 </div>
 </li>
-<li><p><strong>Bring up Services</strong><br />
-Use docker compose:</p>
+<li><p><strong>Bring up Services</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>--force-recreate<span class="w"> </span>--remove-orphans<span class="w"> </span>--build<span class="w"> </span>-d
 </pre></div>
 </div>
 </li>
-</ol>
-</section>
-<section id="starting-frontend-service">
-<h3>Starting frontend service<a class="headerlink" href="#starting-frontend-service" title="Link to this heading">#</a></h3>
-<p>Follow instructions in <a class="reference internal" href="#frontend/interactEM/README.md"><span class="xref myst">frontend/interactEM/README.md</span></a> to install <code class="docutils literal notranslate"><span class="pre">npm</span></code> and install dependencies.</p>
-<p>You will end up with a <code class="docutils literal notranslate"><span class="pre">frontend/interactEM/node_modules</span></code> directory if you did things correctly. Then you should be able to run</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>npm<span class="w"> </span>run<span class="w"> </span>dev
-</pre></div>
-</div>
-<p>and you should get some output like:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>&gt;<span class="w"> </span>@interactem/interactem@0.0.4<span class="w"> </span>dev
-&gt;<span class="w"> </span>vite
-
-
-<span class="w">  </span>VITE<span class="w"> </span>v6.3.5<span class="w">  </span>ready<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="m">318</span><span class="w"> </span>ms
-
-<span class="w">  </span>➜<span class="w">  </span>Local:<span class="w">   </span>http://localhost:5173/
-<span class="w">  </span>➜<span class="w">  </span>Network:<span class="w"> </span>use<span class="w"> </span>--host<span class="w"> </span>to<span class="w"> </span>expose
-<span class="w">  </span>➜<span class="w">  </span>press<span class="w"> </span>h<span class="w"> </span>+<span class="w"> </span>enter<span class="w"> </span>to<span class="w"> </span>show<span class="w"> </span><span class="nb">help</span>
-</pre></div>
-</div>
-<p>The username/password for this login are in <code class="docutils literal notranslate"><span class="pre">.env.example</span></code></p>
+<li><p><strong>Login</strong></p>
+<p>Go to <a class="reference external" href="http://localhost:5173/">http://localhost:5173/</a> in your browser, and you should see a login page. The credentials for the local version are in <code class="docutils literal notranslate"><span class="pre">./.env.example</span></code>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">FIRST_SUPERUSER_USERNAME</span><span class="o">=</span>admin@example.com
 <span class="nv">FIRST_SUPERUSER_PASSWORD</span><span class="o">=</span>changethis
 </pre></div>
 </div>
+</li>
+</ol>
 <p>Now you should have the full stack running in <code class="docutils literal notranslate"><span class="pre">docker</span></code>. Go to <a class="reference internal" href="launch-agent.html"><span class="std std-doc">launch agent</span></a>.</p>
 </section>
 </section>
@@ -454,8 +435,7 @@ Use docker compose:</p>
 <li><a class="reference internal" href="#running-locally">Running locally</a><ul>
 <li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a></li>
-<li><a class="reference internal" href="#building-docker-images-and-starting-backend-services">Building Docker Images and starting backend services</a></li>
-<li><a class="reference internal" href="#starting-frontend-service">Starting frontend service</a></li>
+<li><a class="reference internal" href="#building-docker-images-and-starting-services">Building Docker Images and starting services</a></li>
 </ul>
 </li>
 </ul>
