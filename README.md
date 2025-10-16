@@ -45,7 +45,7 @@
     ./generate-auth-jwt.sh
     ```
 
-### Building Docker Images and starting backend services
+### Building Docker Images and starting services
 
 1. **Build the Required Images**  
 
@@ -53,43 +53,20 @@
     docker/bake.sh
     ```
 
-1. **Bring up Services**  
-    Use docker compose:
+1. **Bring up Services**
 
     ```bash
     docker compose up --force-recreate --remove-orphans --build -d
     ```
 
-### Starting frontend service
+1. **Login**
 
-Follow instructions in [frontend/interactEM/README.md](frontend/interactEM/README.md) to install `npm` and install dependencies.
+    Go to [http://localhost:5173/](http://localhost:5173/) in your browser, and you should see a login page. The credentials for the local version are in `./.env.example`.
 
-You will end up with a `frontend/interactEM/node_modules` directory if you did things correctly. Then you should be able to run
-
-```bash
-npm run dev
-```
-
-and you should get some output like:
-
-```bash
-> @interactem/interactem@0.0.4 dev
-> vite
-
-
-  VITE v6.3.5  ready in 318 ms
-
-  ➜  Local:   http://localhost:5173/
-  ➜  Network: use --host to expose
-  ➜  press h + enter to show help
-```
-
-The username/password for this login are in `.env.example`
-
-```bash
-FIRST_SUPERUSER_USERNAME=admin@example.com
-FIRST_SUPERUSER_PASSWORD=changethis
-```
+    ```bash
+    FIRST_SUPERUSER_USERNAME=admin@example.com
+    FIRST_SUPERUSER_PASSWORD=changethis
+    ```
 
 ### Launching an agent
 
