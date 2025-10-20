@@ -12,8 +12,7 @@ from interactem.app.core.util import (
     check_present_and_authorized,
 )
 from interactem.app.events.producer import (
-    publish_pipeline_run_event,
-    publish_pipeline_stop_event,
+    publish_pipeline_deployment_event,
 )
 from interactem.app.models import (
     Pipeline,
@@ -25,7 +24,10 @@ from interactem.app.models import (
     PipelineDeploymentUpdate,
     PipelineRevision,
 )
-from interactem.core.events.pipelines import PipelineDeploymentEvent, PipelineStopEvent
+from interactem.core.events.pipelines import (
+    PipelineRunEvent,
+    PipelineStopEvent,
+)
 from interactem.core.logger import get_logger
 
 logger = get_logger()
@@ -76,13 +78,13 @@ class PipelineDeploymentStateMachine:
         }
 
     async def start(self, deployment: PipelineDeployment) -> None:
-        event = PipelineDeploymentEvent(
+        event = PipelineRunEvent(
             canonical_id=deployment.pipeline_id,
             data=deployment.revision.data,
             revision_id=deployment.revision_id,
             deployment_id=deployment.id,
         )
-        await publish_pipeline_run_event(event)
+        await publish_pipeline_deployment_event(event)
         logger.info(f"Sent deployment event for deployment {deployment.id}")
 
     def is_valid_transition(
@@ -108,7 +110,7 @@ class PipelineDeploymentStateMachine:
         event = PipelineStopEvent(
             deployment_id=deployment.id,
         )
-        await publish_pipeline_stop_event(event)
+        await publish_pipeline_deployment_event(event)
         logger.info(f"Sent stop event for cancelled deployment {deployment.id}")
 
     async def _handle_started(self, deployment: PipelineDeployment) -> None:
