@@ -36,7 +36,7 @@ x-backend-base:
 
 services:
   nats1:
-    image: nats:latest
+    image: nats:2.11-alpine
     ports:
       - "4222:4222"
       - "8222:8222" # Monitoring port.
@@ -49,7 +49,7 @@ services:
       - "./conf/nats-conf/websocket.conf:/etc/nats/websocket.conf"
 
   nats2:
-    image: nats:latest
+    image: nats:2.11-alpine
     command: >
       -c /etc/nats/nats.conf
     volumes:
@@ -60,7 +60,7 @@ services:
       - nats1
 
   nats3:
-    image: nats:latest
+    image: nats:2.11-alpine
     command: >
       -c /etc/nats/nats.conf
     volumes:
