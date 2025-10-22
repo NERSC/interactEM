@@ -308,6 +308,7 @@ class OperatorMixin(RunnableKernel):
             # Publish only the updated parameter instead of all parameters
             updated_param = self.parameters.parameters.get(update.name)
             if updated_param and self.info:
+                logger.info(f"'{update.name}' updated to {update.value}")
                 create_task_with_ref(
                     self._task_refs,
                     publish_operator_parameter_ack(
