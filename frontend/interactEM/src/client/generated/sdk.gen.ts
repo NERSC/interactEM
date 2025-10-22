@@ -64,6 +64,9 @@ import type {
   PipelinesUpdatePipelineResponse,
   PipelinesUpdatePipelineRevisionData,
   PipelinesUpdatePipelineRevisionError,
+  PipelinesUpdatePipelineRevisionPositionsData,
+  PipelinesUpdatePipelineRevisionPositionsError,
+  PipelinesUpdatePipelineRevisionPositionsResponse,
   PipelinesUpdatePipelineRevisionResponse,
   UsersCreateUserData,
   UsersCreateUserError,
@@ -625,6 +628,35 @@ export const pipelinesUpdatePipelineRevision = <
       },
     ],
     url: "/api/v1/pipelines/{id}/revisions/{revision_id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  })
+}
+
+/**
+ * Update Pipeline Revision Positions
+ * Update operator positions for a specific pipeline revision.
+ */
+export const pipelinesUpdatePipelineRevisionPositions = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesUpdatePipelineRevisionPositionsData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).patch<
+    PipelinesUpdatePipelineRevisionPositionsResponse,
+    PipelinesUpdatePipelineRevisionPositionsError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}/revisions/{revision_id}/positions",
     ...options,
     headers: {
       "Content-Type": "application/json",

@@ -113,6 +113,12 @@ export const zMessage = z.object({
 
 export const zNodeType = z.enum(["operator", "port"])
 
+export const zOperatorPosition = z.object({
+  canonical_operator_id: z.string().uuid(),
+  x: z.number(),
+  y: z.number(),
+})
+
 export const zOperatorSpec = z.object({
   id: z.string().uuid(),
   label: z.string(),
@@ -122,8 +128,10 @@ export const zOperatorSpec = z.object({
     .union([
       z.array(
         z.object({
+          name: z.string(),
           label: z.string(),
           description: z.string(),
+          type: z.string(),
         }),
       ),
       z.null(),
@@ -133,8 +141,10 @@ export const zOperatorSpec = z.object({
     .union([
       z.array(
         z.object({
+          name: z.string(),
           label: z.string(),
           description: z.string(),
+          type: z.string(),
         }),
       ),
       z.null(),
@@ -178,13 +188,17 @@ export const zOperatorSpec = z.object({
 })
 
 export const zOperatorSpecInput = z.object({
+  name: z.string(),
   label: z.string(),
   description: z.string(),
+  type: z.string(),
 })
 
 export const zOperatorSpecOutput = z.object({
+  name: z.string(),
   label: z.string(),
   description: z.string(),
+  type: z.string(),
 })
 
 export const zOperatorSpecParameter = z.object({
@@ -269,11 +283,16 @@ export const zPipelineRevisionCreate = z.object({
   data: z.object({}),
 })
 
+export const zPipelineRevisionPositionsUpdate = z.object({
+  positions: z.array(zOperatorPosition),
+})
+
 export const zPipelineRevisionPublic = z.object({
   pipeline_id: z.string().uuid(),
   revision_id: z.number().int(),
   data: zCanonicalPipelineData,
   tag: z.union([z.string(), z.null()]),
+  positions: z.array(zOperatorPosition),
   created_at: z.string().datetime(),
 })
 
@@ -391,6 +410,9 @@ export const zPipelinesAddPipelineRevisionResponse = zPipelineRevisionPublic
 export const zPipelinesReadPipelineRevisionResponse = zPipelineRevisionPublic
 
 export const zPipelinesUpdatePipelineRevisionResponse = zPipelineRevisionPublic
+
+export const zPipelinesUpdatePipelineRevisionPositionsResponse =
+  zPipelineRevisionPublic
 
 export const zPipelinesListPipelineDeploymentsResponse =
   zPipelineDeploymentsPublic

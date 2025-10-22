@@ -64,6 +64,15 @@ export type Message = {
 
 export type NodeType = "operator" | "port"
 
+/**
+ * Position metadata for an operator on the canvas.
+ */
+export type OperatorPosition = {
+  canonical_operator_id: string
+  x: number
+  y: number
+}
+
 export type OperatorSpec = {
   id: string
   label: string
@@ -77,13 +86,17 @@ export type OperatorSpec = {
 }
 
 export type OperatorSpecInput = {
+  name: string
   label: string
   description: string
+  type: string
 }
 
 export type OperatorSpecOutput = {
+  name: string
   label: string
   description: string
+  type: string
 }
 
 export type OperatorSpecParameter = {
@@ -170,11 +183,16 @@ export type PipelineRevisionCreate = {
   }
 }
 
+export type PipelineRevisionPositionsUpdate = {
+  positions: Array<OperatorPosition>
+}
+
 export type PipelineRevisionPublic = {
   pipeline_id: string
   revision_id: number
   data: CanonicalPipelineData
   tag: string | null
+  positions: Array<OperatorPosition>
   created_at: string
 }
 
@@ -806,6 +824,36 @@ export type PipelinesUpdatePipelineRevisionResponses = {
 
 export type PipelinesUpdatePipelineRevisionResponse =
   PipelinesUpdatePipelineRevisionResponses[keyof PipelinesUpdatePipelineRevisionResponses]
+
+export type PipelinesUpdatePipelineRevisionPositionsData = {
+  body: PipelineRevisionPositionsUpdate
+  path: {
+    id: string
+    revision_id: number
+  }
+  query?: never
+  url: "/api/v1/pipelines/{id}/revisions/{revision_id}/positions"
+}
+
+export type PipelinesUpdatePipelineRevisionPositionsErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PipelinesUpdatePipelineRevisionPositionsError =
+  PipelinesUpdatePipelineRevisionPositionsErrors[keyof PipelinesUpdatePipelineRevisionPositionsErrors]
+
+export type PipelinesUpdatePipelineRevisionPositionsResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelineRevisionPublic
+}
+
+export type PipelinesUpdatePipelineRevisionPositionsResponse =
+  PipelinesUpdatePipelineRevisionPositionsResponses[keyof PipelinesUpdatePipelineRevisionPositionsResponses]
 
 export type PipelinesListPipelineDeploymentsData = {
   body?: never
