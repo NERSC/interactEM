@@ -12,6 +12,7 @@ from interactem.app.core.util import (
 )
 from interactem.app.models import (
     Message,
+    OperatorPosition,
     Pipeline,
     PipelineCreate,
     PipelineDeployment,
@@ -20,6 +21,7 @@ from interactem.app.models import (
     PipelinePublic,
     PipelineRevision,
     PipelineRevisionCreate,
+    PipelineRevisionPositionsUpdate,
     PipelineRevisionPublic,
     PipelineRevisionUpdate,
     PipelinesPublic,
@@ -28,6 +30,7 @@ from interactem.app.models import (
 from interactem.core.logger import get_logger
 from interactem.core.models.canonical import (
     CanonicalPipeline,
+    CanonicalPipelineData,
     CanonicalPipelineRevisionID,
 )
 
@@ -138,25 +141,45 @@ def add_pipeline_revision(
     """
     if not revision_in.data:
         raise HTTPException(status_code=400, detail="Revision data is required")
+
+    try:
+        canonical_data = CanonicalPipelineData(**revision_in.data)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid pipeline data: {str(e)}")
+
     # Lock this pipeline to avoid race condition with revision ID
     pipeline = session.get(Pipeline, id, with_for_update=True)
     pipeline = check_present_and_authorized(pipeline, current_user, id)
 
-    # Get latest revision_id
+    # Get last revision
     statement = (
-        select(PipelineRevision.revision_id)
+        select(PipelineRevision)
         .where(col(PipelineRevision.pipeline_id) == id)
         .order_by(col(PipelineRevision.revision_id).desc())
         .limit(1)
     )
-    last_revision = session.exec(statement).first()
-    next_revision_id = (last_revision or 0) + 1
+    last_revision_obj = session.exec(statement).first()
+    next_revision_id = (last_revision_obj.revision_id if last_revision_obj else 0) + 1
+
+    # Preserve operator positions from last revision if possible
+    # Note: We convert to OperatorPosition for validation, then back to dicts for storage
+    # (SQLModel/Pydantic limitation: https://github.com/fastapi/sqlmodel/pull/1324)
+    positions_dicts: list[dict[str, Any]] = []
+    if last_revision_obj and last_revision_obj.positions:
+        new_operator_ids = {op.id for op in canonical_data.operators}
+        positions = [OperatorPosition(**pos) for pos in last_revision_obj.positions]
+        positions_dicts = [
+            pos.model_dump(mode="json")
+            for pos in positions
+            if pos.canonical_operator_id in new_operator_ids
+        ]
 
     # Create the new revision
     revision = PipelineRevision(
         pipeline_id=id,
         revision_id=next_revision_id,
         data=revision_in.data,
+        positions=positions_dicts,
     )
     session.add(revision)
 
@@ -230,6 +253,36 @@ def update_pipeline_revision(
     check_present_and_authorized(pipeline, current_user, id)
 
     revision.tag = update.tag
+    session.add(revision)
+    session.commit()
+    session.refresh(revision)
+
+    return PipelineRevisionPublic.model_validate(revision)
+
+
+@router.patch(
+    "/{id}/revisions/{revision_id}/positions", response_model=PipelineRevisionPublic
+)
+def update_pipeline_revision_positions(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    revision_id: CanonicalPipelineRevisionID,
+    update: PipelineRevisionPositionsUpdate,
+) -> PipelineRevisionPublic:
+    """
+    Update operator positions for a specific pipeline revision.
+    """
+    revision = session.get(PipelineRevision, (id, revision_id))
+    if not revision:
+        raise HTTPException(status_code=404, detail="Pipeline revision not found")
+
+    pipeline = revision.pipeline
+    check_present_and_authorized(pipeline, current_user, id)
+
+    # Store positions as list of dicts (SQLModel will handle JSON serialization)
+    revision.positions = [pos.model_dump(mode="json") for pos in update.positions]
     session.add(revision)
     session.commit()
     session.refresh(revision)
