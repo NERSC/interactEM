@@ -10,7 +10,7 @@ import { useNats } from "../../contexts/nats"
 
 interface UseConsumerOptions {
   stream: string
-  config: ConsumerConfig
+  config: ConsumerConfig | null
 }
 
 export const useConsumer = ({
@@ -26,6 +26,21 @@ export const useConsumer = ({
   useEffect(() => {
     // Mark component as mounted when effect runs
     isMounted.current = true
+
+    // If config is null, clear the consumer
+    if (!config) {
+      const consumerToDelete = consumerRef.current
+      if (consumerToDelete) {
+        consumerToDelete.delete().catch((error) => {
+          if (!(error instanceof DrainingConnectionError)) {
+            console.error("Error deleting consumer:", error)
+          }
+        })
+        consumerRef.current = null
+      }
+      setConsumer(null)
+      return
+    }
 
     const deleteConsumer = async (consumerToDelete: Consumer | null) => {
       if (!consumerToDelete) return
