@@ -63,7 +63,7 @@ export function useOperatorLogs({
     }
   }, [deploymentIdOrActiveId, sortedOperatorIds])
 
-  const consumer = config ? useConsumer({ stream: STREAM_LOGS, config }) : null
+  const consumer = useConsumer({ stream: STREAM_LOGS, config })
 
   const handleMessage = useCallback((msg: any) => {
     try {
