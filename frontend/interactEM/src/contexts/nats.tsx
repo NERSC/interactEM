@@ -165,8 +165,15 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
     }
     return () => {
       if (natsConnection) {
-        console.log("Closing NATS connection")
-        natsConnection.close()
+        console.log("Draining NATS connection")
+        ;(async () => {
+          try {
+            await natsConnection.drain()
+            console.log("NATS connection drained and closed")
+          } catch (err) {
+            console.error("Error draining NATS connection:", err)
+          }
+        })()
       }
       setState({
         natsConnection: null,

@@ -4,6 +4,7 @@ import {
   JetStreamApiError,
   JetStreamError,
 } from "@nats-io/jetstream"
+import { DrainingConnectionError } from "@nats-io/nats-core/internal"
 import { useEffect, useRef, useState } from "react"
 import { useNats } from "../../contexts/nats"
 
@@ -35,6 +36,10 @@ export const useConsumer = ({
           consumerRef.current = null
         }
       } catch (error) {
+        if (error instanceof DrainingConnectionError) {
+          // quietly ignore if connection is draining
+          return
+        }
         if (error instanceof JetStreamApiError) {
           if (error.code === JetStreamApiCodes.ConsumerNotFound) {
             return
