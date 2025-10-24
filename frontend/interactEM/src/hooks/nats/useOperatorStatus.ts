@@ -30,35 +30,40 @@ export const useAllOperatorStatuses = () => {
   }
 }
 
-export const useOperatorsByCanonicalId = (canonicalId: string) => {
+export const useOperatorsByCanonicalId = (
+  canonicalId: string,
+  stableRefOnIdOnly = false,
+) => {
   const { operators, operatorsLoading, operatorsError } =
     useOperatorStatusContext()
 
-  // Keep track of the previous IDs to avoid recreating array when operators update
-  // but the IDs haven't changed
-  const prevIdsRef = useRef<string>("")
+  const prevCacheRef = useRef<string>("")
   const prevOperatorsRef = useRef<typeof operators>([])
 
   const matchingOperators = useMemo(() => {
     const filtered = operators.filter((op) => op.canonical_id === canonicalId)
-    const currentIds = filtered
-      .map((op) => op.id)
-      .sort()
-      .join(",")
 
-    // If the IDs haven't changed, return the previous array reference
+    // Determine what to compare: just IDs or full data
+    const currentCache = stableRefOnIdOnly
+      ? filtered
+          .map((op) => op.id)
+          .sort()
+          .join(",")
+      : JSON.stringify(filtered)
+
+    // If cache hasn't changed, return the previous array reference
     if (
-      currentIds === prevIdsRef.current &&
+      currentCache === prevCacheRef.current &&
       prevOperatorsRef.current.length > 0
     ) {
       return prevOperatorsRef.current
     }
 
-    // IDs changed, update refs and return new array
-    prevIdsRef.current = currentIds
+    // Cache changed, update refs and return new array
+    prevCacheRef.current = currentCache
     prevOperatorsRef.current = filtered
     return filtered
-  }, [operators, canonicalId])
+  }, [operators, canonicalId, stableRefOnIdOnly])
 
   return {
     operators: matchingOperators,

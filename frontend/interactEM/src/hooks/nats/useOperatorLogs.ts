@@ -21,8 +21,10 @@ export function useOperatorLogs({
   deploymentId,
 }: UseOperatorLogsOptions) {
   const { runtimePipelineId } = useActivePipeline()
-  const { operators: allOperators } =
-    useOperatorsByCanonicalId(canonicalOperatorId)
+  const { operators: allOperators } = useOperatorsByCanonicalId(
+    canonicalOperatorId,
+    true,
+  )
 
   // We may want to pass in deploymentId in the future to look at
   // historical logs, but in current impl we just use active pipeline ID
