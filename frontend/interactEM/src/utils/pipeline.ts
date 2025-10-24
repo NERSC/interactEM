@@ -51,7 +51,6 @@ export const fromPipelineJSON = (
       },
       sourcePosition: Position.Right,
       targetPosition: Position.Left,
-      handles: [],
     }
 
     pipelineNodes.push(node)

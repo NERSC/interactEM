@@ -24,7 +24,7 @@ const Image: React.FC<ImageProps> = ({ imageData }) => {
     if (imageData) {
       const url = URL.createObjectURL(
         // TODO: Pass the MIME type with the image data
-        new Blob([imageData], { type: "image/jpeg" }),
+        new Blob([imageData.buffer as ArrayBuffer], { type: "image/jpeg" }),
       )
       setImageSrc(url)
 
