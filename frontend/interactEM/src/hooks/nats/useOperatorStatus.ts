@@ -123,6 +123,8 @@ export const useRuntimeOperatorStatusStyles = (canonicalId: string) => {
         return "operator-status-running"
       case OperatorStatus.shutting_down:
         return "operator-status-shutting-down"
+      case OperatorStatus.error:
+        return "operator-status-error"
       default:
         return "operator-status-offline"
     }
@@ -131,7 +133,7 @@ export const useRuntimeOperatorStatusStyles = (canonicalId: string) => {
   return {
     status,
     statusClass: getStatusClass(status),
-    isOnline: status === "running",
-    isInitializing: status === "initializing",
+    isOnline: status === OperatorStatus.running,
+    isInitializing: status === OperatorStatus.initializing,
   }
 }
