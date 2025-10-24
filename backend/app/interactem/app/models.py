@@ -146,6 +146,9 @@ class PipelineRevision(SQLModel, table=True):
     revision_id: CanonicalPipelineRevisionID = Field(primary_key=True, index=True)
     data: dict[str, Any] = Field(sa_column=Column(JSON))
     tag: str | None = Field(default=None, max_length=128)
+    positions: list[dict[str, Any]] = Field(
+        sa_column=Column(JSON), default_factory=list
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         nullable=False,
@@ -173,6 +176,18 @@ class PipelineRevisionUpdate(SQLModel):
     tag: str | None = Field(default=None, max_length=128)
 
 
+class OperatorPosition(SQLModel):
+    """Position metadata for an operator on the canvas."""
+
+    canonical_operator_id: uuid.UUID
+    x: float
+    y: float
+
+
+class PipelineRevisionPositionsUpdate(SQLModel):
+    positions: list[OperatorPosition]
+
+
 class PipelinePublic(PipelineBase):
     id: uuid.UUID
     owner_id: uuid.UUID
@@ -192,6 +207,7 @@ class PipelineRevisionPublic(SQLModel):
     revision_id: CanonicalPipelineRevisionID
     data: CanonicalPipelineData
     tag: str | None
+    positions: list[OperatorPosition]
     created_at: datetime
 
 
