@@ -1,7 +1,7 @@
 from enum import Enum
-from typing import Any
+from typing import Any, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, RootModel
 
 from interactem.core.models.base import PipelineDeploymentState
 from interactem.core.models.canonical import (
@@ -17,23 +17,26 @@ class PipelineEventType(str, Enum):
     PIPELINE_UPDATE = "pipeline_update"
 
 
-class PipelineEvent(BaseModel):
-    type: PipelineEventType
-
-
-class PipelineDeploymentEvent(PipelineEvent):
-    type: PipelineEventType = PipelineEventType.PIPELINE_RUN
+class PipelineRunEvent(BaseModel):
+    type: Literal[PipelineEventType.PIPELINE_RUN] = PipelineEventType.PIPELINE_RUN
     canonical_id: CanonicalPipelineID
     revision_id: CanonicalPipelineRevisionID
     deployment_id: RuntimePipelineID
     data: dict[str, Any]
 
-class PipelineStopEvent(PipelineEvent):
-    type: PipelineEventType = PipelineEventType.PIPELINE_STOP
+
+class PipelineStopEvent(BaseModel):
+    type: Literal[PipelineEventType.PIPELINE_STOP] = PipelineEventType.PIPELINE_STOP
     deployment_id: RuntimePipelineID
 
 
-class PipelineUpdateEvent(PipelineEvent):
-    type: PipelineEventType = PipelineEventType.PIPELINE_UPDATE
+class PipelineUpdateEvent(BaseModel):
+    type: Literal[PipelineEventType.PIPELINE_UPDATE] = PipelineEventType.PIPELINE_UPDATE
     deployment_id: RuntimePipelineID
     state: PipelineDeploymentState | None = None
+
+
+class PipelineEvent(RootModel):
+    root: PipelineRunEvent | PipelineStopEvent | PipelineUpdateEvent = Field(
+        discriminator="type"
+    )

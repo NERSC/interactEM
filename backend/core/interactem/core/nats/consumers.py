@@ -25,8 +25,6 @@ from interactem.core.constants import (
     SUBJECT_METRICS_ALL,
     SUBJECT_OPERATORS_DEPLOYMENTS,
     SUBJECT_OPERATORS_PARAMETERS_UPDATE,
-    SUBJECT_PIPELINES_DEPLOYMENTS_NEW,
-    SUBJECT_PIPELINES_DEPLOYMENTS_STOP,
     SUBJECT_SFAPI_JOBS,
 )
 from interactem.core.logger import get_logger
@@ -152,28 +150,6 @@ async def create_orchestrator_deployment_consumer(
     return psub
 
 
-# TODO: come back to this, did not want to change functionality significantly
-# but I don't think we should be using "stop" and "new" in the subjects
-async def create_orchestrator_pipeline_stop_consumer(
-    js: JetStreamContext,
-    orchestrator_id: UUID,
-) -> JetStreamContext.PullSubscription:
-    return await create_orchestrator_deployment_consumer(
-        js,
-        orchestrator_id,
-        SUBJECT_PIPELINES_DEPLOYMENTS_STOP,
-    )
-
-
-async def create_orchestrator_pipeline_new_consumer(
-    js: JetStreamContext,
-    orchestrator_id: UUID,
-) -> JetStreamContext.PullSubscription:
-    return await create_orchestrator_deployment_consumer(
-        js,
-        orchestrator_id,
-        SUBJECT_PIPELINES_DEPLOYMENTS_NEW,
-    )
 
 
 async def create_metrics_consumer(

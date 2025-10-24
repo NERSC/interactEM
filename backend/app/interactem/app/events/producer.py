@@ -15,11 +15,13 @@ from interactem.core.constants import (
     SFAPI_STATUS_ENDPOINT,
     STREAM_DEPLOYMENTS,
     STREAM_SFAPI,
-    SUBJECT_PIPELINES_DEPLOYMENTS_NEW,
-    SUBJECT_PIPELINES_DEPLOYMENTS_STOP,
+    SUBJECT_PIPELINES_DEPLOYMENTS,
     SUBJECT_SFAPI_JOBS,
 )
-from interactem.core.events.pipelines import PipelineDeploymentEvent, PipelineStopEvent
+from interactem.core.events.pipelines import (
+    PipelineRunEvent,
+    PipelineStopEvent,
+)
 from interactem.core.nats import create_all_buckets, create_all_streams, nc
 from interactem.sfapi_models import AgentCreateEvent, StatusRequest
 
@@ -103,16 +105,14 @@ async def nats_req_rep(
     return rep
 
 
-async def publish_pipeline_run_event(event: PipelineDeploymentEvent) -> None:
+async def publish_pipeline_deployment_event(
+    event: PipelineRunEvent | PipelineStopEvent,
+) -> None:
+    """Publish pipeline deployment event (run or stop) to the deployments subject."""
     await publish_jetstream_event(
-        STREAM_DEPLOYMENTS, SUBJECT_PIPELINES_DEPLOYMENTS_NEW, event
+        STREAM_DEPLOYMENTS, SUBJECT_PIPELINES_DEPLOYMENTS, event
     )
 
-
-async def publish_pipeline_stop_event(event: PipelineStopEvent) -> None:
-    await publish_jetstream_event(
-        STREAM_DEPLOYMENTS, SUBJECT_PIPELINES_DEPLOYMENTS_STOP, event
-    )
 
 
 async def request_machine_status(payload: StatusRequest) -> NatsMessage:

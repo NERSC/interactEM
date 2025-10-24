@@ -1,5 +1,6 @@
 import asyncio
 import random
+from collections.abc import Callable
 from functools import partial
 from uuid import UUID, uuid4
 
@@ -15,10 +16,12 @@ from interactem.core.constants import (
     NATS_TIMEOUT_DEFAULT,
     PIPELINES,
     STREAM_DEPLOYMENTS,
+    SUBJECT_PIPELINES_DEPLOYMENTS,
     SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE,
 )
 from interactem.core.events.pipelines import (
-    PipelineDeploymentEvent,
+    PipelineEvent,
+    PipelineRunEvent,
     PipelineStopEvent,
     PipelineUpdateEvent,
 )
@@ -41,8 +44,7 @@ from interactem.core.nats import (
     publish_notification,
 )
 from interactem.core.nats.consumers import (
-    create_orchestrator_pipeline_new_consumer,
-    create_orchestrator_pipeline_stop_consumer,
+    create_orchestrator_deployment_consumer,
 )
 from interactem.core.nats.publish import publish_assignment
 from interactem.core.pipeline import Pipeline
@@ -96,7 +98,7 @@ async def continuous_update_kv(js: JetStreamContext, interval: int = 10):
 
 async def update_pipeline_status(
     js: JetStreamContext,
-    event: PipelineDeploymentEvent,
+    event: PipelineRunEvent,
     state: PipelineDeploymentState,
 ):
     update_event = PipelineUpdateEvent(deployment_id=event.deployment_id, state=state)
@@ -380,15 +382,8 @@ class PipelineAssigner:
         logger.info("\n".join(log_lines))
 
 
-async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
+async def handle_run_pipeline(event: PipelineRunEvent, msg: NATSMsg, js: JetStreamContext):
     logger.info("Received pipeline run event...")
-
-    try:
-        event = PipelineDeploymentEvent.model_validate_json(msg.data)
-    except ValidationError as e:
-        logger.error(f"Invalid pipeline run event message: {e}")
-        await msg.term()
-        return
 
     try:
         valid_pipeline = CanonicalPipeline(
@@ -487,15 +482,9 @@ async def handle_run_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info(f"Pipeline run event for {valid_pipeline.id} processed.")
 
 
-async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
-    logger.info("Received pipeline stop event...")
+async def handle_stop_pipeline_event(event: PipelineStopEvent, msg: NATSMsg, js: JetStreamContext):
+    logger.info(f"Received pipeline stop event for deployment {event.deployment_id}...")
     await msg.ack()
-
-    try:
-        event = PipelineStopEvent.model_validate_json(msg.data)
-    except ValidationError as e:
-        logger.error(f"Invalid pipeline stop event message: {e}")
-        return
 
     deployment_id = event.deployment_id
     logger.info(f"Processing stop request for pipeline {deployment_id}")
@@ -550,6 +539,28 @@ async def handle_stop_pipeline(msg: NATSMsg, js: JetStreamContext):
     logger.info(f"Pipeline stop event for {deployment_id} processed.")
 
 
+async def handle_deployment_event(msg: NATSMsg, js: JetStreamContext):
+    try:
+        event = PipelineEvent.model_validate_json(msg.data)
+    except ValidationError as e:
+        logger.error(f"Invalid deployment event message: {e}")
+        await msg.term()
+        return
+
+    func_map: dict[type[BaseModel], Callable] = {
+        PipelineRunEvent: handle_run_pipeline,
+        PipelineStopEvent: handle_stop_pipeline_event,
+    }
+
+    handler = func_map.get(type(event.root))
+    if handler:
+        await handler(event.root, msg, js)
+    elif isinstance(event.root, PipelineUpdateEvent):
+        logger.debug(f"Ignoring PipelineUpdateEvent for deployment {event.root.deployment_id}")
+        await msg.ack()
+    else:
+        raise NotImplementedError(f"No handler for event type {type(event.root)}")
+
 async def main():
     instance_id: UUID = uuid4()
     nats_client: NATSClient = await nc(
@@ -563,45 +574,29 @@ async def main():
     try:
         logger.info("NATS buckets and streams initialized/verified.")
 
-        create_new_pipeline_psub = partial(
-            create_orchestrator_pipeline_new_consumer, js, instance_id
+        create_deployment_psub = partial(
+            create_orchestrator_deployment_consumer, js, instance_id, SUBJECT_PIPELINES_DEPLOYMENTS
         )
-        pipeline_run_psub = await create_new_pipeline_psub()
-        logger.info("Pipeline run event consumer created.")
-
-        create_stop_pipeline_psub = partial(
-            create_orchestrator_pipeline_stop_consumer, js, instance_id
-        )
-        pipeline_stop_psub = await create_stop_pipeline_psub()
-        logger.info("Pipeline stop event consumer created.")
+        deployment_psub = await create_deployment_psub()
+        logger.info("Deployment event consumer created.")
 
         update_task = asyncio.create_task(continuous_update_kv(js))
         task_refs.add(update_task)
 
-        run_consumer_task = asyncio.create_task(
+        deployment_consumer_task = asyncio.create_task(
             consume_messages(
-                pipeline_run_psub,
-                handle_run_pipeline,
+                deployment_psub,
+                handle_deployment_event,
                 js,
-                create_consumer=create_new_pipeline_psub,
+                create_consumer=create_deployment_psub,
             )
         )
-        task_refs.add(run_consumer_task)
-
-        stop_consumer_task = asyncio.create_task(
-            consume_messages(
-                pipeline_stop_psub,
-                handle_stop_pipeline,
-                js,
-                create_consumer=create_stop_pipeline_psub,
-            )
-        )
-        task_refs.add(stop_consumer_task)
+        task_refs.add(deployment_consumer_task)
 
         logger.info(
             f"Orchestrator instance {instance_id} running. Waiting for events..."
         )
-        await asyncio.gather(run_consumer_task, stop_consumer_task, update_task)
+        await asyncio.gather(deployment_consumer_task, update_task)
 
     finally:
         if nats_client and nats_client.is_connected:
