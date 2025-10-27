@@ -34,6 +34,7 @@ from nats.js.errors import KeyNotFoundError
 
 from interactem.core.logger import get_logger
 from .config import get_nats_config, NatsMode
+from .storage import cfg as storage_cfg
 from .streams import (
     SFAPI_STREAM_CONFIG,
     DEPLOYMENTS_STREAM_CONFIG,
@@ -88,8 +89,7 @@ async def create_bucket_if_doesnt_exist(
         kv = await js.key_value(bucket_name)
     except BucketNotFoundError:
         logger.info(f"Creating bucket {bucket_name}...")
-        from .storage import get_storage_config
-        storage = get_storage_config().NATS_STREAM_STORAGE_TYPE
+        storage = storage_cfg.NATS_STREAM_STORAGE_TYPE
         bucket_cfg = KeyValueConfig(
             bucket=bucket_name, ttl=ttl, storage=storage
         )
