@@ -1,104 +1,75 @@
-from faststream.nats import JStream
-from nats.js.api import RetentionPolicy, StreamConfig
+import pathlib
+from enum import Enum
 
-from interactem.core.config import cfg
-from interactem.core.constants import (
-    MAX_LOGS_PER_SUBJECT,
-    STREAM_DEPLOYMENTS,
-    STREAM_IMAGES,
-    STREAM_LOGS,
-    STREAM_METRICS,
-    STREAM_NOTIFICATIONS,
-    STREAM_PARAMETERS,
-    STREAM_SFAPI,
-    STREAM_TABLES,
-    SUBJECT_DEPLOYMENTS_ALL,
-    SUBJECT_IMAGES_ALL,
-    SUBJECT_LOGS_ALL,
-    SUBJECT_NOTIFICATIONS_ALL,
-    SUBJECT_PARAMETERS_ALL,
-    SUBJECT_SFAPI_ALL,
-    SUBJECT_TABLES_ALL,
-)
+from pydantic import model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ALL_STORAGE_TYPE = cfg.NATS_STREAM_STORAGE_TYPE
 
-PARAMETERS_STREAM_CONFIG = StreamConfig(
-    name=STREAM_PARAMETERS,
-    description="A stream for operator parameters.",
-    subjects=[SUBJECT_PARAMETERS_ALL],
-    # We only need the last value for each parameter
-    max_msgs_per_subject=1,
-    storage=ALL_STORAGE_TYPE,
-)
+class NatsMode(str, Enum):
+    NKEYS = "nkeys"
+    CREDS = "creds"
 
-IMAGES_STREAM_CONFIG = StreamConfig(
-    name=STREAM_IMAGES,
-    description="A stream for images.",
-    subjects=[SUBJECT_IMAGES_ALL],
-    max_msgs_per_subject=1,
-    storage=ALL_STORAGE_TYPE,
-)
 
-METRICS_STREAM_CONFIG = StreamConfig(
-    name=STREAM_METRICS,
-    description="A stream for message metrics.",
-    subjects=[f"{STREAM_METRICS}.>"],
-    max_age=60,  # seconds
-    storage=ALL_STORAGE_TYPE,
-)
+class NatsSettings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    NATS_SECURITY_MODE: NatsMode = NatsMode.CREDS
+    # We need to supply either the NKEY seed string or file for all clients
+    NKEYS_SEED_STR: str = ""
+    NKEYS_SEED_FILE: pathlib.Path | None = None
 
-SFAPI_STREAM_CONFIG = StreamConfig(
-    name=STREAM_SFAPI,
-    description="A stream for messages to the SFAPI.",
-    subjects=[SUBJECT_SFAPI_ALL],
-    storage=ALL_STORAGE_TYPE,
-)
+    # If creds mode, we need to supply the creds file
+    NATS_CREDS_FILE: pathlib.Path | None = None
 
-NOTIFICATIONS_STREAM_CONFIG = StreamConfig(
-    name=STREAM_NOTIFICATIONS,
-    description="A stream for notifications.",
-    subjects=[SUBJECT_NOTIFICATIONS_ALL],
-    retention=RetentionPolicy.INTEREST,
-    storage=ALL_STORAGE_TYPE,
-)
+    @model_validator(mode="after")
+    def validate_nats(self) -> "NatsSettings":
+        mode_method_map = {
+            NatsMode.NKEYS: self.validate_nkeys,
+            NatsMode.CREDS: self.validate_creds,
+        }
+        return mode_method_map[self.NATS_SECURITY_MODE]()
 
-NOTIFICATIONS_JSTREAM = JStream(
-    name=STREAM_NOTIFICATIONS,
-    description="A stream for notifications.",
-    subjects=[SUBJECT_NOTIFICATIONS_ALL],
-    retention=RetentionPolicy.INTEREST,
-    storage=ALL_STORAGE_TYPE,
-)
+    def validate_nkeys(self) -> "NatsSettings":
+        if not self.NKEYS_SEED_FILE and not self.NKEYS_SEED_STR:
+            raise ValueError(
+                "Either NKEYS_SEED_FILE or NKEYS_SEED_STR must be provided"
+            )
+        if self.NKEYS_SEED_FILE and self.NKEYS_SEED_STR:
+            raise ValueError(
+                "Only one of NKEYS_SEED_FILE or NKEYS_SEED_STR must be provided"
+            )
 
-DEPLOYMENTS_STREAM_CONFIG = StreamConfig(
-    name=STREAM_DEPLOYMENTS,
-    description="A stream for deployments.",
-    subjects=[SUBJECT_DEPLOYMENTS_ALL],
-    storage=ALL_STORAGE_TYPE,
-)
+        # We only use NKEYS_SEED_STR in the rest of code
+        if self.NKEYS_SEED_FILE:
+            if not self.NKEYS_SEED_FILE.is_file():
+                raise ValueError(f"File not found: {self.NKEYS_SEED_FILE}")
 
-DEPLOYMENTS_JSTREAM = JStream(
-    name=STREAM_DEPLOYMENTS,
-    description="A stream for deployments.",
-    subjects=[SUBJECT_DEPLOYMENTS_ALL],
-    storage=ALL_STORAGE_TYPE,
-)
+            with open(self.NKEYS_SEED_FILE) as f:
+                self.NKEYS_SEED_STR = f.readline().strip()
 
-TABLE_STREAM_CONFIG = StreamConfig(
-    name=STREAM_TABLES,
-    subjects=[SUBJECT_TABLES_ALL],
-    description="A stream for tables.",
-    retention=RetentionPolicy.LIMITS,
-    max_msgs_per_subject=1,
-    storage=ALL_STORAGE_TYPE,
-)
+        if not self.NKEYS_SEED_STR:
+            raise ValueError("NKEYS_SEED_STR must not be empty")
 
-LOGS_STREAM_CONFIG = StreamConfig(
-    name=STREAM_LOGS,
-    subjects=[SUBJECT_LOGS_ALL],
-    description="A stream for logs.",
-    retention=RetentionPolicy.LIMITS,
-    max_msgs_per_subject=MAX_LOGS_PER_SUBJECT,
-    max_age=3600 * 24 * 7,  # 1 week
-)
+        return self
+
+    def validate_creds(self) -> "NatsSettings":
+        if not self.NATS_CREDS_FILE:
+            raise ValueError("NATS_CREDS_FILE must be provided")
+        if not self.NATS_CREDS_FILE.exists() or not self.NATS_CREDS_FILE.is_file():
+            raise ValueError(f"NATS creds file not found: {self.NATS_CREDS_FILE}")
+
+        self.NATS_CREDS_FILE = self.NATS_CREDS_FILE.expanduser().resolve()
+        return self
+
+
+_nats_config_cache: NatsSettings | None = None
+
+
+def get_nats_config() -> NatsSettings:
+    """
+    Lazily load NATS configuration. Prevents requiring NATS_CREDS_FILE
+    unless explicitly connecting.
+    """
+    global _nats_config_cache
+    if _nats_config_cache is None:
+        _nats_config_cache = NatsSettings()
+    return _nats_config_cache

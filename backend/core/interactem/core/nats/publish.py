@@ -26,7 +26,7 @@ from ..models.runtime import (
     RuntimeOperatorID,
     RuntimeOperatorParameterAck,
 )
-from ..nats.config import NOTIFICATIONS_JSTREAM
+from ..nats.streams import NOTIFICATIONS_JSTREAM
 from ..pipeline import Pipeline as PipelineGraph
 
 

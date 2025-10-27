@@ -7,9 +7,9 @@ from interactem.core.constants import NATS_TIMEOUT_DEFAULT, SUBJECT_AGENTS_DEPLO
 from interactem.core.logger import get_logger
 from interactem.core.models.runtime import PipelineAssignment
 from interactem.core.nats.broker import get_nats_broker
-from interactem.core.nats.config import DEPLOYMENTS_JSTREAM
 from interactem.core.nats.consumers import AGENT_CONSUMER_CONFIG
 from interactem.core.nats.publish import create_agent_error_publisher
+from interactem.core.nats.streams import DEPLOYMENTS_JSTREAM
 
 from .agent import Agent, cfg
 

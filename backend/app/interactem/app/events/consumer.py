@@ -2,8 +2,8 @@ from interactem.core.constants import SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE
 from interactem.core.events.pipelines import PipelineUpdateEvent
 from interactem.core.logger import get_logger
 from interactem.core.nats.broker import get_nats_broker
-from interactem.core.nats.config import DEPLOYMENTS_JSTREAM
 from interactem.core.nats.consumers import PIPELINE_UPDATE_CONSUMER_CONFIG
+from interactem.core.nats.streams import DEPLOYMENTS_JSTREAM
 
 from ..api.faststream_deps import OrchestratorApiKeyDep, SessionDep
 from ..api.routes.deployments import _handle_update_pipeline_state
