@@ -4,15 +4,13 @@ import tempfile
 import time
 import uuid
 from collections.abc import Coroutine
-from typing import Any
 
 import podman
 import podman.errors
 import stamina
 from faststream.nats import NatsBroker
-from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
+from faststream.nats.publisher.usecase import LogicPublisher
 from podman.domain.containers import Container
-from pydantic import ValidationError
 from stamina.instrumentation import set_on_retry_hooks
 
 from interactem.core.constants import (
@@ -40,7 +38,9 @@ from interactem.core.models.runtime import (
 )
 from interactem.core.models.spec import ParameterSpecType
 from interactem.core.models.uri import URI, CommBackend, URILocation
-from interactem.core.nats.consumers import create_agent_mount_consumer
+from interactem.core.nats.consumers import (
+    create_agent_mount_consumer,
+)
 from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
 from interactem.core.nats.publish import (
     create_agent_mount_publisher,
@@ -140,14 +140,12 @@ class Agent:
             )
 
         # Broker attributes used for NATS connections
-        assert broker.stream, "JetStream not initialized"
-        assert broker._connection, "NATS connection not initialized"
         self.broker = broker
-        self.nc = broker._connection
-        self.js = broker.stream
+        self.nc = broker.config.connection_state.connection
+        self.js = broker.config.connection_state.stream
 
         # this is set in the broker code
-        self.error_publisher: AsyncAPIPublisher
+        self.error_publisher: LogicPublisher
 
         self._shutdown_event = asyncio.Event()
 
@@ -459,26 +457,17 @@ class Agent:
         sub = create_agent_mount_consumer(
             self.broker, self.id, operator.canonical_id, parameter
         )
+
         pub = create_agent_mount_publisher(
             self.broker,
-            operator.id,
+            operator.canonical_id,
             parameter.name,
         )
 
-        self.broker.setup_publisher(pub)
+        await pub.start()
 
-        async def handler(msg: dict[str, Any]):
-            logger.info(f"Received mount parameter message: {msg}")
-
-            try:
-                # Parse the structured parameter update message
-                update = RuntimeOperatorParameterUpdate.model_validate(msg)
-            except ValidationError as e:
-                logger.exception(f"Failed to parse parameter update: {e}")
-                await self.error_publisher.publish(
-                    f"Invalid parameter update format: {e}"
-                )
-                return
+        async def handle_parameter_update(update: RuntimeOperatorParameterUpdate):
+            logger.info(f"Received mount parameter message: {update}")
 
             new_val = update.value
 
@@ -518,12 +507,12 @@ class Agent:
                 ),
             )
 
-        sub(handler)
-        self.broker.setup_subscriber(sub)
+        # Add handler to the subscriber
+        sub(handle_parameter_update)
 
         await sub.start()
         logger.info(
-            f"Subscribed to parameter updates for {operator.id}.{parameter.name}"
+            f"Subscribed to parameter updates for {operator.canonical_id}.{parameter.name}"
         )
 
         try:

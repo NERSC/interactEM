@@ -1,7 +1,7 @@
 import asyncio
 
 from faststream import Context, ContextRepo, Depends, FastStream
-from faststream.nats import NatsBroker, NatsMessage
+from faststream.nats import NatsMessage
 
 from interactem.core.constants import NATS_TIMEOUT_DEFAULT, SUBJECT_AGENTS_DEPLOYMENTS
 from interactem.core.logger import get_logger
@@ -16,7 +16,7 @@ from .agent import Agent, cfg
 logger = get_logger()
 AGENT_ID = cfg.ID
 broker = get_nats_broker(servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{AGENT_ID}")
-app = FastStream(broker=broker, logger=logger)
+app = FastStream(broker, logger=logger)
 
 error_pub = create_agent_error_publisher(
     broker=broker,
@@ -25,7 +25,7 @@ error_pub = create_agent_error_publisher(
 
 
 @app.after_startup
-async def after_startup(context: ContextRepo, broker: NatsBroker = Context()):
+async def after_startup(context: ContextRepo):
     agent = Agent(id=AGENT_ID, broker=broker)
     agent.error_publisher = error_pub
     agent.error_publisher.timeout = NATS_TIMEOUT_DEFAULT
