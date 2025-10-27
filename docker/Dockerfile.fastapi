@@ -4,7 +4,7 @@ WORKDIR /interactem/app
 COPY ./app/pyproject.toml ./app/poetry.lock* ./
 RUN touch README.md
 COPY ./sfapi_models/ /interactem/sfapi_models/
-RUN poetry install --no-root
+RUN poetry install --no-root --without dev
 
 ENV PYTHONPATH=/interactem/app
 
@@ -20,6 +20,6 @@ COPY ./app/tests-start.sh ./
 
 COPY ./app/interactem ./interactem
 
-RUN poetry install --only main
+RUN poetry install --only-root
 
 CMD ["fastapi", "run", "--workers", "4", "interactem/app/main.py"]

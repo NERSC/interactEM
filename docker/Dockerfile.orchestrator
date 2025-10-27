@@ -5,7 +5,7 @@ COPY ./orchestrator/README.md ./orchestrator/pyproject.toml ./orchestrator/poetr
 RUN poetry install --no-root
 
 COPY ./orchestrator/interactem/ ./interactem/
-RUN poetry install --only main
+RUN poetry install --only-root
 
 COPY ./orchestrator/run.py ./
 
