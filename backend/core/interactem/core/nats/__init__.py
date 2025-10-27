@@ -33,8 +33,8 @@ from nats.js.kv import KeyValue
 from nats.js.errors import KeyNotFoundError
 
 from interactem.core.logger import get_logger
-from interactem.core.config import cfg
-from .config import (
+from .config import get_nats_config, NatsMode
+from .streams import (
     SFAPI_STREAM_CONFIG,
     DEPLOYMENTS_STREAM_CONFIG,
     IMAGES_STREAM_CONFIG,
@@ -43,7 +43,6 @@ from .config import (
     TABLE_STREAM_CONFIG,
     LOGS_STREAM_CONFIG,
     METRICS_STREAM_CONFIG,
-    ALL_STORAGE_TYPE,
 )
 
 ValType = TypeVar("ValType", bound=BaseModel)
@@ -51,15 +50,16 @@ logger = get_logger()
 
 
 async def nc(servers: list[str], name: str) -> NATSClient:
+    nats_cfg = get_nats_config()
     options_map = {
-        cfg.NATS_SECURITY_MODE.NKEYS: {
-            "nkeys_seed_str": cfg.NKEYS_SEED_STR,
+        NatsMode.NKEYS: {
+            "nkeys_seed_str": nats_cfg.NKEYS_SEED_STR,
         },
-        cfg.NATS_SECURITY_MODE.CREDS: {
-            "user_credentials": str(cfg.NATS_CREDS_FILE),
+        NatsMode.CREDS: {
+            "user_credentials": str(nats_cfg.NATS_CREDS_FILE),
         },
     }
-    options = options_map[cfg.NATS_SECURITY_MODE]
+    options = options_map[nats_cfg.NATS_SECURITY_MODE]
 
     async def disconnected_cb():
         logger.info(f"NATS disconnected.")
@@ -88,8 +88,10 @@ async def create_bucket_if_doesnt_exist(
         kv = await js.key_value(bucket_name)
     except BucketNotFoundError:
         logger.info(f"Creating bucket {bucket_name}...")
+        from .storage import get_storage_config
+        storage = get_storage_config().NATS_STREAM_STORAGE_TYPE
         bucket_cfg = KeyValueConfig(
-            bucket=bucket_name, ttl=ttl, storage=ALL_STORAGE_TYPE
+            bucket=bucket_name, ttl=ttl, storage=storage
         )
         kv = await js.create_key_value(config=bucket_cfg)
     return kv

@@ -1,20 +1,22 @@
 from faststream.nats import NatsBroker
 
-from interactem.core.config import cfg
 from interactem.core.logger import get_logger
+
+from .config import NatsMode, get_nats_config
 
 logger = get_logger()
 
 def get_nats_broker(servers: list[str], name: str) -> NatsBroker:
+    nats_cfg = get_nats_config()
     options_map = {
-        cfg.NATS_SECURITY_MODE.NKEYS: {
-            "nkeys_seed_str": cfg.NKEYS_SEED_STR,
+        NatsMode.NKEYS: {
+            "nkeys_seed_str": nats_cfg.NKEYS_SEED_STR,
         },
-        cfg.NATS_SECURITY_MODE.CREDS: {
-            "user_credentials": str(cfg.NATS_CREDS_FILE),
+        NatsMode.CREDS: {
+            "user_credentials": str(nats_cfg.NATS_CREDS_FILE),
         },
     }
-    options = options_map[cfg.NATS_SECURITY_MODE]
+    options = options_map[nats_cfg.NATS_SECURITY_MODE]
 
     async def disconnected_cb():
         logger.info("NATS disconnected.")
