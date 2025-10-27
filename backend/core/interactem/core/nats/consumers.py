@@ -2,7 +2,7 @@ from dataclasses import replace
 from uuid import UUID
 
 from faststream.nats.broker import NatsBroker
-from faststream.nats.subscriber.asyncapi import AsyncAPISubscriber
+from faststream.nats.subscriber.usecases import PullStreamSubscriber
 from nats.errors import Error as GenericNatsError
 from nats.js import JetStreamContext
 from nats.js.api import (
@@ -93,7 +93,7 @@ def create_agent_mount_consumer(
     agent_id: UUID,
     canonical_operator_id: CanonicalOperatorID,
     parameter: RuntimeOperatorParameter,
-) -> AsyncAPISubscriber:
+) -> PullStreamSubscriber:
     if parameter.type != ParameterSpecType.MOUNT:
         raise ValueError(
             f"Parameter {parameter.name} of type {parameter.type} is not a mount type."

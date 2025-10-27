@@ -1,5 +1,5 @@
 from faststream.nats.broker import NatsBroker
-from faststream.nats.publisher.asyncapi import AsyncAPIPublisher
+from faststream.nats.publisher.usecase import LogicPublisher
 from nats.js import JetStreamContext
 
 from interactem.core.models.kvs import CanonicalOperatorID
@@ -26,7 +26,7 @@ from ..models.runtime import (
     RuntimeOperatorID,
     RuntimeOperatorParameterAck,
 )
-from ..nats.streams import NOTIFICATIONS_JSTREAM
+from ..nats.streams import NOTIFICATIONS_JSTREAM, PARAMETERS_JSTREAM
 from ..pipeline import Pipeline as PipelineGraph
 
 
@@ -109,16 +109,16 @@ def create_agent_mount_publisher(
     broker: NatsBroker,
     canonical_operator_id: CanonicalOperatorID,
     parameter_name: str,
-) -> AsyncAPIPublisher:
+) -> LogicPublisher:
     subject = f"{SUBJECT_OPERATORS_PARAMETERS}.{canonical_operator_id}.{parameter_name}"
     return broker.publisher(
-        stream=STREAM_PARAMETERS,
+        stream=PARAMETERS_JSTREAM,
         subject=subject,
         timeout=NATS_TIMEOUT_DEFAULT,
     )
 
 async def publish_agent_mount_parameter_ack(
-    publisher: AsyncAPIPublisher,
+    publisher: LogicPublisher,
     canonical_operator_id: CanonicalOperatorID,
     parameter: RuntimeOperatorParameter,
 ):
@@ -137,7 +137,7 @@ async def publish_agent_mount_parameter_ack(
 def create_agent_error_publisher(
     broker: NatsBroker,
     agent_id: IdType,
-) -> AsyncAPIPublisher:
+) -> LogicPublisher:
     subject = f"{SUBJECT_NOTIFICATIONS_ERRORS}.{agent_id}"
     return broker.publisher(
         stream=NOTIFICATIONS_JSTREAM,

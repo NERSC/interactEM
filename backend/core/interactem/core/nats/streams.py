@@ -34,6 +34,14 @@ PARAMETERS_STREAM_CONFIG = StreamConfig(
     storage=_storage,
 )
 
+PARAMETERS_JSTREAM = JStream(
+    name=STREAM_PARAMETERS,
+    description="A stream for operator parameters.",
+    subjects=[SUBJECT_PARAMETERS_ALL],
+    max_msgs_per_subject=1,
+    storage=_storage,
+)
+
 IMAGES_STREAM_CONFIG = StreamConfig(
     name=STREAM_IMAGES,
     description="A stream for images.",
