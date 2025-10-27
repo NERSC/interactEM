@@ -20,6 +20,8 @@ from interactem.core.constants import (
     SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE,
 )
 from interactem.core.events.pipelines import (
+    OperatorFailureEvent,
+    OperatorFailureType,
     PipelineEvent,
     PipelineRunEvent,
     PipelineStopEvent,
@@ -56,6 +58,10 @@ logger = get_logger()
 pipelines: dict[IdType, RuntimePipeline] = {}
 
 task_refs: set[asyncio.Task] = set()
+
+# Track which agents are assigned to which deployments
+# Used for liveness monitoring: {deployment_id: {agent_ids}}
+deployment_to_agents: dict[UUID, set[UUID]] = {}
 
 
 class CyclicDependenciesError(Exception):
@@ -382,6 +388,86 @@ class PipelineAssigner:
         logger.info("\n".join(log_lines))
 
 
+async def monitor_agent_liveness(js: JetStreamContext):
+    """
+    Monitor agent KV entries for liveness using NATS KV watch.
+    When an agent KV entry is deleted (TTL expires or agent shuts down),
+    mark all pipelines running on that agent as FAILED.
+    """
+    try:
+        bucket = await get_status_bucket(js)
+
+        # Watch all agent entries
+        watcher = await bucket.watch(
+            f"{AGENTS}.>", ignore_deletes=False, include_history=False
+        )
+        logger.info("Started watching agent KV entries for liveness changes")
+
+        while True:
+            try:
+                # Wait indefinitely for updates with periodic checks (300s = 5 min)
+                update = await watcher.updates()
+
+                # update is None when watcher times out
+                if update is None:
+                    # Timeout is normal, loop will continue and wait again
+                    continue
+
+                # Extract agent ID from key
+                try:
+                    agent_id = UUID(update.key.removeprefix(f"{AGENTS}."))
+                except (ValueError, AttributeError):
+                    continue
+
+                # Only care about deletions (None value)
+                if update.value is None:
+                    logger.warning(f"Agent {agent_id} went silent (KV entry deleted)")
+
+                    # Find all deployments running on this agent
+                    failed_deployments = [
+                        dep_id
+                        for dep_id, agents in deployment_to_agents.items()
+                        if agent_id in agents
+                    ]
+
+                    for deployment_id in failed_deployments:
+                        logger.error(
+                            f"Marking deployment {deployment_id} as FAILED due to agent {agent_id} death"
+                        )
+
+                        # Find the runtime pipeline for this deployment
+                        runtime_pipeline = pipelines.get(deployment_id)
+                        if runtime_pipeline:
+                            # Create a synthetic event for the update
+                            synthetic_event = PipelineRunEvent(
+                                canonical_id=runtime_pipeline.id,
+                                revision_id=0,
+                                deployment_id=deployment_id,
+                                data={},
+                            )
+                            await update_pipeline_status(
+                                js, synthetic_event, PipelineDeploymentState.FAILED
+                            )
+
+                        # Clean up tracking
+                        if deployment_id in deployment_to_agents:
+                            del deployment_to_agents[deployment_id]
+                        if deployment_id in pipelines:
+                            del pipelines[deployment_id]
+
+            except asyncio.CancelledError:
+                logger.info("Agent liveness monitor cancelled")
+                await watcher.stop()
+                raise
+            except Exception as e:
+                logger.exception(f"Error in agent liveness watcher: {e}")
+                await watcher.stop()
+                break
+
+    except Exception as e:
+        logger.exception(f"Failed to start agent liveness monitor: {e}")
+
+
 async def handle_run_pipeline(event: PipelineRunEvent, msg: NATSMsg, js: JetStreamContext):
     logger.info("Received pipeline run event...")
 
@@ -462,6 +548,13 @@ async def handle_run_pipeline(event: PipelineRunEvent, msg: NATSMsg, js: JetStre
         await update_pipeline_status(js, event, PipelineDeploymentState.FAILED_TO_START)
         return
 
+    # Record which agents are assigned to this deployment
+    agents_for_deployment = {assignment.agent_id for assignment in assignments}
+    deployment_to_agents[event.deployment_id] = agents_for_deployment
+    logger.debug(
+        f"Recorded {len(agents_for_deployment)} agents for deployment {event.deployment_id}"
+    )
+
     tasks = [
         asyncio.create_task(publish_assignment(js, assignment))
         for assignment in assignments
@@ -488,6 +581,11 @@ async def handle_stop_pipeline_event(event: PipelineStopEvent, msg: NATSMsg, js:
 
     deployment_id = event.deployment_id
     logger.info(f"Processing stop request for pipeline {deployment_id}")
+
+    # Clean up agent tracking
+    if deployment_id in deployment_to_agents:
+        del deployment_to_agents[deployment_id]
+        logger.debug(f"Removed deployment {deployment_id} from agent tracking.")
 
     if deployment_id in pipelines:
         del pipelines[deployment_id]
@@ -539,27 +637,82 @@ async def handle_stop_pipeline_event(event: PipelineStopEvent, msg: NATSMsg, js:
     logger.info(f"Pipeline stop event for {deployment_id} processed.")
 
 
+async def handle_operator_failure_event(
+    event: OperatorFailureEvent, msg: NATSMsg, js: JetStreamContext
+):
+    """
+    Handle operator failure reported by agent.
+    Transitions pipeline to FAILED state.
+    """
+    try:
+        deployment_id = event.deployment_id
+        operator_id = event.operator_id
+        failure_type = event.failure_type
+        error_msg = event.error_message
+
+        logger.warning(
+            f"Operator {operator_id} failed on deployment {deployment_id}: {error_msg}"
+        )
+
+        # Find the deployment in pipelines
+        if deployment_id not in pipelines:
+            logger.warning(f"Deployment {deployment_id} not found in local cache")
+            await msg.ack()
+            return
+
+        runtime_pipeline = pipelines[deployment_id]
+
+        # Create synthetic event for state update
+        synthetic_event = PipelineRunEvent(
+            canonical_id=runtime_pipeline.id,
+            revision_id=0,
+            deployment_id=deployment_id,
+            data={},
+        )
+
+        if failure_type == OperatorFailureType.MAX_RESTARTS_EXCEEDED:
+            logger.error(
+                f"Operator {operator_id} exhausted max retries on deployment {deployment_id}"
+            )
+            await update_pipeline_status(
+                js, synthetic_event, PipelineDeploymentState.FAILED
+            )
+
+        await msg.ack()
+
+    except Exception as e:
+        logger.exception(f"Error handling operator failure event: {e}")
+        await msg.term()
+
+
 async def handle_deployment_event(msg: NATSMsg, js: JetStreamContext):
     try:
         event = PipelineEvent.model_validate_json(msg.data)
+
+        func_map: dict[type[BaseModel], Callable] = {
+            PipelineRunEvent: handle_run_pipeline,
+            PipelineStopEvent: handle_stop_pipeline_event,
+            OperatorFailureEvent: handle_operator_failure_event,
+        }
+
+        handler = func_map.get(type(event.root))
+        if handler:
+            await handler(event.root, msg, js)
+        elif isinstance(event.root, PipelineUpdateEvent):
+            logger.debug(
+                f"Ignoring PipelineUpdateEvent for deployment {event.root.deployment_id}"
+            )
+            await msg.ack()
+        else:
+            raise NotImplementedError(f"No handler for event type {type(event.root)}")
+
     except ValidationError as e:
         logger.error(f"Invalid deployment event message: {e}")
         await msg.term()
-        return
+    except Exception as e:
+        logger.exception(f"Error handling deployment event: {e}")
+        await msg.term()
 
-    func_map: dict[type[BaseModel], Callable] = {
-        PipelineRunEvent: handle_run_pipeline,
-        PipelineStopEvent: handle_stop_pipeline_event,
-    }
-
-    handler = func_map.get(type(event.root))
-    if handler:
-        await handler(event.root, msg, js)
-    elif isinstance(event.root, PipelineUpdateEvent):
-        logger.debug(f"Ignoring PipelineUpdateEvent for deployment {event.root.deployment_id}")
-        await msg.ack()
-    else:
-        raise NotImplementedError(f"No handler for event type {type(event.root)}")
 
 async def main():
     instance_id: UUID = uuid4()
@@ -579,6 +732,11 @@ async def main():
         )
         deployment_psub = await create_deployment_psub()
         logger.info("Deployment event consumer created.")
+
+        # Start agent liveness monitoring task
+        liveness_task = asyncio.create_task(monitor_agent_liveness(js))
+        task_refs.add(liveness_task)
+        logger.info("Agent liveness monitor started.")
 
         update_task = asyncio.create_task(continuous_update_kv(js))
         task_refs.add(update_task)

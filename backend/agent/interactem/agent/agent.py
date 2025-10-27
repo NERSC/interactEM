@@ -21,6 +21,10 @@ from interactem.core.constants import (
     VECTOR_IMAGE,
 )
 from interactem.core.constants.mounts import CORE_MOUNT, OPERATORS_MOUNT
+from interactem.core.events.pipelines import (
+    OperatorFailureEvent,
+    OperatorFailureType,
+)
 from interactem.core.logger import get_logger
 from interactem.core.models.containers import (
     MountDoesntExistError,
@@ -558,9 +562,22 @@ class Agent:
                     if tracker.num_restarts >= ContainerTracker.MAX_RESTARTS:
                         _msg = f"Container {tracker.container.name} reached maximum restart attempts."
                         logger.error(_msg)
-                        await self.error_publisher.publish(
-                            f"Operator {tracker.operator.image} failed to start after {ContainerTracker.MAX_RESTARTS} attempts."
+
+                        # Publish operator failure event
+                        failure_event = OperatorFailureEvent(
+                            deployment_id=self._current_deployment_id or uuid.uuid4(),
+                            operator_id=tracker.operator.id,
+                            agent_id=self.id,
+                            failure_type=OperatorFailureType.MAX_RESTARTS_EXCEEDED,
+                            error_message=f"Operator {tracker.operator.image} failed to start after {ContainerTracker.MAX_RESTARTS} attempts.",
                         )
+                        await self.error_publisher.publish(
+                            failure_event.model_dump_json()
+                        )
+                        logger.info(
+                            f"Published operator failure event for {tracker.operator.id}"
+                        )
+
                         del self.container_trackers[tracker.operator.id]
                         continue
                     logger.info(

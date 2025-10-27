@@ -45,14 +45,32 @@ class PipelineDeploymentStateMachine:
             PipelineDeploymentState, list[PipelineDeploymentState]
         ] = {
             PipelineDeploymentState.PENDING: [
+                PipelineDeploymentState.INITIALIZING,
                 PipelineDeploymentState.FAILED_TO_START,
+                PipelineDeploymentState.CANCELLED,
+            ],
+            PipelineDeploymentState.INITIALIZING: [
                 PipelineDeploymentState.RUNNING,
+                PipelineDeploymentState.FAILED_TO_START,
                 PipelineDeploymentState.CANCELLED,
             ],
-            PipelineDeploymentState.FAILED_TO_START: [],
             PipelineDeploymentState.RUNNING: [
+                PipelineDeploymentState.DEGRADED,
+                PipelineDeploymentState.FAILING,
+                PipelineDeploymentState.FAILED,
                 PipelineDeploymentState.CANCELLED,
             ],
+            PipelineDeploymentState.DEGRADED: [
+                PipelineDeploymentState.FAILING,
+                PipelineDeploymentState.FAILED,
+                PipelineDeploymentState.CANCELLED,
+            ],
+            PipelineDeploymentState.FAILING: [
+                PipelineDeploymentState.FAILED,
+                PipelineDeploymentState.CANCELLED,
+            ],
+            PipelineDeploymentState.FAILED: [],
+            PipelineDeploymentState.FAILED_TO_START: [],
             PipelineDeploymentState.CANCELLED: [],
         }
 
@@ -61,6 +79,14 @@ class PipelineDeploymentStateMachine:
         ] = {
             (
                 PipelineDeploymentState.PENDING,
+                PipelineDeploymentState.INITIALIZING,
+            ): self._handle_initializing,
+            (
+                PipelineDeploymentState.PENDING,
+                PipelineDeploymentState.RUNNING,
+            ): self._handle_started,
+            (
+                PipelineDeploymentState.INITIALIZING,
                 PipelineDeploymentState.RUNNING,
             ): self._handle_started,
             (
@@ -68,11 +94,51 @@ class PipelineDeploymentStateMachine:
                 PipelineDeploymentState.FAILED_TO_START,
             ): self._handle_failed_to_start,
             (
+                PipelineDeploymentState.INITIALIZING,
+                PipelineDeploymentState.FAILED_TO_START,
+            ): self._handle_failed_to_start,
+            (
                 PipelineDeploymentState.PENDING,
                 PipelineDeploymentState.CANCELLED,
             ): self._handle_cancellation,
             (
+                PipelineDeploymentState.INITIALIZING,
+                PipelineDeploymentState.CANCELLED,
+            ): self._handle_cancellation,
+            (
                 PipelineDeploymentState.RUNNING,
+                PipelineDeploymentState.DEGRADED,
+            ): self._handle_degraded,
+            (
+                PipelineDeploymentState.RUNNING,
+                PipelineDeploymentState.FAILING,
+            ): self._handle_failing,
+            (
+                PipelineDeploymentState.RUNNING,
+                PipelineDeploymentState.FAILED,
+            ): self._handle_failed,
+            (
+                PipelineDeploymentState.DEGRADED,
+                PipelineDeploymentState.FAILING,
+            ): self._handle_failing,
+            (
+                PipelineDeploymentState.DEGRADED,
+                PipelineDeploymentState.FAILED,
+            ): self._handle_failed,
+            (
+                PipelineDeploymentState.FAILING,
+                PipelineDeploymentState.FAILED,
+            ): self._handle_failed,
+            (
+                PipelineDeploymentState.RUNNING,
+                PipelineDeploymentState.CANCELLED,
+            ): self._handle_cancellation,
+            (
+                PipelineDeploymentState.DEGRADED,
+                PipelineDeploymentState.CANCELLED,
+            ): self._handle_cancellation,
+            (
+                PipelineDeploymentState.FAILING,
                 PipelineDeploymentState.CANCELLED,
             ): self._handle_cancellation,
         }
@@ -113,11 +179,23 @@ class PipelineDeploymentStateMachine:
         await publish_pipeline_deployment_event(event)
         logger.info(f"Sent stop event for cancelled deployment {deployment.id}")
 
+    async def _handle_initializing(self, deployment: PipelineDeployment) -> None:
+        logger.info(f"Deployment {deployment.id} is initializing")
+
     async def _handle_started(self, deployment: PipelineDeployment) -> None:
         pass
 
     async def _handle_failed_to_start(self, deployment: PipelineDeployment) -> None:
         logger.info(f"Deployment {deployment.id} failed to start")
+
+    async def _handle_degraded(self, deployment: PipelineDeployment) -> None:
+        logger.info(f"Deployment {deployment.id} is degraded (some operators restarting)")
+
+    async def _handle_failing(self, deployment: PipelineDeployment) -> None:
+        logger.info(f"Deployment {deployment.id} is failing (operator exhausted retries)")
+
+    async def _handle_failed(self, deployment: PipelineDeployment) -> None:
+        logger.error(f"Deployment {deployment.id} has failed")
 
 
 state_machine = PipelineDeploymentStateMachine()

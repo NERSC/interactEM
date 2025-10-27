@@ -6,8 +6,12 @@ IdType = UUID
 
 class PipelineDeploymentState(str, Enum):
     PENDING = "pending"
-    FAILED_TO_START = "failed_to_start"
+    INITIALIZING = "initializing"
     RUNNING = "running"
+    DEGRADED = "degraded"
+    FAILING = "failing"
+    FAILED = "failed"
+    FAILED_TO_START = "failed_to_start"
     CANCELLED = "cancelled"
 
 class KvKeyMixin(abc.ABC):
