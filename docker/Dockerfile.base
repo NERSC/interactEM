@@ -17,11 +17,11 @@ RUN pip install "poetry==${POETRY_VERSION}"
 WORKDIR /interactem/core
 RUN touch README.md
 COPY ./core/pyproject.toml ./core/poetry.lock* ./
-RUN poetry install --no-root
+RUN poetry install --no-root --without dev
 
 # --- Install interactem core ---
 COPY ./core/interactem/ ./interactem
-RUN poetry install --only main
+RUN poetry install --only-root
 
 # --- Add logs directory to all containers ---
 RUN mkdir -p /interactem/logs

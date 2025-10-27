@@ -8,7 +8,7 @@ RUN poetry install --no-root
 
 # --- Install interactem operators ---
 COPY ./operators/interactem/ ./interactem
-RUN poetry install --only main
+RUN poetry install --only-root
 
 COPY ./operators/startup.py /app/startup.py
 

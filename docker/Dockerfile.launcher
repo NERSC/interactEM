@@ -4,10 +4,10 @@ COPY ./sfapi_models/ /interactem/sfapi_models/
 
 WORKDIR /interactem/launcher/
 COPY ./launcher/README.md ./launcher/pyproject.toml ./launcher/poetry.lock* ./
-RUN poetry install --no-root
+RUN poetry install --no-root --without dev
 
 COPY ./launcher/interactem/ ./interactem/
-RUN poetry install --only main
+RUN poetry install --only-root
     
 COPY ./launcher/run.py ./run.py
 
