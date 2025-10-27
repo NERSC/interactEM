@@ -15,11 +15,9 @@ packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
 python = "^3.10"
-pydantic = "^2.12"
+pydantic = "^2.12.3"
 networkx = "^3.3"
-# Use draft version of nats-py because it helps with connection issues
-# See https://github.com/nats-io/nats.py/pull/675
-nats-py = {git = "https://github.com/fielding/nats.py.git", rev = "f8c13351ca865e7cd3058c073d5455b017a136a9"}
+nats-py = "^2.11.0"
 nkeys = "^0.2.1"
 tenacity = "^9.0.0"
 pydantic-settings = "^2.10.1"
