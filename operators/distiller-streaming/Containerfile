@@ -6,4 +6,4 @@ COPY ./pyproject.toml ./poetry.lock ./README.md /app/
 RUN poetry install --no-root --without test
 
 COPY ./distiller_streaming/ /app/distiller_streaming/
-RUN poetry install --without test
+RUN poetry install --only-root
