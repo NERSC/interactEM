@@ -8,6 +8,7 @@ from functools import partial, wraps
 from typing import Any
 from uuid import UUID
 
+import anyio
 import nats
 import nats.errors
 import nats.js
@@ -55,7 +56,7 @@ from interactem.core.nats.publish import (
     publish_pipeline_metrics,
 )
 from interactem.core.pipeline import Pipeline
-from interactem.core.util import create_task_with_ref
+from interactem.core.util import BaseExceptionGroup, create_task_with_ref
 
 from .config import cfg
 from .messengers.base import (
@@ -221,12 +222,19 @@ class OperatorMixin(RunnableKernel):
         await self.messenger.start(self.pipeline)
 
         # Start ur engines
-        self._tracking_timer_task = asyncio.create_task(self._tracking_timer())
-        self.run_task = asyncio.create_task(self.run())
-        self.consume_params_task = asyncio.create_task(self.consume_params())
         self.val.status = OperatorStatus.RUNNING
         await self.operator_kv.update_now()
-        await self._shutdown_event.wait()
+
+        try:
+            async with anyio.create_task_group() as tg:
+                tg.start_soon(self._tracking_timer)
+                tg.start_soon(self.run)
+                tg.start_soon(self.consume_params)
+                await self._shutdown_event.wait()
+                tg.cancel_scope.cancel()
+        except BaseExceptionGroup as eg:
+            logger.exception(f"Task group encountered exceptions: {eg}")
+
         await self.shutdown()
 
     async def execute_dependencies_startup(self):
@@ -360,23 +368,9 @@ class OperatorMixin(RunnableKernel):
 
         await self.execute_dependencies_teardown()
 
-        if self.run_task:
-            self.run_task.cancel()
-            try:
-                await self.run_task
-            except asyncio.CancelledError:
-                logger.info("Run task cancelled")
-
         if self.messenger:
             logger.info(f"Stopping messenger {self.messenger}...")
             await self.messenger.stop()
-
-        if self.consume_params_task:
-            self.consume_params_task.cancel()
-            try:
-                await self.consume_params_task
-            except asyncio.CancelledError:
-                logger.info("Consume paramaters task cancelled")
 
         if self.params_psub:
             await self.params_psub.unsubscribe()
