@@ -5,6 +5,8 @@ import { useRuntimeOperatorStatusStyles } from "../../hooks/nats/useOperatorStat
 import type { ImageNodeType } from "../../types/nodes"
 import Image from "../image"
 import Handles from "./handles"
+import OperatorToolbar from "./toolbar"
+
 
 interface ImageNodeBaseProps extends NodeProps<ImageNodeType> {
   className?: string
@@ -21,6 +23,12 @@ const ImageNodeBase = ({ id, data, className = "" }: ImageNodeBaseProps) => {
     <div className={`operator ${className} ${statusClass}`} ref={nodeRef}>
       <Handles inputs={data.inputs} outputs={data.outputs} />
       <Image imageData={imageData} />
+      <OperatorToolbar
+        id={id}
+        image={data.image}
+        parameters={data.parameters}
+        nodeRef={nodeRef}
+      />
     </div>
   )
 }
