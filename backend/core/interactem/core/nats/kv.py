@@ -4,6 +4,7 @@ from collections.abc import Awaitable, Callable
 from enum import Enum
 from typing import Any, Generic, TypeVar
 
+import anyio
 import nats
 import nats.errors
 import nats.js
@@ -28,7 +29,7 @@ from interactem.core.nats import (
     get_metrics_bucket,
     get_status_bucket,
 )
-from interactem.core.util import create_task_with_ref
+from interactem.core.util import BaseExceptionGroup
 
 logger = get_logger()
 
@@ -86,7 +87,6 @@ class KeyValueLoop(Generic[V]):
 
         # Data storage
         self._value_getters: dict[str, Callable[[], V]] = {}
-        self._pending_tasks: set[asyncio.Task] = set()
 
     async def _get_bucket(self) -> KeyValue:
         bucket_getter = bucket_map.get(self._bucket_type)
@@ -125,7 +125,8 @@ class KeyValueLoop(Generic[V]):
                 await self._update_values()
 
                 # Wait until next update interval or shutdown
-                await self._wait_for_next_cycle()
+                with anyio.move_on_after(self._update_interval):
+                    await self._shutdown_event.wait()
 
             except Exception as e:
                 logger.exception(f"Unexpected error in KeyValueLoop: {e}")
@@ -157,12 +158,11 @@ class KeyValueLoop(Generic[V]):
             await self._attempt_reconnect()
             return
 
-        # Create tasks for all value updates
-        for key_str, getter in self._value_getters.items():
-            value = getter()
-            create_task_with_ref(
-                self._pending_tasks, self._safe_put_value(key_str, value)
-            )
+        # Create child task group for all value updates
+        async with anyio.create_task_group() as tg:
+            for key_str, getter in self._value_getters.items():
+                value = getter()
+                tg.start_soon(self._safe_put_value, key_str, value)
 
     async def _safe_put_value(self, key_str: str, value: V) -> None:
         if not self._bucket:
@@ -174,20 +174,10 @@ class KeyValueLoop(Generic[V]):
             await self._bucket.put(key_str, validated.model_dump_json().encode())
         except ERRORS_THAT_REQUIRE_RECONNECT as e:
             logger.warning(f"NATS connection issue while updating key {key_str}: {e}")
-            # handle reconnection immediately
-            create_task_with_ref(self._pending_tasks, self._attempt_reconnect())
+            await self._attempt_reconnect()
         except Exception as e:
             logger.exception(f"Error updating key {key_str}: {e}")
             raise
-
-    async def _wait_for_next_cycle(self) -> None:
-        try:
-            await asyncio.wait_for(
-                self._shutdown_event.wait(), timeout=self._update_interval
-            )
-        except asyncio.TimeoutError:
-            # Normal timeout, continue the loop
-            pass
 
     async def update_now(self) -> None:
         """Immediate update of all of our values."""
@@ -244,11 +234,13 @@ class KeyValueLoop(Generic[V]):
         keys_str: list[str] = [str(k) for k in keys]
 
         logger.info(f"Deleting keys: {keys_str}")
-        delete_tasks: set[asyncio.Task] = set()
-        for key in keys_str:
-            create_task_with_ref(delete_tasks, self._safe_delete_key(key))
 
-        await asyncio.gather(*delete_tasks, return_exceptions=True)
+        try:
+            async with anyio.create_task_group() as tg:
+                for key in keys_str:
+                    tg.start_soon(self._safe_delete_key, key)
+        except BaseExceptionGroup as eg:
+            logger.exception(f"Errors during key deletion: {eg}")
 
     @retry(
         stop=stop_after_attempt(ATTEMPTS_BEFORE_GIVING_UP),
@@ -277,16 +269,6 @@ class KeyValueLoop(Generic[V]):
             except asyncio.CancelledError:
                 pass
             self._main_task = None
-
-        if self._pending_tasks:
-            pending_tasks = list(self._pending_tasks)
-            logger.info(f"Waiting for {len(pending_tasks)} pending tasks to complete")
-            _, pending = await asyncio.wait(pending_tasks, timeout=2.0)
-            if pending:
-                logger.info(f"Cancelling {len(pending)} remaining tasks")
-                for task in pending:
-                    task.cancel()
-                await asyncio.wait(pending, timeout=1.0)
 
         for callback in self.cleanup_callbacks:
             try:
