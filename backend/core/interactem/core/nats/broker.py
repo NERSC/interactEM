@@ -1,4 +1,7 @@
-from faststream.nats import NatsBroker
+from collections.abc import Sequence
+
+from faststream import BaseMiddleware
+from faststream.nats import NatsBroker, NatsPublishCommand
 
 from interactem.core.logger import get_logger
 
@@ -6,7 +9,11 @@ from .config import NatsMode, get_nats_config
 
 logger = get_logger()
 
-def get_nats_broker(servers: list[str], name: str) -> NatsBroker:
+def get_nats_broker(
+    servers: list[str],
+    name: str,
+    middlewares: Sequence[BaseMiddleware[NatsPublishCommand]] = (),
+) -> NatsBroker:
     nats_cfg = get_nats_config()
     options_map = {
         NatsMode.NKEYS: {
@@ -36,5 +43,6 @@ def get_nats_broker(servers: list[str], name: str) -> NatsBroker:
         disconnected_cb=disconnected_cb,
         closed_cb=closed_cb,
         logger=logger,
+        middlewares=middlewares,  # type: ignore
         **options,  # type: ignore[call-arg]
     )

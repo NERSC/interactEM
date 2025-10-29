@@ -1,0 +1,4 @@
+ERROR_PUBLISHER_CTX_NAME = "error_pub"
+INFO_PUBLISHER_CTX_NAME = "info_pub"
+DEPLOYMENT_STATUS_PUBLISHER_CTX_NAME = "depl_status_update_pub"
+DEPLOYMENT_ID_CTX_NAME = "deployment_id"

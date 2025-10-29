@@ -8,7 +8,7 @@ from interactem.core.logger import get_logger
 from interactem.core.models.runtime import PipelineAssignment
 from interactem.core.nats.broker import get_nats_broker
 from interactem.core.nats.consumers import AGENT_CONSUMER_CONFIG
-from interactem.core.nats.publish import create_agent_error_publisher
+from interactem.core.nats.publish import create_error_publisher
 from interactem.core.nats.streams import DEPLOYMENTS_JSTREAM
 
 from .agent import Agent, cfg
@@ -18,9 +18,9 @@ AGENT_ID = cfg.ID
 broker = get_nats_broker(servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{AGENT_ID}")
 app = FastStream(broker, logger=logger)
 
-error_pub = create_agent_error_publisher(
+error_pub = create_error_publisher(
     broker=broker,
-    agent_id=AGENT_ID,
+    id=AGENT_ID,
 )
 
 

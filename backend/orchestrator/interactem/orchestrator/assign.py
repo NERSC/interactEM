@@ -34,7 +34,7 @@ class PipelineAssigner:
         self.agent_infos = agent_infos
 
         if not agent_infos:
-            raise NoAgentsError("No agents available for assignment.")
+            raise NoAgentsError
 
         self.pipeline = pipeline
         self.operator_graph = pipeline.get_operator_graph()
