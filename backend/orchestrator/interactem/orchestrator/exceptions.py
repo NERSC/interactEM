@@ -5,12 +5,10 @@ from faststream import BaseMiddleware
 from faststream.exceptions import IgnoredException
 from faststream.nats import NatsPublishCommand
 from faststream.nats.publisher.usecase import LogicPublisher
-from pydantic import BaseModel
 
 from interactem.core.events.pipelines import PipelineUpdateEvent
 from interactem.core.logger import get_logger
 from interactem.core.models.base import IdType, PipelineDeploymentState
-from interactem.core.models.runtime import RuntimeOperator
 
 from .constants import (
     DEPLOYMENT_ID_CTX_NAME,
@@ -46,11 +44,6 @@ class UnassignableOperatorsError(PipelineRunException):
 
 class NetworkPreferenceError(PipelineRunException):
     message = "Network preference violations. Check networks on operator definitions."
-
-
-class AssignmentState(BaseModel):
-    assignments: dict[IdType, list[RuntimeOperator]]
-    operator_networks: dict[IdType, set[str]]
 
 
 class PipelineExceptionMiddleware(BaseMiddleware[NatsPublishCommand]):

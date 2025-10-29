@@ -1,6 +1,7 @@
 import random
 
 import networkx as nx
+from pydantic import BaseModel
 
 from interactem.core.logger import get_logger
 from interactem.core.models.base import IdType
@@ -9,7 +10,6 @@ from interactem.core.models.runtime import PipelineAssignment, RuntimeOperator
 from interactem.core.pipeline import Pipeline
 
 from .exceptions import (
-    AssignmentState,
     CyclicDependenciesError,
     NetworkPreferenceError,
     NoAgentsError,
@@ -17,6 +17,11 @@ from .exceptions import (
 )
 
 logger = get_logger()
+
+
+class AssignmentState(BaseModel):
+    assignments: dict[IdType, list[RuntimeOperator]]
+    operator_networks: dict[IdType, set[str]]
 
 
 class PipelineAssigner:
