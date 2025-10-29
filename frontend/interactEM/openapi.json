@@ -760,6 +760,59 @@
         }
       }
     },
+    "/api/v1/pipelines/{id}/revisions/{revision_id}/positions": {
+      "patch": {
+        "tags": ["pipelines"],
+        "summary": "Update Pipeline Revision Positions",
+        "description": "Update operator positions for a specific pipeline revision.",
+        "operationId": "pipelines-update_pipeline_revision_positions",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          },
+          {
+            "name": "revision_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Revision Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PipelineRevisionPositionsUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PipelineRevisionPublic"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pipelines/{id}/deployments": {
       "get": {
         "tags": ["pipelines"],
@@ -1194,7 +1247,11 @@
             "title": "Grant Type"
           },
           "username": { "type": "string", "title": "Username" },
-          "password": { "type": "string", "title": "Password" },
+          "password": {
+            "type": "string",
+            "format": "password",
+            "title": "Password"
+          },
           "scope": { "type": "string", "title": "Scope", "default": "" },
           "client_id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
@@ -1202,6 +1259,7 @@
           },
           "client_secret": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "format": "password",
             "title": "Client Secret"
           }
         },
@@ -1348,6 +1406,21 @@
         "enum": ["operator", "port"],
         "title": "NodeType"
       },
+      "OperatorPosition": {
+        "properties": {
+          "canonical_operator_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Canonical Operator Id"
+          },
+          "x": { "type": "number", "title": "X" },
+          "y": { "type": "number", "title": "Y" }
+        },
+        "type": "object",
+        "required": ["canonical_operator_id", "x", "y"],
+        "title": "OperatorPosition",
+        "description": "Position metadata for an operator on the canvas."
+      },
       "OperatorSpec": {
         "properties": {
           "id": { "type": "string", "format": "uuid", "title": "Id" },
@@ -1409,20 +1482,24 @@
       },
       "OperatorSpecInput": {
         "properties": {
+          "name": { "type": "string", "title": "Name" },
           "label": { "type": "string", "title": "Label" },
-          "description": { "type": "string", "title": "Description" }
+          "description": { "type": "string", "title": "Description" },
+          "type": { "type": "string", "title": "Type" }
         },
         "type": "object",
-        "required": ["label", "description"],
+        "required": ["name", "label", "description", "type"],
         "title": "OperatorSpecInput"
       },
       "OperatorSpecOutput": {
         "properties": {
+          "name": { "type": "string", "title": "Name" },
           "label": { "type": "string", "title": "Label" },
-          "description": { "type": "string", "title": "Description" }
+          "description": { "type": "string", "title": "Description" },
+          "type": { "type": "string", "title": "Type" }
         },
         "type": "object",
-        "required": ["label", "description"],
+        "required": ["name", "label", "description", "type"],
         "title": "OperatorSpecOutput"
       },
       "OperatorSpecParameter": {
@@ -1636,6 +1713,18 @@
         "required": ["data"],
         "title": "PipelineRevisionCreate"
       },
+      "PipelineRevisionPositionsUpdate": {
+        "properties": {
+          "positions": {
+            "items": { "$ref": "#/components/schemas/OperatorPosition" },
+            "type": "array",
+            "title": "Positions"
+          }
+        },
+        "type": "object",
+        "required": ["positions"],
+        "title": "PipelineRevisionPositionsUpdate"
+      },
       "PipelineRevisionPublic": {
         "properties": {
           "pipeline_id": {
@@ -1649,6 +1738,11 @@
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Tag"
           },
+          "positions": {
+            "items": { "$ref": "#/components/schemas/OperatorPosition" },
+            "type": "array",
+            "title": "Positions"
+          },
           "created_at": {
             "type": "string",
             "format": "date-time",
@@ -1656,7 +1750,14 @@
           }
         },
         "type": "object",
-        "required": ["pipeline_id", "revision_id", "data", "tag", "created_at"],
+        "required": [
+          "pipeline_id",
+          "revision_id",
+          "data",
+          "tag",
+          "positions",
+          "created_at"
+        ],
         "title": "PipelineRevisionPublic"
       },
       "PipelineRevisionUpdate": {

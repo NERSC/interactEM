@@ -3,7 +3,7 @@ import { useEffect, useState } from "react"
 import type { PipelineRevisionPublic } from "../client"
 import { useViewModeStore } from "../stores"
 import type { OperatorNodeTypes } from "../types/nodes"
-import { layoutNodes } from "../utils/layout"
+import { applyPositionsToNodes, layoutNodes } from "../utils/layout"
 import { fromPipelineJSON } from "../utils/pipeline"
 
 export function usePipelineGraph(
@@ -28,13 +28,26 @@ export function usePipelineGraph(
       viewMode,
     )
 
-    const { nodes: layoutedNodes, edges: layoutedEdges } = layoutNodes(
-      importedNodes,
-      importedEdges,
-    )
+    // Use saved positions if available, otherwise apply dagre layout
+    let finalNodes: OperatorNodeTypes[]
+    let finalEdges: Edge[]
 
-    setNodes(layoutedNodes as OperatorNodeTypes[])
-    setEdges(layoutedEdges)
+    if (pipelineData.positions.length > 0) {
+      const result = applyPositionsToNodes(
+        importedNodes,
+        pipelineData.positions,
+        importedEdges,
+      )
+      finalNodes = result.nodes as OperatorNodeTypes[]
+      finalEdges = result.edges
+    } else {
+      const result = layoutNodes(importedNodes, importedEdges)
+      finalNodes = result.nodes as OperatorNodeTypes[]
+      finalEdges = result.edges
+    }
+
+    setNodes(finalNodes)
+    setEdges(finalEdges)
     setPipelineJSONLoaded(true)
 
     const id = setTimeout(() => {

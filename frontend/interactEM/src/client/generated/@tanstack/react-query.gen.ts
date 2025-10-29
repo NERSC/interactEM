@@ -31,6 +31,7 @@ import {
   pipelinesReadPipelines,
   pipelinesUpdatePipeline,
   pipelinesUpdatePipelineRevision,
+  pipelinesUpdatePipelineRevisionPositions,
   usersCreateUser,
   usersDeleteUser,
   usersDeleteUserMe,
@@ -90,6 +91,9 @@ import type {
   PipelinesUpdatePipelineResponse,
   PipelinesUpdatePipelineRevisionData,
   PipelinesUpdatePipelineRevisionError,
+  PipelinesUpdatePipelineRevisionPositionsData,
+  PipelinesUpdatePipelineRevisionPositionsError,
+  PipelinesUpdatePipelineRevisionPositionsResponse,
   PipelinesUpdatePipelineRevisionResponse,
   UsersCreateUserData,
   UsersCreateUserError,
@@ -822,6 +826,26 @@ export const pipelinesUpdatePipelineRevisionMutation = (
   > = {
     mutationFn: async (localOptions) => {
       const { data } = await pipelinesUpdatePipelineRevision({
+        ...options,
+        ...localOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
+}
+
+export const pipelinesUpdatePipelineRevisionPositionsMutation = (
+  options?: Partial<Options<PipelinesUpdatePipelineRevisionPositionsData>>,
+) => {
+  const mutationOptions: UseMutationOptions<
+    PipelinesUpdatePipelineRevisionPositionsResponse,
+    AxiosError<PipelinesUpdatePipelineRevisionPositionsError>,
+    Options<PipelinesUpdatePipelineRevisionPositionsData>
+  > = {
+    mutationFn: async (localOptions) => {
+      const { data } = await pipelinesUpdatePipelineRevisionPositions({
         ...options,
         ...localOptions,
         throwOnError: true,

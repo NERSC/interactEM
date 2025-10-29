@@ -13,6 +13,7 @@ import { useCallback, useMemo } from "react"
 import type { PipelineRevisionPublic } from "../client"
 import { usePipelineStatus } from "../hooks/nats/useRunningPipelines"
 import { usePipelineGraph } from "../hooks/usePipelineGraph"
+import { usePositionTracking } from "../hooks/usePositionTracking"
 import type { OperatorNodeTypes } from "../types/nodes"
 import ImageNode from "./nodes/image"
 import OperatorNode from "./nodes/operator"
@@ -37,6 +38,13 @@ const RunningPipelineFlow: React.FC<RunningPipelineFlowProps> = ({
     fitView,
   )
 
+  // --- Position Tracking Setup ---
+  const { handlePositionChanges } = usePositionTracking(
+    nodes,
+    pipelineData?.pipeline_id,
+    pipelineData?.revision_id,
+  )
+
   const handleNodesChange: OnNodesChange<OperatorNodeTypes> = useCallback(
     (changes: NodeChange[]) => {
       const allowedChanges = changes.filter(
@@ -53,8 +61,9 @@ const RunningPipelineFlow: React.FC<RunningPipelineFlowProps> = ({
         nodes,
       ) as OperatorNodeTypes[]
       setNodes(nextNodes)
+      handlePositionChanges(changes, nextNodes)
     },
-    [nodes, setNodes],
+    [nodes, setNodes, handlePositionChanges],
   )
 
   const nodeTypes = useMemo(
@@ -119,7 +128,7 @@ const RunningPipelineFlow: React.FC<RunningPipelineFlowProps> = ({
           fitView={pipelineJSONLoaded}
           fitViewOptions={{ duration: 300, padding: 0.1 }}
           nodesConnectable={false}
-          nodesDraggable={false}
+          nodesDraggable={true}
           edgesFocusable={false}
           elementsSelectable={true}
           deleteKeyCode={null}

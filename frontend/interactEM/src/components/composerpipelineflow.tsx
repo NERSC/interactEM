@@ -27,6 +27,7 @@ import { useDnD } from "../contexts/dnd"
 import useOperatorSpecs from "../hooks/api/useOperatorSpecs"
 import { useSavePipelineRevision } from "../hooks/api/useSavePipelineRevision"
 import { usePipelineGraph } from "../hooks/usePipelineGraph"
+import { usePositionTracking } from "../hooks/usePositionTracking"
 import { usePipelineStore } from "../stores"
 import {
   type OperatorNodeTypes,
@@ -65,6 +66,9 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
   // --- Pipeline Graph Setup ---
   const { nodes, setNodes, edges, setEdges, pipelineJSONLoaded } =
     usePipelineGraph(pipelineData, fitView)
+
+  // --- Position Tracking Setup ---
+  const { handlePositionChanges } = usePositionTracking(nodes)
 
   // --- Change Handlers ---
   const handleConnect: OnConnect = useCallback(
@@ -171,8 +175,9 @@ const ComposerPipelineFlow: React.FC<ComposerPipelineFlowProps> = ({
       if (affectsTopology) {
         saveRevision(nextNodes, edges)
       }
+      handlePositionChanges(changes, nextNodes)
     },
-    [nodes, edges, setNodes, saveRevision],
+    [nodes, edges, setNodes, saveRevision, handlePositionChanges],
   )
 
   const handleEdgesChange: OnEdgesChange = useCallback(
