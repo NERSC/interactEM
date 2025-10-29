@@ -137,21 +137,6 @@ async def create_operator_pipeline_consumer(
     return psub
 
 
-async def create_orchestrator_deployment_consumer(
-    js: JetStreamContext,
-    orchestrator_id: UUID,
-    subject: str,
-) -> JetStreamContext.PullSubscription:
-    cfg = replace(
-        DEPLOYMENTS_CONSUMER_CONFIG,
-        description=f"orchestrator-{orchestrator_id}",
-    )
-    psub = await create_pull_sub(js, STREAM_DEPLOYMENTS, subject, cfg)
-    return psub
-
-
-
-
 async def create_metrics_consumer(
     js: JetStreamContext,
 ) -> JetStreamContext.PullSubscription:

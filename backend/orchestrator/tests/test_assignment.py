@@ -15,10 +15,10 @@ from interactem.core.models.runtime import PipelineAssignment
 from interactem.core.models.spec import OperatorSpecTag
 from interactem.core.models.uri import URI
 from interactem.core.pipeline import Pipeline
+from interactem.orchestrator.assign import PipelineAssigner
 from interactem.orchestrator.orchestrator import (
     CyclicDependenciesError,
     NoAgentsError,
-    PipelineAssigner,
     UnassignableOperatorsError,
 )
 

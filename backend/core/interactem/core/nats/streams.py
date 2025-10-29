@@ -40,6 +40,7 @@ PARAMETERS_JSTREAM = JStream(
     subjects=[SUBJECT_PARAMETERS_ALL],
     max_msgs_per_subject=1,
     storage=_storage,
+    declare=False,
 )
 
 IMAGES_STREAM_CONFIG = StreamConfig(
@@ -79,6 +80,7 @@ NOTIFICATIONS_JSTREAM = JStream(
     subjects=[SUBJECT_NOTIFICATIONS_ALL],
     retention=RetentionPolicy.INTEREST,
     storage=_storage,
+    declare=False,
 )
 
 DEPLOYMENTS_STREAM_CONFIG = StreamConfig(
@@ -93,6 +95,7 @@ DEPLOYMENTS_JSTREAM = JStream(
     description="A stream for deployments.",
     subjects=[SUBJECT_DEPLOYMENTS_ALL],
     storage=_storage,
+    declare=False,
 )
 
 TABLE_STREAM_CONFIG = StreamConfig(

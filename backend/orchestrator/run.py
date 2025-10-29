@@ -1,6 +1,6 @@
 import asyncio
 
-from interactem.orchestrator.orchestrator import main
+from interactem.orchestrator.app import app
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    asyncio.run(app.run())

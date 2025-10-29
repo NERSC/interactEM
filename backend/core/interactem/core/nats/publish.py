@@ -6,6 +6,7 @@ from interactem.core.models.kvs import CanonicalOperatorID
 from interactem.core.models.runtime import RuntimeOperatorParameter
 
 from ..constants import (
+    NATS_API_KEY_HEADER,
     NATS_TIMEOUT_DEFAULT,
     STREAM_DEPLOYMENTS,
     STREAM_IMAGES,
@@ -13,8 +14,10 @@ from ..constants import (
     STREAM_TABLES,
     SUBJECT_AGENTS_DEPLOYMENTS,
     SUBJECT_NOTIFICATIONS_ERRORS,
+    SUBJECT_NOTIFICATIONS_INFO,
     SUBJECT_OPERATORS_DEPLOYMENTS,
     SUBJECT_OPERATORS_PARAMETERS,
+    SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE,
     SUBJECT_PIPELINES_METRICS,
 )
 from ..models.base import IdType
@@ -26,7 +29,11 @@ from ..models.runtime import (
     RuntimeOperatorID,
     RuntimeOperatorParameterAck,
 )
-from ..nats.streams import NOTIFICATIONS_JSTREAM, PARAMETERS_JSTREAM
+from ..nats.streams import (
+    DEPLOYMENTS_JSTREAM,
+    NOTIFICATIONS_JSTREAM,
+    PARAMETERS_JSTREAM,
+)
 from ..pipeline import Pipeline as PipelineGraph
 
 
@@ -134,13 +141,36 @@ async def publish_agent_mount_parameter_ack(
     )
 
 
-def create_agent_error_publisher(
+def create_error_publisher(
     broker: NatsBroker,
-    agent_id: IdType,
+    id: IdType,
 ) -> LogicPublisher:
-    subject = f"{SUBJECT_NOTIFICATIONS_ERRORS}.{agent_id}"
+    subject = f"{SUBJECT_NOTIFICATIONS_ERRORS}.{id}"
     return broker.publisher(
         stream=NOTIFICATIONS_JSTREAM,
         subject=subject,
+        timeout=NATS_TIMEOUT_DEFAULT,
+    )
+
+
+def create_info_publisher(
+    broker: NatsBroker,
+    id: IdType,
+) -> LogicPublisher:
+    subject = f"{SUBJECT_NOTIFICATIONS_INFO}.{id}"
+    return broker.publisher(
+        stream=NOTIFICATIONS_JSTREAM,
+        subject=subject,
+        timeout=NATS_TIMEOUT_DEFAULT,
+    )
+
+
+def create_deployment_status_publisher(
+    broker: NatsBroker, api_key: str
+) -> LogicPublisher:
+    return broker.publisher(
+        stream=DEPLOYMENTS_JSTREAM,
+        subject=f"{SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE}",
+        headers={NATS_API_KEY_HEADER: api_key},
         timeout=NATS_TIMEOUT_DEFAULT,
     )
