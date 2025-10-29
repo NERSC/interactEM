@@ -139,7 +139,7 @@ class ZmqMessenger(BaseMessenger):
 
             # Tracking update
             if header.tracking is not None:
-                header.tracking.append(
+                header.tracking.metadatas.append(
                     InputPortTrackingMetadata(
                         id=id, time_after_header_validate=datetime.now()
                     )
@@ -179,7 +179,7 @@ class ZmqMessenger(BaseMessenger):
                 meta = OutputPortTrackingMetadata(
                     id=socket.info.port_id, time_before_send=time_before_send
                 )
-                header.tracking.append(meta)
+                header.tracking.metadatas.append(meta)
 
             # --- Separate meta if it's bytes ---
             raw_meta = None

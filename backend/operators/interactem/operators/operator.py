@@ -533,9 +533,8 @@ class OperatorMixin(RunnableKernel):
             time_after_operate=after_kernel,
         )
         if msg.header.tracking is None:
-            msg.header.tracking = TrackingMetadatas(metadatas=[])
-        if msg.header.tracking.metadatas:
-            msg.header.tracking.metadatas.append(meta)
+            msg.header.tracking = TrackingMetadatas()
+        msg.header.tracking.metadatas.append(meta)
         return msg
 
     async def _update_and_publish_pipeline_metrics(

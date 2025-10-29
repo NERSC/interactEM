@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from interactem.core.models.base import IdType
 
@@ -24,14 +24,11 @@ class OperatorTrackingMetadata(TrackingMetadataBase):
     time_after_operate: datetime
 
 class TrackingMetadatas(BaseModel):
-    metadatas: (
-        list[
-            OperatorTrackingMetadata
-            | OutputPortTrackingMetadata
-            | InputPortTrackingMetadata
-        ]
-        | None
-    ) = None
+    metadatas: list[
+        OperatorTrackingMetadata
+        | OutputPortTrackingMetadata
+        | InputPortTrackingMetadata
+    ] = Field(default_factory=list)
 
 
 class MessageSubject(str, Enum):
