@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 
 from faststream import BaseMiddleware
@@ -44,5 +45,6 @@ def get_nats_broker(
         closed_cb=closed_cb,
         logger=logger,
         middlewares=middlewares,  # type: ignore
+        log_level=logging.DEBUG,
         **options,  # type: ignore[call-arg]
     )
