@@ -249,6 +249,10 @@ class KeyValueLoop(Generic[V]):
         reraise=True,
     )
     async def _safe_delete_key(self, key_str: str):
+        if not self._bucket:
+            logger.error(f"Cannot delete key {key_str}: bucket not initialized")
+            return
+
         try:
             await self._bucket.delete(key_str)
         except ERRORS_THAT_REQUIRE_RECONNECT as e:
