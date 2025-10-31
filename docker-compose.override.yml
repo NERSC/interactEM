@@ -18,7 +18,6 @@ services:
       - "interactem/app/main.py"
 
   orchestrator:
-    restart: "no"
     volumes:
       - ./backend/orchestrator/:/interactem/orchestrator
       - ./backend/core/:/interactem/core
