@@ -137,11 +137,15 @@ async def create_bucket_if_doesnt_exist(
     return await js.key_value(bucket_name)
 
 
-async def get_status_bucket(js: JetStreamContext) -> KeyValue:
+async def get_status_bucket(js: JetStreamContext, create: bool = True) -> KeyValue:
+    if not create:
+        return await js.key_value(BUCKET_STATUS)
     return await create_bucket_if_doesnt_exist(js, BUCKET_STATUS, BUCKET_STATUS_TTL)
 
 
-async def get_metrics_bucket(js: JetStreamContext) -> KeyValue:
+async def get_metrics_bucket(js: JetStreamContext, create: bool = True) -> KeyValue:
+    if not create:
+        return await js.key_value(BUCKET_METRICS)
     return await create_bucket_if_doesnt_exist(js, BUCKET_METRICS, BUCKET_METRICS_TTL)
 
 
