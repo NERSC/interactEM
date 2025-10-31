@@ -1,4 +1,5 @@
 import asyncio
+import json
 from typing import Awaitable, Callable, Set
 
 from interactem.core.util import create_task_with_ref
@@ -21,6 +22,7 @@ from nats.js.errors import (
     KeyNotFoundError,
     NoKeysError,
     ServiceUnavailableError,
+    APIError,
 )
 from nats.js.kv import KeyValue
 from nats.aio.msg import Msg as NATSMsg
@@ -86,15 +88,53 @@ async def create_bucket_if_doesnt_exist(
     js: JetStreamContext, bucket_name: str, ttl: int
 ) -> KeyValue:
     try:
-        kv = await js.key_value(bucket_name)
+        await js.key_value(bucket_name)
     except BucketNotFoundError:
         logger.info(f"Creating bucket {bucket_name}...")
         storage = storage_cfg.NATS_STREAM_STORAGE_TYPE
-        bucket_cfg = KeyValueConfig(
-            bucket=bucket_name, ttl=ttl, storage=storage
+        bucket_cfg = KeyValueConfig(bucket=bucket_name, ttl=ttl, storage=storage)
+        await js.create_key_value(config=bucket_cfg)
+
+    # TODO: Workaround because these unfortunately are not supported by nats.py
+    # we should fix this when they add this to nats.py, probably coming soon
+    # https://github.com/nats-io/nats.py/issues/725
+    # we can always perform this update, idempotent
+    logger.info(f"Updating bucket {bucket_name}...")
+    storage = storage_cfg.NATS_STREAM_STORAGE_TYPE
+    stream_name = f"KV_{bucket_name}"
+
+    stream_info = await js.stream_info(stream_name)
+
+    NS_CONVERSION = 1_000_000_000  # nanoseconds per second
+    config_dict = stream_info.config.__dict__.copy()
+    config_dict["allow_msg_ttl"] = True
+    config_dict["subject_delete_marker_ttl"] = int(ttl * NS_CONVERSION)
+
+    for key in ["max_age", "duplicate_window"]:
+        if key in config_dict and isinstance(config_dict[key], float):
+            config_dict[key] = (
+                int(config_dict[key] * NS_CONVERSION) if config_dict[key] > 0 else 0
+            )
+
+    config_dict = {
+        k: v for k, v in config_dict.items() if v is not None and not k.startswith("_")
+    }
+
+    update_subject = f"{js._prefix}.STREAM.UPDATE.{stream_name}"
+    try:
+        raw_resp = await js._nc.request(
+            update_subject, json.dumps(config_dict).encode(), timeout=5
         )
-        kv = await js.create_key_value(config=bucket_cfg)
-    return kv
+        resp = json.loads(raw_resp.data)
+        if "error" in resp:
+            raise APIError.from_error(resp["error"])
+    except Exception as e:
+        logger.error(
+            f"Failed to create bucket {bucket_name} via raw stream creation: {e}"
+        )
+        raise
+
+    return await js.key_value(bucket_name)
 
 
 async def get_status_bucket(js: JetStreamContext) -> KeyValue:
@@ -138,7 +178,8 @@ async def consume_messages(
     handler: Callable[[NATSMsg, JetStreamContext], Awaitable],
     js: JetStreamContext,
     num_msgs: int = 1,
-    create_consumer: Callable[[], Awaitable[JetStreamContext.PullSubscription]] | None = None,
+    create_consumer: Callable[[], Awaitable[JetStreamContext.PullSubscription]]
+    | None = None,
 ):
     logger.info(f"Consuming messages on pull subscription {await psub.consumer_info()}")
     handler_tasks: set[asyncio.Task] = set()
@@ -212,6 +253,7 @@ async def create_or_update_stream(
 
     return stream_info
 
+
 async def create_all_streams(js: JetStreamContext) -> list[StreamInfo]:
     stream_infos: list[StreamInfo] = []
     tasks: set[asyncio.Task] = set()
@@ -254,6 +296,7 @@ async def create_all_streams(js: JetStreamContext) -> list[StreamInfo]:
         logger.error(f"Failed to create or update streams: {e}")
         raise
     return stream_infos
+
 
 async def create_all_buckets(js: JetStreamContext) -> list[KeyValue]:
     bucket_infos: list[KeyValue] = []
