@@ -33,7 +33,7 @@ logger = get_logger()
 
 
 async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
-    pipeline_bucket = await get_status_bucket(js)
+    pipeline_bucket = await get_status_bucket(js, create=False)
     key = f"{PIPELINES}.{str(pipeline_id)}"  # TODO: use PipelineRunVal.key() instead
     await pipeline_bucket.delete(key)
     await pipeline_bucket.purge(key)
@@ -41,7 +41,7 @@ async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
 
 async def update_pipeline_kv(js: JetStreamContext, pipeline: RuntimePipeline):
     _pipeline = PipelineRunVal(id=pipeline.id, pipeline=pipeline)
-    pipeline_bucket = await get_status_bucket(js)
+    pipeline_bucket = await get_status_bucket(js, create=False)
     await pipeline_bucket.put(_pipeline.key(), _pipeline.model_dump_json().encode())
 
 
@@ -62,7 +62,7 @@ async def continuous_update_kv(
 
 
 async def clean_up_old_pipelines(js: JetStreamContext, valid_pipeline: RuntimePipeline):
-    bucket = await get_status_bucket(js)
+    bucket = await get_status_bucket(js, create=False)
     current_pipeline_keys = await get_keys(bucket, filters=[f"{PIPELINES}"])
 
     async with anyio.create_task_group() as tg:
