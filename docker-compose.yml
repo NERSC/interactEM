@@ -32,7 +32,6 @@ x-backend-base:
     volumes:
       - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
       - "./conf/nats-conf/out_jwt/frontend.creds:/frontend.creds"
-    platform: linux/amd64 # Patch for M1 Mac
 
 services:
   nats-config-generator:
