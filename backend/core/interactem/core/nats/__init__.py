@@ -178,7 +178,8 @@ async def consume_messages(
     handler: Callable[[NATSMsg, JetStreamContext], Awaitable],
     js: JetStreamContext,
     num_msgs: int = 1,
-    create_consumer: Callable[[], Awaitable[JetStreamContext.PullSubscription]] | None = None,
+    create_consumer: Callable[[], Awaitable[JetStreamContext.PullSubscription]]
+    | None = None,
 ):
     logger.info(f"Consuming messages on pull subscription {await psub.consumer_info()}")
     handler_tasks: set[asyncio.Task] = set()
@@ -252,6 +253,7 @@ async def create_or_update_stream(
 
     return stream_info
 
+
 async def create_all_streams(js: JetStreamContext) -> list[StreamInfo]:
     stream_infos: list[StreamInfo] = []
     tasks: set[asyncio.Task] = set()
@@ -294,6 +296,7 @@ async def create_all_streams(js: JetStreamContext) -> list[StreamInfo]:
         logger.error(f"Failed to create or update streams: {e}")
         raise
     return stream_infos
+
 
 async def create_all_buckets(js: JetStreamContext) -> list[KeyValue]:
     bucket_infos: list[KeyValue] = []
