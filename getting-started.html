@@ -323,7 +323,6 @@
 <h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">#</a></h3>
 <ul class="simple">
 <li><p><strong>Docker Desktop</strong> and <strong>Podman Desktop</strong> (recommended for easiest setup)</p></li>
-<li><p><strong>NATS Tools</strong>: Command-line utilities for interacting with <a class="reference external" href="https://github.com/nats-io/natscli?tab=readme-ov-file#installation">NATS</a></p></li>
 </ul>
 </section>
 <section id="configuration">
@@ -338,13 +337,6 @@ cp<span class="w"> </span>.env.example<span class="w"> </span>.env
 <p>Add Github and personal token information in <code class="docutils literal notranslate"><span class="pre">.env</span></code> file. You will need to get this from your github account.</p>
 <div class="highlight-makefile notranslate"><div class="highlight"><pre><span></span><span class="nv">GITHUB_USERNAME</span><span class="o">=</span>your_github_username
 <span class="nv">GITHUB_TOKEN</span><span class="o">=</span>your_personal_token
-</pre></div>
-</div>
-</li>
-<li><p><strong>Generate NATS Authentication Files</strong><br />
-Generate <code class="docutils literal notranslate"><span class="pre">auth.conf</span></code> for the NATS cluster and various <code class="docutils literal notranslate"><span class="pre">.creds</span></code> and <code class="docutils literal notranslate"><span class="pre">.nk</span></code> files for NATS authentication.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>conf/nats-conf
-./generate-auth-jwt.sh
 </pre></div>
 </div>
 </li>
