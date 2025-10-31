@@ -314,7 +314,7 @@ class ZmqMessenger(BaseMessenger):
                     pass
                 if not msg:
                     continue
-                id, val = UUID(msg.key.removeprefix(PORTS)), msg.value
+                id, val = UUID(msg.key.removeprefix(f"{PORTS}.")), msg.value
                 if id not in state:
                     state[id] = val
                 if val == state[id]:
