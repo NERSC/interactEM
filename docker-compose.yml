@@ -32,9 +32,16 @@ x-backend-base:
     volumes:
       - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
       - "./conf/nats-conf/out_jwt/frontend.creds:/frontend.creds"
-    platform: linux/amd64 # Patch for M1 Mac
 
 services:
+  nats-config-generator:
+    image: natsio/nats-box:latest
+    volumes:
+      - "./conf/nats-conf:/nats-conf"
+    working_dir: /nats-conf
+    entrypoint: ""
+    command: sh generate-auth-jwt.sh
+
   nats1:
     image: nats:2.11-alpine
     ports:
@@ -47,6 +54,9 @@ services:
       - "./conf/nats-conf/nats1.conf:/etc/nats/nats.conf"
       - "./conf/nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
       - "./conf/nats-conf/websocket.conf:/etc/nats/websocket.conf"
+    depends_on:
+      nats-config-generator:
+        condition: service_completed_successfully
 
   nats2:
     image: nats:2.11-alpine
@@ -57,7 +67,10 @@ services:
       - "./conf/nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
       - "./conf/nats-conf/websocket.conf:/etc/nats/websocket.conf"
     depends_on:
-      - nats1
+      nats-config-generator:
+        condition: service_completed_successfully
+      nats1:
+        condition: service_started
 
   nats3:
     image: nats:2.11-alpine
@@ -68,8 +81,10 @@ services:
       - "./conf/nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
       - "./conf/nats-conf/websocket.conf:/etc/nats/websocket.conf"
     depends_on:
-      - nats2
-
+      nats-config-generator:
+        condition: service_completed_successfully
+      nats2:
+        condition: service_started
 
   # Checks for health of nats server before allowing others to start up
   nats-healthcheck:
@@ -109,6 +124,8 @@ services:
     depends_on:
       db:
         condition: service_started
+      nats-config-generator:
+        condition: service_completed_successfully
     command: bash prestart.sh
 
   backend:

@@ -1,13 +1,19 @@
-#!/bin/bash
+#!/bin/sh
 
 # put the nsc artifacts where we can find them
 THIS_DIR=$(dirname $0)
+
+if [ -f "${THIS_DIR}/out_jwt/auth.conf" ]; then
+    echo "NATS configuration already exists, skipping generation"
+    exit 0
+fi
 
 exec > >(tee -i ${THIS_DIR}/out_jwt/output.log) 2>&1
 export TMPDIR=/tmp
 export OUTDIR=$TMPDIR/DA
 export XDG_CONFIG_HOME=$OUTDIR/config
 export XDG_DATA_HOME=$OUTDIR/data
+export NKEYS_PATH=$OUTDIR/nkeys
 
 rm -rf $OUTDIR
 
@@ -64,7 +70,7 @@ nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $FRONTEND_USER_NAME -o
 nsc generate creds --account $APP_ACCOUNT_NAME --name $BACKEND_USER_NAME -o $OUTDIR/$BACKEND_USER_NAME.creds
 nsc generate creds --account $APP_ACCOUNT_NAME --name $OPERATOR_USER_NAME -o $OUTDIR/$OPERATOR_USER_NAME.creds
 
-# copy the signing keys (not the root keys) to the output directory TODO: see todo above, we need to fix this.
+# copy the signing keys (not the root keys) to the output directory
 OPERATOR_FILE=${ORG_NAME}.nk
 OPERATOR_SK_FILE=${ORG_NAME}_sk.nk
 CALLOUT_ACCOUNT_FILE=${CALLOUT_ACCOUNT_NAME}.nk
@@ -72,14 +78,15 @@ CALLOUT_ACCOUNT_SK_FILE=${CALLOUT_ACCOUNT_NAME}_sk.nk
 CALLOUT_ACCOUNT_XKEY_FILE=${CALLOUT_ACCOUNT_NAME}_xkey.nk
 APP_ACCOUNT_FILE=${APP_ACCOUNT_NAME}.nk
 APP_ACCOUNT_SK_FILE=${APP_ACCOUNT_NAME}_sk.nk
+NSC_KEYS_BASE="$NKEYS_PATH/keys"
 
-cp "$XDG_DATA_HOME/nats/nsc/keys/keys/O/${ORG_ACCOUNT:1:2}/${ORG_ACCOUNT}.nk" $OUTDIR/$OPERATOR_FILE
-cp "$XDG_DATA_HOME/nats/nsc/keys/keys/O/${ORG_ACCOUNT_SK:1:2}/${ORG_ACCOUNT_SK}.nk" $OUTDIR/$OPERATOR_SK_FILE
-cp "$XDG_DATA_HOME/nats/nsc/keys/keys/A/${CALLOUT_ACCOUNT:1:2}/${CALLOUT_ACCOUNT}.nk" $OUTDIR/$CALLOUT_ACCOUNT_SK_FILE
-cp "$XDG_DATA_HOME/nats/nsc/keys/keys/A/${CALLOUT_ACCOUNT_SK:1:2}/${CALLOUT_ACCOUNT_SK}.nk" $OUTDIR/$CALLOUT_ACCOUNT_FILE
-cp "$XDG_DATA_HOME/nats/nsc/keys/keys/X/${CALLOUT_ACCOUNT_XKEY:1:2}/${CALLOUT_ACCOUNT_XKEY}.nk" $OUTDIR/$CALLOUT_ACCOUNT_XKEY_FILE
-cp "$XDG_DATA_HOME/nats/nsc/keys/keys/A/${APP_ACCOUNT:1:2}/${APP_ACCOUNT}.nk" $OUTDIR/$APP_ACCOUNT_FILE
-cp "$XDG_DATA_HOME/nats/nsc/keys/keys/A/${APP_ACCOUNT_SK:1:2}/${APP_ACCOUNT_SK}.nk" $OUTDIR/$APP_ACCOUNT_SK_FILE
+cp "$NSC_KEYS_BASE/O/${ORG_ACCOUNT:1:2}/${ORG_ACCOUNT}.nk" $OUTDIR/$OPERATOR_FILE
+cp "$NSC_KEYS_BASE/O/${ORG_ACCOUNT_SK:1:2}/${ORG_ACCOUNT_SK}.nk" $OUTDIR/$OPERATOR_SK_FILE
+cp "$NSC_KEYS_BASE/A/${CALLOUT_ACCOUNT:1:2}/${CALLOUT_ACCOUNT}.nk" $OUTDIR/$CALLOUT_ACCOUNT_FILE
+cp "$NSC_KEYS_BASE/A/${CALLOUT_ACCOUNT_SK:1:2}/${CALLOUT_ACCOUNT_SK}.nk" $OUTDIR/$CALLOUT_ACCOUNT_SK_FILE
+cp "$NSC_KEYS_BASE/X/${CALLOUT_ACCOUNT_XKEY:1:2}/${CALLOUT_ACCOUNT_XKEY}.nk" $OUTDIR/$CALLOUT_ACCOUNT_XKEY_FILE
+cp "$NSC_KEYS_BASE/A/${APP_ACCOUNT:1:2}/${APP_ACCOUNT}.nk" $OUTDIR/$APP_ACCOUNT_FILE
+cp "$NSC_KEYS_BASE/A/${APP_ACCOUNT_SK:1:2}/${APP_ACCOUNT_SK}.nk" $OUTDIR/$APP_ACCOUNT_SK_FILE
 
 mkdir -p $THIS_DIR/out_jwt
 CP_DIR=$THIS_DIR/out_jwt
@@ -98,10 +105,10 @@ cp $OUTDIR/$APP_ACCOUNT_SK_FILE $CP_DIR/$APP_ACCOUNT_SK_FILE
 
 cp -r $OUTDIR $CP_DIR/raw_output
 
-# Create a tarball of raw_output
-rm $CP_DIR/raw_output.tar.gz
-tar --no-xattrs -czf $CP_DIR/raw_output.tar.gz -C $CP_DIR/raw_output .
-base64 -i $CP_DIR/raw_output.tar.gz -o $CP_DIR/raw_output.tar.gz.b64
+# Create a tarball of raw_output (BusyBox compatible)
+rm -f $CP_DIR/raw_output.tar.gz
+tar -czf $CP_DIR/raw_output.tar.gz -C $CP_DIR/raw_output .
+base64 $CP_DIR/raw_output.tar.gz > $CP_DIR/raw_output.tar.gz.b64
 
 # Printout all the information
 echo -e "\n\n\n\n"

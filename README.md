@@ -17,7 +17,6 @@
 ### Prerequisites
 
 - **Docker Desktop** and **Podman Desktop** (recommended for easiest setup)
-- **NATS Tools**: Command-line utilities for interacting with [NATS](https://github.com/nats-io/natscli?tab=readme-ov-file#installation)
 
 ### Configuration
 
@@ -36,14 +35,6 @@
     GITHUB_USERNAME=your_github_username
     GITHUB_TOKEN=your_personal_token
    ```
-
-1. **Generate NATS Authentication Files**  
-    Generate `auth.conf` for the NATS cluster and various `.creds` and `.nk` files for NATS authentication.
-
-    ```bash
-    cd conf/nats-conf
-    ./generate-auth-jwt.sh
-    ```
 
 ### Building Docker Images and starting services
 
