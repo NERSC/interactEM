@@ -29,6 +29,7 @@ x-backend-base:
       - GITHUB_USERNAME=${GITHUB_USERNAME?Variable not set}
       - GITHUB_TOKEN=${GITHUB_TOKEN?Variable not set}
       - NATS_STREAM_STORAGE_TYPE=file
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY?Variable not set}
     volumes:
       - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
       - "./conf/nats-conf/out_jwt/frontend.creds:/frontend.creds"
@@ -170,6 +171,7 @@ services:
       - NATS_CREDS_FILE=/backend.creds
       - NATS_SECURITY_MODE=creds
       - NATS_STREAM_STORAGE_TYPE=file
+      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY?Variable not set}
     volumes:
       - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
 
