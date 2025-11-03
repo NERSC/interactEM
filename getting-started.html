@@ -328,37 +328,56 @@
 <section id="configuration">
 <h3>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h3>
 <ol class="arabic">
-<li><p><strong>Create a <code class="docutils literal notranslate"><span class="pre">.env</span></code> and setup environment variables</strong></p>
-<p>Create a <code class="docutils literal notranslate"><span class="pre">.env</span></code></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>interactEM
-cp<span class="w"> </span>.env.example<span class="w"> </span>.env
+<li><p><strong>Setup <code class="docutils literal notranslate"><span class="pre">.env</span></code> with secure secrets</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>env-setup
 </pre></div>
 </div>
-<p>Add Github and personal token information in <code class="docutils literal notranslate"><span class="pre">.env</span></code> file. You will need to get this from your github account.</p>
-<div class="highlight-makefile notranslate"><div class="highlight"><pre><span></span><span class="nv">GITHUB_USERNAME</span><span class="o">=</span>your_github_username
+<p>This automatically:</p>
+<ul class="simple">
+<li><p>Copies <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> to <code class="docutils literal notranslate"><span class="pre">.env</span></code></p></li>
+<li><p>Generates secure random values for all secrets</p></li>
+<li><p>Updates your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file</p></li>
+</ul>
+</li>
+<li><p><strong>Add GitHub credentials</strong></p>
+<p>Edit your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file and add your GitHub information:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GITHUB_USERNAME</span><span class="o">=</span>your_github_username
 <span class="nv">GITHUB_TOKEN</span><span class="o">=</span>your_personal_token
 </pre></div>
 </div>
+<p>You can get a personal token from your <a class="reference external" href="https://github.com/settings/tokens">GitHub account settings</a>.</p>
 </li>
 </ol>
 </section>
-<section id="building-docker-images-and-starting-services">
-<h3>Building Docker Images and starting services<a class="headerlink" href="#building-docker-images-and-starting-services" title="Link to this heading">#</a></h3>
+<section id="starting-services">
+<h3>Starting services<a class="headerlink" href="#starting-services" title="Link to this heading">#</a></h3>
 <ol class="arabic">
-<li><p><strong>Build the Required Images</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker/bake.sh
+<li><p><strong>Quick start</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>setup
+make<span class="w"> </span>docker-up
 </pre></div>
 </div>
 </li>
-<li><p><strong>Bring up Services</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>compose<span class="w"> </span>up<span class="w"> </span>--force-recreate<span class="w"> </span>--remove-orphans<span class="w"> </span>--build<span class="w"> </span>-d
+<li><p><strong>Access the application</strong></p>
+<p>Open your browser to <a class="reference external" href="http://localhost:5173">http://localhost:5173</a></p>
+<p>Login credentials:</p>
+<ul class="simple">
+<li><p><strong>Username</strong>: <code class="docutils literal notranslate"><span class="pre">admin&#64;example.com</span></code></p></li>
+<li><p><strong>Password</strong>: Check your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file for <code class="docutils literal notranslate"><span class="pre">FIRST_SUPERUSER_PASSWORD</span></code> (auto-generated)</p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="stopping-services">
+<h3>Stopping services<a class="headerlink" href="#stopping-services" title="Link to this heading">#</a></h3>
+<ol class="arabic">
+<li><p><strong>To stop services:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>docker-down
 </pre></div>
 </div>
 </li>
-<li><p><strong>Login</strong></p>
-<p>Go to <a class="reference external" href="http://localhost:5173/">http://localhost:5173/</a> in your browser, and you should see a login page. The credentials for the local version are in <code class="docutils literal notranslate"><span class="pre">./.env.example</span></code>.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">FIRST_SUPERUSER_USERNAME</span><span class="o">=</span>admin@example.com
-<span class="nv">FIRST_SUPERUSER_PASSWORD</span><span class="o">=</span>changethis
+<li><p><strong>To stop and clean database:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>clean
 </pre></div>
 </div>
 </li>
@@ -427,7 +446,8 @@ cp<span class="w"> </span>.env.example<span class="w"> </span>.env
 <li><a class="reference internal" href="#running-locally">Running locally</a><ul>
 <li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a></li>
-<li><a class="reference internal" href="#building-docker-images-and-starting-services">Building Docker Images and starting services</a></li>
+<li><a class="reference internal" href="#starting-services">Starting services</a></li>
+<li><a class="reference internal" href="#stopping-services">Stopping services</a></li>
 </ul>
 </li>
 </ul>
