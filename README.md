@@ -20,43 +20,57 @@
 
 ### Configuration
 
-1. **Create a `.env` and setup environment variables**
-
-    Create a `.env`
+1. **Setup `.env` with secure secrets**
 
     ```bash
-    cd interactEM
-    cp .env.example .env
+    make env-setup
     ```
 
-    Add Github and personal token information in `.env` file. You will need to get this from your github account.
+    This automatically:
+    - Copies `.env.example` to `.env`
+    - Generates secure random values for all secrets
+    - Updates your `.env` file
 
-    ```makefile
+1. **Add GitHub credentials**
+
+    Edit your `.env` file and add your GitHub information:
+
+    ```bash
     GITHUB_USERNAME=your_github_username
     GITHUB_TOKEN=your_personal_token
-   ```
-
-### Building Docker Images and starting services
-
-1. **Build the Required Images**  
-
-    ```bash
-    docker/bake.sh
     ```
 
-1. **Bring up Services**
+    You can get a personal token from your [GitHub account settings](https://github.com/settings/tokens).
+
+### Starting services
+
+1. **Quick start**
 
     ```bash
-    docker compose up --force-recreate --remove-orphans --build -d
+    make setup
+    make docker-up
     ```
 
-1. **Login**
+1. **Access the application**
 
-    Go to [http://localhost:5173/](http://localhost:5173/) in your browser, and you should see a login page. The credentials for the local version are in `./.env.example`.
+    Open your browser to [http://localhost:5173](http://localhost:5173)
+
+    Login credentials:
+    - **Username**: `admin@example.com`
+    - **Password**: Check your `.env` file for `FIRST_SUPERUSER_PASSWORD` (auto-generated)
+
+### Stopping services
+
+1. **To stop services:**
 
     ```bash
-    FIRST_SUPERUSER_USERNAME=admin@example.com
-    FIRST_SUPERUSER_PASSWORD=changethis
+    make docker-down
+    ```
+
+1. **To stop and clean database:**
+
+    ```bash
+    make clean
     ```
 
 ### Launching an agent
