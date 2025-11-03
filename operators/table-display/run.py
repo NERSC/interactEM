@@ -4,8 +4,6 @@ from typing import Any
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
-from interactem.core.nats import create_or_update_stream
-from interactem.core.nats.config import TABLE_STREAM_CONFIG
 from interactem.core.nats.publish import publish_table_data
 from interactem.operators.operator import AsyncOperator
 
@@ -22,17 +20,7 @@ class TableDisplay(AsyncOperator):
         super().__init__()
         self.table_stream = None
 
-    async def _ensure_stream(self):
-        if not self.table_stream:
-            logger.info(f"Ensuring NATS stream '{TABLE_STREAM_CONFIG.name}' exists...")
-            self.table_stream = await create_or_update_stream(
-                TABLE_STREAM_CONFIG, self.js
-            )
-            logger.info(f"NATS stream '{TABLE_STREAM_CONFIG.name}' ensured.")
-
     async def _publish_table_data(self, table_data_json: bytes):
-        await self._ensure_stream()
-
         await publish_table_data(
             self.js,
             table_data_json=table_data_json,

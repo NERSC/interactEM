@@ -3,8 +3,6 @@ from typing import Any
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
-from interactem.core.nats import create_or_update_stream
-from interactem.core.nats.config import IMAGES_STREAM_CONFIG
 from interactem.core.nats.publish import publish_image
 from interactem.operators.operator import AsyncOperator
 
@@ -18,17 +16,7 @@ class ImageDisplay(AsyncOperator):
 
         self.image_stream = None
 
-    # TODO Would be nice to be able todo this is a custom
-    # start method, but that is currently not possible as
-    # the start method doesn't return.
-    async def _ensure_stream(self):
-        if not self.image_stream:
-            self.image_stream = await create_or_update_stream(
-                IMAGES_STREAM_CONFIG, self.js
-            )
-
     async def _publish_image(self, image_data: bytes):
-        await self._ensure_stream()
 
         # We publish this on the canonical operator ID,
         # TODO: may need to adjust the way we are handling this
