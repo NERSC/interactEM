@@ -51,9 +51,13 @@ PORTS = "port"
 ERRORS = "err"
 INFO = "info"
 UPDATES = "upd"
+ASSIGNMENTS = "asgn"
 
 # Pipelines
 SUBJECT_PIPELINES_METRICS = f"{STREAM_METRICS}.{PIPELINES}"
+
+# We will have subjects like:
+# depl.pipe.<deployment_id>, depl.pipe.<deployment_id>.asgn, depl.pipe.<deployment_id>.upd
 SUBJECT_PIPELINES_DEPLOYMENTS = f"{STREAM_DEPLOYMENTS}.{PIPELINES}"
 SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE = f"{SUBJECT_PIPELINES_DEPLOYMENTS}.{UPDATES}"
 
