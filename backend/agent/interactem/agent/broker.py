@@ -1,11 +1,12 @@
 import asyncio
 
+import anyio
 from faststream import Context, ContextRepo, Depends, FastStream
 from faststream.nats import NatsMessage
 
 from interactem.core.constants import NATS_TIMEOUT_DEFAULT, SUBJECT_AGENTS_DEPLOYMENTS
+from interactem.core.events.pipelines import AgentPipelineEvent, AgentPipelineEventType
 from interactem.core.logger import get_logger
-from interactem.core.models.runtime import PipelineAssignment
 from interactem.core.nats.broker import get_nats_broker
 from interactem.core.nats.consumers import AGENT_CONSUMER_CONFIG
 from interactem.core.nats.publish import create_error_publisher
@@ -43,17 +44,24 @@ PROGRESS_UPDATE_INTERVAL = 1 # sec
 async def progress(message: NatsMessage):
     async def in_progress_task():
         while True:
-            await asyncio.sleep(PROGRESS_UPDATE_INTERVAL)
+            await anyio.sleep(PROGRESS_UPDATE_INTERVAL)
             await message.in_progress()
 
     task = asyncio.create_task(in_progress_task())
-    yield
-    task.cancel()
+    try:
+        yield
+    finally:
+        task.cancel()
+        try:
+            await task
+        except anyio.get_cancelled_exc_class():
+            pass
 
 
 progress_dep = Depends(progress)
 agent_consumer_config = AGENT_CONSUMER_CONFIG
 agent_consumer_config.description = f"agent-{AGENT_ID}"
+
 
 
 @broker.subscriber(
@@ -63,5 +71,11 @@ agent_consumer_config.description = f"agent-{AGENT_ID}"
     pull_sub=True,
     dependencies=[progress_dep],
 )
-async def assignment_handler(assignment: PipelineAssignment, agent: Agent = Context()):
-    await agent.receive_assignment(assignment)
+async def agent_pipeline_event_handler(
+    event: AgentPipelineEvent, agent: Agent = Context()
+):
+    HANDLERS = {
+        AgentPipelineEventType.START: agent.receive_assignment,
+        AgentPipelineEventType.STOP: agent.receive_cancellation,
+    }
+    await HANDLERS[event.root.type](event.root)

@@ -147,7 +147,7 @@ class PipelineRevision(SQLModel, table=True):
     data: dict[str, Any] = Field(sa_column=Column(JSON))
     tag: str | None = Field(default=None, max_length=128)
     positions: list[dict[str, Any]] = Field(
-        sa_column=Column(JSON), default_factory=list
+        sa_column=Column(JSON, nullable=False), default_factory=list
     )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
