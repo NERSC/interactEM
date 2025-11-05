@@ -166,6 +166,8 @@ class Agent:
         self._monitor_task: asyncio.Task | None = None
         # Use asyncio.Event since KeyValueLoop expects it
         self._shutdown_event = asyncio.Event()
+        # Separate shutdown event for KV loop to maintain updates during shutdown
+        self._kv_shutdown_event = asyncio.Event()
 
     async def _start_podman_service(self, create_process=False):
         self._podman_process = None
@@ -239,7 +241,7 @@ class Agent:
         self.agent_kv = KeyValueLoop[AgentVal](
             nc=self.nc,
             js=self.js,
-            shutdown_event=self._shutdown_event,
+            shutdown_event=self._kv_shutdown_event,
             bucket=InteractemBucket.STATUS,
             update_interval=10.0,
             data_model=AgentVal,
@@ -427,6 +429,7 @@ class Agent:
         self.agent_val.status = AgentStatus.SHUTTING_DOWN
         if self.agent_kv:
             await self.agent_kv.update_now()
+        # Set main shutdown event for deployment and monitor tasks
         self._shutdown_event.set()
 
         # Cancel current deployment if running
@@ -455,7 +458,11 @@ class Agent:
 
         await self._stop_podman_service()
 
+        # Now stop the KV loop after other components are shut down
+        # This allows final updates to be published
         if self.agent_kv:
+            await self.agent_kv.update_now()
+            self._kv_shutdown_event.set()
             await self.agent_kv.stop()
 
         logger.info("Agent shut down successfully.")
