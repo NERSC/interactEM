@@ -12,6 +12,7 @@ requests = "^2.32.4"
 interactem-core = {path = "../core", develop = true}
 pydantic-settings = "^2.4"
 aiohttp = "^3.10.5"
+transitions = "^0.9.3"
 
 [tool.poetry.group.test.dependencies]
 pytest = "^8.3.5"
