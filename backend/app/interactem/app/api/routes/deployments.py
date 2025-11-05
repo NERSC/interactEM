@@ -1,7 +1,6 @@
 # interactem.app.api.routes.deployments
 
 import uuid
-from collections.abc import Callable
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -32,95 +31,6 @@ from interactem.core.logger import get_logger
 
 logger = get_logger()
 router = APIRouter()
-
-
-class PipelineDeploymentStateMachine:
-    class Error(Exception):
-        pass
-
-    """Handles pipeline deployment state transitions and NATS event publishing."""
-
-    def __init__(self):
-        self._valid_transitions: dict[
-            PipelineDeploymentState, list[PipelineDeploymentState]
-        ] = {
-            PipelineDeploymentState.PENDING: [
-                PipelineDeploymentState.FAILED_TO_START,
-                PipelineDeploymentState.RUNNING,
-                PipelineDeploymentState.CANCELLED,
-            ],
-            PipelineDeploymentState.FAILED_TO_START: [],
-            PipelineDeploymentState.RUNNING: [
-                PipelineDeploymentState.CANCELLED,
-            ],
-            PipelineDeploymentState.CANCELLED: [],
-        }
-
-        self._transition_handlers: dict[
-            tuple[PipelineDeploymentState, PipelineDeploymentState], Callable
-        ] = {
-            (
-                PipelineDeploymentState.PENDING,
-                PipelineDeploymentState.RUNNING,
-            ): self._handle_started,
-            (
-                PipelineDeploymentState.PENDING,
-                PipelineDeploymentState.FAILED_TO_START,
-            ): self._handle_failed_to_start,
-            (
-                PipelineDeploymentState.PENDING,
-                PipelineDeploymentState.CANCELLED,
-            ): self._handle_cancellation,
-            (
-                PipelineDeploymentState.RUNNING,
-                PipelineDeploymentState.CANCELLED,
-            ): self._handle_cancellation,
-        }
-
-    async def start(self, deployment: PipelineDeployment) -> None:
-        event = PipelineRunEvent(
-            canonical_id=deployment.pipeline_id,
-            data=deployment.revision.data,
-            revision_id=deployment.revision_id,
-            deployment_id=deployment.id,
-        )
-        await publish_pipeline_deployment_event(event)
-        logger.info(f"Sent deployment event for deployment {deployment.id}")
-
-    def is_valid_transition(
-        self, from_state: PipelineDeploymentState, to_state: PipelineDeploymentState
-    ) -> bool:
-        return to_state in self._valid_transitions.get(from_state, [])
-
-    async def handle_transition(
-        self,
-        deployment: PipelineDeployment,
-        from_state: PipelineDeploymentState,
-        to_state: PipelineDeploymentState,
-    ) -> None:
-        transition_key = (from_state, to_state)
-        handler = self._transition_handlers.get(transition_key)
-
-        if handler:
-            await handler(deployment)
-        else:
-            logger.warning(f"No handler for transition {from_state} -> {to_state}")
-
-    async def _handle_cancellation(self, deployment: PipelineDeployment) -> None:
-        event = PipelineStopEvent(
-            deployment_id=deployment.id,
-        )
-        await publish_pipeline_deployment_event(event)
-        logger.info(f"Sent stop event for cancelled deployment {deployment.id}")
-
-    async def _handle_started(self, deployment: PipelineDeployment) -> None:
-        pass
-
-    async def _handle_failed_to_start(self, deployment: PipelineDeployment) -> None:
-        logger.info(f"Deployment {deployment.id} failed to start")
-
-
-state_machine = PipelineDeploymentStateMachine()
 
 
 def check_deployment_authorized(
@@ -192,7 +102,8 @@ async def create_pipeline_deployment(
     deployment_in: PipelineDeploymentCreate,
 ) -> PipelineDeploymentPublic:
     """
-    Create a new pipeline deployment and trigger execution.
+    Create a new pipeline deployment and publish initialization event.
+    State transitions are managed by the orchestrator.
     """
 
     pipeline = session.get(Pipeline, deployment_in.pipeline_id)
@@ -213,19 +124,14 @@ async def create_pipeline_deployment(
     session.commit()
     session.refresh(deployment)
 
-    try:
-        await state_machine.start(deployment)
-    except HTTPException:
-        deployment.state = PipelineDeploymentState.FAILED_TO_START
-        session.add(deployment)
-        session.commit()
-        session.refresh(deployment)
-        await state_machine.handle_transition(
-            deployment,
-            PipelineDeploymentState.PENDING,
-            PipelineDeploymentState.FAILED_TO_START,
-        )
-        raise
+    # Publish initialization event for orchestrator to handle
+    event = PipelineRunEvent(
+        canonical_id=deployment.pipeline_id,
+        data=deployment.revision.data,
+        revision_id=deployment.revision_id,
+        deployment_id=deployment.id,
+    )
+    await publish_pipeline_deployment_event(event)
 
     logger.info(
         f"Created pipeline deployment {deployment.id} for pipeline {deployment_in.pipeline_id} revision {deployment_in.revision_id} in PENDING state"
@@ -248,48 +154,6 @@ def read_pipeline_deployment(
     return PipelineDeploymentPublic.model_validate(deployment)
 
 
-async def _handle_update_pipeline_state(
-    session: SessionDep,
-    deployment: PipelineDeployment,
-    update: PipelineDeploymentUpdate,
-) -> PipelineDeploymentPublic:
-    """
-    Update a pipeline deployment state with proper transition logic and event publishing.
-    """
-
-    # Store the previous state for transition logic
-    previous_state = deployment.state
-    new_state = update.state
-
-    # Check if this is a no-op
-    if previous_state == new_state:
-        return PipelineDeploymentPublic.model_validate(deployment)
-
-    # Validate state transition using our state machine
-    if not state_machine.is_valid_transition(previous_state, new_state):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid state transition from {previous_state} to {new_state}",
-        )
-
-    # Update the state
-    deployment.state = new_state
-    session.add(deployment)
-    session.commit()
-    session.refresh(deployment)
-
-    # Handle transition events using our state machine
-    try:
-        await state_machine.handle_transition(deployment, previous_state, new_state)
-    except PipelineDeploymentStateMachine.Error as e:
-        logger.error(f"State machine error: {e}")
-        raise HTTPException(
-            status_code=500, detail=f"Failed to handle state transition: {e}"
-        )
-
-    return PipelineDeploymentPublic.model_validate(deployment)
-
-
 @router.patch("/{id}", response_model=PipelineDeploymentPublic)
 async def update_pipeline_deployment(
     *,
@@ -299,9 +163,24 @@ async def update_pipeline_deployment(
     update: PipelineDeploymentUpdate,
 ) -> PipelineDeploymentPublic:
     """
-    Update a pipeline deployment state with proper transition logic and event publishing.
+    Update a pipeline deployment state and publish events for the orchestrator.
     """
     deployment = session.get(PipelineDeployment, id)
     deployment = check_deployment_authorized(deployment, current_user, id)
 
-    return await _handle_update_pipeline_state(session, deployment, update)
+    current_state = deployment.state
+    new_state = update.state
+
+    # Update the state
+    deployment.state = new_state
+    session.add(deployment)
+    session.commit()
+    session.refresh(deployment)
+
+    # Publish events for orchestrator to handle
+    if new_state == PipelineDeploymentState.CANCELLED:
+        event = PipelineStopEvent(deployment_id=deployment.id)
+        await publish_pipeline_deployment_event(event)
+        logger.info(f"Published stop event for deployment {deployment.id}")
+
+    return PipelineDeploymentPublic.model_validate(deployment)
