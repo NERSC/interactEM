@@ -12,6 +12,16 @@ class PipelineDeploymentState(str, Enum):
     RUNNING = "running"
     CANCELLED = "cancelled"
 
+TERMINAL_DEPLOYMENT_STATES = [
+    PipelineDeploymentState.CANCELLED,
+    PipelineDeploymentState.FAILED_TO_START,
+]
+
+RUNNING_DEPLOYMENT_STATES = [
+    PipelineDeploymentState.RUNNING,
+]
+
+
 class KvKeyMixin(abc.ABC):
     @abc.abstractmethod
     def key(self) -> str: ...

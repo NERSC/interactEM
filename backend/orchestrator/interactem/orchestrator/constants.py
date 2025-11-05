@@ -1,6 +1,5 @@
 ERROR_PUBLISHER_CTX_NAME = "error_pub"
 INFO_PUBLISHER_CTX_NAME = "info_pub"
-DEPLOYMENT_STATUS_PUBLISHER_CTX_NAME = "depl_status_update_pub"
 DEPLOYMENT_ID_CTX_NAME = "deployment_id"
-DEPLOYMENT_STATE_CTX_NAME = "deployment_state"
-AGENT_STATE_CTX_NAME = "agent_state"
+ORCHESTRATOR_STATE_CTX_NAME = "state"
+JS_CTX_NAME = "broker.config.connection_state.stream"

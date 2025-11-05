@@ -2,10 +2,16 @@ from faststream.nats.broker import NatsBroker
 from faststream.nats.publisher.usecase import LogicPublisher
 from nats.js import JetStreamContext
 
+from interactem.core.events.pipelines import (
+    AgentPipelineBase,
+    PipelineAssignmentsEvent,
+    PipelineUpdateEvent,
+)
 from interactem.core.models.kvs import CanonicalOperatorID
 from interactem.core.models.runtime import RuntimeOperatorParameter
 
 from ..constants import (
+    ASSIGNMENTS,
     NATS_API_KEY_HEADER,
     NATS_TIMEOUT_DEFAULT,
     STREAM_DEPLOYMENTS,
@@ -17,20 +23,20 @@ from ..constants import (
     SUBJECT_NOTIFICATIONS_INFO,
     SUBJECT_OPERATORS_DEPLOYMENTS,
     SUBJECT_OPERATORS_PARAMETERS,
+    SUBJECT_PIPELINES_DEPLOYMENTS,
     SUBJECT_PIPELINES_DEPLOYMENTS_UPDATE,
     SUBJECT_PIPELINES_METRICS,
+    UPDATES,
 )
 from ..models.base import IdType
 from ..models.messages import (
     TrackingMetadatas,
 )
 from ..models.runtime import (
-    PipelineAssignment,
     RuntimeOperatorID,
     RuntimeOperatorParameterAck,
 )
 from ..nats.streams import (
-    DEPLOYMENTS_JSTREAM,
     NOTIFICATIONS_JSTREAM,
     PARAMETERS_JSTREAM,
 )
@@ -67,12 +73,39 @@ async def publish_operator_parameter_ack(
         timeout=NATS_TIMEOUT_DEFAULT,
     )
 
-
-async def publish_assignment(js: JetStreamContext, assignment: PipelineAssignment):
+async def publish_agent_deployment_event(
+    js: JetStreamContext, event: AgentPipelineBase
+):
     await js.publish(
-        f"{SUBJECT_AGENTS_DEPLOYMENTS}.{assignment.agent_id}",
+        subject=f"{SUBJECT_AGENTS_DEPLOYMENTS}.{event.agent_id}",
         stream=STREAM_DEPLOYMENTS,
-        payload=assignment.model_dump_json().encode(),
+        payload=event.model_dump_json().encode(),
+        timeout=NATS_TIMEOUT_DEFAULT,
+    )
+
+
+async def publish_deployment_assignment(
+    js: JetStreamContext,
+    assignments: PipelineAssignmentsEvent,
+):
+    await js.publish(
+        subject=f"{SUBJECT_PIPELINES_DEPLOYMENTS}.{assignments.deployment_id}.{ASSIGNMENTS}",
+        stream=STREAM_DEPLOYMENTS,
+        payload=assignments.model_dump_json().encode(),
+        timeout=NATS_TIMEOUT_DEFAULT,
+    )
+
+
+async def publish_deployment_update(
+    js: JetStreamContext,
+    event: PipelineUpdateEvent,
+    api_key: str | None = None,
+):
+    await js.publish(
+        subject=f"{SUBJECT_PIPELINES_DEPLOYMENTS}.{event.deployment_id}.{UPDATES}",
+        stream=STREAM_DEPLOYMENTS,
+        payload=event.model_dump_json().encode(),
+        headers={NATS_API_KEY_HEADER: api_key} if api_key else None,
         timeout=NATS_TIMEOUT_DEFAULT,
     )
 
