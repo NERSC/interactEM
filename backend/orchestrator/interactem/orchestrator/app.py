@@ -108,9 +108,10 @@ HANDLERS: dict[type[BaseModel], Callable] = {
 
 @broker.subscriber(
     stream=DEPLOYMENTS_JSTREAM,
-    subject=f"{SUBJECT_PIPELINES_DEPLOYMENTS}",
+    subject=f"{SUBJECT_PIPELINES_DEPLOYMENTS}.*",  # all deployment IDs
+    durable=ORCHESTRATOR_DEPLOYMENTS_CONSUMER_CONFIG.durable_name,
     config=replace(
-        DEPLOYMENTS_CONSUMER_CONFIG, description=f"orchestrator-{orchestrator_id}"
+        ORCHESTRATOR_DEPLOYMENTS_CONSUMER_CONFIG, name=f"orchestrator-{orchestrator_id}"
     ),
     pull_sub=True,
 )
