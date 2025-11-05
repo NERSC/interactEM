@@ -29,8 +29,10 @@ class ErrorMessage(BaseModel):
 class AgentStatus(str, Enum):
     INITIALIZING = "initializing"
     IDLE = "idle"
-    BUSY = "busy"
-    ERROR = "error"
+    CLEANING_OPERATORS = "cleaning_operators"
+    OPERATORS_STARTING = "operators_starting"
+    DEPLOYMENT_RUNNING = "running_deployment"
+    DEPLOYMENT_ERROR = "deployment_error"
     SHUTTING_DOWN = "shutting_down"
 
 class ErrorMixin:
