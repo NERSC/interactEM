@@ -75,7 +75,7 @@ class AgentVal(BaseModel, KvKeyMixin, ErrorMixin):
     # crossing once
     networks: set[str]
 
-    pipeline_id: str | None = None
+    current_deployment_id: UUID | None = None
     operator_assignments: list[UUID] | None = None
     uptime: float = 0.0
 
