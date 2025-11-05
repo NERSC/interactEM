@@ -358,7 +358,7 @@ class Agent:
         """
         if self._current_deployment is None:
             logger.error("DeploymentManager not initialized for _run_deployment")
-            return
+            raise RuntimeError("DeploymentManager not initialized for _run_deployment")
 
         deployment_id = self._current_deployment.deployment_id
         assignment = event.assignment
@@ -470,11 +470,11 @@ class Agent:
     async def start_operators(self):
         if not self.pipeline:
             logger.info("No pipeline configuration found...")
-            return
+            raise RuntimeError("No pipeline configuration found")
 
         if self._current_deployment is None:
             logger.error("No active deployment for starting operators")
-            return
+            raise RuntimeError("No active deployment for starting operators")
 
         logger.info("Starting operators...")
 
