@@ -11,7 +11,6 @@ import "@xyflow/react/dist/style.css"
 import type React from "react"
 import { useCallback, useMemo } from "react"
 import type { PipelineRevisionPublic } from "../client"
-import { usePipelineStatus } from "../hooks/nats/useRunningPipelines"
 import { usePipelineGraph } from "../hooks/usePipelineGraph"
 import { usePositionTracking } from "../hooks/usePositionTracking"
 import type { OperatorNodeTypes } from "../types/nodes"
@@ -29,9 +28,6 @@ const RunningPipelineFlow: React.FC<RunningPipelineFlowProps> = ({
   pipelineDeploymentId,
 }) => {
   const { fitView } = useReactFlow()
-  const { pipeline } = usePipelineStatus(
-    pipelineDeploymentId ? pipelineDeploymentId : null,
-  )
 
   const { nodes, setNodes, edges, pipelineJSONLoaded } = usePipelineGraph(
     pipelineData,
@@ -90,26 +86,6 @@ const RunningPipelineFlow: React.FC<RunningPipelineFlowProps> = ({
         >
           <Typography variant="h6" color="text.secondary">
             No deployment selected
-          </Typography>
-        </Box>
-      </div>
-    )
-  }
-
-  if (!pipeline) {
-    return (
-      <div className="pipelineflow">
-        <Box
-          sx={{
-            height: "100%",
-            width: "100%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Typography variant="h6" color="text.secondary">
-            This deployment is not currently running
           </Typography>
         </Box>
       </div>
