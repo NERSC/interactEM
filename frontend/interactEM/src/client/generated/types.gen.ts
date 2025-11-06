@@ -154,7 +154,9 @@ export type PipelineDeploymentPublic = {
 
 export type PipelineDeploymentState =
   | "pending"
+  | "assigned_agents"
   | "failed_to_start"
+  | "failure_on_agent"
   | "running"
   | "cancelled"
 
