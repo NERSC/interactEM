@@ -416,7 +416,6 @@ class Agent:
         self.agent_val.current_deployment_id = depl_id
         self.agent_val.operator_assignments = self._my_operator_ids
         self.agent_val.uptime = time.time() - self._start_time
-        self.agent_val.clear_old_errors()
 
     async def shutdown(self):
         logger.info("Shutting down agent...")
