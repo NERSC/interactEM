@@ -14,7 +14,6 @@ from interactem.core.constants import (
     PIPELINES,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models.kvs import PipelineRunVal
 from interactem.core.models.messages import (
     InputPortTrackingMetadata,
     OperatorTrackingMetadata,
@@ -50,6 +49,7 @@ from .config import cfg
 
 logger = get_logger()
 
+# TODO: remove PipelineRunVal
 
 async def metrics_watch(js: JetStreamContext, update_interval: int):
     metrics_bucket = await get_metrics_bucket(js)
