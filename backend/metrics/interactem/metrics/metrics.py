@@ -10,6 +10,9 @@ from nats.js import JetStreamContext
 from networkx.readwrite.text import generate_network_text
 from prometheus_client import start_http_server
 
+# TODO: refactor without PipelineVal, for now we just use a fake import
+from pydantic import BaseModel as PipelineRunVal
+
 from interactem.core.constants import (
     PIPELINES,
 )

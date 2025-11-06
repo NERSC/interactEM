@@ -168,7 +168,6 @@ async def update_pipeline_deployment(
     deployment = session.get(PipelineDeployment, id)
     deployment = check_deployment_authorized(deployment, current_user, id)
 
-    current_state = deployment.state
     new_state = update.state
 
     # Update the state
