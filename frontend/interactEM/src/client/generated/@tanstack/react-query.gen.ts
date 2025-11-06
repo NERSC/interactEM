@@ -117,7 +117,7 @@ import type {
   UsersUpdateUserResponse,
 } from "../types.gen"
 
-type QueryKey<TOptions extends Options> = [
+export type QueryKey<TOptions extends Options> = [
   Pick<TOptions, "baseURL" | "body" | "headers" | "path" | "query"> & {
     _id: string
     _infinite?: boolean
@@ -128,7 +128,7 @@ const createQueryKey = <TOptions extends Options>(
   id: string,
   options?: TOptions,
   infinite?: boolean,
-): QueryKey<TOptions>[0] => {
+): [QueryKey<TOptions>[0]] => {
   const params: QueryKey<TOptions>[0] = {
     _id: id,
     baseURL: (options?.client ?? _heyApiClient).getConfig().baseURL,
@@ -148,12 +148,12 @@ const createQueryKey = <TOptions extends Options>(
   if (options?.query) {
     params.query = options.query
   }
-  return params
+  return [params]
 }
 
 export const loginLoginAccessTokenQueryKey = (
   options: Options<LoginLoginAccessTokenData>,
-) => [createQueryKey("loginLoginAccessToken", options)]
+) => createQueryKey("loginLoginAccessToken", options)
 
 export const loginLoginAccessTokenOptions = (
   options: Options<LoginLoginAccessTokenData>,
@@ -194,7 +194,7 @@ export const loginLoginAccessTokenMutation = (
 
 export const loginLoginWithExternalTokenQueryKey = (
   options?: Options<LoginLoginWithExternalTokenData>,
-) => [createQueryKey("loginLoginWithExternalToken", options)]
+) => createQueryKey("loginLoginWithExternalToken", options)
 
 export const loginLoginWithExternalTokenOptions = (
   options?: Options<LoginLoginWithExternalTokenData>,
@@ -233,9 +233,8 @@ export const loginLoginWithExternalTokenMutation = (
   return mutationOptions
 }
 
-export const loginTestTokenQueryKey = (
-  options?: Options<LoginTestTokenData>,
-) => [createQueryKey("loginTestToken", options)]
+export const loginTestTokenQueryKey = (options?: Options<LoginTestTokenData>) =>
+  createQueryKey("loginTestToken", options)
 
 export const loginTestTokenOptions = (
   options?: Options<LoginTestTokenData>,
@@ -274,9 +273,8 @@ export const loginTestTokenMutation = (
   return mutationOptions
 }
 
-export const usersReadUsersQueryKey = (
-  options?: Options<UsersReadUsersData>,
-) => [createQueryKey("usersReadUsers", options)]
+export const usersReadUsersQueryKey = (options?: Options<UsersReadUsersData>) =>
+  createQueryKey("usersReadUsers", options)
 
 export const usersReadUsersOptions = (
   options?: Options<UsersReadUsersData>,
@@ -297,7 +295,7 @@ export const usersReadUsersOptions = (
 
 export const usersCreateUserQueryKey = (
   options: Options<UsersCreateUserData>,
-) => [createQueryKey("usersCreateUser", options)]
+) => createQueryKey("usersCreateUser", options)
 
 export const usersCreateUserOptions = (
   options: Options<UsersCreateUserData>,
@@ -358,7 +356,7 @@ export const usersDeleteUserMeMutation = (
 
 export const usersReadUserMeQueryKey = (
   options?: Options<UsersReadUserMeData>,
-) => [createQueryKey("usersReadUserMe", options)]
+) => createQueryKey("usersReadUserMe", options)
 
 export const usersReadUserMeOptions = (
   options?: Options<UsersReadUserMeData>,
@@ -439,7 +437,7 @@ export const usersDeleteUserMutation = (
 
 export const usersReadUserByIdQueryKey = (
   options: Options<UsersReadUserByIdData>,
-) => [createQueryKey("usersReadUserById", options)]
+) => createQueryKey("usersReadUserById", options)
 
 export const usersReadUserByIdOptions = (
   options: Options<UsersReadUserByIdData>,
@@ -480,7 +478,7 @@ export const usersUpdateUserMutation = (
 
 export const pipelinesReadPipelinesQueryKey = (
   options?: Options<PipelinesReadPipelinesData>,
-) => [createQueryKey("pipelinesReadPipelines", options)]
+) => createQueryKey("pipelinesReadPipelines", options)
 
 export const pipelinesReadPipelinesOptions = (
   options?: Options<PipelinesReadPipelinesData>,
@@ -535,9 +533,8 @@ const createInfiniteParams = <
 
 export const pipelinesReadPipelinesInfiniteQueryKey = (
   options?: Options<PipelinesReadPipelinesData>,
-): QueryKey<Options<PipelinesReadPipelinesData>> => [
-  createQueryKey("pipelinesReadPipelines", options, true),
-]
+): QueryKey<Options<PipelinesReadPipelinesData>> =>
+  createQueryKey("pipelinesReadPipelines", options, true)
 
 export const pipelinesReadPipelinesInfiniteOptions = (
   options?: Options<PipelinesReadPipelinesData>,
@@ -584,7 +581,7 @@ export const pipelinesReadPipelinesInfiniteOptions = (
 
 export const pipelinesCreatePipelineQueryKey = (
   options: Options<PipelinesCreatePipelineData>,
-) => [createQueryKey("pipelinesCreatePipeline", options)]
+) => createQueryKey("pipelinesCreatePipeline", options)
 
 export const pipelinesCreatePipelineOptions = (
   options: Options<PipelinesCreatePipelineData>,
@@ -645,7 +642,7 @@ export const pipelinesDeletePipelineMutation = (
 
 export const pipelinesReadPipelineQueryKey = (
   options: Options<PipelinesReadPipelineData>,
-) => [createQueryKey("pipelinesReadPipeline", options)]
+) => createQueryKey("pipelinesReadPipeline", options)
 
 export const pipelinesReadPipelineOptions = (
   options: Options<PipelinesReadPipelineData>,
@@ -686,7 +683,7 @@ export const pipelinesUpdatePipelineMutation = (
 
 export const pipelinesListPipelineRevisionsQueryKey = (
   options: Options<PipelinesListPipelineRevisionsData>,
-) => [createQueryKey("pipelinesListPipelineRevisions", options)]
+) => createQueryKey("pipelinesListPipelineRevisions", options)
 
 export const pipelinesListPipelineRevisionsOptions = (
   options: Options<PipelinesListPipelineRevisionsData>,
@@ -707,9 +704,8 @@ export const pipelinesListPipelineRevisionsOptions = (
 
 export const pipelinesListPipelineRevisionsInfiniteQueryKey = (
   options: Options<PipelinesListPipelineRevisionsData>,
-): QueryKey<Options<PipelinesListPipelineRevisionsData>> => [
-  createQueryKey("pipelinesListPipelineRevisions", options, true),
-]
+): QueryKey<Options<PipelinesListPipelineRevisionsData>> =>
+  createQueryKey("pipelinesListPipelineRevisions", options, true)
 
 export const pipelinesListPipelineRevisionsInfiniteOptions = (
   options: Options<PipelinesListPipelineRevisionsData>,
@@ -756,7 +752,7 @@ export const pipelinesListPipelineRevisionsInfiniteOptions = (
 
 export const pipelinesAddPipelineRevisionQueryKey = (
   options: Options<PipelinesAddPipelineRevisionData>,
-) => [createQueryKey("pipelinesAddPipelineRevision", options)]
+) => createQueryKey("pipelinesAddPipelineRevision", options)
 
 export const pipelinesAddPipelineRevisionOptions = (
   options: Options<PipelinesAddPipelineRevisionData>,
@@ -797,7 +793,7 @@ export const pipelinesAddPipelineRevisionMutation = (
 
 export const pipelinesReadPipelineRevisionQueryKey = (
   options: Options<PipelinesReadPipelineRevisionData>,
-) => [createQueryKey("pipelinesReadPipelineRevision", options)]
+) => createQueryKey("pipelinesReadPipelineRevision", options)
 
 export const pipelinesReadPipelineRevisionOptions = (
   options: Options<PipelinesReadPipelineRevisionData>,
@@ -858,7 +854,7 @@ export const pipelinesUpdatePipelineRevisionPositionsMutation = (
 
 export const pipelinesListPipelineDeploymentsQueryKey = (
   options: Options<PipelinesListPipelineDeploymentsData>,
-) => [createQueryKey("pipelinesListPipelineDeployments", options)]
+) => createQueryKey("pipelinesListPipelineDeployments", options)
 
 export const pipelinesListPipelineDeploymentsOptions = (
   options: Options<PipelinesListPipelineDeploymentsData>,
@@ -879,9 +875,8 @@ export const pipelinesListPipelineDeploymentsOptions = (
 
 export const pipelinesListPipelineDeploymentsInfiniteQueryKey = (
   options: Options<PipelinesListPipelineDeploymentsData>,
-): QueryKey<Options<PipelinesListPipelineDeploymentsData>> => [
-  createQueryKey("pipelinesListPipelineDeployments", options, true),
-]
+): QueryKey<Options<PipelinesListPipelineDeploymentsData>> =>
+  createQueryKey("pipelinesListPipelineDeployments", options, true)
 
 export const pipelinesListPipelineDeploymentsInfiniteOptions = (
   options: Options<PipelinesListPipelineDeploymentsData>,
@@ -928,7 +923,7 @@ export const pipelinesListPipelineDeploymentsInfiniteOptions = (
 
 export const pipelinesListPipelineRevisionDeploymentsQueryKey = (
   options: Options<PipelinesListPipelineRevisionDeploymentsData>,
-) => [createQueryKey("pipelinesListPipelineRevisionDeployments", options)]
+) => createQueryKey("pipelinesListPipelineRevisionDeployments", options)
 
 export const pipelinesListPipelineRevisionDeploymentsOptions = (
   options: Options<PipelinesListPipelineRevisionDeploymentsData>,
@@ -949,9 +944,8 @@ export const pipelinesListPipelineRevisionDeploymentsOptions = (
 
 export const pipelinesListPipelineRevisionDeploymentsInfiniteQueryKey = (
   options: Options<PipelinesListPipelineRevisionDeploymentsData>,
-): QueryKey<Options<PipelinesListPipelineRevisionDeploymentsData>> => [
-  createQueryKey("pipelinesListPipelineRevisionDeployments", options, true),
-]
+): QueryKey<Options<PipelinesListPipelineRevisionDeploymentsData>> =>
+  createQueryKey("pipelinesListPipelineRevisionDeployments", options, true)
 
 export const pipelinesListPipelineRevisionDeploymentsInfiniteOptions = (
   options: Options<PipelinesListPipelineRevisionDeploymentsData>,
@@ -999,7 +993,7 @@ export const pipelinesListPipelineRevisionDeploymentsInfiniteOptions = (
 
 export const deploymentsListPipelineDeploymentsQueryKey = (
   options?: Options<DeploymentsListPipelineDeploymentsData>,
-) => [createQueryKey("deploymentsListPipelineDeployments", options)]
+) => createQueryKey("deploymentsListPipelineDeployments", options)
 
 export const deploymentsListPipelineDeploymentsOptions = (
   options?: Options<DeploymentsListPipelineDeploymentsData>,
@@ -1020,9 +1014,8 @@ export const deploymentsListPipelineDeploymentsOptions = (
 
 export const deploymentsListPipelineDeploymentsInfiniteQueryKey = (
   options?: Options<DeploymentsListPipelineDeploymentsData>,
-): QueryKey<Options<DeploymentsListPipelineDeploymentsData>> => [
-  createQueryKey("deploymentsListPipelineDeployments", options, true),
-]
+): QueryKey<Options<DeploymentsListPipelineDeploymentsData>> =>
+  createQueryKey("deploymentsListPipelineDeployments", options, true)
 
 export const deploymentsListPipelineDeploymentsInfiniteOptions = (
   options?: Options<DeploymentsListPipelineDeploymentsData>,
@@ -1069,7 +1062,7 @@ export const deploymentsListPipelineDeploymentsInfiniteOptions = (
 
 export const deploymentsCreatePipelineDeploymentQueryKey = (
   options: Options<DeploymentsCreatePipelineDeploymentData>,
-) => [createQueryKey("deploymentsCreatePipelineDeployment", options)]
+) => createQueryKey("deploymentsCreatePipelineDeployment", options)
 
 export const deploymentsCreatePipelineDeploymentOptions = (
   options: Options<DeploymentsCreatePipelineDeploymentData>,
@@ -1110,7 +1103,7 @@ export const deploymentsCreatePipelineDeploymentMutation = (
 
 export const deploymentsReadPipelineDeploymentQueryKey = (
   options: Options<DeploymentsReadPipelineDeploymentData>,
-) => [createQueryKey("deploymentsReadPipelineDeployment", options)]
+) => createQueryKey("deploymentsReadPipelineDeployment", options)
 
 export const deploymentsReadPipelineDeploymentOptions = (
   options: Options<DeploymentsReadPipelineDeploymentData>,
@@ -1151,7 +1144,7 @@ export const deploymentsUpdatePipelineDeploymentMutation = (
 
 export const operatorsReadOperatorsQueryKey = (
   options?: Options<OperatorsReadOperatorsData>,
-) => [createQueryKey("operatorsReadOperators", options)]
+) => createQueryKey("operatorsReadOperators", options)
 
 export const operatorsReadOperatorsOptions = (
   options?: Options<OperatorsReadOperatorsData>,
@@ -1172,7 +1165,7 @@ export const operatorsReadOperatorsOptions = (
 
 export const agentsLaunchAgentQueryKey = (
   options: Options<AgentsLaunchAgentData>,
-) => [createQueryKey("agentsLaunchAgent", options)]
+) => createQueryKey("agentsLaunchAgent", options)
 
 export const agentsLaunchAgentOptions = (
   options: Options<AgentsLaunchAgentData>,

@@ -248,14 +248,23 @@ export const zPipelineDeploymentPublic = z.object({
   id: z.string().uuid(),
   pipeline_id: z.string().uuid(),
   revision_id: z.number().int(),
-  state: z.enum(["pending", "failed_to_start", "running", "cancelled"]),
+  state: z.enum([
+    "pending",
+    "assigned_agents",
+    "failed_to_start",
+    "failure_on_agent",
+    "running",
+    "cancelled",
+  ]),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 })
 
 export const zPipelineDeploymentState = z.enum([
   "pending",
+  "assigned_agents",
   "failed_to_start",
+  "failure_on_agent",
   "running",
   "cancelled",
 ])
