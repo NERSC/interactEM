@@ -4,6 +4,7 @@ import {
 } from "../../constants/nats"
 import type { RuntimeOperatorParameterAck } from "../../types/gen"
 import { RuntimeOperatorParameterAckSchema } from "../../types/params"
+import { useOperatorInSelectedPipeline } from "./useOperatorStatus"
 import { useStreamMessage } from "./useStreamMessage"
 
 const streamConfig = {
@@ -17,6 +18,7 @@ export const useParameterAck = (
   defaultValue: string,
 ) => {
   const subject = `${SUBJECT_OPERATORS_PARAMETERS}.${operatorID}.${parameterName}`
+  const { isInRunningPipeline } = useOperatorInSelectedPipeline(operatorID)
 
   const { data, hasReceivedMessage } =
     useStreamMessage<RuntimeOperatorParameterAck>({
@@ -24,6 +26,7 @@ export const useParameterAck = (
       streamConfig,
       subject,
       initialValue: null,
+      enabled: isInRunningPipeline,
       transform: (unvalidated: any) => {
         try {
           // Validate
@@ -51,11 +54,13 @@ export const useParameterAck = (
       },
     })
 
-  // Extract the actual value, using default if no ack received or no value in ack
-  const actualValue = data?.value ?? defaultValue
+  // Return defaults if not in running pipeline
+  const actualValue = isInRunningPipeline
+    ? (data?.value ?? defaultValue)
+    : defaultValue
   return {
     actualValue,
-    hasReceivedMessage,
-    ackData: data,
+    hasReceivedMessage: isInRunningPipeline ? hasReceivedMessage : false,
+    ackData: isInRunningPipeline ? data : null,
   }
 }
