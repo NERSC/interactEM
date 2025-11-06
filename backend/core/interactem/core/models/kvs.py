@@ -5,7 +5,7 @@ from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
 
-from interactem.core.constants import AGENTS, OPERATORS, PIPELINES, PORTS
+from interactem.core.constants import AGENTS, OPERATORS, PORTS
 from interactem.core.models.base import KvKeyMixin
 from interactem.core.models.canonical import (
     CanonicalOperatorID,
@@ -14,7 +14,6 @@ from interactem.core.models.canonical import (
 )
 from interactem.core.models.runtime import (
     RuntimeOperatorID,
-    RuntimePipeline,
     RuntimePipelineID,
     RuntimePortID,
 )
@@ -129,11 +128,3 @@ class PortVal(BaseModel, KvKeyMixin):
 
     def key(self) -> str:
         return f"{PORTS}.{self.id}"
-
-
-class PipelineRunVal(BaseModel, KvKeyMixin):
-    id: RuntimePipelineID
-    pipeline: RuntimePipeline
-
-    def key(self) -> str:
-        return f"{PIPELINES}.{self.id}"

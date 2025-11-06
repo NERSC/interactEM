@@ -30,53 +30,15 @@ from .assign import PipelineAssigner
 from .exceptions import InvalidPipelineError
 
 logger = get_logger()
-
-
-async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
-    pipeline_bucket = await get_status_bucket(js, create=False)
-    key = f"{PIPELINES}.{str(pipeline_id)}"  # TODO: use PipelineRunVal.key() instead
-    await pipeline_bucket.delete(key)
-    await pipeline_bucket.purge(key)
-
-
-async def update_pipeline_kv(js: JetStreamContext, pipeline: RuntimePipeline):
     _pipeline = PipelineRunVal(id=pipeline.id, pipeline=pipeline)
-    pipeline_bucket = await get_status_bucket(js, create=False)
-    await pipeline_bucket.put(_pipeline.key(), _pipeline.model_dump_json().encode())
-
-
 async def continuous_update_kv(
-    js: JetStreamContext, state: dict[IdType, RuntimePipeline], interval: int = 1
-):
-    """Continuously update the KV store with automatic restart on failure."""
-    while True:
-        try:
             deployments_snapshot = list(state.values())
-            for pipeline in deployments_snapshot:
                 await update_pipeline_kv(js, pipeline)
-            logger.debug(f"Updated {len(deployments_snapshot)} pipelines in KV store.")
-            await anyio.sleep(interval)
-        except Exception as e:
-            logger.error(f"KV updater crashed: {e}, restarting...")
             await anyio.sleep(interval)
 
 
-async def clean_up_old_pipelines(js: JetStreamContext, valid_pipeline: RuntimePipeline):
     bucket = await get_status_bucket(js, create=False)
     current_pipeline_keys = await get_keys(bucket, filters=[f"{PIPELINES}"])
-
-    async with anyio.create_task_group() as tg:
-        for key in current_pipeline_keys:
-            id = key.removeprefix(f"{PIPELINES}.")
-            if id == str(valid_pipeline.id):
-                continue
-            try:
-                uid = UUID(id)
-                tg.start_soon(delete_pipeline_kv, js, uid)
-                logger.debug(f"Scheduled deletion for old pipeline id: {id}")
-            except ValueError:
-                logger.warning(f"Skipping deletion of non-UUID pipeline id: {id}")
-
 
 async def handle_run_pipeline(
     event: PipelineRunEvent,
