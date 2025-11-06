@@ -37,6 +37,7 @@ from ..models.runtime import (
     RuntimeOperatorParameterAck,
 )
 from ..nats.streams import (
+    DEPLOYMENTS_JSTREAM,
     NOTIFICATIONS_JSTREAM,
     PARAMETERS_JSTREAM,
 )
