@@ -15,6 +15,7 @@ import { useReactFlow } from "@xyflow/react"
 import { memo, useEffect, useState } from "react"
 import type { OperatorSpecParameter } from "../../client"
 import { useSavePipelineRevision } from "../../hooks/api/useSavePipelineRevision"
+import { useOperatorInSelectedPipeline } from "../../hooks/nats/useOperatorStatus"
 import { useParameterUpdate } from "../../hooks/nats/useParameterUpdate"
 import { useParameterAck } from "../../hooks/nats/useParameterValue"
 import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
@@ -33,6 +34,8 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 }) => {
   const { viewMode } = useViewModeStore()
   const { selectedRuntimePipelineId } = usePipelineStore()
+  const { isInRunningPipeline } =
+    useOperatorInSelectedPipeline(operatorCanonicalID)
 
   const { getNode, setNodes, getEdges, getNodes } =
     useReactFlow<OperatorNodeType>()
@@ -53,8 +56,8 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     throw new Error(`Node with id ${operatorCanonicalID} not found`)
   }
 
-  // In Runtime mode, check if we have a selected runtime pipeline deployment
-  const hasRuntimePipeline = !!selectedRuntimePipelineId
+  // In Runtime mode, check if we have a selected runtime pipeline deployment AND operator is in it
+  const hasRuntimePipeline = !!selectedRuntimePipelineId && isInRunningPipeline
 
   const comparisonTarget =
     viewMode === ViewMode.Runtime && hasRuntimePipeline

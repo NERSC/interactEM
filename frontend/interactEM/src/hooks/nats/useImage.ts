@@ -1,4 +1,5 @@
 import { STREAM_IMAGES } from "../../constants/nats"
+import { useOperatorInSelectedPipeline } from "./useOperatorStatus"
 import { useStreamMessage } from "./useStreamMessage"
 
 const streamConfig = {
@@ -9,6 +10,7 @@ const streamConfig = {
 
 export const useImage = (operatorID: string): Uint8Array | null => {
   const subject = `${STREAM_IMAGES}.${operatorID}`
+  const { isInRunningPipeline } = useOperatorInSelectedPipeline(operatorID)
 
   // ensure stream
   // TODO: there is still for some reason a bug here that requires us to run things twice.
@@ -22,11 +24,12 @@ export const useImage = (operatorID: string): Uint8Array | null => {
     streamName: STREAM_IMAGES,
     streamConfig,
     subject,
+    enabled: isInRunningPipeline,
     transform: (_, originalMessage) => {
       // Return the raw binary data instead of parsing as JSON
       return originalMessage.data
     },
   })
 
-  return data
+  return isInRunningPipeline ? data : null
 }

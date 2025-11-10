@@ -16,6 +16,7 @@ interface UseStreamMessageOptions<T> {
   deliverPolicy?: DeliverPolicy
   initialValue?: T | null
   transform?: (data: any, originalMessage: JsMsg) => T | null
+  enabled?: boolean
 }
 
 export function useStreamMessage<T>({
@@ -25,6 +26,7 @@ export function useStreamMessage<T>({
   deliverPolicy = DeliverPolicy.LastPerSubject,
   initialValue = null,
   transform,
+  enabled = true,
 }: UseStreamMessageOptions<T>) {
   const [data, setData] = useState<T | null>(initialValue)
   const [hasReceivedMessage, setHasReceivedMessage] = useState<boolean>(false)
@@ -32,15 +34,16 @@ export function useStreamMessage<T>({
   // Ensure stream exists
   useStream(streamConfig)
 
-  const consumerConfig = useMemo(
-    () => ({
+  const consumerConfig = useMemo(() => {
+    if (enabled === false) return null
+
+    return {
       filter_subjects: [subject],
       deliver_policy: deliverPolicy,
       ack_policy: AckPolicy.Explicit,
       replay_policy: ReplayPolicy.Instant,
-    }),
-    [subject, deliverPolicy],
-  )
+    }
+  }, [subject, deliverPolicy, enabled])
 
   const consumer = useConsumer({
     stream: streamName,
