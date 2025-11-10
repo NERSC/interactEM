@@ -12,7 +12,7 @@ from interactem.core.logger import get_logger
 logger = get_logger()
 
 
-class DeploymentManager(AsyncContextManagerMixin):
+class DeploymentContext(AsyncContextManagerMixin):
     """Manages async tasks for a pipeline deployment using anyio task groups.
 
     All spawned tasks are automatically tracked and cancelled on deployment exit.
@@ -21,10 +21,10 @@ class DeploymentManager(AsyncContextManagerMixin):
     def __init__(self, deployment_id: uuid.UUID):
         self.deployment_id = deployment_id
         self.task_group: TaskGroup | None = None
-        logger.info(f"Created DeploymentManager for deployment {deployment_id}")
+        logger.info(f"Created DeploymentContext for deployment {deployment_id}")
 
     @asynccontextmanager
-    async def __asynccontextmanager__(self) -> AsyncGenerator["DeploymentManager"]:
+    async def __asynccontextmanager__(self) -> AsyncGenerator["DeploymentContext"]:
         """Manage deployment lifecycle with anyio task group."""
         try:
             async with anyio.create_task_group() as tg:
@@ -38,7 +38,7 @@ class DeploymentManager(AsyncContextManagerMixin):
     def cancel(self) -> None:
         """Cancel all tasks in this deployment."""
         if self.task_group is None:
-            logger.warning(f"DeploymentManager {self.deployment_id} not initialized")
+            logger.warning(f"DeploymentContext {self.deployment_id} not initialized")
             return
         self.task_group.cancel_scope.cancel()
 
@@ -53,7 +53,7 @@ class DeploymentManager(AsyncContextManagerMixin):
         """
         if self.task_group is None:
             raise RuntimeError(
-                f"DeploymentManager {self.deployment_id} not initialized. "
+                f"DeploymentContext {self.deployment_id} not initialized. "
                 "Must use as context manager."
             )
 

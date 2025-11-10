@@ -55,7 +55,7 @@ from interactem.core.nats.publish import (
 from interactem.core.pipeline import Pipeline
 
 from .config import cfg
-from .deployment_manager import DeploymentManager
+from .deployment import DeploymentContext
 
 # Can use this for mac:
 # https://podman-desktop.io/blog/5-things-to-know-for-a-docker-user#docker-compatibility-mode
@@ -160,7 +160,7 @@ class Agent:
         self._suppress_monitor = False
 
         # Deployment management
-        self._current_deployment: DeploymentManager | None = None
+        self._current_deployment: DeploymentContext | None = None
         self._deployment_task: asyncio.Task | None = None
         self._deployment_lock = anyio.Lock()
         self._monitor_task: asyncio.Task | None = None
@@ -318,7 +318,7 @@ class Agent:
     async def receive_assignment(self, event: AgentPipelineRunEvent):
         """Handle incoming deployment assignment.
 
-        This method creates and runs a deployment within a DeploymentManager context.
+        This method creates and runs a deployment within a DeploymentContext context.
         The deployment will continue running until explicitly cancelled via receive_cancellation.
         """
         assignment = event.assignment
@@ -342,14 +342,14 @@ class Agent:
                     logger.exception(f"Error in cancelled deployment: {e}")
 
             # Create and spawn new deployment
-            self._current_deployment = DeploymentManager(deployment_id)
+            self._current_deployment = DeploymentContext(deployment_id)
             self._deployment_task = asyncio.create_task(
                 self._run_deployment(event),
                 name=f"deployment-{deployment_id}",
             )
 
     async def _run_deployment(self, event: AgentPipelineRunEvent) -> None:
-        """Run a deployment within a DeploymentManager context.
+        """Run a deployment within a DeploymentContext context.
 
         This method manages the entire lifecycle of a deployment:
         1. Setup: load pipeline, create log directory, update status
@@ -357,8 +357,8 @@ class Agent:
         3. Teardown: clean up when deployment ends or is cancelled
         """
         if self._current_deployment is None:
-            logger.error("DeploymentManager not initialized for _run_deployment")
-            raise RuntimeError("DeploymentManager not initialized for _run_deployment")
+            logger.error("DeploymentContext not initialized for _run_deployment")
+            raise RuntimeError("DeploymentContext not initialized for _run_deployment")
 
         deployment_id = self._current_deployment.deployment_id
         assignment = event.assignment
