@@ -38,7 +38,7 @@ class DeploymentStateMachine(AsyncMachine):
     # transition definitions: (trigger, [source_states], dest_state)
     TRANSITIONS = [
         ("assign", [PENDING], AGENTS_ASSIGNED),
-        ("assign", [PENDING], AGENTS_ASSIGNED),
+
         ("start_failure", [PENDING, AGENTS_ASSIGNED], FAILED_TO_START),
         ("start_failure", [FAILURE_ON_AGENT], "="),  # idempotent
         ("agent_failure", [AGENTS_ASSIGNED, RUNNING], FAILURE_ON_AGENT),

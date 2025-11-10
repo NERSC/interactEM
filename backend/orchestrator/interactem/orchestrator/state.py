@@ -76,7 +76,7 @@ class OrchestratorState:
         self.deployment_state_machines: dict[DeploymentID, DeploymentStateMachine] = {}
         self.agent_trackers: dict[AgentID, AgentTracker] = {}
 
-        # need this to process events before we start receiving udpates from agents/operators
+        # need this to process events before we start receiving updates from agents/operators
         self._ready = anyio.Event()
 
     @property
@@ -192,7 +192,7 @@ class OrchestratorState:
         await self._ready.wait()
 
         # TODO: for now we don't do anything with operators
-        new_op, old_op, oper = self._entry(
+        self._entry(
             id=id,
             entry=entry,
             store=self.operators,
