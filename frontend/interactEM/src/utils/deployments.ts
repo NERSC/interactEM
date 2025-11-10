@@ -2,15 +2,17 @@ import type { PipelineDeploymentState } from "../client"
 
 export const getDeploymentStateColor = (
   state: PipelineDeploymentState,
-): "default" | "primary" | "error" => {
+): "default" | "primary" | "secondary" | "error" => {
   const STATE_COLORS: Record<
     PipelineDeploymentState,
-    "default" | "primary" | "error"
+    "default" | "primary" | "secondary" | "error"
   > = {
-    pending: "default",
+    pending: "secondary",
     running: "primary",
     cancelled: "default",
     failed_to_start: "error",
+    failure_on_agent: "error",
+    assigned_agents: "secondary",
   }
 
   return STATE_COLORS[state] || "default"
