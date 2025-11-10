@@ -1,13 +1,15 @@
 import asyncio
+import functools
 import os
 import tempfile
 import time
 import uuid
-from collections.abc import Coroutine
 
+import anyio
 import podman
 import podman.errors
 import stamina
+from anyio import to_thread
 from faststream.nats import NatsBroker
 from faststream.nats.publisher.usecase import LogicPublisher
 from podman.domain.containers import Container
@@ -19,6 +21,10 @@ from interactem.core.constants import (
     VECTOR_IMAGE,
 )
 from interactem.core.constants.mounts import CORE_MOUNT, OPERATORS_MOUNT
+from interactem.core.events.pipelines import (
+    AgentPipelineRunEvent,
+    AgentPipelineStopEvent,
+)
 from interactem.core.logger import get_logger
 from interactem.core.models.containers import (
     MountDoesntExistError,
@@ -28,7 +34,6 @@ from interactem.core.models.containers import (
 from interactem.core.models.kvs import AgentStatus, AgentVal
 from interactem.core.models.runtime import (
     AgentRuntimeOperator,
-    PipelineAssignment,
     RuntimeOperator,
     RuntimeOperatorID,
     RuntimeOperatorParameter,
@@ -48,9 +53,9 @@ from interactem.core.nats.publish import (
     publish_pipeline_to_operators,
 )
 from interactem.core.pipeline import Pipeline
-from interactem.core.util import create_task_with_ref
 
 from .config import cfg
+from .deployment import DeploymentContext
 
 # Can use this for mac:
 # https://podman-desktop.io/blog/5-things-to-know-for-a-docker-user#docker-compatibility-mode
@@ -103,7 +108,6 @@ class ContainerTracker:
         self.container = container
         self.operator = operator
         self.marked_for_restart = False
-        self.mount_parameter_tasks: list[asyncio.Task] = []
         self.num_restarts = 0
 
     def mark(self):
@@ -112,14 +116,6 @@ class ContainerTracker:
     def unmark(self):
         self.marked_for_restart = False
 
-    def add_parameter_task(self, task: asyncio.Task):
-        self.mount_parameter_tasks.append(task)
-
-    def __del__(self):
-        for task in self.mount_parameter_tasks:
-            task.cancel()
-        self.mount_parameter_tasks.clear()
-
 
 class Agent:
     def __init__(self, id: uuid.UUID, broker: NatsBroker):
@@ -127,7 +123,6 @@ class Agent:
         self.pipeline: Pipeline | None = None
         self._my_operator_ids: list[uuid.UUID] = []
         self._start_time = time.time()
-        self._current_deployment_id: uuid.UUID | None = None
 
         if PODMAN_SERVICE_URI:
             self._podman_service_uri = PODMAN_SERVICE_URI
@@ -147,8 +142,6 @@ class Agent:
         # this is set in the broker code
         self.error_publisher: LogicPublisher
 
-        self._shutdown_event = asyncio.Event()
-
         self.agent_val: AgentVal = AgentVal(
             name=cfg.AGENT_NAME,
             tags=cfg.AGENT_TAGS,
@@ -163,10 +156,18 @@ class Agent:
         )
         self.agent_kv: KeyValueLoop[AgentVal]
         self.container_trackers: dict[RuntimeOperatorID, ContainerTracker] = {}
-        self._container_monitor_task: asyncio.Task | None = None
         # suppress monitor during container cleanup
         self._suppress_monitor = False
-        self._task_refs: set[asyncio.Task] = set()
+
+        # Deployment management
+        self._current_deployment: DeploymentContext | None = None
+        self._deployment_task: asyncio.Task | None = None
+        self._deployment_lock = anyio.Lock()
+        self._monitor_task: asyncio.Task | None = None
+        # Use asyncio.Event since KeyValueLoop expects it
+        self._shutdown_event = asyncio.Event()
+        # Separate shutdown event for KV loop to maintain updates during shutdown
+        self._kv_shutdown_event = asyncio.Event()
 
     async def _start_podman_service(self, create_process=False):
         self._podman_process = None
@@ -224,11 +225,9 @@ class Agent:
                     for container in containers
                     if container.labels.get("container.type") != "vector"
                 ]
-                tasks = [
-                    stop_and_remove_container(container)
-                    for container in operator_containers
-                ]
-                await asyncio.gather(*tasks)
+                async with anyio.create_task_group() as tg:
+                    for container in operator_containers:
+                        tg.start_soon(stop_and_remove_container, container)
         finally:
             self._suppress_monitor = False
 
@@ -242,7 +241,7 @@ class Agent:
         self.agent_kv = KeyValueLoop[AgentVal](
             nc=self.nc,
             js=self.js,
-            shutdown_event=self._shutdown_event,
+            shutdown_event=self._kv_shutdown_event,
             bucket=InteractemBucket.STATUS,
             update_interval=10.0,
             data_model=AgentVal,
@@ -251,7 +250,8 @@ class Agent:
         self.agent_kv.add_or_update_value(self.agent_val.key(), self.agent_val)
 
         await self.agent_kv.start()
-        self._container_monitor_task = asyncio.create_task(self.monitor_containers())
+        # Start the container monitor task at the agent level
+        self._monitor_task = asyncio.create_task(self.monitor_containers())
         self._vector_container = await self._start_vector_container()
 
     async def _start_vector_container(self) -> Container:
@@ -260,7 +260,7 @@ class Agent:
         with PodmanClient(
             base_url=self._podman_service_uri, max_pool_size=PODMAN_MAX_POOL_SIZE
         ) as client:
-            await pull_image(client, VECTOR_IMAGE)
+            pull_image(client, VECTOR_IMAGE)
 
             log_config = {
                 "Type": "k8s-file",
@@ -282,40 +282,144 @@ class Agent:
             container.start()
             return container
 
-    async def receive_assignment(self, assignment: PipelineAssignment):
-        try:
-            self.pipeline = Pipeline.from_pipeline(assignment.pipeline)
-            self._my_operator_ids = assignment.operators_assigned
-            self._current_deployment_id = assignment.pipeline.id
-            self.agent_val.operator_assignments = assignment.operators_assigned
+    async def receive_cancellation(self, event: AgentPipelineStopEvent):
+        deployment_id = event.deployment_id
+        logger.info(f"Received cancellation for deployment {deployment_id}")
 
-            # Create deployment-specific log directory
-            deployment_log_dir = cfg.LOG_DIR / str(self._current_deployment_id)
-            deployment_log_dir.mkdir(parents=True, exist_ok=True)
-            logger.info(f"Created deployment log directory: {deployment_log_dir}")
+        async with self._deployment_lock:
+            # Check if this cancellation is for the current deployment
+            if self._current_deployment is None:
+                logger.warning(
+                    f"Received cancellation for deployment {deployment_id}, "
+                    f"but no deployment is currently running"
+                )
+                return
 
-            logger.info(f"Operators assigned: {self._my_operator_ids}")
-            self.agent_val.status = AgentStatus.BUSY
-            self.agent_val.status_message = "Cleaning up containers..."
-            await self.agent_kv.update_now()
-            self._suppress_monitor = True
-            await self._cleanup_containers()
-            self._suppress_monitor = False
-            self.agent_val.status_message = "Starting operators..."
-            await self.agent_kv.update_now()
-            await self.start_operators()
-            self.agent_val.status_message = "Operators started..."
-            self.agent_val.status = AgentStatus.IDLE
-            await self.agent_kv.update_now()
-        except Exception as e:
-            self.agent_val.status = AgentStatus.ERROR
-            _msg = f"Failed to start operators: {e}"
-            self.agent_val.add_error(_msg)
-            await self.agent_kv.update_now()
-            await self.error_publisher.publish(_msg)
-            logger.exception(_msg)
+            if self._current_deployment.deployment_id != deployment_id:
+                logger.warning(
+                    f"Received cancellation for deployment {deployment_id}, "
+                    f"but current deployment is {self._current_deployment.deployment_id}"
+                )
+                return
+
+            # Cancel and wait for cleanup
+            self._current_deployment.cancel()
+            if self._deployment_task is not None:
+                try:
+                    await self._deployment_task
+                except anyio.get_cancelled_exc_class():
+                    pass
+                except Exception as e:
+                    logger.exception(f"Error during cancellation: {e}")
+
+            self._current_deployment = None
+            self._deployment_task = None
+
+    async def receive_assignment(self, event: AgentPipelineRunEvent):
+        """Handle incoming deployment assignment.
+
+        This method creates and runs a deployment within a DeploymentContext context.
+        The deployment will continue running until explicitly cancelled via receive_cancellation.
+        """
+        assignment = event.assignment
+        deployment_id = assignment.pipeline.id
+
+        async with self._deployment_lock:
+            # Cancel and WAIT for existing deployment to finish
+            if self._deployment_task is not None and not self._deployment_task.done():
+                logger.info(
+                    f"Cancelling existing deployment to start new deployment {deployment_id}"
+                )
+                if self._current_deployment is not None:
+                    self._current_deployment.cancel()
+
+                # Wait for the old deployment task to actually finish cleanup
+                try:
+                    await self._deployment_task
+                except asyncio.CancelledError:
+                    pass  # Expected when cancelled
+                except Exception as e:
+                    logger.exception(f"Error in cancelled deployment: {e}")
+
+            # Create and spawn new deployment
+            self._current_deployment = DeploymentContext(deployment_id)
+            self._deployment_task = asyncio.create_task(
+                self._run_deployment(event),
+                name=f"deployment-{deployment_id}",
+            )
+
+    async def _run_deployment(self, event: AgentPipelineRunEvent) -> None:
+        """Run a deployment within a DeploymentContext context.
+
+        This method manages the entire lifecycle of a deployment:
+        1. Setup: load pipeline, create log directory, update status
+        2. Execution: start operators and manage container monitoring
+        3. Teardown: clean up when deployment ends or is cancelled
+        """
+        if self._current_deployment is None:
+            logger.error("DeploymentContext not initialized for _run_deployment")
+            raise RuntimeError("DeploymentContext not initialized for _run_deployment")
+
+        deployment_id = self._current_deployment.deployment_id
+        assignment = event.assignment
+
+        async with self._current_deployment:
+            try:
+                self.pipeline = Pipeline.from_pipeline(assignment.pipeline)
+                self._my_operator_ids = assignment.operators_assigned
+                self.agent_val.operator_assignments = assignment.operators_assigned
+
+                # Create deployment-specific log directory
+                deployment_log_dir = cfg.LOG_DIR / str(deployment_id)
+                deployment_log_dir.mkdir(parents=True, exist_ok=True)
+                logger.info(f"Created deployment log directory: {deployment_log_dir}")
+
+                logger.info(f"Operators assigned: {self._my_operator_ids}")
+                self.agent_val.status = AgentStatus.BUSY
+                self.agent_val.status_message = "Cleaning up containers..."
+                await self.agent_kv.update_now()
+
+                self._suppress_monitor = True
+                await self._cleanup_containers()
+                self._suppress_monitor = False
+
+                self.agent_val.status_message = "Starting operators..."
+                await self.agent_kv.update_now()
+                await self.start_operators()
+
+                self.agent_val.status_message = "Operators started"
+                self.agent_val.status = AgentStatus.IDLE
+                await self.agent_kv.update_now()
+
+                logger.info(f"Deployment {deployment_id} running...")
+                # Keep deployment alive until cancelled
+                await anyio.sleep_forever()
+
+            except anyio.get_cancelled_exc_class():
+                logger.info(f"Deployment {deployment_id} cancelled")
+                raise
+            except Exception as e:
+                self.agent_val.status = AgentStatus.ERROR
+                _msg = f"Error in deployment {deployment_id}: {e}"
+                self.agent_val.add_error(_msg)
+                await self.agent_kv.update_now()
+                await self.error_publisher.publish(_msg)
+                logger.exception(_msg)
+            finally:
+                # Shield cleanup from cancellation scope so it can complete
+                with anyio.CancelScope(shield=True):
+                    await self._cleanup_containers()
+                    self._my_operator_ids.clear()
+                    self.pipeline = None
+                    self.agent_val.current_deployment_id = None
+                    self.agent_val.status = AgentStatus.IDLE
+                    await self.agent_kv.update_now()
 
     def _update_agent_state(self) -> None:
+        depl_id = (
+            self._current_deployment.deployment_id if self._current_deployment else None
+        )
+        self.agent_val.current_deployment_id = depl_id
         self.agent_val.operator_assignments = self._my_operator_ids
         self.agent_val.uptime = time.time() - self._start_time
         self.agent_val.clear_old_errors()
@@ -325,12 +429,25 @@ class Agent:
         self.agent_val.status = AgentStatus.SHUTTING_DOWN
         if self.agent_kv:
             await self.agent_kv.update_now()
+        # Set main shutdown event for deployment and monitor tasks
         self._shutdown_event.set()
 
-        for task in self._task_refs:
-            task.cancel()
-        await asyncio.gather(*self._task_refs, return_exceptions=True)
-        self._task_refs.clear()
+        # Cancel current deployment if running
+        async with self._deployment_lock:
+            if self._current_deployment is not None:
+                logger.info(
+                    f"Cancelling deployment {self._current_deployment.deployment_id}"
+                )
+                self._current_deployment.cancel()
+                if self._deployment_task is not None:
+                    try:
+                        await self._deployment_task
+                    except anyio.get_cancelled_exc_class():
+                        pass
+                    except Exception as e:
+                        logger.exception(f"Error during shutdown cancellation: {e}")
+                self._current_deployment = None
+                self._deployment_task = None
 
         await self._cleanup_containers()
 
@@ -341,7 +458,11 @@ class Agent:
 
         await self._stop_podman_service()
 
+        # Now stop the KV loop after other components are shut down
+        # This allows final updates to be published
         if self.agent_kv:
+            await self.agent_kv.update_now()
+            self._kv_shutdown_event.set()
             await self.agent_kv.stop()
 
         logger.info("Agent shut down successfully.")
@@ -349,47 +470,65 @@ class Agent:
     async def start_operators(self):
         if not self.pipeline:
             logger.info("No pipeline configuration found...")
-            return {}
+            raise RuntimeError("No pipeline configuration found")
+
+        if self._current_deployment is None:
+            logger.error("No active deployment for starting operators")
+            raise RuntimeError("No active deployment for starting operators")
 
         logger.info("Starting operators...")
 
         with PodmanClient(
             base_url=self._podman_service_uri, max_pool_size=PODMAN_MAX_POOL_SIZE
         ) as client:
-            tasks: list[asyncio.Task] = []
-            for op_id, op_info in self.pipeline.operators.items():
-                if op_id not in self._my_operator_ids:
-                    continue
-                # Create a task to start the operator
-                # and add it to the task list
-                tasks.append(self.create_task(self._start_operator(op_info, client)))
+            operator_ids = [
+                op_id
+                for op_id in self.pipeline.operators.keys()
+                if op_id in self._my_operator_ids
+            ]
 
-            results: list[
-                tuple[AgentRuntimeOperator, Container] | BaseException
-            ] = await asyncio.gather(*tasks, return_exceptions=True)
+            logger.info(f"Starting {len(operator_ids)} operators...")
 
-            for result in results:
-                if isinstance(result, BaseException):
-                    _msg = f"Error starting operator: {result}"
-                    logger.exception(_msg)
-                    self.agent_val.add_error(_msg)
-                    await self.error_publisher.publish(_msg)
-                else:
-                    operator, container = result
-                    self.container_trackers[operator.id] = ContainerTracker(
-                        container, operator
+            # Start all operators concurrently within a nested task group
+            async with anyio.create_task_group() as start_tg:
+                for op_id in operator_ids:
+                    op_info = self.pipeline.operators[op_id]
+                    start_tg.start_soon(
+                        self._start_and_track_operator,
+                        op_info,
+                        client,
+                        name=f"start-{op_id}",
                     )
-                    tracker = self.container_trackers[operator.id]
-                    if not operator.parameters:
+            # All operators are started when we reach here
+
+            logger.info(f"All {len(operator_ids)} operators started")
+
+    async def _start_and_track_operator(
+        self, operator: RuntimeOperator, client: PodmanClient
+    ) -> None:
+        """Start operator and set up tracking and parameter monitoring."""
+        try:
+            operator, container = await self._start_operator(operator, client)
+            self.container_trackers[operator.id] = ContainerTracker(container, operator)
+            tracker = self.container_trackers[operator.id]
+
+            # Set up parameter monitoring for mount parameters
+            if operator.parameters and self._current_deployment is not None:
+                for param in operator.parameters:
+                    if not param.type == ParameterSpecType.MOUNT:
                         continue
-                    for param in operator.parameters:
-                        if not param.type == ParameterSpecType.MOUNT:
-                            continue
-                        # TODO: this should be done once for the
-                        # same canonical ID
-                        tracker.add_parameter_task(
-                            asyncio.create_task(self.remount_task(tracker, param))
-                        )
+                    # TODO: this should be done once for the
+                    # same canonical ID
+                    self._current_deployment.spawn_task(
+                        self.remount_task(tracker, param),
+                        name=f"remount-{operator.id}-{param.name}",
+                    )
+        except Exception as e:
+            _msg = f"Error starting operator {operator.id}: {e}"
+            logger.exception(_msg)
+            self.agent_val.add_error(_msg)
+            await self.error_publisher.publish(_msg)
+            raise
 
     async def _start_operator(
         self, operator: RuntimeOperator, client: PodmanClient
@@ -403,6 +542,9 @@ class Agent:
 
         if operator.id not in self.pipeline.operators:
             raise ValueError(f"Operator {operator.id} not found in pipeline")
+
+        if self._current_deployment is None:
+            raise RuntimeError("No deployment_id set for operator creation")
 
         env = GLOBAL_ENV.copy()
         env.update(operator.env)
@@ -425,13 +567,10 @@ class Agent:
             operator.add_internal_mount(cfg.log_mount)
 
         if cfg.ALWAYS_PULL_IMAGES:
-            await pull_image(client, operator.image)
-
-        if self._current_deployment_id is None:
-            raise RuntimeError("No deployment_id set for operator creation")
+            pull_image(client, operator.image)
 
         container = await create_container(
-            self.id, client, operator, self._current_deployment_id
+            self.id, client, operator, self._current_deployment.deployment_id
         )
         if not container:
             raise RuntimeError(f"Failed to create container for operator {operator.id}")
@@ -500,12 +639,14 @@ class Agent:
             tracker.mark()
 
             updated_param = mount_params.parameters[parameter.name]
-            create_task_with_ref(
-                self._task_refs,
-                publish_agent_mount_parameter_ack(
-                    pub, operator.canonical_id, updated_param
-                ),
-            )
+            # Spawn acknowledgment task through deployment manager
+            if self._current_deployment:
+                self._current_deployment.spawn_task(
+                    publish_agent_mount_parameter_ack(
+                        pub, operator.canonical_id, updated_param
+                    ),
+                    name=f"ack-{operator.id}-{parameter.name}",
+                )
 
         # Add handler to the subscriber
         sub(handle_parameter_update)
@@ -517,8 +658,8 @@ class Agent:
 
         try:
             while not self._shutdown_event.is_set():
-                await asyncio.sleep(1)
-        except asyncio.CancelledError:
+                await anyio.sleep(1)
+        except anyio.get_cancelled_exc_class():
             logger.info(f"Parameter task for {operator.id}.{parameter.name} cancelled.")
             raise
         finally:
@@ -529,7 +670,7 @@ class Agent:
 
     async def monitor_containers(self):
         while not self._shutdown_event.is_set():
-            await asyncio.sleep(3)
+            await anyio.sleep(3)
 
             if self._suppress_monitor:
                 logger.debug("Container monitoring suppressed.")
@@ -575,18 +716,15 @@ class Agent:
         logger.info(f"Restarting operator {tracker.operator.id}")
         await stop_and_remove_container(container)
 
-        if self._current_deployment_id is None:
-            raise RuntimeError("No deployment_id set for operator restart")
+        if self._current_deployment is None:
+            raise RuntimeError("No deployment set for operator restart")
 
         with PodmanClient(base_url=self._podman_service_uri) as client:
             new_container = await create_container(
-                self.id, client, operator, self._current_deployment_id
+                self.id, client, operator, self._current_deployment.deployment_id
             )
             new_container.start()
             self.container_trackers[operator.id].container = new_container
-
-    def create_task(self, coro: Coroutine) -> asyncio.Task:
-        return create_task_with_ref(self._task_refs, coro)
 
 
 class NameConflictError(podman.errors.exceptions.APIError):
@@ -603,7 +741,7 @@ def is_name_conflict_error(exc: Exception) -> bool:
         return False
 
 
-async def pull_image(client: PodmanClient, image: str) -> None:
+def pull_image(client: PodmanClient, image: str) -> None:
     if not image.startswith(INTERACTEM_IMAGE_REGISTRY) and image != VECTOR_IMAGE:
         _msg = f"Image {image} is not from the interactem registry ({INTERACTEM_IMAGE_REGISTRY})."
         logger.error(_msg)
@@ -640,7 +778,7 @@ async def create_container(
         logger.debug(f"Image {operator.image} is already available")
     except podman.errors.exceptions.ImageNotFound:
         logger.info(f"Image {operator.image} not found locally, attempting to pull...")
-        await pull_image(client, operator.image)
+        pull_image(client, operator.image)
 
     for attempt in stamina.retry_context(on=is_name_conflict_error):
         # Expand users
@@ -681,7 +819,7 @@ async def stop_and_remove_container(container: Container) -> None:
     try:
         if container.status == "running":
             logger.info(f"Stopping container {container.name}")
-            await asyncio.to_thread(container.stop)
+            await to_thread.run_sync(container.stop)
             for attempt in stamina.retry_context(on=ContainerStillRunning):
                 with attempt:
                     container.reload()
@@ -691,7 +829,8 @@ async def stop_and_remove_container(container: Container) -> None:
                         )
 
         logger.info(f"Removing container {container.name}")
-        await asyncio.to_thread(container.remove, force=True)
+        await to_thread.run_sync(functools.partial(container.remove, force=True))
+        logger.info(f"Container {container.name} removed successfully")
     except podman.errors.exceptions.NotFound:
         logger.warning(f"Container {container.name} not found during removal")
 
