@@ -3,7 +3,6 @@ import type { CanonicalOperator, CanonicalPipelineData } from "../client"
 import type {
   OperatorSpecTag,
   ParallelConfig,
-  PipelineRunVal,
   RuntimeEdge,
   RuntimeOperator,
   RuntimeOperatorParameter,
