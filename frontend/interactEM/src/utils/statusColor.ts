@@ -14,8 +14,6 @@ export function getAgentStatusColor(
       return "info"
     case AgentStatus.cleaning_operators:
       return "warning"
-    case AgentStatus.assignment_received:
-      return "info"
     case AgentStatus.running_deployment:
       return "success"
     case AgentStatus.shutting_down:
