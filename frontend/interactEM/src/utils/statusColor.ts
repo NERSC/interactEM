@@ -22,7 +22,5 @@ export function getAgentStatusColor(
       return "default"
     default:
       return "default"
-    default:
-      return "default"
   }
 }
