@@ -1,53 +1,66 @@
-.SHELLFLAGS := -e -c
-.PHONY: help setup images docker-up docker-down clean lint
+# Directories
+SCRIPTS_DIR := ./scripts
+DOCKER_DIR := ./docker
+FRONTEND_DIR := ./frontend/interactEM
+OPERATORS_DIR := ./operators
 
-help:
-	@echo "interactEM - Local Development Setup"
-	@echo ""
+# Makefile configuration
+.PHONY: help setup setup-docker-registry images docker-up docker-down clean lint build-operators
+.SHELLFLAGS := -euo pipefail -c
+.DEFAULT_GOAL := help
+
+# Reusable function
+define success
+	@echo "✓ $(1)"
+endef
+
+define section
+	@echo "\n$(1)"
+endef
+
+# Auto-generated help from target comments
+help: ## Show this help message
 	@echo "Available targets:"
-	@echo "  make setup          - Setup .env file with generated secure secrets"
-	@echo "  make images         - Build Docker images for all services"
-	@echo "  make docker-up      - Start all services with docker-compose"
-	@echo "  make docker-down    - Stop all services"
-	@echo "  make clean          - Stop services and remove volumes"
-	@echo "  make lint           - Run backend (ruff) and frontend (biome) linters"
+	@grep -E "^[a-zA-Z_-]+:.*##" $(MAKEFILE_LIST) | \
+		sed -E 's/^([a-zA-Z_-]+):.*## */\1|/' | sort | \
+		column -t -s '|' | sed 's/^/  /'
 	@echo ""
 
-setup:
-	@echo "Setting up environment, do not run this as root..."
+setup: ## Setup .env file with generated secure secrets
+	$(call section,Setting up environment, do not run this as root...)
 	@echo "Copying .env.example files to .env..."
-	./scripts/copy-dotenv.sh
+	$(SCRIPTS_DIR)/copy-dotenv.sh
 	@echo "Generating secure secrets..."
-	./scripts/setup-secrets.sh
-	@echo "✓ Environment setup complete! Next steps:"
+	$(SCRIPTS_DIR)/setup-secrets.sh
+	$(call success,Environment setup complete! Next steps:)
 	@echo "  1. Edit .env to add GITHUB_USERNAME and GITHUB_TOKEN"
 	@echo "  2. Run 'make docker-up' to build + start services (NOTE: may need to run this as root)."
 
-images:
+images: ## Build Docker images for all services
 	@echo "Building Docker images (may need to run this as root if it fails)..."
-	./docker/bake.sh
+	$(DOCKER_DIR)/bake.sh
 
-docker-up: images
+docker-up: images ## Start all services with docker-compose
 	@docker compose up --force-recreate --remove-orphans --build -d
-	@echo "✓ Services started"
+	$(call success,Services started)
 	@echo "  Visit http://localhost:5173 in your browser"
 	@echo ""
 	@echo "Login credentials:"
 	@grep "FIRST_SUPERUSER_USERNAME\|FIRST_SUPERUSER_PASSWORD" .env | sed 's/^/  /'
 	@echo ""
 
-docker-down:
-	docker compose down
+docker-down: ## Stop all services
+	@docker compose down
 
-clean: docker-down
-	docker compose down -v
-	@echo "✓ Services stopped and volumes removed"
+clean: ## Stop services and remove volumes
+	@docker compose down -v
+	$(call success,Services stopped and volumes removed)
 
-lint:
+lint: ## Run backend (ruff) and frontend (biome) linters
 	@echo "Running ruff linter..."
 	. .venv/bin/activate && poetry run ruff check .
 	@echo "Running biome linter..."
-	cd frontend/interactEM && npx biome check \
+	cd $(FRONTEND_DIR) && npx biome check \
 	    --formatter-enabled=true \
 	    --linter-enabled=true \
 	    --organize-imports-enabled=true \
