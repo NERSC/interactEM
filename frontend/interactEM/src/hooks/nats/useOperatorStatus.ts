@@ -1,5 +1,6 @@
 import { useMemo, useRef } from "react"
 import { useOperatorStatusContext } from "../../contexts/nats/operatorstatus"
+import { usePipelineStore } from "../../stores"
 import { OperatorStatus } from "../../types/gen"
 
 export const useOperatorStatus = (operatorId?: string) => {
@@ -72,6 +73,28 @@ export const useOperatorsByCanonicalId = (
   }
 }
 
+/**
+ * Check if an operator (by canonical ID) is in the currently selected runtime pipeline
+ * Returns both the boolean check and the selected pipeline ID for flexibility
+ */
+export const useOperatorInSelectedPipeline = (canonicalId: string) => {
+  const { selectedRuntimePipelineId } = usePipelineStore()
+  const { operators } = useOperatorsByCanonicalId(canonicalId)
+
+  const isInRunningPipeline = useMemo(
+    () =>
+      operators.some(
+        (op) => op.runtime_pipeline_id === selectedRuntimePipelineId,
+      ),
+    [operators, selectedRuntimePipelineId],
+  )
+
+  return {
+    isInRunningPipeline,
+    selectedRuntimePipelineId,
+  }
+}
+
 export const useAggregateOperatorStatus = (canonicalId?: string) => {
   const { operators, isLoading, error } = useOperatorsByCanonicalId(
     canonicalId || "",
@@ -113,7 +136,29 @@ export const useOperatorsByPipelineId = (pipelineId?: string) => {
 }
 
 export const useRuntimeOperatorStatusStyles = (canonicalId: string) => {
-  const { status } = useAggregateOperatorStatus(canonicalId)
+  const { operators } = useOperatorsByCanonicalId(canonicalId)
+  const { isInRunningPipeline, selectedRuntimePipelineId } =
+    useOperatorInSelectedPipeline(canonicalId)
+
+  const status: OperatorStatus | null = useMemo(() => {
+    if (!isInRunningPipeline) return null
+
+    // Only consider operators in the selected pipeline
+    const operatorsInPipeline = operators.filter(
+      (op) => op.runtime_pipeline_id === selectedRuntimePipelineId,
+    )
+
+    if (operatorsInPipeline.length === 0) return null
+
+    const statuses = operatorsInPipeline.map((op) => op.status)
+    if (statuses.every((s) => s === OperatorStatus.running))
+      return OperatorStatus.running
+    if (statuses.some((s) => s === OperatorStatus.error))
+      return OperatorStatus.error
+    if (statuses.some((s) => s === OperatorStatus.shutting_down))
+      return OperatorStatus.shutting_down
+    return OperatorStatus.initializing
+  }, [operators, selectedRuntimePipelineId, isInRunningPipeline])
 
   const getStatusClass = (status: OperatorStatus | null) => {
     switch (status) {
