@@ -15,7 +15,6 @@ import type {
   PipelineDeploymentState,
 } from "../../client"
 import { usePipelineName } from "../../hooks/api/usePipelineQuery"
-import { usePipelineStatus } from "../../hooks/nats/useRunningPipelines"
 import {
   formatDeploymentState,
   getDeploymentStateColor,
@@ -47,7 +46,6 @@ export const DeploymentItem: React.FC<DeploymentItemProps> = ({
   hideActiveIndicator = false,
 }) => {
   const pipelineName = usePipelineName(deployment.pipeline_id)
-  const { pipeline } = usePipelineStatus(deployment.id)
 
   const handleDeploymentClick = () => {
     if (disableClick) return
@@ -64,16 +62,10 @@ export const DeploymentItem: React.FC<DeploymentItemProps> = ({
   const isActive = isActiveDeploymentState(deployment.state)
 
   const getChipColor = () => {
-    if (!pipeline) {
-      return "warning" as const
-    }
     return getDeploymentStateColor(deployment.state)
   }
 
   const getChipTooltip = () => {
-    if (!pipeline) {
-      return "Deployment is not currently running."
-    }
     return `Deployment is ${formatDeploymentState(deployment.state)}`
   }
 

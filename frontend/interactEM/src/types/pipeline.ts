@@ -91,8 +91,3 @@ export const RuntimePipelineSchema = z.object({
   revision_id: z.number(),
   canonical_id: z.string(),
 }) satisfies z.ZodType<RuntimePipeline>
-
-export const PipelineRunValSchema = z.object({
-  id: z.string().uuid(),
-  pipeline: RuntimePipelineSchema,
-}) satisfies z.ZodType<PipelineRunVal>
