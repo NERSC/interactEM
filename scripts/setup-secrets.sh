@@ -4,14 +4,21 @@
 
 set -euo pipefail
 
+# Check if running as root
+if [ "$EUID" -eq 0 ]; then
+    echo "Error: This script should not be run as root" >&2
+    echo "Please run 'make setup' without sudo" >&2
+    exit 1
+fi
+
 echo "Generating secure secrets..."
 
 # Generate all secrets
-SECRET_KEY=$(docker run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate SECRET_KEY"; exit 1; }
-POSTGRES_PASSWORD=$(docker run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate POSTGRES_PASSWORD"; exit 1; }
-FIRST_SUPERUSER_PASSWORD=$(docker run --rm alpine/openssl rand -hex 16) || { echo "Failed to generate FIRST_SUPERUSER_PASSWORD"; exit 1; }
-EXTERNAL_SECRET_KEY=$(docker run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate EXTERNAL_SECRET_KEY"; exit 1; }
-ORCHESTRATOR_API_KEY=$(docker run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate ORCHESTRATOR_API_KEY"; exit 1; }
+SECRET_KEY=$(podman run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate SECRET_KEY"; exit 1; }
+POSTGRES_PASSWORD=$(podman run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate POSTGRES_PASSWORD"; exit 1; }
+FIRST_SUPERUSER_PASSWORD=$(podman run --rm alpine/openssl rand -hex 16) || { echo "Failed to generate FIRST_SUPERUSER_PASSWORD"; exit 1; }
+EXTERNAL_SECRET_KEY=$(podman run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate EXTERNAL_SECRET_KEY"; exit 1; }
+ORCHESTRATOR_API_KEY=$(podman run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate ORCHESTRATOR_API_KEY"; exit 1; }
 INTERACTEM_PW=$FIRST_SUPERUSER_PASSWORD
 
 echo "Secrets generated. Updating .env files..."

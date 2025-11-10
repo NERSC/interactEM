@@ -1,43 +1,40 @@
-.PHONY: setup help env-setup docker-up docker-down clean
+.SHELLFLAGS := -e -c
+.PHONY: help setup images docker-up docker-down clean lint
 
 help:
 	@echo "interactEM - Local Development Setup"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  make setup          - Complete setup (copies .env and generates secrets)"
-	@echo "  make env-setup      - Setup .env file with generated secure secrets"
+	@echo "  make setup          - Setup .env file with generated secure secrets"
+	@echo "  make images         - Build Docker images for all services"
 	@echo "  make docker-up      - Start all services with docker-compose"
 	@echo "  make docker-down    - Stop all services"
 	@echo "  make clean          - Stop services and remove volumes"
+	@echo "  make lint           - Run backend (ruff) and frontend (biome) linters"
+	@echo ""
 
-env-setup:
-	@echo "Setting up environment..."
+setup:
+	@echo "Setting up environment, do not run this as root..."
 	@echo "Copying .env.example files to .env..."
-	@bash scripts/copy-dotenv.sh
+	./scripts/copy-dotenv.sh
 	@echo "Generating secure secrets..."
-	@bash scripts/setup-secrets.sh
-
-setup: env-setup
-	@echo ""
-	@echo "Building Docker images..."
-	@bash docker/bake.sh
-	@echo ""
-	@echo "✓ Setup complete! Next steps:"
+	./scripts/setup-secrets.sh
+	@echo "✓ Environment setup complete! Next steps:"
 	@echo "  1. Edit .env to add GITHUB_USERNAME and GITHUB_TOKEN"
-	@echo "  2. Run 'make docker-up' to start services"
-	@echo "  3. Visit http://localhost:5173 in your browser"
-	@echo ""
-	@echo "Frontend login credentials:"
-	@grep "FIRST_SUPERUSER_USERNAME\|FIRST_SUPERUSER_PASSWORD" .env | sed 's/^/  /'
+	@echo "  2. Run 'make docker-up' to build + start services (NOTE: may need to run this as root)."
 
-docker-up:
-	docker compose up --force-recreate --remove-orphans --build -d
+images:
+	@echo "Building Docker images (may need to run this as root if it fails)..."
+	./docker/bake.sh
+
+docker-up: images
+	@docker compose up --force-recreate --remove-orphans --build -d
 	@echo "✓ Services started"
-	@echo "  Frontend: http://localhost:5173"
-	@echo "  Backend: http://localhost:8080"
+	@echo "  Visit http://localhost:5173 in your browser"
 	@echo ""
-	@echo "Frontend login credentials:"
+	@echo "Login credentials:"
 	@grep "FIRST_SUPERUSER_USERNAME\|FIRST_SUPERUSER_PASSWORD" .env | sed 's/^/  /'
+	@echo ""
 
 docker-down:
 	docker compose down

@@ -47,8 +47,8 @@
 1. **Quick start**
 
     ```bash
-    make setup
-    make docker-up
+    make setup # sets up environment variables, do not run as root
+    make docker-up # may need to run this as root, depending on your setup
     ```
 
 1. **Access the application**
@@ -57,7 +57,7 @@
 
     Login credentials:
     - **Username**: `admin@example.com`
-    - **Password**: Check your `.env` file for `FIRST_SUPERUSER_PASSWORD` (auto-generated)
+    - **Password**: Check your `.env` file for `FIRST_SUPERUSER_PASSWORD` (auto-generated), or output from `make docker-up`
 
 ### Stopping services
 
