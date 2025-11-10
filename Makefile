@@ -42,3 +42,15 @@ docker-down:
 clean: docker-down
 	docker compose down -v
 	@echo "✓ Services stopped and volumes removed"
+
+lint:
+	@echo "Running ruff linter..."
+	. .venv/bin/activate && poetry run ruff check .
+	@echo "Running biome linter..."
+	cd frontend/interactEM && npx biome check \
+	    --formatter-enabled=true \
+	    --linter-enabled=true \
+	    --organize-imports-enabled=true \
+	    --write \
+	    ./src
+	@echo "✓ Linting complete"
