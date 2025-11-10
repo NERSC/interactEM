@@ -25,7 +25,9 @@ const AgentNode = ({ data, id, selected }: NodeProps<AgentNodeType>) => {
 
   const hasErrors = data.error_messages && data.error_messages.length > 0
   const effectiveStatus =
-    data.status === "idle" && hasErrors ? AgentStatus.busy : data.status
+    data.status === "idle" && hasErrors
+      ? AgentStatus.deployment_error
+      : data.status
 
   // Function to layout child nodes when agent node is double-clicked
   const handleDoubleClick = useCallback(() => {
