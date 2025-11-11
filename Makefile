@@ -109,3 +109,8 @@ operators: setup-docker-registry ## Build all operators and push to local podman
 	$(call section,Building operators...)
 	$(OPERATORS_DIR)/bake.sh --push-local --pull-local --build-base
 	$(call success,Operators built and pushed to local registry)
+
+push-operators: setup-docker-registry ## Build + push operators to remote registry
+	$(call section,Building + pushing to remote registry...)
+	$(OPERATORS_DIR)/bake.sh --push-remote --build-base
+	$(call success,Operators pushed to remote registry)
