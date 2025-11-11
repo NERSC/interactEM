@@ -44,30 +44,31 @@ Here's an example of an [`operator.json`](https://github.com/NERSC/interactEM/bl
 
 Operators are located (for now) in the [operators/](https://github.com/NERSC/interactEM/blob/main/operators) directory. After you add an `operator.json` to any subdirectory of `operators` and refresh your frontend, it will appear in the list of operators.
 
-You still have to build these operators and make sure that your local `podman` can see them.
+To build and deploy operators locally, run the following commands from the repository root:
 
-### MacOS
+```bash
+# Initial setup (run once)
+make setup
 
-1. Get `docker desktop` and `podman desktop`.
-1. Set up docker local docker registry by running:
+# Build all operators
+make operators
 
-    ```sh
-    docker run -d -p 5001:5000 --restart always --name docker-registry registry:3
-    ```
+# Or build a specific operator
+make operator target=center-of-mass-partial
+```
 
-1. Use [bake.sh](./bake.sh) to build all containers with docker. This includes base image, operator, and distiller-streaming. You should do the following
+The `make` commands handle all the complexity:
 
-    ```sh
-    ./bake --push-local --build-base
-    ```
+- Setting up a local Docker registry
+- Building the operator base image and distiller-streaming base
+- Building your operator containers
+- Pushing images to the local registry
+- Pulling images into podman with correct tags
 
-    This will push everything to the local registry, instead of pushing up to GitHub packages. You can also omit `--build-base` to avoid building base images for faster iteration.
+For faster iteration during development, you can omit the `--build-base` flag by using the lower-level `bake.sh` script directly:
 
-1. Set your `.env` file in the operator directory to have the correct podman socket (see [`.env.example`](./.env.example))
-1. Use poetry environment from root directory [pyproject.toml](../pyproject.toml) and run the following:
+```bash
+./operators/bake.sh --push-local --pull-local --target center-of-mass-partial
+```
 
-    ```sh
-    poetry run python pull_images_from_bake.py
-    ```
-
-    This will pull local registry images into podman and tag them appropriately with [`pull_images_from_bake.py`](./pull_images_from_bake.py). This also runs at the end of [`bake.sh`](./bake.sh) if `--pull-local` is given.
+See [bake.sh](./bake.sh) for additional build options.
