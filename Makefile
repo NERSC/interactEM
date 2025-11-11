@@ -26,6 +26,13 @@ define check_not_root
 	fi
 endef
 
+define check_uv_installed
+	@if ! command -v uv &> /dev/null; then \
+		echo "Error: 'uv' is required to run 'make operators' but is not installed" >&2; \
+		exit 1; \
+	fi
+endef
+
 # Auto-generated help from target comments
 help: ## Show this help message
 	@echo "Available targets:"
@@ -87,7 +94,18 @@ setup-docker-registry: check-docker-permission
 	$(call section,Setting up local Docker registry...)
 	$(SCRIPTS_DIR)/setup-docker-registry.sh
 
-operators: setup-docker-registry ## Build operators in this repo and push to local podman
+operator: setup-docker-registry ## Build a specific operator and push to local podman registry (use target=OPERATOR_NAME)
+	$(call check_uv_installed)
+	@if [ -z "$(target)" ]; then \
+		echo "Error: target variable not set. Usage: make operator target=OPERATOR_NAME" >&2; \
+		exit 1; \
+	fi
+	$(call section,Building operator $(target)...)
+	$(OPERATORS_DIR)/bake.sh --push-local --pull-local --build-base --target $(target)
+	$(call success,Operator $(target) built and pushed to local registry)
+
+operators: setup-docker-registry ## Build all operators and push to local podman registry
+	$(call check_uv_installed)
 	$(call section,Building operators...)
-	$(OPERATORS_DIR)/bake.sh --push-local --pull-local
+	$(OPERATORS_DIR)/bake.sh --push-local --pull-local --build-base
 	$(call success,Operators built and pushed to local registry)
