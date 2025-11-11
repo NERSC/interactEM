@@ -5,7 +5,7 @@ FRONTEND_DIR := ./frontend/interactEM
 OPERATORS_DIR := ./operators
 
 # Makefile configuration
-.PHONY: help setup setup-docker-registry images docker-up docker-down clean lint operators
+.PHONY: help setup setup-docker-registry images docker-up docker-down clean lint operators check-docker-permission
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
@@ -26,6 +26,11 @@ help: ## Show this help message
 		column -t -s '|' | sed 's/^/  /'
 	@echo ""
 
+# Check if we can run docker commands
+check-docker-permission:
+	$(SCRIPTS_DIR)/check-docker-permission.sh
+	$(call success,Docker permission check passed)
+
 setup: ## Setup .env file with generated secure secrets
 	$(call section,Setting up environment, do not run this as root...)
 	@echo "Copying .env.example files to .env..."
@@ -36,8 +41,8 @@ setup: ## Setup .env file with generated secure secrets
 	@echo "  1. Edit .env to add GITHUB_USERNAME and GITHUB_TOKEN"
 	@echo "  2. Run 'make docker-up' to build + start services (NOTE: may need to run this as root)."
 
-images: ## Build Docker images for all services
-	@echo "Building Docker images (may need to run this as root if it fails)..."
+images: check-docker-permission ## Build Docker images for all services
+	@echo "Building Docker images..."
 	$(DOCKER_DIR)/bake.sh
 
 docker-up: images ## Start all services with docker-compose
@@ -68,7 +73,8 @@ lint: ## Run backend (ruff) and frontend (biome) linters
 	    ./src
 	$(call success,Linting complete)
 
-setup-docker-registry: ## Set up local Docker registry for operator builds
+setup-docker-registry: check-docker-permission ## Set up local Docker registry for operator builds
+	$(call section,Setting up local Docker registry...)
 	$(SCRIPTS_DIR)/setup-docker-registry.sh
 
 operators: setup-docker-registry ## Build existing operators with bake.sh
