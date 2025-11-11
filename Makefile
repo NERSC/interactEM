@@ -5,7 +5,7 @@ FRONTEND_DIR := ./frontend/interactEM
 OPERATORS_DIR := ./operators
 
 # Makefile configuration
-.PHONY: help setup setup-docker-registry images docker-up docker-down clean lint operators check-docker-permission
+.PHONY: help setup setup-docker-registry services docker-up docker-down clean lint operators check-docker-permission
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
@@ -50,11 +50,11 @@ setup: ## Setup .env file with generated secure secrets
 	@echo "  1. Edit .env to add GITHUB_USERNAME and GITHUB_TOKEN"
 	@echo "  2. Run 'make docker-up' to build + start services."
 
-images: check-docker-permission ## Build Docker images for all services
+services: check-docker-permission ## Build Docker images for all services
 	@echo "Building Docker images..."
 	$(DOCKER_DIR)/bake.sh
 
-docker-up: images ## Start all services with docker-compose
+docker-up: services ## Start all services with docker-compose
 	@docker compose up --force-recreate --remove-orphans --build -d
 	$(call success,Services started)
 	@echo "  Visit http://localhost:5173 in your browser"
