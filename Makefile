@@ -82,7 +82,8 @@ lint: ## Run backend (ruff) and frontend (biome) linters
 	    ./src
 	$(call success,Linting complete)
 
-setup-docker-registry: check-docker-permission ## Set up local Docker registry for operator builds
+## Set up local Docker registry for operator builds
+setup-docker-registry: check-docker-permission 
 	$(call section,Setting up local Docker registry...)
 	$(SCRIPTS_DIR)/setup-docker-registry.sh
 
