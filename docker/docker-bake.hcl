@@ -51,9 +51,8 @@ function "generate_tags" {
   ]
 }
 
-// Base platform definition
+// Base platform definition - let docker decide the platform
 target "platform" {
-  platforms = ["linux/amd64", "linux/arm64"]
 }
 
 target "contexts" {
