@@ -66,7 +66,7 @@ docker-up: services ## Start all services with docker-compose
 docker-down: ## Stop all services
 	@docker compose down
 
-clean: ## Stop services and remove volumes
+clean: ## Stop services and remove volumes (WARNING: will delete database data)
 	@docker compose down -v
 	$(call success,Services stopped and volumes removed)
 
