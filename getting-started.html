@@ -322,20 +322,21 @@
 <section id="prerequisites">
 <h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">#</a></h3>
 <ul class="simple">
-<li><p><strong>Docker Desktop</strong> and <strong>Podman Desktop</strong> (recommended for easiest setup)</p></li>
+<li><p><strong><a class="reference external" href="https://docs.docker.com/engine/install/">Docker</a></strong>, <strong><a class="reference external" href="https://podman.io/docs/installation">Podman</a></strong>, <strong><a class="reference external" href="https://docs.astral.sh/uv/getting-started/installation/">uv</a></strong></p></li>
 </ul>
 </section>
 <section id="configuration">
 <h3>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h3>
 <ol class="arabic">
 <li><p><strong>Setup <code class="docutils literal notranslate"><span class="pre">.env</span></code> with secure secrets</strong></p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>env-setup
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>setup
 </pre></div>
 </div>
 <p>This automatically:</p>
 <ul class="simple">
 <li><p>Copies <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> to <code class="docutils literal notranslate"><span class="pre">.env</span></code></p></li>
 <li><p>Generates secure random values for all secrets</p></li>
+<li><p>Searches for your podman socket</p></li>
 <li><p>Updates your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file</p></li>
 </ul>
 </li>
@@ -355,6 +356,7 @@
 <li><p><strong>Quick start</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>setup
 make<span class="w"> </span>docker-up
+make<span class="w"> </span>operators
 </pre></div>
 </div>
 </li>
@@ -363,7 +365,7 @@ make<span class="w"> </span>docker-up
 <p>Login credentials:</p>
 <ul class="simple">
 <li><p><strong>Username</strong>: <code class="docutils literal notranslate"><span class="pre">admin&#64;example.com</span></code></p></li>
-<li><p><strong>Password</strong>: Check your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file for <code class="docutils literal notranslate"><span class="pre">FIRST_SUPERUSER_PASSWORD</span></code> (auto-generated)</p></li>
+<li><p><strong>Password</strong>: Check your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file for <code class="docutils literal notranslate"><span class="pre">FIRST_SUPERUSER_PASSWORD</span></code> (auto-generated), or output from <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">docker-up</span></code></p></li>
 </ul>
 </li>
 </ol>
