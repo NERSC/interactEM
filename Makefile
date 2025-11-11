@@ -5,7 +5,7 @@ FRONTEND_DIR := ./frontend/interactEM
 OPERATORS_DIR := ./operators
 
 # Makefile configuration
-.PHONY: help setup setup-docker-registry images docker-up docker-down clean lint build-operators
+.PHONY: help setup setup-docker-registry images docker-up docker-down clean lint operators
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
@@ -66,4 +66,12 @@ lint: ## Run backend (ruff) and frontend (biome) linters
 	    --organize-imports-enabled=true \
 	    --write \
 	    ./src
-	@echo "✓ Linting complete"
+	$(call success,Linting complete)
+
+setup-docker-registry: ## Set up local Docker registry for operator builds
+	$(SCRIPTS_DIR)/setup-docker-registry.sh
+
+operators: setup-docker-registry ## Build existing operators with bake.sh
+	@echo "Building operators (may need to run this as root if it fails)..."
+	$(OPERATORS_DIR)/bake.sh --push-local --pull-local
+	$(call success,Operators built and pushed to local registry)
