@@ -55,7 +55,11 @@ if [ -z "$VARS" ]; then
     exit 1
 fi
 
-BASE_VARS="$OPERATORS_DIR/vars-base.hcl"
+if $PUSH_REMOTE; then
+    BASE_VARS="$OPERATORS_DIR/vars-prod.hcl"
+else
+    BASE_VARS="$OPERATORS_DIR/vars-base.hcl"
+fi
 
 cd "$REPO_ROOT_DIR"
 
