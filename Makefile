@@ -18,6 +18,14 @@ define section
 	@echo "\n$(1)"
 endef
 
+define check_not_root
+	@if [ "$$(id -u)" -eq 0 ]; then \
+		echo "Error: This command should not be run as root" >&2; \
+		echo "Please run 'make $(1)' without sudo" >&2; \
+		exit 1; \
+	fi
+endef
+
 # Auto-generated help from target comments
 help: ## Show this help message
 	@echo "Available targets:"
@@ -32,7 +40,8 @@ check-docker-permission:
 	$(call success,Docker permission check passed)
 
 setup: ## Setup .env file with generated secure secrets
-	$(call section,Setting up environment, do not run this as root...)
+	$(call check_not_root,setup)
+	$(call section,Setting up environment...)
 	@echo "Copying .env.example files to .env..."
 	$(SCRIPTS_DIR)/copy-dotenv.sh
 	@echo "Generating secure secrets..."

@@ -4,13 +4,6 @@
 
 set -euo pipefail
 
-# Check if running as root
-if [ "$EUID" -eq 0 ]; then
-    echo "Error: This script should not be run as root" >&2
-    echo "Please run 'make setup' without sudo" >&2
-    exit 1
-fi
-
 echo "Generating secure secrets..."
 
 # Generate all secrets
