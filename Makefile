@@ -30,7 +30,7 @@ endef
 help: ## Show this help message
 	@echo "Available targets:"
 	@grep -E "^[a-zA-Z_-]+:.*##" $(MAKEFILE_LIST) | \
-		sed -E 's/^([a-zA-Z_-]+):.*## */\1|/' | sort | \
+		sed -E 's/^([a-zA-Z_-]+):.*## */\1|/' | \
 		column -t -s '|' | sed 's/^/  /'
 	@echo ""
 
