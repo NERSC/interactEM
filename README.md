@@ -16,19 +16,20 @@
 
 ### Prerequisites
 
-- **Docker Desktop** and **Podman Desktop** (recommended for easiest setup)
+- **[Docker](https://docs.docker.com/engine/install/)**, **[Podman](https://podman.io/docs/installation)**, **[uv](https://docs.astral.sh/uv/getting-started/installation/)**
 
 ### Configuration
 
 1. **Setup `.env` with secure secrets**
 
     ```bash
-    make env-setup
+    make setup
     ```
 
     This automatically:
     - Copies `.env.example` to `.env`
     - Generates secure random values for all secrets
+    - Searches for your podman socket
     - Updates your `.env` file
 
 1. **Add GitHub credentials**
@@ -49,6 +50,7 @@
     ```bash
     make setup
     make docker-up
+    make operators
     ```
 
 1. **Access the application**
@@ -57,7 +59,7 @@
 
     Login credentials:
     - **Username**: `admin@example.com`
-    - **Password**: Check your `.env` file for `FIRST_SUPERUSER_PASSWORD` (auto-generated)
+    - **Password**: Check your `.env` file for `FIRST_SUPERUSER_PASSWORD` (auto-generated), or output from `make docker-up`
 
 ### Stopping services
 

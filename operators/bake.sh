@@ -7,7 +7,6 @@ TAG=$(git rev-parse --short=6 HEAD)
 OPERATORS_DIR="$REPO_ROOT_DIR/operators"
 BAKE_FILE="$OPERATORS_DIR/docker-bake.hcl"
 OPERATOR_JSON="operator.json"
-VENV_DIR="$OPERATORS_DIR/distiller-streaming/.venv"
 
 BUILD_BASE=false
 PUSH_LOCAL=false
@@ -56,7 +55,11 @@ if [ -z "$VARS" ]; then
     exit 1
 fi
 
-BASE_VARS="$OPERATORS_DIR/vars-base.hcl"
+if $PUSH_REMOTE; then
+    BASE_VARS="$OPERATORS_DIR/vars-prod.hcl"
+else
+    BASE_VARS="$OPERATORS_DIR/vars-base.hcl"
+fi
 
 cd "$REPO_ROOT_DIR"
 
@@ -138,9 +141,8 @@ fi
 #
 if $PUSH_LOCAL && $PULL_LOCAL; then
     echo "=== Pulling images back from local registry ==="
-    cd $OPERATORS_DIR
-    source $VENV_DIR/bin/activate
-    poetry run python pull_images_from_bake.py
+    cd "$OPERATORS_DIR"
+    uv run --no-project --with python-hcl2 --with podman python pull_images_from_bake.py
 fi
 
 echo "=== Done ==="

@@ -7,11 +7,11 @@ set -euo pipefail
 echo "Generating secure secrets..."
 
 # Generate all secrets
-SECRET_KEY=$(docker run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate SECRET_KEY"; exit 1; }
-POSTGRES_PASSWORD=$(docker run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate POSTGRES_PASSWORD"; exit 1; }
-FIRST_SUPERUSER_PASSWORD=$(docker run --rm alpine/openssl rand -hex 16) || { echo "Failed to generate FIRST_SUPERUSER_PASSWORD"; exit 1; }
-EXTERNAL_SECRET_KEY=$(docker run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate EXTERNAL_SECRET_KEY"; exit 1; }
-ORCHESTRATOR_API_KEY=$(docker run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate ORCHESTRATOR_API_KEY"; exit 1; }
+SECRET_KEY=$(podman run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate SECRET_KEY"; exit 1; }
+POSTGRES_PASSWORD=$(podman run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate POSTGRES_PASSWORD"; exit 1; }
+FIRST_SUPERUSER_PASSWORD=$(podman run --rm alpine/openssl rand -hex 16) || { echo "Failed to generate FIRST_SUPERUSER_PASSWORD"; exit 1; }
+EXTERNAL_SECRET_KEY=$(podman run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate EXTERNAL_SECRET_KEY"; exit 1; }
+ORCHESTRATOR_API_KEY=$(podman run --rm alpine/openssl rand -hex 32) || { echo "Failed to generate ORCHESTRATOR_API_KEY"; exit 1; }
 INTERACTEM_PW=$FIRST_SUPERUSER_PASSWORD
 
 echo "Secrets generated. Updating .env files..."
@@ -69,10 +69,3 @@ update_env_file "cli/.env" "INTERACTEM_PASSWORD" "changethis" "$INTERACTEM_PW"
 
 # Update backend/callout/service/.env if it exists
 update_env_file "backend/callout/service/.env" "JWT_SECRET_KEYS" "changethis" "$SECRET_KEY"
-
-echo ""
-echo "✓ Setup complete"
-echo ""
-echo "TODO: Add your GitHub credentials to .env:"
-echo "  GITHUB_USERNAME=your_github_username"
-echo "  GITHUB_TOKEN=your_personal_token"

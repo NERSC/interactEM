@@ -53,11 +53,11 @@ jobs:
       - name: Define services
         id: services
         run: |
-          # Extract services from the prod group in docker-bake.hcl
-          SERVICES=$(docker buildx bake prod --print | jq -cr '[.group.prod.targets[]]')
+          # Extract services from the prod group in docker-bake.hcl and docker-bake-ci.hcl
+          SERVICES=$(docker buildx bake -f docker-bake.hcl -f docker-bake-ci.hcl prod --print | jq -cr '[.group.prod.targets[]]')
           echo "Services found: ${SERVICES}"
           echo "services=${SERVICES}" >> $GITHUB_OUTPUT
-          
+
           # Create combined list including base image for merge-manifests
           ALL_IMAGES=$(echo ${SERVICES} | jq -c '. + ["interactem"]')
           echo "All images (including base): ${ALL_IMAGES}"
@@ -100,7 +100,9 @@ jobs:
         uses: docker/bake-action@v6
         with:
           source: .
-          files: ./docker/docker-bake.hcl
+          files: |
+            ./docker/docker-bake.hcl
+            ./docker/docker-bake-ci.hcl
           targets: base
           set: |
             *.platform=${{ matrix.docker-platform }}
@@ -159,7 +161,9 @@ jobs:
         uses: docker/bake-action@v6
         with:
           source: .
-          files: ./docker/docker-bake.hcl
+          files: |
+            ./docker/docker-bake.hcl
+            ./docker/docker-bake-ci.hcl
           targets: ${{ matrix.service }}
           set: |
             *.platform=${{ matrix.platform.docker }}
