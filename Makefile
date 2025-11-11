@@ -44,7 +44,7 @@ setup: ## Setup .env file with generated secure secrets
 	$(call section,Setting up environment...)
 	@echo "Copying .env.example files to .env..."
 	$(SCRIPTS_DIR)/copy-dotenv.sh
-	@echo "Generating secure secrets..."
+	$(SCRIPTS_DIR)/setup-podman-socket.sh
 	$(SCRIPTS_DIR)/setup-secrets.sh
 	$(call success,Environment setup complete! Next steps:)
 	@echo "  1. Edit .env to add GITHUB_USERNAME and GITHUB_TOKEN"
