@@ -69,10 +69,3 @@ update_env_file "cli/.env" "INTERACTEM_PASSWORD" "changethis" "$INTERACTEM_PW"
 
 # Update backend/callout/service/.env if it exists
 update_env_file "backend/callout/service/.env" "JWT_SECRET_KEYS" "changethis" "$SECRET_KEY"
-
-echo ""
-echo "✓ Setup complete"
-echo ""
-echo "TODO: Add your GitHub credentials to .env:"
-echo "  GITHUB_USERNAME=your_github_username"
-echo "  GITHUB_TOKEN=your_personal_token"

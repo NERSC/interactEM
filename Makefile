@@ -48,7 +48,7 @@ setup: ## Setup .env file with generated secure secrets
 	$(SCRIPTS_DIR)/setup-secrets.sh
 	$(call success,Environment setup complete! Next steps:)
 	@echo "  1. Edit .env to add GITHUB_USERNAME and GITHUB_TOKEN"
-	@echo "  2. Run 'make docker-up' to build + start services (NOTE: may need to run this as root)."
+	@echo "  2. Run 'make docker-up' to build + start services."
 
 images: check-docker-permission ## Build Docker images for all services
 	@echo "Building Docker images..."
@@ -86,7 +86,7 @@ setup-docker-registry: check-docker-permission ## Set up local Docker registry f
 	$(call section,Setting up local Docker registry...)
 	$(SCRIPTS_DIR)/setup-docker-registry.sh
 
-operators: setup-docker-registry ## Build existing operators with bake.sh
-	@echo "Building operators (may need to run this as root if it fails)..."
+operators: setup-docker-registry ## Build operators in this repo and push to local podman
+	$(call section,Building operators...)
 	$(OPERATORS_DIR)/bake.sh --push-local --pull-local
 	$(call success,Operators built and pushed to local registry)
