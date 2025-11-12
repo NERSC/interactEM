@@ -3,7 +3,7 @@ FROM ghcr.io/nersc/interactem/operator
 WORKDIR /app
 COPY ./pyproject.toml ./poetry.lock ./README.md /app/
 
-RUN poetry install --no-root --without test
+RUN poetry install --no-root --without dev
 
 COPY ./distiller_streaming/ /app/distiller_streaming/
 RUN poetry install --only-root
