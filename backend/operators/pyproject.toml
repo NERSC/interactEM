@@ -1,9 +1,13 @@
-[tool.poetry]
+[project]
 name = "interactem-operators"
 version = "0.1.0"
 description = ""
-authors = ["Sam Welborn <swelborn@lbl.gov>"]
+authors = [{name = "Sam Welborn", email = "swelborn@lbl.gov"}]
 readme = "README.md"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[tool.poetry]
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]

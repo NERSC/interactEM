@@ -1,6 +1,7 @@
 [project]
 name = "interactem-agent"
-dynamic = [ "version", "dependencies"]
+version = "0.1.0"
+dynamic = ["dependencies"]
 description = "Agent for interactem"
 readme = "README.md"
 authors = [
@@ -13,7 +14,6 @@ requires-python = ">=3.10"
 interactem-agent = "interactem.agent.entrypoint:entrypoint"
 
 [tool.poetry]
-version = "0.1.0"
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]

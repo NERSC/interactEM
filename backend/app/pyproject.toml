@@ -1,8 +1,12 @@
-[tool.poetry]
+[project]
 name = "interactem-app"
 version = "0.1.0"
 description = ""
-authors = ["Admin <admin@example.com>"]
+authors = [{name = "Admin", email = "admin@example.com"}]
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[tool.poetry]
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
