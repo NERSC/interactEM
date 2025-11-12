@@ -4,41 +4,47 @@ version = "0.1.0"
 description = ""
 authors = [{name = "Admin", email = "admin@example.com"}]
 requires-python = ">=3.10"
-dynamic = ["dependencies"]
+dependencies = [
+    "fastapi[standard-no-fastapi-cloud-cli]>=0.120.2,<1",
+    "python-multipart>=0.0.20,<0.1",
+    "email-validator>=2.1.0,<3",
+    "passlib[bcrypt]>=1.7.4,<2",
+    "tenacity>=9.0,<10",
+    "jinja2>=3.1,<4",
+    "alembic>=1.12.1,<2",
+    "psycopg[binary]>=3.1.13,<4",
+    "sqlmodel>=0.0.27,<1",
+    "bcrypt>=4.0.1,<5",
+    "sentry-sdk[fastapi]>=2.8.0,<3",
+    "pyjwt>=2.8.0,<3",
+    "interactem-core",
+    "interactem-sfapi-models",
+    "aiohttp>=3.10.5,<4",
+    "jsonpath-ng>=1.7.0,<2",
+    "starlette>=0.49.0,<1",
+    "h11>=0.16.0,<1",
+]
+
+[tool.uv.sources]
+interactem-core = { path = "../core", editable = true }
+interactem-sfapi-models = { path = "../sfapi_models", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=7.4.3,<8",
+    "mypy>=1.8.0,<2",
+    "ruff>=0.2.2,<0.3",
+    "pre-commit>=3.6.2,<4",
+    "types-passlib>=1.7.7,<2",
+    "coverage>=7.4.3,<8",
+]
 
 [tool.poetry]
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-fastapi = {extras= ["standard-no-fastapi-cloud-cli"], version = "^0.120.2"}
-python-multipart = "^0.0.20"
-email-validator = "^2.1.0.post1"
-passlib = {extras = ["bcrypt"], version = "^1.7.4"}
-tenacity = "^9.0"
-
-jinja2 = "^3.1"
-alembic = "^1.12.1"
-psycopg = {extras = ["binary"], version = "^3.1.13"}
-sqlmodel = "^0.0.27"
-# Pin bcrypt until passlib supports the latest
-bcrypt = "4.0.1"
-sentry-sdk = {extras = ["fastapi"], version = "^2.8.0"}
-pyjwt = "^2.8.0"
 interactem-core = {path = "../core", develop = true}
 interactem-sfapi-models = {path = "../sfapi_models", develop = true}
-aiohttp = "^3.10.5"
-jsonpath-ng = "^1.7.0"
-starlette = "^0.49.0"
-h11 = "^0.16.0"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^7.4.3"
-mypy = "^1.8.0"
-ruff = "^0.2.2"
-pre-commit = "^3.6.2"
-types-passlib = "^1.7.7.20240106"
-coverage = "^7.4.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

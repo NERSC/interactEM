@@ -5,16 +5,20 @@ description = ""
 authors = [{name = "Sam Welborn", email = "swelborn@lbl.gov"}]
 readme = "README.md"
 requires-python = ">=3.10"
-dynamic = ["dependencies"]
+dependencies = [
+    "interactem-core",
+    "pyzmq>=26.1.0,<27",
+    "aiohttp>=3.10.5,<4",
+]
+
+[tool.uv.sources]
+interactem-core = { path = "../core", editable = true }
 
 [tool.poetry]
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
 interactem-core = {path = "../core", develop = true}
-pyzmq = "^26.1.0"
-aiohttp = "^3.10.5"
 
 
 [build-system]

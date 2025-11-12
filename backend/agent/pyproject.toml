@@ -1,7 +1,6 @@
 [project]
 name = "interactem-agent"
 version = "0.1.0"
-dynamic = ["dependencies"]
 description = "Agent for interactem"
 readme = "README.md"
 authors = [
@@ -9,29 +8,42 @@ authors = [
     {name = "Chris Harris", email = "cjh@lbl.gov"}
 ]
 requires-python = ">=3.10"
+dependencies = [
+    "interactem-core",
+    "podman>=5.0.0,<6",
+    "pydantic-settings>=2.4,<3",
+    "nkeys>=0.2.1,<0.3",
+    "aiohttp>=3.11.12,<4",
+    "netifaces2>=0.0.22,<0.1",
+    "stamina>=25.1.0,<26",
+    "jinja2>=3.1.6,<4",
+]
+
+[dependency-groups]
+hpc = [
+    "podman-hpc>=1.1.4,<2",
+    "podman-hpc-py",
+]
+
 
 [project.scripts]
 interactem-agent = "interactem.agent.entrypoint:entrypoint"
+
+[tool.uv.sources]
+interactem-core = { path = "../core", editable = true }
+podman-hpc-py = { path = "thirdparty/podman-hpc-py", editable = true }
+
 
 [tool.poetry]
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
 interactem-core = {path = "../core", develop = true}
-podman = "^5.0.0"
-pydantic-settings = "^2.4"
-nkeys = "^0.2.1"
-aiohttp = "^3.11.12"
-netifaces2 = "^0.0.22"
-stamina = "^25.1.0"
-jinja2 = "^3.1.6"
 
 [tool.poetry.group.hpc]
 optional = true
 
 [tool.poetry.group.hpc.dependencies]
-podman-hpc = "^1.1.4"
 podman-hpc-py = {path = "thirdparty/podman-hpc-py"}
 
 [build-system]

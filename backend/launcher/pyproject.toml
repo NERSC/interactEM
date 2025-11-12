@@ -2,30 +2,38 @@
 name = "interactem-launcher"
 version = "0.1.0"
 description = ""
-dynamic = ["dependencies"]
 authors = [
     {name = "Sam Welborn", email = "swelborn@lbl.gov"},
     {name = "Chris Harris", email = "cjh@lbl.gov"}
 ]
 requires-python = ">=3.10"
 readme = "README.md"
+dependencies = [
+    "interactem-core",
+    "interactem-sfapi-models",
+    "pydantic-settings>=2.4.0,<3",
+    "sfapi-client>=0.4,<1",
+    "h11>=0.16.0,<1",
+    "jinja2>=3.1,<4",
+]
+
+[tool.uv.sources]
+interactem-core = { path = "../core", editable = true }
+interactem-sfapi-models = { path = "../sfapi_models", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3.4,<9",
+    "pytest-asyncio>=0.25.3,<1",
+    "python-dotenv[cli]>=1.0.1,<2",
+]
 
 [tool.poetry]
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
 interactem-core = {path = "../core", develop = true}
 interactem-sfapi-models = {path = "../sfapi_models", develop = true}
-pydantic-settings = "^2.4.0"
-sfapi-client = "^0.4"
-h11 = "^0.16.0"
-jinja2 = "^3.1"
-
-[tool.poetry.group.dev.dependencies]
-pytest = "^8.3.4"
-pytest-asyncio = "^0.25.3"
-python-dotenv = { version = "^1.0.1", extras = ["cli"] }
 
 [build-system]
 requires = ["poetry-core"]

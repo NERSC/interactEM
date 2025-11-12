@@ -5,21 +5,27 @@ description = ""
 authors = [{name = "Sam Welborn", email = "swelborn@lbl.gov"}]
 readme = "README.md"
 requires-python = ">=3.10"
-dynamic = ["dependencies"]
+dependencies = [
+    "requests>=2.32.4,<3",
+    "interactem-core",
+    "pydantic-settings>=2.4,<3",
+    "aiohttp>=3.10.5,<4",
+]
+
+[tool.uv.sources]
+interactem-core = { path = "../core", editable = true }
+
+[dependency-groups]
+test = [
+    "pytest>=8.3.5,<9",
+    "pytest-mock>=3.14.0,<4",
+]
 
 [tool.poetry]
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-requests = "^2.32.4"
 interactem-core = {path = "../core", develop = true}
-pydantic-settings = "^2.4"
-aiohttp = "^3.10.5"
-
-[tool.poetry.group.test.dependencies]
-pytest = "^8.3.5"
-pytest-mock = "^3.14.0"
 
 [build-system]
 requires = ["poetry-core"]
