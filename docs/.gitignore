@@ -1,9 +1,6 @@
 # Sphinx build outputs
 _build/
 
-# Poetry
-poetry.lock
-
 # Python
 __pycache__/
 *.py[cod]

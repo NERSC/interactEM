@@ -1,6 +1,7 @@
 [project]
 name = "interactem-core"
-dynamic = ["version", "dependencies"]
+version = "0.1.0"
+dynamic = ["dependencies"]
 description = ""
 readme = "README.md"
 authors = [
@@ -10,7 +11,6 @@ authors = [
 requires-python = ">=3.10"
 
 [tool.poetry]
-version = "0.1.0"
 packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]

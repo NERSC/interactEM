@@ -1,7 +1,8 @@
 [project]
 name = "interactem-launcher"
+version = "0.1.0"
 description = ""
-dynamic = ["version", "dependencies"]
+dynamic = ["dependencies"]
 authors = [
     {name = "Sam Welborn", email = "swelborn@lbl.gov"},
     {name = "Chris Harris", email = "cjh@lbl.gov"}
@@ -11,7 +12,6 @@ readme = "README.md"
 
 [tool.poetry]
 packages = [{ include = "interactem" }]
-version = "0.1.0"
 
 [tool.poetry.dependencies]
 python = "^3.10"

@@ -1,9 +1,13 @@
-[tool.poetry]
-name = "interactEM docs"
+[project]
+name = "interactem-docs"
 version = "0.0.1"
 description = "interactEM documentation"
-authors = ["interactEM developers"]
+authors = [{name = "interactEM developers"}]
 readme = "README.md"
+requires-python = ">=3.12"
+dynamic = ["dependencies"]
+
+[tool.poetry]
 package-mode = false
 
 [tool.poetry.dependencies]
