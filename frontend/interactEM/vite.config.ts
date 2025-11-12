@@ -8,6 +8,10 @@ const __dirname = resolve()
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  server: {
+    strictPort: true,
+    port: 5173,
+  },
   plugins: [
     react(),
     dts({
