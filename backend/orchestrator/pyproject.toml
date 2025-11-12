@@ -10,6 +10,7 @@ dependencies = [
     "interactem-core",
     "pydantic-settings>=2.4,<3",
     "aiohttp>=3.10.5,<4",
+    "transitions>=0.9.3,<1",
 ]
 
 [tool.uv.sources]
