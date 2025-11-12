@@ -1192,20 +1192,20 @@ name = "interactem-core"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = "^3.10"
+python-versions = ">=3.10"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-anyio = "^4.11.0"
-faststream = {version = "^0.6.0", extras = ["nats"]}
-nats-py = "^2.11.0"
-networkx = "^3.3"
-nkeys = "^0.2.1"
-pydantic = "^2.12.3"
-pydantic-settings = "^2.10.1"
-tenacity = "^9.0.0"
+anyio = ">=4.11.0,<5"
+faststream = {version = ">=0.6.0,<0.7", extras = ["nats"]}
+nats-py = ">=2.11.0,<3"
+networkx = ">=3.3,<4"
+nkeys = ">=0.2.1,<0.3"
+pydantic = ">=2.12.3,<3"
+pydantic-settings = ">=2.10.1,<3"
+tenacity = ">=9.0.0,<10"
 
 [package.source]
 type = "directory"
@@ -1216,15 +1216,15 @@ name = "interactem-sfapi-models"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = "^3.10"
+python-versions = ">=3.10"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-h11 = "^0.16.0"
-pydantic = "^2.12.3"
-sfapi-client = "^0.4"
+h11 = ">=0.16.0,<1"
+pydantic = ">=2.12.3,<3"
+sfapi-client = ">=0.4,<1"
 
 [package.source]
 type = "directory"
@@ -3398,5 +3398,5 @@ propcache = ">=0.2.1"
 
 [metadata]
 lock-version = "2.1"
-python-versions = "^3.10"
-content-hash = "a77c279b0d629a744dce97067b82aae95d4f7bfe1a4078835331d9995016c661"
+python-versions = ">=3.10"
+content-hash = "eb26f1bc9e4ea48d22c409937c1ae0a2e7731e39faef89dd769d847f81b0fb64"
