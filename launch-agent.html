@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Authoring operators" href="authoring-operators.html"><link rel="prev" title="Getting Started" href="getting-started.html">
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Operators" href="authoring-operators.html"><link rel="prev" title="Getting Started" href="getting-started.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.09.25 -->
         <title>Launch an agent - interactEM Documentation</title>
@@ -283,7 +283,7 @@
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Launch an agent</a></li>
-<li class="toctree-l1"><a class="reference internal" href="authoring-operators.html">Authoring operators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authoring-operators.html">Operators</a></li>
 </ul>
 
 </div>
@@ -317,61 +317,48 @@
         <article role="main" id="furo-main-content">
           <section id="launch-an-agent">
 <h1>Launch an agent<a class="headerlink" href="#launch-an-agent" title="Link to this heading">#</a></h1>
-<p>The agent is core component in the InteractEM system for running operator containers, and coordinating their lifecycle and configuration via NATS messaging.</p>
-<section id="running-locally">
-<h2>Running Locally<a class="headerlink" href="#running-locally" title="Link to this heading">#</a></h2>
+<p>The agent is core component in the InteractEM system for running operator containers, and coordinating their lifecycle and  via NATS messaging.</p>
 <section id="prerequisites">
-<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">#</a></h3>
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">#</a></h2>
 <p>Some python environment manager (e.g., <a class="reference external" href="https://python-poetry.org/docs/"><code class="docutils literal notranslate"><span class="pre">poetry</span></code></a> or <a class="reference external" href="https://github.com/astral-sh/uv"><code class="docutils literal notranslate"><span class="pre">uv</span></code></a>).</p>
 </section>
 <section id="configuration">
-<h3>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h3>
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h2>
 <p><strong>Set up Environment Variables</strong></p>
-<ul class="simple">
-<li><p>Find the Podman Service Endpoint Socket. Open Podman Desktop and go to Settings. Locate and copy the Service Endpoint or Socket Path (e.g., /var/run/podman/podman.sock).</p></li>
-<li><p>Alternative method (requires <code class="docutils literal notranslate"><span class="pre">jq</span></code> to be in <code class="docutils literal notranslate"><span class="pre">$PATH</span></code>): run the following script:</p></li>
-</ul>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./scripts/podman-socket-path.sh
+<p>You should have already run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">setup</span></code> in the root directory. Then go to agent directory:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>backend/agent
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>Create <code class="docutils literal notranslate"><span class="pre">.env</span></code>:</p></li>
+<li><p>Update the <code class="docutils literal notranslate"><span class="pre">.env</span></code> file for the agent. You can for example set the agent’s name by changing <code class="docutils literal notranslate"><span class="pre">AGENT_NAME</span></code>:</p></li>
 </ul>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cp<span class="w"> </span>.env.example<span class="w"> </span>.env
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nv">AGENT_NAME</span><span class="o">=</span>SecretAgentMan<span class="w"> </span><span class="c1"># change to how you want it to display in the frontend</span>
 </pre></div>
 </div>
-<ul class="simple">
-<li><p>Update the <code class="docutils literal notranslate"><span class="pre">.env</span></code> file for the agent. Endpoint goes to <code class="docutils literal notranslate"><span class="pre">PODMAN_SERVICE_URI</span></code> and set default <code class="docutils literal notranslate"><span class="pre">AGENT_NAME</span></code>.</p></li>
-</ul>
-<div class="highlight-makefile notranslate"><div class="highlight"><pre><span></span><span class="c"># note **3** slashes in unix:///var....</span>
-<span class="nv">PODMAN_SERVICE_URI</span><span class="o">=</span>&lt;your_socket_goes_here&gt;
-<span class="nv">AGENT_NAME</span><span class="o">=</span>default_agent_name
+<p>If you have specific tags to match an operator on, run the following:</p>
+<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nv">AGENT_TAGS</span><span class="o">=</span><span class="s1">&#39;[&quot;ncem-4dcamera&quot;,&quot;gpu&quot;]&#39;</span>
 </pre></div>
 </div>
 </section>
 <section id="install-and-run">
-<h3>Install and run<a class="headerlink" href="#install-and-run" title="Link to this heading">#</a></h3>
+<h2>Install and run<a class="headerlink" href="#install-and-run" title="Link to this heading">#</a></h2>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>install
 </pre></div>
 </div>
 <p>or</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>venv<span class="w"> </span>.venv<span class="w"> </span>--python<span class="o">=</span><span class="m">3</span>.12
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>venv<span class="w"> </span>.venv<span class="w"> </span>--python<span class="o">=</span><span class="m">3</span>.12<span class="w"> </span>--clear
 uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
 <span class="nb">source</span><span class="w"> </span>.venv/bin/activate
 </pre></div>
 </div>
 </section>
-<section id="run-agents">
-<h3>Run Agents<a class="headerlink" href="#run-agents" title="Link to this heading">#</a></h3>
-<p>Run the following inside the <a class="reference internal" href="#backend/agent/"><span class="xref myst">directory</span></a> where <code class="docutils literal notranslate"><span class="pre">.env</span></code> is.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>interactem-agent
+<section id="run-agent">
+<h2>Run Agent<a class="headerlink" href="#run-agent" title="Link to this heading">#</a></h2>
+<p>Run the following inside the directory where the <code class="docutils literal notranslate"><span class="pre">.env</span></code> is:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>backend/agent
+interactem-agent
 </pre></div>
 </div>
-<p>To run with custom agent’s name and tags, set the following environment variables before running the agent (useful while running multiple agents):</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">AGENT_NAME</span><span class="o">=</span><span class="s2">&quot;agent_name&quot;</span><span class="w"> </span><span class="nv">AGENT_TAGS</span><span class="o">=</span><span class="s1">&#39;[&quot;agent_tag&quot;]&#39;</span><span class="w"> </span>interactem-agent
-</pre></div>
-</div>
-</section>
 </section>
 </section>
 
@@ -385,7 +372,7 @@ uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </s
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Authoring operators</div>
+                <div class="title">Operators</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -431,13 +418,10 @@ uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </s
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Launch an agent</a><ul>
-<li><a class="reference internal" href="#running-locally">Running Locally</a><ul>
 <li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a></li>
 <li><a class="reference internal" href="#install-and-run">Install and run</a></li>
-<li><a class="reference internal" href="#run-agents">Run Agents</a></li>
-</ul>
-</li>
+<li><a class="reference internal" href="#run-agent">Run Agent</a></li>
 </ul>
 </li>
 </ul>

@@ -283,7 +283,7 @@
   <ul class="current">
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="launch-agent.html">Launch an agent</a></li>
-<li class="toctree-l1"><a class="reference internal" href="authoring-operators.html">Authoring operators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authoring-operators.html">Operators</a></li>
 </ul>
 
 </div>
@@ -317,16 +317,14 @@
         <article role="main" id="furo-main-content">
           <section id="getting-started">
 <h1>Getting Started<a class="headerlink" href="#getting-started" title="Link to this heading">#</a></h1>
-<section id="running-locally">
-<h2>Running locally<a class="headerlink" href="#running-locally" title="Link to this heading">#</a></h2>
 <section id="prerequisites">
-<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">#</a></h3>
+<h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">#</a></h2>
 <ul class="simple">
 <li><p><strong><a class="reference external" href="https://docs.docker.com/engine/install/">Docker</a></strong>, <strong><a class="reference external" href="https://podman.io/docs/installation">Podman</a></strong>, <strong><a class="reference external" href="https://docs.astral.sh/uv/getting-started/installation/">uv</a></strong></p></li>
 </ul>
 </section>
 <section id="configuration">
-<h3>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h3>
+<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h2>
 <ol class="arabic">
 <li><p><strong>Setup <code class="docutils literal notranslate"><span class="pre">.env</span></code> with secure secrets</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>setup
@@ -341,17 +339,17 @@
 </ul>
 </li>
 <li><p><strong>Add GitHub credentials</strong></p>
-<p>Edit your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file and add your GitHub information:</p>
+<p>Edit your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file and add GitHub info:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GITHUB_USERNAME</span><span class="o">=</span>your_github_username
 <span class="nv">GITHUB_TOKEN</span><span class="o">=</span>your_personal_token
 </pre></div>
 </div>
-<p>You can get a personal token from your <a class="reference external" href="https://github.com/settings/tokens">GitHub account settings</a>.</p>
+<p>You can get a personal token from your <a class="reference external" href="https://github.com/settings/tokens">GitHub account settings</a>. Use a classic token with <code class="docutils literal notranslate"><span class="pre">read:packages</span></code>.</p>
 </li>
 </ol>
 </section>
 <section id="starting-services">
-<h3>Starting services<a class="headerlink" href="#starting-services" title="Link to this heading">#</a></h3>
+<h2>Starting services<a class="headerlink" href="#starting-services" title="Link to this heading">#</a></h2>
 <ol class="arabic">
 <li><p><strong>Quick start</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>setup
@@ -362,30 +360,28 @@ make<span class="w"> </span>operators
 </li>
 <li><p><strong>Access the application</strong></p>
 <p>Open your browser to <a class="reference external" href="http://localhost:5173">http://localhost:5173</a></p>
-<p>Login credentials:</p>
 <ul class="simple">
-<li><p><strong>Username</strong>: <code class="docutils literal notranslate"><span class="pre">admin&#64;example.com</span></code></p></li>
-<li><p><strong>Password</strong>: Check your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file for <code class="docutils literal notranslate"><span class="pre">FIRST_SUPERUSER_PASSWORD</span></code> (auto-generated), or output from <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">docker-up</span></code></p></li>
+<li><p>Username: <code class="docutils literal notranslate"><span class="pre">admin&#64;example.com</span></code></p></li>
+<li><p>Password: Check your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file for <code class="docutils literal notranslate"><span class="pre">FIRST_SUPERUSER_PASSWORD</span></code> (auto-generated), or output from <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">docker-up</span></code></p></li>
 </ul>
 </li>
 </ol>
 </section>
 <section id="stopping-services">
-<h3>Stopping services<a class="headerlink" href="#stopping-services" title="Link to this heading">#</a></h3>
+<h2>Stopping services<a class="headerlink" href="#stopping-services" title="Link to this heading">#</a></h2>
 <ol class="arabic">
 <li><p><strong>To stop services:</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>docker-down
 </pre></div>
 </div>
 </li>
-<li><p><strong>To stop and clean database:</strong></p>
+<li><p><strong>To stop and delete database (be careful):</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>clean
 </pre></div>
 </div>
 </li>
 </ol>
 <p>Now you should have the full stack running in <code class="docutils literal notranslate"><span class="pre">docker</span></code>. Go to <a class="reference internal" href="launch-agent.html"><span class="std std-doc">launch agent</span></a>.</p>
-</section>
 </section>
 </section>
 
@@ -445,13 +441,10 @@ make<span class="w"> </span>operators
           <div class="toc-tree">
             <ul>
 <li><a class="reference internal" href="#">Getting Started</a><ul>
-<li><a class="reference internal" href="#running-locally">Running locally</a><ul>
 <li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
 <li><a class="reference internal" href="#configuration">Configuration</a></li>
 <li><a class="reference internal" href="#starting-services">Starting services</a></li>
 <li><a class="reference internal" href="#stopping-services">Stopping services</a></li>
-</ul>
-</li>
 </ul>
 </li>
 </ul>

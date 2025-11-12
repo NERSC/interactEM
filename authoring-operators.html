@@ -6,7 +6,7 @@
 <link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="prev" title="Launch an agent" href="launch-agent.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.09.25 -->
-        <title>Authoring operators - interactEM Documentation</title>
+        <title>Operators - interactEM Documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d111a655" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo.css?v=580074bf" />
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
@@ -283,7 +283,7 @@
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="launch-agent.html">Launch an agent</a></li>
-<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Authoring operators</a></li>
+<li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Operators</a></li>
 </ul>
 
 </div>
@@ -315,16 +315,37 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="authoring-operators">
-<h1>Authoring operators<a class="headerlink" href="#authoring-operators" title="Link to this heading">#</a></h1>
+          <section id="operators">
+<h1>Operators<a class="headerlink" href="#operators" title="Link to this heading">#</a></h1>
 <section id="what-is-an-operator">
 <h2>What is an Operator?<a class="headerlink" href="#what-is-an-operator" title="Link to this heading">#</a></h2>
 <p>Operators are pieces of code that will perform some action on data coming from other operators. They are the bits of code that can be chained together to build a data pipeline.</p>
+</section>
+<section id="running-operators-locally">
+<h2>Running operators locally<a class="headerlink" href="#running-operators-locally" title="Link to this heading">#</a></h2>
+<p>Operators are currently located in the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators"><code class="markdown_symlinks markdown_symlinks-xref docutils literal notranslate"><span class="pre">operators/</span></code></a> directory.</p>
+<p>To run an operator pipeline, we have to have its container image in <code class="docutils literal notranslate"><span class="pre">podman</span></code>’s container storage. There are several ways to get the container into the podman stroage, but we opt to build the operators using <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">bake</span></code>, pull them into a local docker registry, and pull them from this registry with podman:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>interactEM
+make<span class="w"> </span>setup<span class="w"> </span><span class="c1"># no need to run this if you already have</span>
+
+<span class="c1"># Build all operators and pull them into podman storage</span>
+make<span class="w"> </span>operators
+
+<span class="c1"># Or build a specific operator and pull it into podman storage</span>
+make<span class="w"> </span>operator<span class="w"> </span><span class="nv">target</span><span class="o">=</span>center-of-mass-partial
+</pre></div>
+</div>
+<p>For faster iteration during development, you can omit the <code class="docutils literal notranslate"><span class="pre">--build-base</span></code> flag by using the lower-level <code class="docutils literal notranslate"><span class="pre">bake.sh</span></code> script directly:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./operators/bake.sh<span class="w"> </span>--push-local<span class="w"> </span>--pull-local<span class="w"> </span>--target<span class="w"> </span>center-of-mass-partial
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators/bake.sh">bake.sh</a> for additional build options.</p>
+</section>
 <section id="creating-an-operator">
-<h3>Creating an operator<a class="headerlink" href="#creating-an-operator" title="Link to this heading">#</a></h3>
+<h2>Creating an operator<a class="headerlink" href="#creating-an-operator" title="Link to this heading">#</a></h2>
 <p>At the very least, three files are required to make an operator:</p>
 <ol class="arabic simple">
-<li><p><a class="reference internal" href="#run-py-file"><code class="docutils literal notranslate"><span class="pre">run.py</span></code></a></p></li>
+<li><p><a class="reference internal" href="#run-py">run.py</a></p></li>
 <li><p><a class="reference internal" href="#containerfile">Containerfile</a></p></li>
 <li><p><a class="reference internal" href="#specification">Specification</a></p></li>
 </ol>
@@ -337,11 +358,10 @@ interactem<span class="w"> </span>operator<span class="w"> </span>new
 </pre></div>
 </div>
 <p>One can similarly do this with <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">install</span></code> (either way should work), or with a plain <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">.</span></code>.</p>
-</section>
-<section id="run-py-file">
-<h3><code class="docutils literal notranslate"><span class="pre">run.py</span></code> file<a class="headerlink" href="#run-py-file" title="Link to this heading">#</a></h3>
-<p>We need to define the code that will operate on incoming messages. The incoming messages will come in as <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/backend/core/interactem/core/models/messages.py">BytesMessages</a>, which contain data, metadata, and tracking information.</p>
-<p>Here is an example of the <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/operators/center-of-mass-partial/run.py"><code class="docutils literal notranslate"><span class="pre">run.py</span></code></a> file for the partial center of mass operator. You can see that the parameters (defined in the <a class="reference internal" href="#specification">spec</a>, see below).</p>
+<section id="run-py">
+<h3>run.py<a class="headerlink" href="#run-py" title="Link to this heading">#</a></h3>
+<p>We need to define the code that will operate on incoming messages. The incoming messages will come in as <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//backend/core/interactem/core/models/messages.py">BytesMessages</a>, which contain data, metadata, and tracking information.</p>
+<p>Here is an example of the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators/center-of-mass-partial/run.py"><code class="markdown_symlinks markdown_symlinks-xref docutils literal notranslate"><span class="pre">run.py</span></code></a> file for the partial center of mass operator. You can see that the parameters (defined in the <a class="reference internal" href="#specification">spec</a>, see below).</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nd">@operator</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">com_partial</span><span class="p">(</span>
     <span class="n">inputs</span><span class="p">:</span> <span class="n">BytesMessage</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
@@ -368,12 +388,11 @@ interactem<span class="w"> </span>operator<span class="w"> </span>new
     <span class="k">return</span> <span class="n">COMPartial</span><span class="p">(</span><span class="n">header</span><span class="o">=</span><span class="n">batch</span><span class="o">.</span><span class="n">header</span><span class="p">,</span> <span class="n">array</span><span class="o">=</span><span class="n">com</span><span class="p">)</span><span class="o">.</span><span class="n">to_bytes_message</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>We need to define the code that will operate on incoming messages. The incoming messages will come in as <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/backend/core/interactem/core/models/messages.py">BytesMessages</a>, which contain data, metadata, and tracking information.</p>
-<p>Here is an example of the <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/operators/center-of-mass-partial/run.py"><code class="docutils literal notranslate"><span class="pre">run.py</span></code></a> file for the partial center of mass operator. You can see that the parameters (defined in the <a class="reference internal" href="#specification">spec</a>, see below).</p>
+<!-- Note we have to include this because myst doesn't have a start-at directive -->
 </section>
 <section id="containerfile">
 <h3>Containerfile<a class="headerlink" href="#containerfile" title="Link to this heading">#</a></h3>
-<p>We need to use the operator base image (<code class="docutils literal notranslate"><span class="pre">ghcr.io/nersc/interactem/operator</span></code>) the parent image for our <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/operators/center-of-mass-partial/Containerfile"><code class="docutils literal notranslate"><span class="pre">Containerfile</span></code></a>. In this case, we are using the <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/operators/distiller-streaming/Containerfile"><code class="docutils literal notranslate"><span class="pre">distiller-streaming</span></code></a> image as the base, as it contains a lot of utilities for processing 4D Camera frames.</p>
+<p>We need to use the operator <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//docker/Dockerfile.operator">base image</a> the parent image for our <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators/center-of-mass-partial/Containerfile"><code class="markdown_symlinks markdown_symlinks-xref docutils literal notranslate"><span class="pre">Containerfile</span></code></a>. In this case, we are using the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators/distiller-streaming/Containerfile"><code class="markdown_symlinks markdown_symlinks-xref docutils literal notranslate"><span class="pre">distiller-streaming</span></code></a> image as the base, as it contains a lot of utilities for processing 4D Camera frames.</p>
 <div class="literal-block-wrapper docutils container" id="id1">
 <div class="code-block-caption"><span class="caption-text">ghcr.io/nersc/interactem/distiller-streaming</span><a class="headerlink" href="#id1" title="Link to this code">#</a></div>
 <div class="highlight-Dockerfile notranslate"><div class="highlight"><pre><span></span><span class="k">FROM</span><span class="w"> </span><span class="s">ghcr.io/nersc/interactem/operator</span>
@@ -396,12 +415,11 @@ interactem<span class="w"> </span>operator<span class="w"> </span>new
 </pre></div>
 </div>
 </div>
-<p>We need to use the operator base image (<code class="docutils literal notranslate"><span class="pre">ghcr.io/nersc/interactem/operator</span></code>) the parent image for our <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/operators/center-of-mass-partial/Containerfile"><code class="docutils literal notranslate"><span class="pre">Containerfile</span></code></a>. In this case, we are using the <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/operators/distiller-streaming/Containerfile"><code class="docutils literal notranslate"><span class="pre">distiller-streaming</span></code></a> image as the base, as it contains a lot of utilities for processing 4D Camera frames.</p>
 </section>
 <section id="specification">
 <h3>Specification<a class="headerlink" href="#specification" title="Link to this heading">#</a></h3>
-<p>Operators specifications need to be defined in a <code class="docutils literal notranslate"><span class="pre">json</span></code> file. The specification can be found in <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/backend/core/interactem/core/models/spec.py">spec.py</a>.</p>
-<p>Here’s an example of an <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/operators/center-of-mass-partial/operator.json"><code class="docutils literal notranslate"><span class="pre">operator.json</span></code></a> for the partial center of mass operator.</p>
+<p>Operators specifications need to be defined in a <code class="docutils literal notranslate"><span class="pre">json</span></code> file. The specification can be found in <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//backend/core/interactem/core/models/spec.py">spec.py</a>.</p>
+<p>Here’s an example of an <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators/center-of-mass-partial/operator.json"><code class="markdown_symlinks markdown_symlinks-xref docutils literal notranslate"><span class="pre">operator.json</span></code></a> for the partial center of mass operator.</p>
 <div class="literal-block-wrapper docutils container" id="id3">
 <div class="code-block-caption"><span class="caption-text">Specification model</span><a class="headerlink" href="#id3" title="Link to this code">#</a></div>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">OperatorSpec</span><span class="p">(</span><span class="n">BaseModel</span><span class="p">):</span>
@@ -483,34 +501,6 @@ interactem<span class="w"> </span>operator<span class="w"> </span>new
 </div>
 </section>
 </section>
-<section id="building-locally">
-<h2>Building locally<a class="headerlink" href="#building-locally" title="Link to this heading">#</a></h2>
-<p>Operators are located (for now) in the <a class="reference external" href="https://github.com/NERSC/interactEM/blob/main/operators">operators/</a> directory. After you add an <code class="docutils literal notranslate"><span class="pre">operator.json</span></code> to any subdirectory of <code class="docutils literal notranslate"><span class="pre">operators</span></code> and refresh your frontend, it will appear in the list of operators.</p>
-<p>To build and deploy operators locally, run the following commands from the repository root:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># Initial setup (run once)</span>
-make<span class="w"> </span>setup
-
-<span class="c1"># Build all operators</span>
-make<span class="w"> </span>operators
-
-<span class="c1"># Or build a specific operator</span>
-make<span class="w"> </span>operator<span class="w"> </span><span class="nv">target</span><span class="o">=</span>center-of-mass-partial
-</pre></div>
-</div>
-<p>The <code class="docutils literal notranslate"><span class="pre">make</span></code> commands handle all the complexity:</p>
-<ul class="simple">
-<li><p>Setting up a local Docker registry</p></li>
-<li><p>Building the operator base image and distiller-streaming base</p></li>
-<li><p>Building your operator containers</p></li>
-<li><p>Pushing images to the local registry</p></li>
-<li><p>Pulling images into podman with correct tags</p></li>
-</ul>
-<p>For faster iteration during development, you can omit the <code class="docutils literal notranslate"><span class="pre">--build-base</span></code> flag by using the lower-level <code class="docutils literal notranslate"><span class="pre">bake.sh</span></code> script directly:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./operators/bake.sh<span class="w"> </span>--push-local<span class="w"> </span>--pull-local<span class="w"> </span>--target<span class="w"> </span>center-of-mass-partial
-</pre></div>
-</div>
-<p>See <a class="reference internal" href="#./bake.sh"><span class="xref myst">bake.sh</span></a> for additional build options.</p>
-</section>
 </section>
 
         </article>
@@ -560,15 +550,15 @@ make<span class="w"> </span>operator<span class="w"> </span><span class="nv">tar
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Authoring operators</a><ul>
-<li><a class="reference internal" href="#what-is-an-operator">What is an Operator?</a><ul>
-<li><a class="reference internal" href="#creating-an-operator">Creating an operator</a></li>
-<li><a class="reference internal" href="#run-py-file"><code class="docutils literal notranslate"><span class="pre">run.py</span></code> file</a></li>
+<li><a class="reference internal" href="#">Operators</a><ul>
+<li><a class="reference internal" href="#what-is-an-operator">What is an Operator?</a></li>
+<li><a class="reference internal" href="#running-operators-locally">Running operators locally</a></li>
+<li><a class="reference internal" href="#creating-an-operator">Creating an operator</a><ul>
+<li><a class="reference internal" href="#run-py">run.py</a></li>
 <li><a class="reference internal" href="#containerfile">Containerfile</a></li>
 <li><a class="reference internal" href="#specification">Specification</a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#building-locally">Building locally</a></li>
 </ul>
 </li>
 </ul>
