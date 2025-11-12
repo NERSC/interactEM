@@ -1,9 +1,16 @@
-[tool.poetry]
+[project]
 name = "interactem-cli"
 version = "0.1.0"
 description = "Command-line interface for InteractEM pipeline management"
-authors = ["Rajat Bhattarai <basistharajat@gmail.com>"]
+authors = [{name = "Rajat Bhattarai", email = "basistharajat@gmail.com"}]
 readme = "README.md"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[project.scripts]
+interactem = "interactem.cli.main:app"
+
+[tool.poetry]
 packages = [{include = "interactem"}]
 
 [tool.poetry.scripts]
