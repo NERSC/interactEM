@@ -23,6 +23,7 @@ dependencies = [
     "jsonpath-ng>=1.7.0,<2",
     "starlette>=0.49.0,<1",
     "h11>=0.16.0,<1",
+    "alembic-postgresql-enum>=1.8.0,<2",
 ]
 
 [tool.uv.sources]
