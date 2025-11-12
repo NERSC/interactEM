@@ -63,7 +63,7 @@ services: check-docker-permission ## Build Docker images for all services
 	$(DOCKER_DIR)/bake.sh
 
 docker-up: services ## Start all services with docker-compose
-	@docker compose up --force-recreate --remove-orphans --build -d
+	@USER_ID=$(shell id -u) GROUP_ID=$(shell id -g) docker compose up --force-recreate --remove-orphans --build -d
 	$(call success,Services started)
 	@echo "  Visit http://localhost:5173 in your browser"
 	@echo ""

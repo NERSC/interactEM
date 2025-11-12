@@ -37,6 +37,7 @@ x-backend-base:
 services:
   nats-config-generator:
     image: natsio/nats-box:latest
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - "./conf/nats-conf:/nats-conf"
     working_dir: /nats-conf
