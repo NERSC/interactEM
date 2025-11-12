@@ -142,7 +142,12 @@ fi
 if $PUSH_LOCAL && $PULL_LOCAL; then
     echo "=== Pulling images back from local registry ==="
     cd "$OPERATORS_DIR"
-    uv run --no-project --with python-hcl2 --with podman python pull_images_from_bake.py
+    uv run --no-project \
+        --with python-hcl2 \
+        --with podman \
+        --with pydantic \
+        --with pydantic-settings \
+        python pull_images_from_bake.py
 fi
 
 echo "=== Done ==="
