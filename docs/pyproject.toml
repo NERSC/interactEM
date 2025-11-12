@@ -15,6 +15,7 @@ sphinxcontrib-mermaid = "^1.0.0"
 sphinx-design = "^0.6.1"
 furo = "^2025.7.19"
 sphinx-copybutton = "^0.5.2"
+markdown-code-symlinks = { git = "https://github.com/SymbiFlow/sphinxcontrib-markdown-symlinks.git", rev = "4ead1c22270188cd0529741679769c56d9c341bf" }
 
 [tool.poetry.group.dev.dependencies]
 sphinx-autobuild = "^2024.10.3"
