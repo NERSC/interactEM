@@ -8,15 +8,19 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "pyzmq (>=27.0.1,<28.0.0)",
-    "msgpack (>=1.1.0,<2.0.0)",
-    "pandas (>=2.3.1,<3.0.0)",
-    "pydantic (>=2.11.7,<3.0.0)",
-    "stempy (>=3.4.0,<4.0.0)",
-    "numpy (>=2.2.6,<2.3.0)",
-    "msgspec (>=0.19.0,<0.20.0)",
+    "pyzmq>=27.0.1,<28.0.0",
+    "msgpack>=1.1.0,<2.0.0",
+    "pandas>=2.3.1,<3.0.0",
+    "pydantic>=2.11.7,<3.0.0",
+    "stempy>=3.4.0,<4.0.0",
+    "numpy>=2.2.6,<2.3.0",
+    "msgspec>=0.19.0,<0.20.0",
 ]
 
+[dependency-groups]
+test = [
+    "pytest>=8.3.5,<9",
+]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
@@ -33,6 +37,3 @@ exclude = []
 
 [tool.ruff.lint.isort]
 known-first-party = ["distiller_streaming", "interactem"]
-
-[tool.poetry.group.test.dependencies]
-pytest = "^8.3.5"

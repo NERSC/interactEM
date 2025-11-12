@@ -2,22 +2,20 @@
 name = "interactem-sfapi-models"
 version = "0.1.0"
 description = ""
-dynamic = ["dependencies"]
 authors = [
     {name = "Sam Welborn", email = "swelborn@lbl.gov"},
     {name = "Chris Harris", email = "cjh@lbl.gov"}
 ]
 requires-python = ">=3.10"
 readme = "README.md"
+dependencies = [
+    "sfapi-client>=0.4,<1",
+    "pydantic>=2.12.3,<3",
+    "h11>=0.16.0,<1",
+]
 
 [tool.poetry]
 packages = [{ include = "interactem" }]
-
-[tool.poetry.dependencies]
-python = "^3.10"
-sfapi-client = "^0.4"
-pydantic = "^2.12.3"
-h11 = "^0.16.0"
 
 [build-system]
 requires = ["poetry-core"]

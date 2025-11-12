@@ -48,6 +48,11 @@ uv venv .venv --clear && source .venv/bin/activate
 poetry lock --regenerate
 poetry install
 
+cd ${GIT_ROOT_DIR}/docs
+uv venv .venv --clear && source .venv/bin/activate
+poetry lock
+poetry install
+
 cd $GIT_ROOT_DIR
 uv venv .venv --clear && source .venv/bin/activate
 poetry lock

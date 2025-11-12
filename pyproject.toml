@@ -2,13 +2,36 @@
 name = "interactem"
 version = "0.1.0"
 description = "interactem"
-dynamic = ["dependencies"]
 readme = "README.md"
 authors = [
     {name = "Sam Welborn", email = "swelborn@lbl.gov"},
     {name = "Chris Harris", email = "cjh@lbl.gov"}
 ]
 requires-python = ">=3.11,<4.0"
+
+dependencies = [
+    "interactem-core",
+    "interactem-app",
+    "interactem-agent",
+    "interactem-launcher",
+    "interactem-sfapi-models",
+    "interactem-operators",
+    "interactem-metrics",
+    "interactem-cli",
+    "interactem-orchestrator",
+    "python-hcl2>=7.3.1"
+]
+
+[tool.uv.sources]
+interactem-core = { path = "backend/core", editable = true }
+interactem-app = { path = "backend/app", editable = true }
+interactem-agent = { path = "backend/agent", editable = true }
+interactem-launcher = { path = "backend/launcher", editable = true }
+interactem-operators = { path = "backend/operators", editable = true }
+interactem-metrics = { path = "backend/metrics", editable = true } 
+interactem-cli = { path = "cli", editable = true }
+interactem-orchestrator = { path = "backend/orchestrator", editable = true }
+interactem-sfapi-models = { path = "backend/sfapi_models", editable = true }
 
 [tool.poetry]
 package-mode = false
@@ -22,4 +45,4 @@ interactem-operators = {path = "backend/operators", develop = true}
 interactem-metrics = {path = "backend/metrics", develop = true}
 interactem-cli = {path = "cli", develop = true}
 interactem-orchestrator = {path = "backend/orchestrator", develop = true}
-python-hcl2 = "^7.3.1"
+interactem-sfapi-models = {path = "backend/sfapi_models", develop = true}

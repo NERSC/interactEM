@@ -219,20 +219,20 @@ name = "interactem-core"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = "^3.10"
+python-versions = ">=3.10"
 groups = ["main"]
 files = []
 develop = true
 
 [package.dependencies]
-anyio = "^4.11.0"
-faststream = {version = "^0.6.0", extras = ["nats"]}
-nats-py = "^2.11.0"
-networkx = "^3.3"
-nkeys = "^0.2.1"
-pydantic = "^2.12.3"
-pydantic-settings = "^2.10.1"
-tenacity = "^9.0.0"
+anyio = ">=4.11.0,<5"
+faststream = {version = ">=0.6.0,<0.7", extras = ["nats"]}
+nats-py = ">=2.11.0,<3"
+networkx = ">=3.3,<4"
+nkeys = ">=0.2.1,<0.3"
+pydantic = ">=2.12.3,<3"
+pydantic-settings = ">=2.10.1,<3"
+tenacity = ">=9.0.0,<10"
 
 [package.source]
 type = "directory"
@@ -634,5 +634,5 @@ typing-extensions = ">=4.12.0"
 
 [metadata]
 lock-version = "2.1"
-python-versions = "^3.10"
-content-hash = "b9939ce5b72783fff8b76a0354ba2757c2cca76629caa0490f8ddb9278b68da3"
+python-versions = ">=3.10"
+content-hash = "a54fb00364e4db9553241d0ee5a9329daf7dd7fef7d1426576c4d4883d686f64"
