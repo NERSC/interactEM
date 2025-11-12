@@ -34,14 +34,14 @@
 
 1. **Add GitHub credentials**
 
-    Edit your `.env` file and add your GitHub information:
+    Edit your `.env` file and add GitHub info:
 
     ```bash
     GITHUB_USERNAME=your_github_username
     GITHUB_TOKEN=your_personal_token
     ```
 
-    You can get a personal token from your [GitHub account settings](https://github.com/settings/tokens).
+    You can get a personal token from your [GitHub account settings](https://github.com/settings/tokens). Use a classic token with `read:packages`.
 
 ### Starting services
 
@@ -57,9 +57,8 @@
 
     Open your browser to [http://localhost:5173](http://localhost:5173)
 
-    Login credentials:
-    - **Username**: `admin@example.com`
-    - **Password**: Check your `.env` file for `FIRST_SUPERUSER_PASSWORD` (auto-generated), or output from `make docker-up`
+    - Username: `admin@example.com`
+    - Password: Check your `.env` file for `FIRST_SUPERUSER_PASSWORD` (auto-generated), or output from `make docker-up`
 
 ### Stopping services
 
@@ -69,7 +68,7 @@
     make docker-down
     ```
 
-1. **To stop and clean database:**
+1. **To stop and delete database (be careful):**
 
     ```bash
     make clean
@@ -77,7 +76,7 @@
 
 ### Launching an agent
 
-For operators to launch, you need to startup an agent process. See [backend/agent/README.md](backend/agent/README.md) for instructions on how to do this.
+For operators to launch, you need to startup an agent process. See [backend/agent/README.md](https://github.com/NERSC/interactEM/blob/main/backend/agent/README.md) for instructions on how to do this.
 
 ## License
 

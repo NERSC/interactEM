@@ -1,7 +1,4 @@
-# Authoring operators
-
 ```{include} ../../operators/README.md
-:start-after: "# Authoring operators"
 :end-before: "### Containerfile"
 ```
 
@@ -9,8 +6,11 @@
 :pyobject: com_partial
 ```
 
+<!-- Note we have to include this because myst doesn't have a start-at directive -->
+### Containerfile
+
 ```{include} ../../operators/README.md
-:start-after: "### `run.py` file"
+:start-after: "### Containerfile"
 :end-before: "### Specification"
 ```
 
@@ -24,9 +24,10 @@
 :caption: ghcr.io/nersc/interactem/center-of-mass-partial
 ```
 
+### Specification
+
 ```{include} ../../operators/README.md
-:start-after: "### Containerfile"
-:end-before: "## Building locally"
+:start-after: "### Specification" 
 ```
 
 ```{literalinclude} ../../backend/core/interactem/core/models/spec.py
@@ -37,10 +38,4 @@
 ```{literalinclude} ../../operators/center-of-mass-partial/operator.json
 :language: json
 :caption: Example `operator.json`
-```
-
-## Building locally
-
-```{include} ../../operators/README.md
-:start-after: "## Building locally"
 ```

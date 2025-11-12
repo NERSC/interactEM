@@ -9,7 +9,7 @@ on:
     paths:
       - 'docs/**'
       - '.github/workflows/docs.yml'
-      - 'README.md'
+      - '**/README.md'
       - '**/.env.example'
   workflow_dispatch:
 
