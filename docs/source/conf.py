@@ -25,10 +25,14 @@ myst_enable_extensions = [
 ]
 myst_heading_anchors = 3
 
-# Suppress warnings for missing cross-references in included README
+# Enable nitpicky mode to catch broken cross-references and invalid links
+nitpicky = True
+
+# Suppress specific warnings that are expected
 suppress_warnings = [
     'myst.xref_missing',
     'image.not_readable',
+    'myst.header',
 ]
 
 smv_branch_whitelist = r'^main$'
@@ -115,3 +119,25 @@ html_sidebars = {
         "sidebar/scroll-end.html",
     ]
 }
+
+
+# -- MarkdownSymlinks Configuration -----------------------------------------
+
+
+def setup(app):
+    """Configure the markdown symlinks domain."""
+    import os
+
+    from markdown_code_symlinks import MarkdownSymlinksDomain
+
+    github_repo_url = "https://github.com/NERSC/interactEM/"
+    github_repo_branch = "blob/main/"
+
+    docs_root_dir = os.path.realpath(os.path.dirname(__file__))
+    code_root_dir = os.path.realpath(os.path.join(docs_root_dir, "..", ".."))
+
+    MarkdownSymlinksDomain.init_domain(
+        github_repo_url, github_repo_branch, docs_root_dir, code_root_dir
+    )
+    MarkdownSymlinksDomain.find_links()
+    app.add_domain(MarkdownSymlinksDomain)

@@ -12,7 +12,7 @@ install:
 	poetry install
 
 build:
-	poetry run sphinx-build -b html source _build/html
+	poetry run sphinx-build -n -b html source _build/html
 
 clean:
 	rm -rf _build

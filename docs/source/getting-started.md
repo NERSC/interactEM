@@ -1,7 +1,5 @@
 # Getting Started
 
-## Running locally
-
 ```{include} ../../README.md
 :start-after: "## Running locally"
 :end-before: "### Launching an agent"

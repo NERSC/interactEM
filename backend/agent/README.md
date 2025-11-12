@@ -1,39 +1,34 @@
 # InteractEM - Agent
 
-The agent is core component in the InteractEM system for running operator containers, and coordinating their lifecycle and configuration via NATS messaging.
+The agent is core component in the InteractEM system for running operator containers, and coordinating their lifecycle and  via NATS messaging.
 
-## Running Locally
-
-### Prerequisites
+## Prerequisites
 
 Some python environment manager (e.g., [`poetry`](https://python-poetry.org/docs/) or [`uv`](https://github.com/astral-sh/uv)).
 
-### Configuration
+## Configuration
 
 **Set up Environment Variables**  
 
-- Find the Podman Service Endpoint Socket. Open Podman Desktop and go to Settings. Locate and copy the Service Endpoint or Socket Path (e.g., /var/run/podman/podman.sock).
-- Alternative method (requires `jq` to be in `$PATH`): run the following script:
+You should have already run `make setup` in the root directory. Then go to agent directory:
 
-```bash
-./scripts/podman-socket-path.sh
+```sh
+cd backend/agent
 ```
 
-- Create `.env`:
+- Update the `.env` file for the agent. You can for example set the agent's name by changing `AGENT_NAME`:
 
-```bash
-cp .env.example .env
+```sh
+AGENT_NAME=SecretAgentMan # change to how you want it to display in the frontend
 ```
 
-- Update the `.env` file for the agent. Endpoint goes to `PODMAN_SERVICE_URI` and set default `AGENT_NAME`.
+If you have specific tags to match an operator on, run the following:
 
-```makefile
-# note **3** slashes in unix:///var....
-PODMAN_SERVICE_URI=<your_socket_goes_here>
-AGENT_NAME=default_agent_name
+```sh
+AGENT_TAGS='["ncem-4dcamera","gpu"]'
 ```
 
-### Install and run
+## Install and run
 
 ```bash
 poetry install
@@ -42,21 +37,16 @@ poetry install
 or
 
 ```bash
-uv venv .venv --python=3.12
+uv venv .venv --python=3.12 --clear
 uv pip install -e .
 source .venv/bin/activate
 ```
 
-### Run Agents
+## Run Agent
 
-Run the following inside the [directory](backend/agent/) where `.env` is.
+Run the following inside the directory where the `.env` is:
 
 ```bash
+cd backend/agent
 interactem-agent
-```
-
-To run with custom agent's name and tags, set the following environment variables before running the agent (useful while running multiple agents):
-
-```bash
-AGENT_NAME="agent_name" AGENT_TAGS='["agent_tag"]' interactem-agent
 ```
