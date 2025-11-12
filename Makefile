@@ -6,6 +6,7 @@ OPERATORS_DIR := ./operators
 
 # Makefile configuration
 .PHONY: help setup setup-docker-registry services docker-up docker-down clean lint operators check-docker-permission
+SHELL := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
 
