@@ -9,7 +9,7 @@ WORKDIR /app/
 COPY --from=operator-base /interactem/operators /interactem/operators
 COPY --from=operator-base /interactem/core /interactem/core
 
-RUN cd /interactem/operators/ && pip install . scipy
+RUN pip install /interactem/core /interactem/operators scipy
 
 # Copy the electron-count specific run script
 COPY ./run.py /app/run.py
