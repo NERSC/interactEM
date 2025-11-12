@@ -7,7 +7,7 @@ x-backend-base:
         INSTALL_DEV: ${INSTALL_DEV-false}
       dockerfile: ../docker/Dockerfile.fastapi
       additional_contexts:
-        - interactem-base=docker-image://ghcr.io/nersc/interactem/interactem
+        interactem-base: service:base
     env_file:
       - .env
     environment:
@@ -35,6 +35,11 @@ x-backend-base:
       - "./conf/nats-conf/out_jwt/frontend.creds:/frontend.creds"
 
 services:
+  base:
+    build:
+      context: backend/
+      dockerfile: ../docker/Dockerfile.base
+
   nats-config-generator:
     image: natsio/nats-box:latest
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
@@ -179,7 +184,7 @@ services:
     build:
       context: backend/
       additional_contexts:
-        - interactem-base=docker-image://ghcr.io/nersc/interactem/interactem
+        interactem-base: service:base
       dockerfile: ../docker/Dockerfile.orchestrator
 
 
@@ -221,7 +226,7 @@ services:
     build: 
       context: backend/
       additional_contexts:
-        - interactem-base=docker-image://ghcr.io/nersc/interactem/interactem
+        interactem-base: service:base
       dockerfile: ../docker/Dockerfile.launcher
 
   metrics:
@@ -246,7 +251,7 @@ services:
     build:
       context: backend/
       additional_contexts:
-        - interactem-base=docker-image://ghcr.io/nersc/interactem/interactem
+        interactem-base: service:base
       dockerfile: ../docker/Dockerfile.metrics
 
   prometheus:
