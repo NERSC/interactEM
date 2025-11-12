@@ -23,7 +23,7 @@ export const LaunchPipelineButton: React.FC<LaunchPipelineButtonProps> = ({
       setIsLaunching(true)
     },
     onSuccess: () => {
-      toast.success("Pipeline sent to agents")
+      toast.success("Pipeline sent to orchestrator")
       setIsLaunching(false)
     },
     onError: () => {

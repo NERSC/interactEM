@@ -4,7 +4,7 @@ import {
   pipelinesReadPipelineRevisionOptions,
 } from "../../client/generated/@tanstack/react-query.gen"
 import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
-import { usePipelineStatus } from "../nats/useRunningPipelines"
+import { useDeployment } from "./useDeploymentsQuery"
 
 function useComposerPipeline() {
   const { currentPipelineId, currentRevisionId } = usePipelineStore()
@@ -35,32 +35,33 @@ function useComposerPipeline() {
 function useRuntimePipeline() {
   const { selectedRuntimePipelineId } = usePipelineStore()
 
-  // Get runtime pipeline data
-  const { pipeline: runtimePipelineData } = usePipelineStatus(
+  // Get deployment data to extract pipeline_id and revision_id
+  const { data: deployment, isLoading: deploymentLoading } = useDeployment(
     selectedRuntimePipelineId,
   )
 
-  const canonicalId = runtimePipelineData?.pipeline.canonical_id
-  const revisionId = runtimePipelineData?.pipeline.revision_id
+  const canonicalId = deployment?.pipeline_id
+  const revisionId = deployment?.revision_id
 
-  // Fetch canonical pipeline data based on runtime pipeline
+  // Fetch canonical pipeline data based on deployment
   const pipelineQuery = useQuery({
     ...pipelinesReadPipelineOptions({ path: { id: canonicalId! } }),
-    enabled: !!canonicalId,
+    enabled: !!canonicalId && !deploymentLoading,
   })
 
   const revisionQuery = useQuery({
     ...pipelinesReadPipelineRevisionOptions({
       path: { id: canonicalId!, revision_id: revisionId! },
     }),
-    enabled: !!canonicalId && !!revisionId,
+    enabled: !!canonicalId && !!revisionId && !deploymentLoading,
   })
 
   return {
     pipeline: pipelineQuery.data,
     revision: revisionQuery.data,
     runtimePipelineId: selectedRuntimePipelineId,
-    isLoading: pipelineQuery.isLoading || revisionQuery.isLoading,
+    isLoading:
+      deploymentLoading || pipelineQuery.isLoading || revisionQuery.isLoading,
     error: pipelineQuery.error || revisionQuery.error,
   }
 }
