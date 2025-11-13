@@ -102,7 +102,7 @@ PACKAGE_DIR_IN_CONTAINER = "/interactem"
 
 # Vector log agent stuff
 LOGS_DIR_IN_CONTAINER = f"{PACKAGE_DIR_IN_CONTAINER}/logs"
-VECTOR_IMAGE = "timberio/vector:0.50.0-alpine"
+VECTOR_IMAGE = "docker.io/timberio/vector:0.50.0-alpine"
 
 NATS_API_KEY_HEADER = "X-API-Key"
 INTERACTEM_IMAGE_REGISTRY = "ghcr.io/nersc/interactem/"
