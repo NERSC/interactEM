@@ -38,18 +38,18 @@ echo "Container host: $HOST"
 # replacing any instance of host.containers.internal with the detected host
 
 # this is claude-generated, no chance I could do this: 's/[\/&]/\\&/g'
-find "$GIT_ROOT" -name ".env.example" -type f | while read -r example; do
+while IFS= read -r example; do
     env="${example%.example}"
     [ -f "$env" ] || continue
-    
+
     updated=false
     while IFS='=' read -r key val; do
         [[ -z "$key" || "$key" =~ ^# ]] && continue
         [[ "$val" == *"host.containers.internal"* ]] || continue
-        
+
         new_val="${val//host.containers.internal/$HOST}"
         sed_escaped=$(printf '%s\n' "$new_val" | sed 's/[\/&]/\\&/g')
-        
+
         if grep -q "^${key}=" "$env"; then
             current=$(grep "^${key}=" "$env" | cut -d'=' -f2-)
             [ "$current" != "$new_val" ] && {
@@ -61,9 +61,9 @@ find "$GIT_ROOT" -name ".env.example" -type f | while read -r example; do
             updated=true
         fi
     done < "$example"
-    
+
     rm -f "${env}.bak"
     [ "$updated" = true ] && echo "Updated ${env#$GIT_ROOT/}"
-done
+done < <(find "$GIT_ROOT" -name ".env.example" -type f)
 
 echo "Container host configuration complete"
