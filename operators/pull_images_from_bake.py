@@ -205,7 +205,12 @@ class ImagePuller:
                 logger.debug(f"Pulling {tag} for target {target}...")
                 await asyncio.to_thread(client.images.pull, tag, tls_verify=False)
 
-                clean_tag = tag.replace("host.containers.internal:5001/", "")
+                # Strip registry prefix from tag for local storage
+                # Extract just the registry part (e.g., localhost:5001/ or host.containers.internal:5001/)
+                registry_prefix = self.bake_config.registry.split("/")[0]  # Get just "localhost:5001"
+                registry_prefix = f"{registry_prefix}/"
+                clean_tag = tag.replace(registry_prefix, "")
+
                 if clean_tag != tag:
                     logger.debug(f"Tagging {tag} as {clean_tag}")
                     repository, tag_name = (
