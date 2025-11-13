@@ -11,10 +11,18 @@ CONTAINER_CREDS="/tmp/backend.creds"
 HOST=""
 for h in host.containers.internal localhost; do
     echo "Testing $h..." >&2
-    podman run --rm --network=host -v "${CREDS}:${CONTAINER_CREDS}:ro" \
+    OUTPUT=$(podman run --rm --network=host -v "${CREDS}:${CONTAINER_CREDS}:ro" \
         docker.io/natsio/nats-box nats rtt \
-        --server="nats://$h:4222" --timeout=1s --creds="$CONTAINER_CREDS" >&2 2>&1 && \
-        { HOST=$h; echo "$h" >&2; break; } || echo "Failed to connect via $h" >&2
+        --server="nats://$h:4222" --timeout=1s --creds="$CONTAINER_CREDS" 2>&1)
+
+    if echo "$OUTPUT" | grep -q "failed\|error\|no such host"; then
+        echo "$OUTPUT" >&2
+        echo "Failed to connect via $h" >&2
+    else
+        HOST=$h
+        echo "Connected via $h" >&2
+        break
+    fi
 done
 
 [ -z "$HOST" ] && { 
