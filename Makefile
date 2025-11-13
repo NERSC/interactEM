@@ -55,7 +55,7 @@ setup: ## Setup .env file with generated secure secrets
 	$(SCRIPTS_DIR)/setup-podman-socket.sh
 	$(SCRIPTS_DIR)/setup-secrets.sh
 	$(call success,Environment setup complete! Next steps:)
-	@echo "  1. Edit .env to add GITHUB_USERNAME and GITHUB_TOKEN"
+	@echo "  1. Edit .env to add GITHUB_USERNAME and GITHUB_TOKEN. Should be a classic token with read:packages scope."
 	@echo "  2. Run 'make docker-up' to build + start services."
 
 services: check-docker-permission ## Build Docker images for all services
@@ -65,6 +65,8 @@ services: check-docker-permission ## Build Docker images for all services
 docker-up: services ## Start all services with docker-compose
 	@USER_ID=$(shell id -u) GROUP_ID=$(shell id -g) docker compose up --force-recreate --remove-orphans --build -d
 	$(call success,Services started)
+	$(SCRIPTS_DIR)/setup-container-host.sh
+	$(call success,Container host setup complete)
 	@echo "  Visit http://localhost:5173 in your browser"
 	@echo ""
 	@echo "Login credentials:"
