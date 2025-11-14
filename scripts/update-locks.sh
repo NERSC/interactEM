@@ -1,59 +1,67 @@
 #!/bin/bash
 
+set -euo pipefail
+
 GIT_ROOT_DIR=$(git rev-parse --show-toplevel)
-cd $GIT_ROOT_DIR
+FAILED_DIR=""
 
-cd backend/core
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock
-poetry install
+# Error handler
+trap 'error_handler' ERR
 
-cd ../sfapi_models
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock
-poetry install
+error_handler() {
+    local line_num=$1
+    echo "❌ Error in $FAILED_DIR at line $line_num" >&2
+    exit 1
+}
 
-cd ../app
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock
-poetry install
+# Function to update locks in a directory
+update_directory() {
+    local dir=$1
+    FAILED_DIR="$dir"
 
-cd ../agent
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock
-poetry install
+    # Validate directory exists
+    if [[ ! -d "$GIT_ROOT_DIR/$dir" ]]; then
+        echo "❌ Directory not found: $GIT_ROOT_DIR/$dir" >&2
+        return 1
+    fi
 
-cd ../orchestrator
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock
-poetry install
+    # Validate pyproject.toml exists
+    if [[ ! -f "$GIT_ROOT_DIR/$dir/pyproject.toml" ]]; then
+        echo "❌ No pyproject.toml found in $dir" >&2
+        return 1
+    fi
 
-cd ../operators
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock
-poetry install
+    echo "Updating locks in $dir..."
+    cd "$GIT_ROOT_DIR/$dir" || return 1
 
-cd ../metrics
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock
-poetry install
+    uv venv .venv --clear || { echo "❌ Failed to create venv in $dir" >&2; return 1; }
+    source .venv/bin/activate || { echo "❌ Failed to activate venv in $dir" >&2; return 1; }
+    poetry lock || { echo "❌ Failed to lock dependencies in $dir" >&2; return 1; }
+    poetry install || { echo "❌ Failed to install dependencies in $dir" >&2; return 1; }
+    uv sync || { echo "❌ Failed to sync with uv in $dir" >&2; return 1; }
 
-cd ../launcher
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock
-poetry install
+    echo "✓ Completed $dir"
+}
 
-cd ${GIT_ROOT_DIR}/operators/distiller-streaming
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock --regenerate
-poetry install
+# List of directories to update in order
+directories=(
+    "backend/core"
+    "backend/sfapi_models"
+    "backend/app"
+    "backend/agent"
+    "backend/orchestrator"
+    "backend/operators"
+    "backend/metrics"
+    "backend/launcher"
+    "operators/distiller-streaming"
+    "docs"
+    "cli"
+    "."
+)
 
-cd ${GIT_ROOT_DIR}/docs
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock
-poetry install
+# Run updates for each directory
+for dir in "${directories[@]}"; do
+    update_directory "$dir"
+done
 
-cd $GIT_ROOT_DIR
-uv venv .venv --clear && source .venv/bin/activate
-poetry lock
-poetry install
+echo "All locks updated successfully!"
