@@ -17,7 +17,7 @@ dependencies = [
 interactem-core = { path = "../core", editable = true }
 
 [dependency-groups]
-test = [
+dev = [
     "pytest>=8.3.5,<9",
     "pytest-mock>=3.14.0,<4",
 ]

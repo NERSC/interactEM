@@ -37,16 +37,21 @@ poetry install
 or
 
 ```bash
-uv venv .venv --python=3.12 --clear
-uv pip install -e .
-source .venv/bin/activate
+uv sync
 ```
 
 ## Run Agent
 
-Run the following inside the directory where the `.env` is:
+Activate your virtual environment, then the following inside the directory where the `.env` is:
 
 ```bash
 cd backend/agent
 interactem-agent
+```
+
+or with `uv`:
+
+```bash
+cd backend/agent
+uv run interactem-agent
 ```

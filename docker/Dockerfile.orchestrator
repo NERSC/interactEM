@@ -2,7 +2,7 @@ FROM interactem-base
 
 WORKDIR /interactem/orchestrator/
 COPY ./orchestrator/README.md ./orchestrator/pyproject.toml ./orchestrator/poetry.lock* ./
-RUN poetry install --no-root
+RUN poetry install --no-root --without dev
 
 COPY ./orchestrator/interactem/ ./interactem/
 RUN poetry install --only-root

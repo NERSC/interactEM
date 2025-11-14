@@ -4,11 +4,13 @@
 
 Operators are pieces of code that will perform some action on data coming from other operators. They are the bits of code that can be chained together to build a data pipeline.
 
-## Running operators locally
+## Getting operators into podman storage
 
-Operators are currently located in the [`operators/`](/operators) directory.
+Premade operators are currently located in the [`operators/`](/operators) directory. To run an operator pipeline, `podman` has to know about it. Can be done using [bake](#docker-bake--podman-pull) or [podman build](#podman-build).
 
-To run an operator pipeline, we have to have its container image in `podman`'s container storage. There are several ways to get the container into the podman stroage, but we opt to build the operators using `docker bake`, pull them into a local docker registry, and pull them from this registry with podman:
+### docker bake + podman pull
+
+We can use use `docker bake` and `podman pull` for operators in the [bake hcl file](/operators/docker-bake.hcl).
 
 ```bash
 cd interactEM
@@ -27,7 +29,19 @@ For faster iteration during development, you can omit the `--build-base` flag by
 ./operators/bake.sh --push-local --pull-local --target center-of-mass-partial
 ```
 
-See [bake.sh](/operators/bake.sh) for additional build options.
+If you [make](#creating-an-operator) an operator, then you can add it to the `hcl` file and it will be a part of this build process. This doesn't happen automatically, you will have to manually edit that file - look at the format and use your judgment (or ask an agent).
+
+### `podman build`
+
+If you create an operator using the instructions below, you can also use a regular `podman build`.
+
+For example, if we have an operator with the name `my-operator` in the `my-operator/` directory you can build it like this:
+
+```bash
+cd my-operator
+# tag should match what is found in the "image" field in your operator.json
+podman build -t ghcr.io/nersc/interactem/my-operator:latest .  
+```
 
 ## Creating an operator
 
@@ -41,13 +55,29 @@ As a part of our `cli` tool, we have some templates that can get you started. Us
 
 ```bash
 cd cli
-uv venv .venv
-uv pip install .
-source .venv/bin/activate
+uv sync
+uv run interactem operator new
+```
+
+or `poetry`:
+
+```bash
+cd cli
+poetry install
+poetry run interactem operator new
+```
+
+Or if you are feeling dangerous:
+
+```bash
+cd cli
+pip install . 
 interactem operator new
 ```
 
-One can similarly do this with `poetry install` (either way should work), or with a plain `pip install .`.
+This will generate the files you need under whatever directory you specify. If you put them in the [operators directory (interactEM/operators/)](/operators), and refresh the frontend, you will see it appear there.
+
+You can build the operators as discussed [above](#running-operators-locally).
 
 ### run.py
 

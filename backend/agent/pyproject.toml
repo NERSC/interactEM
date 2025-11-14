@@ -19,10 +19,10 @@ dependencies = [
     "jinja2>=3.1.6,<4",
 ]
 
-[dependency-groups]
+[project.optional-dependencies]
 hpc = [
     "podman-hpc>=1.1.4,<2",
-    "podman-hpc-py",
+    "podman-hpc-py @ git+https://github.com/cjh1/podman-hpc-py.git@577e467ab5bf10840df81234e477a3ebbd436f7e",
 ]
 
 
@@ -31,7 +31,6 @@ interactem-agent = "interactem.agent.entrypoint:entrypoint"
 
 [tool.uv.sources]
 interactem-core = { path = "../core", editable = true }
-podman-hpc-py = { path = "thirdparty/podman-hpc-py", editable = true }
 
 
 [tool.poetry]
@@ -39,12 +38,6 @@ packages = [{ include = "interactem" }]
 
 [tool.poetry.dependencies]
 interactem-core = {path = "../core", develop = true}
-
-[tool.poetry.group.hpc]
-optional = true
-
-[tool.poetry.group.hpc.dependencies]
-podman-hpc-py = {path = "thirdparty/podman-hpc-py"}
 
 [build-system]
 requires = ["poetry-core"]
