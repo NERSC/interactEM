@@ -27,6 +27,8 @@ class ErrorMessage(BaseModel):
 class AgentStatus(str, Enum):
     INITIALIZING = "initializing"
     IDLE = "idle"
+    # shutting down and removing operators when we get a new or cancel deployment event
+    # like so: https://img.filmsactu.net/datas/films/t/h/the-big-lebowski/n/the-big-lebowski-gif-5d24736120d09.gif
     CLEANING_OPERATORS = "cleaning_operators"
     OPERATORS_STARTING = "operators_starting"
     DEPLOYMENT_RUNNING = "running_deployment"
