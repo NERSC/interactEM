@@ -1,4 +1,3 @@
-import { Edit } from "@mui/icons-material"
 import HistoryIcon from "@mui/icons-material/History"
 import ListIcon from "@mui/icons-material/List"
 import {
@@ -12,17 +11,10 @@ import {
   Typography,
 } from "@mui/material"
 import { CommitIcon } from "@radix-ui/react-icons"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useCallback, useRef, useState } from "react"
-import {
-  pipelinesReadPipelineQueryKey,
-  pipelinesReadPipelinesQueryKey,
-  pipelinesUpdatePipelineMutation,
-} from "../../client"
 import { useActivePipeline } from "../../hooks/api/useActivePipeline"
 import { usePipelineStore } from "../../stores"
 import { DeletePipelineButton } from "./deletebutton"
-import { PipelineEditDialog } from "./editdialog"
 import { HudListButton } from "./hudlistbutton"
 import { LaunchPipelineButton } from "./launchbutton"
 import { PipelineList } from "./list"
@@ -30,10 +22,8 @@ import { RevisionList } from "./revisionlist"
 import { ViewModeToggle } from "./viewmodetoggle"
 
 export const HudComposer: React.FC = () => {
-  const queryClient = useQueryClient()
   const { currentPipelineId, currentRevisionId, setCurrentRevisionId } =
     usePipelineStore()
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [isRevisionPopoverOpen, setIsRevisionPopoverOpen] = useState(false)
   const [isPipelineDrawerOpen, setIsPipelineDrawerOpen] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -66,40 +56,7 @@ export const HudComposer: React.FC = () => {
     handleCloseRevisionPopover()
   }
 
-  // Edit Dialog handlers
-  const handleOpenEditDialog = () => {
-    setIsEditDialogOpen(true)
-  }
-
-  const handleCloseEditDialog = () => {
-    setIsEditDialogOpen(false)
-  }
-
-  const updatePipelineMutation = useMutation({
-    ...pipelinesUpdatePipelineMutation(),
-    onSuccess: (updatedPipeline) => {
-      handleCloseEditDialog()
-      queryClient.invalidateQueries({
-        queryKey: pipelinesReadPipelineQueryKey({
-          path: { id: updatedPipeline.id },
-        }),
-      })
-      queryClient.invalidateQueries({
-        queryKey: pipelinesReadPipelinesQueryKey(),
-      })
-    },
-    onError: () => handleCloseEditDialog(),
-  })
-
-  const handleSaveEdit = (newName: string) => {
-    if (!pipeline) return
-    updatePipelineMutation.mutate({
-      path: { id: pipeline.id },
-      body: { name: newName },
-    })
-  }
-
-  const isMutating = updatePipelineMutation.isPending || isDeleting
+  const isMutating = isDeleting
 
   // Pipeline content rendering
   const pipelineDisplayContent = () => {
@@ -156,18 +113,6 @@ export const HudComposer: React.FC = () => {
             </Box>
           </Typography>
         </Stack>
-        <Tooltip title="Edit Pipeline Name">
-          <span>
-            <IconButton
-              size="small"
-              onClick={handleOpenEditDialog}
-              disabled={isMutating}
-              sx={{ mr: 0.5 }}
-            >
-              <Edit fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
         <DeletePipelineButton
           pipelineId={pipeline.id}
           pipelineName={displayName}
@@ -246,17 +191,6 @@ export const HudComposer: React.FC = () => {
       >
         <RevisionList onRevisionSelect={handleRevisionSelected} />
       </Popover>
-
-      {/* Edit Dialog */}
-      {pipeline && (
-        <PipelineEditDialog
-          open={isEditDialogOpen}
-          onClose={handleCloseEditDialog}
-          onSave={handleSaveEdit}
-          initialName={pipeline.name ?? ""}
-          isSaving={updatePipelineMutation.isPending}
-        />
-      )}
     </>
   )
 }
