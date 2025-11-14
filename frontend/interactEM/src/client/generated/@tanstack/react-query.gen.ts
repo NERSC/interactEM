@@ -23,6 +23,7 @@ import {
   pipelinesAddPipelineRevision,
   pipelinesCreatePipeline,
   pipelinesDeletePipeline,
+  pipelinesDuplicatePipeline,
   pipelinesListPipelineDeployments,
   pipelinesListPipelineRevisionDeployments,
   pipelinesListPipelineRevisions,
@@ -72,6 +73,9 @@ import type {
   PipelinesDeletePipelineData,
   PipelinesDeletePipelineError,
   PipelinesDeletePipelineResponse,
+  PipelinesDuplicatePipelineData,
+  PipelinesDuplicatePipelineError,
+  PipelinesDuplicatePipelineResponse,
   PipelinesListPipelineDeploymentsData,
   PipelinesListPipelineDeploymentsError,
   PipelinesListPipelineDeploymentsResponse,
@@ -842,6 +846,47 @@ export const pipelinesUpdatePipelineRevisionPositionsMutation = (
   > = {
     mutationFn: async (localOptions) => {
       const { data } = await pipelinesUpdatePipelineRevisionPositions({
+        ...options,
+        ...localOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
+}
+
+export const pipelinesDuplicatePipelineQueryKey = (
+  options: Options<PipelinesDuplicatePipelineData>,
+) => createQueryKey("pipelinesDuplicatePipeline", options)
+
+export const pipelinesDuplicatePipelineOptions = (
+  options: Options<PipelinesDuplicatePipelineData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await pipelinesDuplicatePipeline({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: pipelinesDuplicatePipelineQueryKey(options),
+  })
+}
+
+export const pipelinesDuplicatePipelineMutation = (
+  options?: Partial<Options<PipelinesDuplicatePipelineData>>,
+) => {
+  const mutationOptions: UseMutationOptions<
+    PipelinesDuplicatePipelineResponse,
+    AxiosError<PipelinesDuplicatePipelineError>,
+    Options<PipelinesDuplicatePipelineData>
+  > = {
+    mutationFn: async (localOptions) => {
+      const { data } = await pipelinesDuplicatePipeline({
         ...options,
         ...localOptions,
         throwOnError: true,

@@ -857,6 +857,35 @@ export type PipelinesUpdatePipelineRevisionPositionsResponses = {
 export type PipelinesUpdatePipelineRevisionPositionsResponse =
   PipelinesUpdatePipelineRevisionPositionsResponses[keyof PipelinesUpdatePipelineRevisionPositionsResponses]
 
+export type PipelinesDuplicatePipelineData = {
+  body?: never
+  path: {
+    id: string
+  }
+  query?: never
+  url: "/api/v1/pipelines/{id}/duplicate"
+}
+
+export type PipelinesDuplicatePipelineErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type PipelinesDuplicatePipelineError =
+  PipelinesDuplicatePipelineErrors[keyof PipelinesDuplicatePipelineErrors]
+
+export type PipelinesDuplicatePipelineResponses = {
+  /**
+   * Successful Response
+   */
+  200: PipelinePublic
+}
+
+export type PipelinesDuplicatePipelineResponse =
+  PipelinesDuplicatePipelineResponses[keyof PipelinesDuplicatePipelineResponses]
+
 export type PipelinesListPipelineDeploymentsData = {
   body?: never
   path: {
