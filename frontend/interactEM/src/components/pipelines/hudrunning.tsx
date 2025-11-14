@@ -1,5 +1,5 @@
-import { PlayCircleOutline } from "@mui/icons-material"
-import { Box, Divider, Typography } from "@mui/material"
+import ListIcon from "@mui/icons-material/List"
+import { Box, Typography } from "@mui/material"
 import { useState } from "react"
 import type { PipelineDeploymentPublic } from "../../client"
 import { useActivePipeline } from "../../hooks/api/useActivePipeline"
@@ -8,7 +8,6 @@ import { usePipelineStore } from "../../stores"
 import { DeploymentItem } from "./deploymentitem"
 import { DeploymentManagementPanel } from "./deploymentmanagementpanel"
 import { HudListButton } from "./hudlistbutton"
-import { ViewModeToggle } from "./viewmodetoggle"
 
 export const HudRunning: React.FC = () => {
   const { setSelectedRuntimePipelineId } = usePipelineStore()
@@ -50,18 +49,13 @@ export const HudRunning: React.FC = () => {
           alignItems: "center",
         }}
       >
-        {/* View Mode Toggle */}
-        <ViewModeToggle />
-
         {/* Deployment Management Button */}
         <HudListButton
-          tooltip="Deployment Management"
-          icon={<PlayCircleOutline fontSize="small" />}
+          tooltip="Deployment List"
+          icon={<ListIcon fontSize="small" />}
           onClick={handleOpenDeploymentManagement}
           active={false}
         />
-
-        <Divider orientation="vertical" flexItem sx={{ mr: 1 }} />
 
         {/* Deployment Display */}
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>

@@ -16,7 +16,6 @@ import { HudListButton } from "./hudlistbutton"
 import { LaunchPipelineButton } from "./launchbutton"
 import { PipelineList } from "./list"
 import { RevisionList } from "./revisionlist"
-import { ViewModeToggle } from "./viewmodetoggle"
 
 export const HudComposer: React.FC = () => {
   const { currentPipelineId, currentRevisionId, setCurrentRevisionId } =
@@ -147,9 +146,6 @@ export const HudComposer: React.FC = () => {
           gap: 0.5,
         }}
       >
-        {/* View Mode Toggle */}
-        <ViewModeToggle />
-
         {/* Pipeline List Toggle Button */}
         <HudListButton
           tooltip="Pipeline List"

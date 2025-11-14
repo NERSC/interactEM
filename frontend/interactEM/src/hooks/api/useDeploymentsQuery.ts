@@ -6,6 +6,12 @@ import {
 } from "../../client/generated/@tanstack/react-query.gen"
 
 const DEFAULT_LIMIT = 20
+export const ACTIVE_DEPLOYMENT_STATES: PipelineDeploymentState[] = [
+  "pending",
+  "running",
+  "assigned_agents",
+]
+export const RUNNING_STATE: PipelineDeploymentState = "running"
 
 export const useInfiniteDeployments = (options?: {
   states?: PipelineDeploymentState[]
@@ -48,7 +54,7 @@ export const useInfinitePipelineDeployments = (
 // New hook specifically for active deployments
 export const useInfiniteActiveDeployments = () => {
   return useInfiniteDeployments({
-    states: ["pending", "running"],
+    states: ACTIVE_DEPLOYMENT_STATES,
   })
 }
 

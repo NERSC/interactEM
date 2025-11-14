@@ -3,6 +3,7 @@ import AgentsAccordion from "../components/agents/accordion"
 import ComposerPipelineFlow from "../components/composerpipelineflow"
 import { OperatorMenu } from "../components/operatormenu"
 import { PipelineHud } from "../components/pipelines/hud"
+import { ViewSwitcher } from "../components/pipelines/viewswitcher"
 import RunningPipelineFlow from "../components/runningpipelineflow"
 import { useActivePipeline } from "../hooks/api/useActivePipeline"
 import { ViewMode, useViewModeStore } from "../stores"
@@ -13,7 +14,7 @@ export default function ComposerPage() {
 
   return (
     <div className="composer-page">
-      {/* Controls Container */}
+      {/* Controls Container - Left Side */}
       <Box
         sx={{
           position: "absolute",
@@ -49,6 +50,21 @@ export default function ComposerPage() {
         >
           <AgentsAccordion />
         </Box>
+      </Box>
+
+      {/* View Switcher - Bottom Center */}
+      <Box
+        sx={{
+          position: "absolute",
+          bottom: 0,
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+          margin: 1,
+          pointerEvents: "auto",
+        }}
+      >
+        <ViewSwitcher />
       </Box>
 
       {/* Main Flow Area - Base layer */}
