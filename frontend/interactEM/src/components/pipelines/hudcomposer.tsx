@@ -1,10 +1,8 @@
-import HistoryIcon from "@mui/icons-material/History"
 import ListIcon from "@mui/icons-material/List"
 import {
   Box,
   CircularProgress,
   Divider,
-  IconButton,
   Popover,
   Stack,
   Tooltip,
@@ -84,7 +82,7 @@ export const HudComposer: React.FC = () => {
 
     return (
       <>
-        <Stack direction="column" sx={{ flexGrow: 1, mr: 1 }}>
+        <Stack direction="column">
           <Typography
             variant="subtitle1"
             fontWeight="medium"
@@ -92,25 +90,38 @@ export const HudComposer: React.FC = () => {
             sx={{ display: "flex", alignItems: "center", gap: 1 }}
           >
             {displayName}
-            <Box
-              component="span"
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                bgcolor: "rgba(0, 0, 0, 0.05)",
-                borderRadius: "4px",
-                px: 0.8,
-                py: 0.2,
-                ml: 0.5,
-                color: "text.secondary",
-                fontSize: "0.8em",
-              }}
-            >
-              <Box component="span" sx={{ mr: 0.5, display: "flex" }}>
-                <CommitIcon fontSize="small" />
+            <Tooltip title="View Revision History">
+              <Box
+                ref={revisionButtonRef}
+                component="button"
+                onClick={handleToggleRevisionPopover}
+                aria-describedby={revisionListId}
+                disabled={isMutating}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  bgcolor: "rgba(0, 0, 0, 0.05)",
+                  borderRadius: "4px",
+                  px: 0.8,
+                  py: 0.2,
+                  ml: 0.5,
+                  color: "text.secondary",
+                  fontSize: "0.8em",
+                  border: "none",
+                  cursor: isMutating ? "not-allowed" : "pointer",
+                  opacity: isMutating ? 0.6 : 1,
+                  transition: "background-color 0.2s ease-in-out",
+                  "&:hover:not(:disabled)": {
+                    bgcolor: "rgba(0, 0, 0, 0.1)",
+                  },
+                }}
+              >
+                <Box component="span" sx={{ mr: 0.5, display: "flex" }}>
+                  <CommitIcon fontSize="small" />
+                </Box>
+                {currentRevisionId}
               </Box>
-              {currentRevisionId}
-            </Box>
+            </Tooltip>
           </Typography>
         </Stack>
         <DeletePipelineButton
@@ -121,20 +132,6 @@ export const HudComposer: React.FC = () => {
           onDeleteFinished={() => setIsDeleting(false)}
         />
         <LaunchPipelineButton disabled={isMutating} />
-        <Divider orientation="vertical" flexItem sx={{ mx: 0.5 }} />
-        <Tooltip title="Revision History">
-          <span>
-            <IconButton
-              ref={revisionButtonRef}
-              size="small"
-              onClick={handleToggleRevisionPopover}
-              aria-describedby={revisionListId}
-              disabled={isMutating}
-            >
-              <HistoryIcon fontSize="small" />
-            </IconButton>
-          </span>
-        </Tooltip>
       </>
     )
   }
@@ -147,9 +144,9 @@ export const HudComposer: React.FC = () => {
           bgcolor: "background.paper",
           borderRadius: 1,
           boxShadow: 1,
-          minWidth: 300,
           display: "flex",
           alignItems: "center",
+          gap: 0.5,
         }}
       >
         {/* View Mode Toggle */}
@@ -161,8 +158,6 @@ export const HudComposer: React.FC = () => {
           icon={<ListIcon fontSize="small" />}
           onClick={handleTogglePipelineDrawer}
         />
-
-        <Divider orientation="vertical" flexItem sx={{ mr: 1 }} />
 
         {/* Pipeline content */}
         {pipelineDisplayContent()}
