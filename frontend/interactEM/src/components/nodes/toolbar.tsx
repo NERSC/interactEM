@@ -31,7 +31,7 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
   return (
     <div className="operator-toolbar">
       <div className="operator-icons">
-        {parameters && (
+        {parameters && parameters.length > 0 && (
           <ParametersButton
             operatorID={id}
             parameters={parameters}
