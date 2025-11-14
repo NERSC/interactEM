@@ -15,7 +15,7 @@ dependencies = [
     "nkeys>=0.2.1,<0.3",
     "tenacity>=9.0.0,<10",
     "pydantic-settings>=2.10.1,<3",
-    "faststream[nats]>=0.6.0,<0.7",
+    "faststream[nats] @ git+https://github.com/fil1n/faststream.git@8c14951daec416f22469deaed805ff5db27e3b44",
     "anyio>=4.11.0,<5",
 ]
 
