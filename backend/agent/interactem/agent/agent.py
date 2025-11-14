@@ -209,6 +209,9 @@ class Agent:
 
     async def _cleanup_containers(self):
         logger.info("Cleaning up containers...")
+        await self._set_status(
+            AgentStatus.CLEANING_OPERATORS, "Cleaning up containers..."
+        )
         self._suppress_monitor = True
         try:
             # Clear trackers first to avoid restarts
@@ -236,7 +239,7 @@ class Agent:
         create_process = not PODMAN_SERVICE_URI
         await self._start_podman_service(create_process=create_process)
 
-        self.agent_val.status = AgentStatus.IDLE
+        await self._set_status(AgentStatus.IDLE, update_now=False)
 
         self.agent_kv = KeyValueLoop[AgentVal](
             nc=self.nc,
@@ -375,21 +378,12 @@ class Agent:
                 logger.info(f"Created deployment log directory: {deployment_log_dir}")
 
                 logger.info(f"Operators assigned: {self._my_operator_ids}")
-                self.agent_val.status = AgentStatus.BUSY
-                self.agent_val.status_message = "Cleaning up containers..."
-                await self.agent_kv.update_now()
 
                 self._suppress_monitor = True
                 await self._cleanup_containers()
                 self._suppress_monitor = False
 
-                self.agent_val.status_message = "Starting operators..."
-                await self.agent_kv.update_now()
                 await self.start_operators()
-
-                self.agent_val.status_message = "Operators started"
-                self.agent_val.status = AgentStatus.IDLE
-                await self.agent_kv.update_now()
 
                 logger.info(f"Deployment {deployment_id} running...")
                 # Keep deployment alive until cancelled
@@ -399,7 +393,7 @@ class Agent:
                 logger.info(f"Deployment {deployment_id} cancelled")
                 raise
             except Exception as e:
-                self.agent_val.status = AgentStatus.ERROR
+                self.agent_val.status = AgentStatus.DEPLOYMENT_ERROR
                 _msg = f"Error in deployment {deployment_id}: {e}"
                 self.agent_val.add_error(_msg)
                 await self.agent_kv.update_now()
@@ -422,14 +416,11 @@ class Agent:
         self.agent_val.current_deployment_id = depl_id
         self.agent_val.operator_assignments = self._my_operator_ids
         self.agent_val.uptime = time.time() - self._start_time
-        self.agent_val.clear_old_errors()
 
     async def shutdown(self):
         logger.info("Shutting down agent...")
-        self.agent_val.status = AgentStatus.SHUTTING_DOWN
-        if self.agent_kv:
-            await self.agent_kv.update_now()
         # Set main shutdown event for deployment and monitor tasks
+        await self._set_status(AgentStatus.SHUTTING_DOWN)
         self._shutdown_event.set()
 
         # Cancel current deployment if running
@@ -477,7 +468,7 @@ class Agent:
             raise RuntimeError("No active deployment for starting operators")
 
         logger.info("Starting operators...")
-
+        await self._set_status(AgentStatus.OPERATORS_STARTING, "Starting operators...")
         with PodmanClient(
             base_url=self._podman_service_uri, max_pool_size=PODMAN_MAX_POOL_SIZE
         ) as client:
@@ -502,6 +493,8 @@ class Agent:
             # All operators are started when we reach here
 
             logger.info(f"All {len(operator_ids)} operators started")
+
+        await self._set_status(AgentStatus.DEPLOYMENT_RUNNING, "Operators started")
 
     async def _start_and_track_operator(
         self, operator: RuntimeOperator, client: PodmanClient
@@ -725,6 +718,16 @@ class Agent:
             )
             new_container.start()
             self.container_trackers[operator.id].container = new_container
+
+    async def _set_status(
+        self, status: AgentStatus, message: str | None = None, update_now: bool = True
+    ) -> None:
+        """Update agent status and optionally message, then sync to KV store."""
+        self.agent_val.status = status
+        if message is not None:
+            self.agent_val.status_message = message
+        if update_now and self.agent_kv:
+            await self.agent_kv.update_now()
 
 
 class NameConflictError(podman.errors.exceptions.APIError):

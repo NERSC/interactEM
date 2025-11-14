@@ -743,7 +743,8 @@ export const deploymentsListPipelineDeployments = <
 
 /**
  * Create Pipeline Deployment
- * Create a new pipeline deployment and trigger execution.
+ * Create a new pipeline deployment and publish initialization event.
+ * State transitions are managed by the orchestrator.
  */
 export const deploymentsCreatePipelineDeployment = <
   ThrowOnError extends boolean = false,
@@ -797,7 +798,7 @@ export const deploymentsReadPipelineDeployment = <
 
 /**
  * Update Pipeline Deployment
- * Update a pipeline deployment state with proper transition logic and event publishing.
+ * Update a pipeline deployment state and publish events for the orchestrator.
  */
 export const deploymentsUpdatePipelineDeployment = <
   ThrowOnError extends boolean = false,

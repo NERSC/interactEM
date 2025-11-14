@@ -22,7 +22,7 @@ export interface AgentVal {
   status_message?: string | null
   tags?: string[]
   networks: string[]
-  pipeline_id?: string | null
+  current_deployment_id?: string | null
   operator_assignments?: string[] | null
   uptime?: number
 }
@@ -60,26 +60,15 @@ export interface OperatorVal {
   canonical_pipeline_id: string
   runtime_pipeline_id: string
 }
-export interface PipelineDeploymentEvent {
-  type?: PipelineEventType
-  canonical_id: string
-  revision_id: number
-  deployment_id: string
-  data: {
-    [k: string]: unknown
-  }
-}
-export interface PipelineRunVal {
+export interface PortVal {
   id: string
-  pipeline: RuntimePipeline
-}
-export interface RuntimePipeline {
-  operators?: RuntimeOperator[]
-  ports?: RuntimePort[]
-  edges?: RuntimeEdge[]
-  id: string
-  revision_id: number
   canonical_id: string
+  uri?: URI | null
+  status?: PortStatus | null
+}
+export interface RuntimeEdge {
+  input_id: string
+  output_id: string
 }
 export interface RuntimeOperator {
   id: string
@@ -125,30 +114,6 @@ export interface ParallelConfig {
   type?: ParallelType
   [k: string]: unknown
 }
-export interface RuntimePort {
-  id: string
-  node_type?: NodeType
-  port_type: PortType
-  canonical_operator_id: string
-  portkey: string
-  canonical_id: string
-  operator_id: string
-  targets_canonical_operator_id?: string | null
-}
-export interface RuntimeEdge {
-  input_id: string
-  output_id: string
-}
-export interface PipelineStopEvent {
-  type?: PipelineEventType
-  deployment_id: string
-}
-export interface PortVal {
-  id: string
-  canonical_id: string
-  uri?: URI | null
-  status?: PortStatus | null
-}
 export interface RuntimeOperatorParameterAck {
   canonical_operator_id: string
   name: string
@@ -158,6 +123,24 @@ export interface RuntimeOperatorParameterUpdate {
   canonical_operator_id: string
   name: string
   value: string
+}
+export interface RuntimePipeline {
+  operators?: RuntimeOperator[]
+  ports?: RuntimePort[]
+  edges?: RuntimeEdge[]
+  id: string
+  revision_id: number
+  canonical_id: string
+}
+export interface RuntimePort {
+  id: string
+  node_type?: NodeType
+  port_type: PortType
+  canonical_operator_id: string
+  portkey: string
+  canonical_id: string
+  operator_id: string
+  targets_canonical_operator_id?: string | null
 }
 
 export enum LogType {
@@ -179,8 +162,10 @@ export enum CommBackend {
 export enum AgentStatus {
   initializing = "initializing",
   idle = "idle",
-  busy = "busy",
-  error = "error",
+  cleaning_operators = "cleaning_operators",
+  operators_starting = "operators_starting",
+  running_deployment = "running_deployment",
+  deployment_error = "deployment_error",
   shutting_down = "shutting_down",
 }
 export enum OperatorStatus {
@@ -189,7 +174,11 @@ export enum OperatorStatus {
   error = "error",
   shutting_down = "shutting_down",
 }
-
+export enum PortStatus {
+  initializing = "initializing",
+  idle = "idle",
+  busy = "busy",
+}
 export enum ParameterSpecType {
   str = "str",
   int = "int",
@@ -211,12 +200,6 @@ export enum NetworkMode {
   ns = "ns",
 }
 
-export enum PortStatus {
-  initializing = "initializing",
-  idle = "idle",
-  busy = "busy",
-}
-
 export enum NodeType {
   operator = "operator",
   port = "port",
@@ -225,10 +208,4 @@ export enum NodeType {
 export enum PortType {
   input = "input",
   output = "output",
-}
-
-export enum PipelineEventType {
-  pipeline_run = "pipeline_run",
-  pipeline_stop = "pipeline_stop",
-  pipeline_update = "pipeline_update",
 }

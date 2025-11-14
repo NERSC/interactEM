@@ -6,9 +6,21 @@ IdType = UUID
 
 class PipelineDeploymentState(str, Enum):
     PENDING = "pending"
+    AGENTS_ASSIGNED = "assigned_agents"
     FAILED_TO_START = "failed_to_start"
+    FAILURE_ON_AGENT = "failure_on_agent"
     RUNNING = "running"
     CANCELLED = "cancelled"
+
+TERMINAL_DEPLOYMENT_STATES = [
+    PipelineDeploymentState.CANCELLED,
+    PipelineDeploymentState.FAILED_TO_START,
+]
+
+RUNNING_DEPLOYMENT_STATES = [
+    PipelineDeploymentState.RUNNING,
+]
+
 
 class KvKeyMixin(abc.ABC):
     @abc.abstractmethod

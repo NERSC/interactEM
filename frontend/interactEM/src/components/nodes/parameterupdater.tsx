@@ -15,9 +15,9 @@ import { useReactFlow } from "@xyflow/react"
 import { memo, useEffect, useState } from "react"
 import type { OperatorSpecParameter } from "../../client"
 import { useSavePipelineRevision } from "../../hooks/api/useSavePipelineRevision"
+import { useOperatorInSelectedPipeline } from "../../hooks/nats/useOperatorStatus"
 import { useParameterUpdate } from "../../hooks/nats/useParameterUpdate"
 import { useParameterAck } from "../../hooks/nats/useParameterValue"
-import { usePipelineStatus } from "../../hooks/nats/useRunningPipelines"
 import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
 import type { OperatorNodeType } from "../../types/nodes"
 import { getParameterSchema } from "../../types/params"
@@ -34,9 +34,8 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 }) => {
   const { viewMode } = useViewModeStore()
   const { selectedRuntimePipelineId } = usePipelineStore()
-  const { pipeline: runtimePipeline } = usePipelineStatus(
-    selectedRuntimePipelineId,
-  )
+  const { isInRunningPipeline } =
+    useOperatorInSelectedPipeline(operatorCanonicalID)
 
   const { getNode, setNodes, getEdges, getNodes } =
     useReactFlow<OperatorNodeType>()
@@ -57,8 +56,11 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     throw new Error(`Node with id ${operatorCanonicalID} not found`)
   }
 
+  // In Runtime mode, check if we have a selected runtime pipeline deployment AND operator is in it
+  const hasRuntimePipeline = !!selectedRuntimePipelineId && isInRunningPipeline
+
   const comparisonTarget =
-    viewMode === ViewMode.Runtime && runtimePipeline
+    viewMode === ViewMode.Runtime && hasRuntimePipeline
       ? hasReceivedMessage
         ? runtimeValue
         : parameter.default
@@ -69,7 +71,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   const [errorMessage, setErrorMessage] = useState("")
   const [userEditing, setUserEditing] = useState(false)
 
-  const isReadOnly = viewMode === ViewMode.Runtime ? !runtimePipeline : false
+  const isReadOnly = viewMode === ViewMode.Runtime ? !hasRuntimePipeline : false
 
   // Build Zod schema for this parameter
   const schema = getParameterSchema(parameter)
@@ -142,7 +144,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
       default: inputValue,
       value: inputValue,
     }))
-    if (viewMode === ViewMode.Runtime && runtimePipeline) {
+    if (viewMode === ViewMode.Runtime && hasRuntimePipeline) {
       saveRevision(getNodes(), getEdges())
     }
     setUserEditing(false)
@@ -226,7 +228,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
       <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
         {renderInputField()}
         {showButtons &&
-          (viewMode === ViewMode.Runtime && runtimePipeline ? (
+          (viewMode === ViewMode.Runtime && hasRuntimePipeline ? (
             // Runtime mode → only allow Update
             <Button
               variant="contained"

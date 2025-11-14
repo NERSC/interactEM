@@ -1023,7 +1023,7 @@
       "post": {
         "tags": ["deployments"],
         "summary": "Create Pipeline Deployment",
-        "description": "Create a new pipeline deployment and trigger execution.",
+        "description": "Create a new pipeline deployment and publish initialization event.\nState transitions are managed by the orchestrator.",
         "operationId": "deployments-create_pipeline_deployment",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "requestBody": {
@@ -1097,7 +1097,7 @@
       "patch": {
         "tags": ["deployments"],
         "summary": "Update Pipeline Deployment",
-        "description": "Update a pipeline deployment state with proper transition logic and event publishing.",
+        "description": "Update a pipeline deployment state and publish events for the orchestrator.",
         "operationId": "deployments-update_pipeline_deployment",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
@@ -1632,7 +1632,14 @@
       },
       "PipelineDeploymentState": {
         "type": "string",
-        "enum": ["pending", "failed_to_start", "running", "cancelled"],
+        "enum": [
+          "pending",
+          "assigned_agents",
+          "failed_to_start",
+          "failure_on_agent",
+          "running",
+          "cancelled"
+        ],
         "title": "PipelineDeploymentState"
       },
       "PipelineDeploymentUpdate": {

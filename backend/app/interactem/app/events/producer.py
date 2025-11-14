@@ -110,7 +110,9 @@ async def publish_pipeline_deployment_event(
 ) -> None:
     """Publish pipeline deployment event (run or stop) to the deployments subject."""
     await publish_jetstream_event(
-        STREAM_DEPLOYMENTS, SUBJECT_PIPELINES_DEPLOYMENTS, event
+        STREAM_DEPLOYMENTS,
+        f"{SUBJECT_PIPELINES_DEPLOYMENTS}.{event.deployment_id}",
+        event,
     )
 
 

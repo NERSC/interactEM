@@ -47,7 +47,11 @@ SFAPI_CONSUMER_CONFIG = ConsumerConfig(
     inactive_threshold=30,
 )
 
-DEPLOYMENTS_CONSUMER_CONFIG = ConsumerConfig(
+ORCHESTRATOR_DEPLOYMENTS_CONSUMER_CONFIG = ConsumerConfig(
+    deliver_policy=DeliverPolicy.NEW, durable_name="orchestrator-deployments-consumer"
+)
+
+OPERATOR_PIPELINE_CONSUMER_CONFIG = ConsumerConfig(
     deliver_policy=DeliverPolicy.LAST_PER_SUBJECT,
 )
 
@@ -130,7 +134,7 @@ async def create_operator_pipeline_consumer(
 ) -> JetStreamContext.PullSubscription:
     subject = f"{SUBJECT_OPERATORS_DEPLOYMENTS}.{operator_id}"
     cfg = replace(
-        DEPLOYMENTS_CONSUMER_CONFIG,
+        OPERATOR_PIPELINE_CONSUMER_CONFIG,
         description=f"operator-pipelines-{operator_id}",
     )
     psub = await create_pull_sub(js, STREAM_DEPLOYMENTS, subject, cfg)

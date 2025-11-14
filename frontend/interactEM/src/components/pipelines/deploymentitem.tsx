@@ -9,13 +9,11 @@ import {
 } from "@mui/material"
 import { formatDistanceToNow } from "date-fns"
 import type React from "react"
-import { toast } from "react-toastify"
 import type {
   PipelineDeploymentPublic,
   PipelineDeploymentState,
 } from "../../client"
 import { usePipelineName } from "../../hooks/api/usePipelineQuery"
-import { usePipelineStatus } from "../../hooks/nats/useRunningPipelines"
 import {
   formatDeploymentState,
   getDeploymentStateColor,
@@ -47,14 +45,19 @@ export const DeploymentItem: React.FC<DeploymentItemProps> = ({
   hideActiveIndicator = false,
 }) => {
   const pipelineName = usePipelineName(deployment.pipeline_id)
-  const { pipeline } = usePipelineStatus(deployment.id)
+
+  // Don't render if we don't have the basic deployment data
+  if (!deployment) {
+    return null
+  }
+
+  // Don't render if we don't have the basic deployment data
+  if (!deployment) {
+    return null
+  }
 
   const handleDeploymentClick = () => {
     if (disableClick) return
-    if (!pipeline) {
-      toast.error("This deployment is not currently running")
-      return
-    }
     onDeploymentClick?.(deployment)
   }
 
@@ -64,16 +67,10 @@ export const DeploymentItem: React.FC<DeploymentItemProps> = ({
   const isActive = isActiveDeploymentState(deployment.state)
 
   const getChipColor = () => {
-    if (!pipeline) {
-      return "warning" as const
-    }
     return getDeploymentStateColor(deployment.state)
   }
 
   const getChipTooltip = () => {
-    if (!pipeline) {
-      return "Deployment is not currently running."
-    }
     return `Deployment is ${formatDeploymentState(deployment.state)}`
   }
 
@@ -82,7 +79,6 @@ export const DeploymentItem: React.FC<DeploymentItemProps> = ({
 
     return {
       cursor: isClickable ? "pointer" : "default",
-      opacity: pipeline ? 1 : 0.7,
       borderLeft: "3px solid",
       borderLeftColor:
         !hideActiveIndicator && isActive ? "primary.main" : "transparent",

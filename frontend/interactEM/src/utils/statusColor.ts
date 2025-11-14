@@ -8,10 +8,14 @@ export function getAgentStatusColor(
       return "info"
     case AgentStatus.idle:
       return "success"
-    case AgentStatus.busy:
-      return "warning"
-    case AgentStatus.error:
+    case AgentStatus.deployment_error:
       return "error"
+    case AgentStatus.operators_starting:
+      return "info"
+    case AgentStatus.cleaning_operators:
+      return "warning"
+    case AgentStatus.running_deployment:
+      return "success"
     case AgentStatus.shutting_down:
       return "default"
     default:

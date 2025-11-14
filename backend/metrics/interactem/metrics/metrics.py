@@ -10,11 +10,13 @@ from nats.js import JetStreamContext
 from networkx.readwrite.text import generate_network_text
 from prometheus_client import start_http_server
 
+# TODO: refactor without PipelineVal, for now we just use a fake import
+from pydantic import BaseModel as PipelineRunVal
+
 from interactem.core.constants import (
     PIPELINES,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models.kvs import PipelineRunVal
 from interactem.core.models.messages import (
     InputPortTrackingMetadata,
     OperatorTrackingMetadata,
@@ -50,6 +52,7 @@ from .config import cfg
 
 logger = get_logger()
 
+# TODO: remove PipelineRunVal
 
 async def metrics_watch(js: JetStreamContext, update_interval: int):
     metrics_bucket = await get_metrics_bucket(js)

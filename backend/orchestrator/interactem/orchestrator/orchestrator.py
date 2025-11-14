@@ -1,88 +1,33 @@
-from uuid import UUID, uuid4
-
 import anyio
 from nats.js import JetStreamContext
 from pydantic import ValidationError
 
-from interactem.core.constants import (
-    PIPELINES,
-)
 from interactem.core.events.pipelines import (
+    AgentPipelineRunEvent,
+    AgentPipelineStopEvent,
+    PipelineAssignmentsEvent,
     PipelineRunEvent,
     PipelineStopEvent,
 )
 from interactem.core.logger import get_logger
-from interactem.core.models.base import IdType
 from interactem.core.models.canonical import CanonicalPipeline
-from interactem.core.models.kvs import AgentVal, PipelineRunVal
-from interactem.core.models.runtime import (
-    PipelineAssignment,
-    RuntimePipeline,
+from interactem.core.nats.publish import (
+    publish_agent_deployment_event,
+    publish_deployment_assignment,
 )
-from interactem.core.nats import (
-    get_keys,
-    get_status_bucket,
-)
-from interactem.core.nats.publish import publish_assignment
 from interactem.core.pipeline import Pipeline
 
 from .assign import PipelineAssigner
 from .exceptions import InvalidPipelineError
+from .state import OrchestratorState
 
 logger = get_logger()
-
-
-async def delete_pipeline_kv(js: JetStreamContext, pipeline_id: IdType):
-    pipeline_bucket = await get_status_bucket(js, create=False)
-    key = f"{PIPELINES}.{str(pipeline_id)}"  # TODO: use PipelineRunVal.key() instead
-    await pipeline_bucket.delete(key)
-    await pipeline_bucket.purge(key)
-
-
-async def update_pipeline_kv(js: JetStreamContext, pipeline: RuntimePipeline):
-    _pipeline = PipelineRunVal(id=pipeline.id, pipeline=pipeline)
-    pipeline_bucket = await get_status_bucket(js, create=False)
-    await pipeline_bucket.put(_pipeline.key(), _pipeline.model_dump_json().encode())
-
-
-async def continuous_update_kv(
-    js: JetStreamContext, state: dict[IdType, RuntimePipeline], interval: int = 1
-):
-    """Continuously update the KV store with automatic restart on failure."""
-    while True:
-        try:
-            deployments_snapshot = list(state.values())
-            for pipeline in deployments_snapshot:
-                await update_pipeline_kv(js, pipeline)
-            logger.debug(f"Updated {len(deployments_snapshot)} pipelines in KV store.")
-            await anyio.sleep(interval)
-        except Exception as e:
-            logger.error(f"KV updater crashed: {e}, restarting...")
-            await anyio.sleep(interval)
-
-
-async def clean_up_old_pipelines(js: JetStreamContext, valid_pipeline: RuntimePipeline):
-    bucket = await get_status_bucket(js, create=False)
-    current_pipeline_keys = await get_keys(bucket, filters=[f"{PIPELINES}"])
-
-    async with anyio.create_task_group() as tg:
-        for key in current_pipeline_keys:
-            id = key.removeprefix(f"{PIPELINES}.")
-            if id == str(valid_pipeline.id):
-                continue
-            try:
-                uid = UUID(id)
-                tg.start_soon(delete_pipeline_kv, js, uid)
-                logger.debug(f"Scheduled deletion for old pipeline id: {id}")
-            except ValueError:
-                logger.warning(f"Skipping deletion of non-UUID pipeline id: {id}")
 
 
 async def handle_run_pipeline(
     event: PipelineRunEvent,
     js: JetStreamContext,
-    deployments: dict[IdType, RuntimePipeline],
-    agents: dict[str, AgentVal],
+    state: OrchestratorState,
 ):
     try:
         valid_pipeline = CanonicalPipeline(
@@ -100,62 +45,57 @@ async def handle_run_pipeline(
     pipeline = Pipeline.from_pipeline(
         valid_pipeline, runtime_pipeline_id=event.deployment_id
     )
+    agents = state.agents
     agent_vals = list(agents.values())
 
     assigner = PipelineAssigner(agent_vals, pipeline)
     assignments = assigner.assign()
 
+    # assign deployment (this will also create the deployment state machine)
+    deployment_sm = await state.get_deployment_sm(event.deployment_id)
+    await deployment_sm.assign()
+
     async with anyio.create_task_group() as tg:
         for assignment in assignments:
-            tg.start_soon(publish_assignment, js, assignment)
+            ev = AgentPipelineRunEvent(
+                agent_id=assignment.agent_id,
+                assignment=assignment,
+                deployment_id=event.deployment_id,
+            )
+            tg.start_soon(publish_agent_deployment_event, js, ev)
 
     logger.info(f"Published {len(assignments)} assignments for pipeline {pipeline.id}.")
 
-    runtime_pipeline = pipeline.to_runtime()
-
+    assignments_event = PipelineAssignmentsEvent(
+        deployment_id=event.deployment_id, assignments=assignments
+    )
     async with anyio.create_task_group() as tg:
-        tg.start_soon(clean_up_old_pipelines, js, runtime_pipeline)
-        tg.start_soon(update_pipeline_kv, js, runtime_pipeline)
-
-    deployments[runtime_pipeline.id] = runtime_pipeline
-    logger.info(f"Pipeline {valid_pipeline.id} run event processed.")
+        # After we send the assignment to the agent,
+        # we publish the assignment events
+        # so that the fastapi knows, and we can look at these later
+        tg.start_soon(publish_deployment_assignment, js, assignments_event)
 
 
 async def handle_stop_pipeline_event(
     event: PipelineStopEvent,
     js: JetStreamContext,
-    deployments: dict[IdType, RuntimePipeline],
-    agents: dict[IdType, AgentVal],
+    state: OrchestratorState,
 ):
     deployment_id = event.deployment_id
-    logger.info(f"Processing stop request for pipeline {deployment_id}")
+    agents = state.agents
 
-    deployments.pop(deployment_id, None)
-    await delete_pipeline_kv(js, deployment_id)
-    logger.info(f"Deleted pipeline {deployment_id} from KV store.")
-
-    # TODO: for now, we use a blank pipeline to stop things
-    # we should probably have a more explicit "stop" pipeline message
-    canonical_pipeline = CanonicalPipeline(
-        id=uuid4(), revision_id=0, operators=[], edges=[]
-    )
-
-    # Convert to runtime pipeline for assignment
-    runtime_pipeline = Pipeline.from_pipeline(
-        canonical_pipeline, runtime_pipeline_id=deployment_id
-    ).to_runtime()
-
-    stop_assignments = [
-        PipelineAssignment(
+    stop_events = [
+        AgentPipelineStopEvent(
             agent_id=agent_id,
-            operators_assigned=[],
-            pipeline=runtime_pipeline,
+            deployment_id=deployment_id,
         )
         for agent_id in list(agents.keys())
     ]
 
+    sm = await state.get_deployment_sm(deployment_id)
     async with anyio.create_task_group() as tg:
-        for assignment in stop_assignments:
-            tg.start_soon(publish_assignment, js, assignment)
+        tg.start_soon(sm.cancel)
+        for e in stop_events:
+            tg.start_soon(publish_agent_deployment_event, js, e)
 
     logger.info(f"Pipeline stop event for {deployment_id} processed.")
