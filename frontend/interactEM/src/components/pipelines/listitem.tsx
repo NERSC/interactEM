@@ -1,7 +1,9 @@
-import { ListItem, ListItemButton, ListItemText } from "@mui/material"
+import { Box, ListItem, ListItemButton, ListItemText } from "@mui/material"
 import { formatDistanceToNow } from "date-fns"
 import type { PipelinePublic } from "../../client"
 import { usePipelineStore } from "../../stores"
+import { DeletePipelineButton } from "./deletebutton"
+import { DuplicatePipelineButton } from "./duplicatebutton"
 
 interface PipelineListItemProps {
   pipeline: PipelinePublic
@@ -28,15 +30,36 @@ export const PipelineListItem = ({
       disablePadding
       sx={{
         backgroundColor: isSelected ? "action.selected" : "inherit",
+        display: "flex",
+        alignItems: "center",
       }}
     >
-      <ListItemButton onClick={handleListItemClick}>
+      <ListItemButton
+        onClick={handleListItemClick}
+        sx={{ flex: 1, overflow: "hidden" }}
+      >
         <ListItemText
           primary={displayName}
           secondary={`Updated ${lastUpdated}`}
           sx={{ overflow: "hidden", textOverflow: "ellipsis" }}
         />
       </ListItemButton>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 0,
+          pr: 1,
+          flexShrink: 0,
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <DuplicatePipelineButton pipelineId={pipeline.id} />
+        <DeletePipelineButton
+          pipelineId={pipeline.id}
+          pipelineName={displayName}
+        />
+      </Box>
     </ListItem>
   )
 }
