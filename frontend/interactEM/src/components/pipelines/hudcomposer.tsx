@@ -4,10 +4,8 @@ import {
   CircularProgress,
   Popover,
   Stack,
-  Tooltip,
   Typography,
 } from "@mui/material"
-import { CommitIcon } from "@radix-ui/react-icons"
 import { useCallback, useRef, useState } from "react"
 import { useActivePipeline } from "../../hooks/api/useActivePipeline"
 import { usePipelineStore } from "../../stores"
@@ -15,6 +13,7 @@ import { DeletePipelineButton } from "./deletebutton"
 import { HudListButton } from "./hudlistbutton"
 import { LaunchPipelineButton } from "./launchbutton"
 import { PipelineList } from "./list"
+import { RevisionButton } from "./revisionbutton"
 import { RevisionList } from "./revisionlist"
 
 export const HudComposer: React.FC = () => {
@@ -89,37 +88,11 @@ export const HudComposer: React.FC = () => {
           >
             {displayName}
           </Typography>
-          <Tooltip title="View Revision History">
-            <Box
-              ref={revisionButtonRef}
-              component="button"
-              onClick={handleToggleRevisionPopover}
-              aria-describedby={revisionListId}
-              disabled={isMutating}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                bgcolor: "rgba(0, 0, 0, 0.05)",
-                borderRadius: "4px",
-                px: 0.8,
-                py: 0.2,
-                color: "text.secondary",
-                fontSize: "0.8em",
-                border: "none",
-                cursor: isMutating ? "not-allowed" : "pointer",
-                opacity: isMutating ? 0.6 : 1,
-                transition: "background-color 0.2s ease-in-out",
-                "&:hover:not(:disabled)": {
-                  bgcolor: "rgba(0, 0, 0, 0.1)",
-                },
-              }}
-            >
-              <Box component="span" sx={{ mr: 0.5, display: "flex" }}>
-                <CommitIcon fontSize="small" />
-              </Box>
-              {currentRevisionId}
-            </Box>
-          </Tooltip>
+          <RevisionButton
+            ref={revisionButtonRef}
+            revisionId={currentRevisionId}
+            onClick={isMutating ? undefined : handleToggleRevisionPopover}
+          />
           <DeletePipelineButton
             pipelineId={pipeline.id}
             pipelineName={displayName}

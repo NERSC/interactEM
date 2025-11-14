@@ -1,13 +1,13 @@
 import ListIcon from "@mui/icons-material/List"
-import { Box, Typography } from "@mui/material"
+import { Box } from "@mui/material"
 import { useState } from "react"
 import type { PipelineDeploymentPublic } from "../../client"
 import { useActivePipeline } from "../../hooks/api/useActivePipeline"
 import { useDeployment } from "../../hooks/api/useDeploymentsQuery"
 import { usePipelineStore } from "../../stores"
-import { DeploymentItem } from "./deploymentitem"
 import { DeploymentManagementPanel } from "./deploymentmanagementpanel"
 import { HudListButton } from "./hudlistbutton"
+import { HudRuntimeInfo } from "./hudruntimeinfo"
 
 export const HudRunning: React.FC = () => {
   const { setSelectedRuntimePipelineId } = usePipelineStore()
@@ -44,9 +44,9 @@ export const HudRunning: React.FC = () => {
           bgcolor: "background.paper",
           borderRadius: 1,
           boxShadow: 1,
-          minWidth: 300,
           display: "flex",
           alignItems: "center",
+          gap: 0.5,
         }}
       >
         {/* Deployment Management Button */}
@@ -57,34 +57,12 @@ export const HudRunning: React.FC = () => {
           active={false}
         />
 
-        {/* Deployment Display */}
-        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          {loading ? (
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              noWrap
-              sx={{ fontStyle: "italic" }}
-            >
-              Loading deployment...
-            </Typography>
-          ) : deployment ? (
-            <DeploymentItem
-              deployment={deployment}
-              showPipelineInfo
-              disableClick
-              hideActiveIndicator
-            />
-          ) : error ? (
-            <Typography variant="body2" color="error" noWrap>
-              Failed to load deployment
-            </Typography>
-          ) : (
-            <Typography variant="body2" color="text.secondary" noWrap>
-              No deployment selected
-            </Typography>
-          )}
-        </Box>
+        {/* Deployment Info */}
+        <HudRuntimeInfo
+          deployment={deployment}
+          isLoading={loading}
+          error={error}
+        />
       </Box>
 
       {/* Deployment Management Panel */}
