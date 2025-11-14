@@ -321,6 +321,51 @@ def delete_pipeline(
     return Message(message="Pipeline deleted successfully")
 
 
+@router.post("/{id}/duplicate", response_model=PipelinePublic)
+def duplicate_pipeline(
+    session: SessionDep, current_user: CurrentUser, id: uuid.UUID
+) -> PipelinePublic:
+    """
+    Duplicate a pipeline with all its revisions.
+    """
+    # Get the source pipeline
+    pipeline = session.get(Pipeline, id)
+    pipeline = check_present_and_authorized(pipeline, current_user, id)
+
+    # Create new pipeline with the same name
+    new_pipeline = Pipeline(
+        name=pipeline.name,
+        data=pipeline.data,
+        owner_id=current_user.id,
+    )
+    session.add(new_pipeline)
+    session.flush()  # Get the ID without committing
+
+    # Copy all revisions from source pipeline
+    revisions = session.exec(
+        select(PipelineRevision)
+        .where(col(PipelineRevision.pipeline_id) == id)
+        .order_by(col(PipelineRevision.revision_id))
+    ).all()
+
+    for revision in revisions:
+        new_revision = PipelineRevision(
+            pipeline_id=new_pipeline.id,
+            revision_id=revision.revision_id,
+            data=revision.data,
+            tag=revision.tag,
+            positions=revision.positions,
+        )
+        session.add(new_revision)
+
+    # Set current revision to match source
+    new_pipeline.current_revision_id = pipeline.current_revision_id
+
+    session.commit()
+    session.refresh(new_pipeline)
+    return PipelinePublic.model_validate(new_pipeline)
+
+
 @router.get("/{id}/deployments", response_model=PipelineDeploymentsPublic)
 def list_pipeline_deployments(
     session: SessionDep,
