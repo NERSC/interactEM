@@ -346,17 +346,20 @@
 </pre></div>
 </div>
 <p>or</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>venv<span class="w"> </span>.venv<span class="w"> </span>--python<span class="o">=</span><span class="m">3</span>.12<span class="w"> </span>--clear
-uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
-<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync
 </pre></div>
 </div>
 </section>
 <section id="run-agent">
 <h2>Run Agent<a class="headerlink" href="#run-agent" title="Link to this heading">#</a></h2>
-<p>Run the following inside the directory where the <code class="docutils literal notranslate"><span class="pre">.env</span></code> is:</p>
+<p>Activate your virtual environment, then the following inside the directory where the <code class="docutils literal notranslate"><span class="pre">.env</span></code> is:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>backend/agent
 interactem-agent
+</pre></div>
+</div>
+<p>or with <code class="docutils literal notranslate"><span class="pre">uv</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>backend/agent
+uv<span class="w"> </span>run<span class="w"> </span>interactem-agent
 </pre></div>
 </div>
 </section>

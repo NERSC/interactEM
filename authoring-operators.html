@@ -321,10 +321,12 @@
 <h2>What is an Operator?<a class="headerlink" href="#what-is-an-operator" title="Link to this heading">#</a></h2>
 <p>Operators are pieces of code that will perform some action on data coming from other operators. They are the bits of code that can be chained together to build a data pipeline.</p>
 </section>
-<section id="running-operators-locally">
-<h2>Running operators locally<a class="headerlink" href="#running-operators-locally" title="Link to this heading">#</a></h2>
-<p>Operators are currently located in the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators"><code class="markdown_symlinks markdown_symlinks-xref docutils literal notranslate"><span class="pre">operators/</span></code></a> directory.</p>
-<p>To run an operator pipeline, we have to have its container image in <code class="docutils literal notranslate"><span class="pre">podman</span></code>’s container storage. There are several ways to get the container into the podman stroage, but we opt to build the operators using <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">bake</span></code>, pull them into a local docker registry, and pull them from this registry with podman:</p>
+<section id="getting-operators-into-podman-storage">
+<h2>Getting operators into podman storage<a class="headerlink" href="#getting-operators-into-podman-storage" title="Link to this heading">#</a></h2>
+<p>Premade operators are currently located in the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators"><code class="markdown_symlinks markdown_symlinks-xref docutils literal notranslate"><span class="pre">operators/</span></code></a> directory. To run an operator pipeline, <code class="docutils literal notranslate"><span class="pre">podman</span></code> has to know about it. Can be done using <a class="reference internal" href="#docker-bake-podman-pull">bake</a> or <a class="reference internal" href="#podman-build">podman build</a>.</p>
+<section id="docker-bake-podman-pull">
+<h3>docker bake + podman pull<a class="headerlink" href="#docker-bake-podman-pull" title="Link to this heading">#</a></h3>
+<p>We can use use <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">bake</span></code> and <code class="docutils literal notranslate"><span class="pre">podman</span> <span class="pre">pull</span></code> for operators in the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators/docker-bake.hcl">bake hcl file</a>.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>interactEM
 make<span class="w"> </span>setup<span class="w"> </span><span class="c1"># no need to run this if you already have</span>
 
@@ -339,7 +341,18 @@ make<span class="w"> </span>operator<span class="w"> </span><span class="nv">tar
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>./operators/bake.sh<span class="w"> </span>--push-local<span class="w"> </span>--pull-local<span class="w"> </span>--target<span class="w"> </span>center-of-mass-partial
 </pre></div>
 </div>
-<p>See <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators/bake.sh">bake.sh</a> for additional build options.</p>
+<p>If you <a class="reference internal" href="#creating-an-operator">make</a> an operator, then you can add it to the <code class="docutils literal notranslate"><span class="pre">hcl</span></code> file and it will be a part of this build process. This doesn’t happen automatically, you will have to manually edit that file - look at the format and use your judgment (or ask an agent).</p>
+</section>
+<section id="podman-build">
+<h3><code class="docutils literal notranslate"><span class="pre">podman</span> <span class="pre">build</span></code><a class="headerlink" href="#podman-build" title="Link to this heading">#</a></h3>
+<p>If you create an operator using the instructions below, you can also use a regular <code class="docutils literal notranslate"><span class="pre">podman</span> <span class="pre">build</span></code>.</p>
+<p>For example, if we have an operator with the name <code class="docutils literal notranslate"><span class="pre">my-operator</span></code> in the <code class="docutils literal notranslate"><span class="pre">my-operator/</span></code> directory you can build it like this:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>my-operator
+<span class="c1"># tag should match what is found in the &quot;image&quot; field in your operator.json</span>
+podman<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </span>ghcr.io/nersc/interactem/my-operator:latest<span class="w"> </span>.<span class="w">  </span>
+</pre></div>
+</div>
+</section>
 </section>
 <section id="creating-an-operator">
 <h2>Creating an operator<a class="headerlink" href="#creating-an-operator" title="Link to this heading">#</a></h2>
@@ -351,13 +364,24 @@ make<span class="w"> </span>operator<span class="w"> </span><span class="nv">tar
 </ol>
 <p>As a part of our <code class="docutils literal notranslate"><span class="pre">cli</span></code> tool, we have some templates that can get you started. Using <code class="docutils literal notranslate"><span class="pre">uv</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>cli
-uv<span class="w"> </span>venv<span class="w"> </span>.venv
-uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>.
-<span class="nb">source</span><span class="w"> </span>.venv/bin/activate
+uv<span class="w"> </span>sync
+uv<span class="w"> </span>run<span class="w"> </span>interactem<span class="w"> </span>operator<span class="w"> </span>new
+</pre></div>
+</div>
+<p>or <code class="docutils literal notranslate"><span class="pre">poetry</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>cli
+poetry<span class="w"> </span>install
+poetry<span class="w"> </span>run<span class="w"> </span>interactem<span class="w"> </span>operator<span class="w"> </span>new
+</pre></div>
+</div>
+<p>Or if you are feeling dangerous:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>cli
+pip<span class="w"> </span>install<span class="w"> </span>.<span class="w"> </span>
 interactem<span class="w"> </span>operator<span class="w"> </span>new
 </pre></div>
 </div>
-<p>One can similarly do this with <code class="docutils literal notranslate"><span class="pre">poetry</span> <span class="pre">install</span></code> (either way should work), or with a plain <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">.</span></code>.</p>
+<p>This will generate the files you need under whatever directory you specify. If you put them in the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators">operators directory (interactEM/operators/)</a>, and refresh the frontend, you will see it appear there.</p>
+<p>You can build the operators as discussed <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main/running-operators-locally">above</a>.</p>
 <section id="run-py">
 <h3>run.py<a class="headerlink" href="#run-py" title="Link to this heading">#</a></h3>
 <p>We need to define the code that will operate on incoming messages. The incoming messages will come in as <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//backend/core/interactem/core/models/messages.py">BytesMessages</a>, which contain data, metadata, and tracking information.</p>
@@ -400,7 +424,7 @@ interactem<span class="w"> </span>operator<span class="w"> </span>new
 <span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
 <span class="k">COPY</span><span class="w"> </span>./pyproject.toml<span class="w"> </span>./poetry.lock<span class="w"> </span>./README.md<span class="w"> </span>/app/
 
-<span class="k">RUN</span><span class="w"> </span>poetry<span class="w"> </span>install<span class="w"> </span>--no-root<span class="w"> </span>--without<span class="w"> </span>test
+<span class="k">RUN</span><span class="w"> </span>poetry<span class="w"> </span>install<span class="w"> </span>--no-root<span class="w"> </span>--without<span class="w"> </span>dev
 
 <span class="k">COPY</span><span class="w"> </span>./distiller_streaming/<span class="w"> </span>/app/distiller_streaming/
 <span class="k">RUN</span><span class="w"> </span>poetry<span class="w"> </span>install<span class="w"> </span>--only-root
@@ -552,7 +576,11 @@ interactem<span class="w"> </span>operator<span class="w"> </span>new
             <ul>
 <li><a class="reference internal" href="#">Operators</a><ul>
 <li><a class="reference internal" href="#what-is-an-operator">What is an Operator?</a></li>
-<li><a class="reference internal" href="#running-operators-locally">Running operators locally</a></li>
+<li><a class="reference internal" href="#getting-operators-into-podman-storage">Getting operators into podman storage</a><ul>
+<li><a class="reference internal" href="#docker-bake-podman-pull">docker bake + podman pull</a></li>
+<li><a class="reference internal" href="#podman-build"><code class="docutils literal notranslate"><span class="pre">podman</span> <span class="pre">build</span></code></a></li>
+</ul>
+</li>
 <li><a class="reference internal" href="#creating-an-operator">Creating an operator</a><ul>
 <li><a class="reference internal" href="#run-py">run.py</a></li>
 <li><a class="reference internal" href="#containerfile">Containerfile</a></li>
