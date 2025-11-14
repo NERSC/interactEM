@@ -32,6 +32,9 @@ export const PipelineListItem = ({
         backgroundColor: isSelected ? "action.selected" : "inherit",
         display: "flex",
         alignItems: "center",
+        "&:hover .pipeline-buttons": {
+          opacity: 1,
+        },
       }}
     >
       <ListItemButton
@@ -45,12 +48,15 @@ export const PipelineListItem = ({
         />
       </ListItemButton>
       <Box
+        className="pipeline-buttons"
         sx={{
           display: "flex",
           alignItems: "center",
           gap: 0,
           pr: 1,
           flexShrink: 0,
+          opacity: 0,
+          transition: "opacity 0.2s ease-in-out",
         }}
         onClick={(e) => e.stopPropagation()}
       >
