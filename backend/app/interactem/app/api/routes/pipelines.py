@@ -10,6 +10,9 @@ from interactem.app.api.deps import CurrentUser, SessionDep
 from interactem.app.core.util import (
     check_present_and_authorized,
 )
+from interactem.app.events.producer import (
+    publish_pipeline_deployment_event,
+)
 from interactem.app.models import (
     Message,
     OperatorPosition,
@@ -18,6 +21,7 @@ from interactem.app.models import (
     PipelineDeployment,
     PipelineDeploymentPublic,
     PipelineDeploymentsPublic,
+    PipelineDeploymentState,
     PipelinePublic,
     PipelineRevision,
     PipelineRevisionCreate,
@@ -26,6 +30,9 @@ from interactem.app.models import (
     PipelineRevisionUpdate,
     PipelinesPublic,
     PipelineUpdate,
+)
+from interactem.core.events.pipelines import (
+    PipelineRunEvent,
 )
 from interactem.core.logger import get_logger
 from interactem.core.models.canonical import (
@@ -290,17 +297,76 @@ def update_pipeline_revision_positions(
     return PipelineRevisionPublic.model_validate(revision)
 
 
+@router.post(
+    "/{id}/revisions/{revision_id}/run", response_model=PipelineDeploymentPublic
+)
+async def run_pipeline_revision(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    revision_id: CanonicalPipelineRevisionID,
+) -> PipelineDeploymentPublic:
+    """
+    Run a specific pipeline revision by creating a deployment.
+    """
+    # Check pipeline exists and user is authorized
+    pipeline = session.get(Pipeline, id)
+    check_present_and_authorized(pipeline, current_user, id)
+
+    # Check revision exists
+    revision = session.get(PipelineRevision, (id, revision_id))
+    if not revision:
+        raise HTTPException(status_code=404, detail="Pipeline revision not found")
+
+    # Create deployment
+    deployment = PipelineDeployment(
+        pipeline_id=id,
+        revision_id=revision_id,
+        state=PipelineDeploymentState.PENDING,
+    )
+    session.add(deployment)
+    session.commit()
+    session.refresh(deployment)
+
+    # Publish initialization event for orchestrator to handle
+    event = PipelineRunEvent(
+        canonical_id=deployment.pipeline_id,
+        data=deployment.revision.data,
+        revision_id=deployment.revision_id,
+        deployment_id=deployment.id,
+    )
+    await publish_pipeline_deployment_event(event)
+
+    logger.info(
+        f"Created deployment {deployment.id} for pipeline {id} revision {revision_id}"
+    )
+
+    return PipelineDeploymentPublic.model_validate(deployment)
+
+
 @router.post("/", response_model=PipelinePublic)
 def create_pipeline(
     *, session: SessionDep, current_user: CurrentUser, pipeline_in: PipelineCreate
 ) -> PipelinePublic:
     """
-    Create new pipeline.
+    Create new pipeline with initial revision (revision_id = 0).
     """
     pipeline = Pipeline.model_validate(
         pipeline_in, update={"owner_id": current_user.id}
     )
     session.add(pipeline)
+    session.flush()  # Get the ID without committing
+
+    # Create initial revision (revision_id = 0)
+    initial_revision = PipelineRevision(
+        pipeline_id=pipeline.id,
+        revision_id=0,
+        data=pipeline_in.data,
+        positions=[],
+    )
+    session.add(initial_revision)
+
     session.commit()
     session.refresh(pipeline)
     pipeline = PipelinePublic.model_validate(pipeline)
