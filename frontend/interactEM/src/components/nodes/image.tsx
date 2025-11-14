@@ -7,7 +7,6 @@ import Image from "../image"
 import Handles from "./handles"
 import OperatorToolbar from "./toolbar"
 
-
 interface ImageNodeBaseProps extends NodeProps<ImageNodeType> {
   className?: string
 }

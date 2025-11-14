@@ -813,6 +813,41 @@
         }
       }
     },
+    "/api/v1/pipelines/{id}/duplicate": {
+      "post": {
+        "tags": ["pipelines"],
+        "summary": "Duplicate Pipeline",
+        "description": "Duplicate a pipeline with all its revisions.",
+        "operationId": "pipelines-duplicate_pipeline",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PipelinePublic" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/pipelines/{id}/deployments": {
       "get": {
         "tags": ["pipelines"],

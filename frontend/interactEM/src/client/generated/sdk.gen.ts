@@ -41,6 +41,9 @@ import type {
   PipelinesDeletePipelineData,
   PipelinesDeletePipelineError,
   PipelinesDeletePipelineResponse,
+  PipelinesDuplicatePipelineData,
+  PipelinesDuplicatePipelineError,
+  PipelinesDuplicatePipelineResponse,
   PipelinesListPipelineDeploymentsData,
   PipelinesListPipelineDeploymentsError,
   PipelinesListPipelineDeploymentsResponse,
@@ -662,6 +665,31 @@ export const pipelinesUpdatePipelineRevisionPositions = <
       "Content-Type": "application/json",
       ...options?.headers,
     },
+  })
+}
+
+/**
+ * Duplicate Pipeline
+ * Duplicate a pipeline with all its revisions.
+ */
+export const pipelinesDuplicatePipeline = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<PipelinesDuplicatePipelineData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).post<
+    PipelinesDuplicatePipelineResponse,
+    PipelinesDuplicatePipelineError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/pipelines/{id}/duplicate",
+    ...options,
   })
 }
 

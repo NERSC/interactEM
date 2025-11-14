@@ -423,6 +423,8 @@ export const zPipelinesUpdatePipelineRevisionResponse = zPipelineRevisionPublic
 export const zPipelinesUpdatePipelineRevisionPositionsResponse =
   zPipelineRevisionPublic
 
+export const zPipelinesDuplicatePipelineResponse = zPipelinePublic
+
 export const zPipelinesListPipelineDeploymentsResponse =
   zPipelineDeploymentsPublic
 
