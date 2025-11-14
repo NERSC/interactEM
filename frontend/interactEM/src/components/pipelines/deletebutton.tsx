@@ -86,7 +86,6 @@ export const DeletePipelineButton: React.FC<DeletePipelineButtonProps> = ({
             onClick={handleDeleteClick}
             disabled={disabled || isDeleting}
             color="error"
-            sx={{ mr: 0.5 }}
           >
             {isDeleting ? (
               <CircularProgress size={20} color="error" />

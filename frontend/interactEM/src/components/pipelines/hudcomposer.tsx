@@ -2,7 +2,6 @@ import ListIcon from "@mui/icons-material/List"
 import {
   Box,
   CircularProgress,
-  Divider,
   Popover,
   Stack,
   Tooltip,
@@ -82,56 +81,55 @@ export const HudComposer: React.FC = () => {
 
     return (
       <>
-        <Stack direction="column">
+        <Stack direction="row" alignItems="center" sx={{ gap: 0.5, flex: 1 }}>
           <Typography
             variant="subtitle1"
             fontWeight="medium"
             noWrap
-            sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            sx={{ display: "flex", alignItems: "center" }}
           >
             {displayName}
-            <Tooltip title="View Revision History">
-              <Box
-                ref={revisionButtonRef}
-                component="button"
-                onClick={handleToggleRevisionPopover}
-                aria-describedby={revisionListId}
-                disabled={isMutating}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  bgcolor: "rgba(0, 0, 0, 0.05)",
-                  borderRadius: "4px",
-                  px: 0.8,
-                  py: 0.2,
-                  ml: 0.5,
-                  color: "text.secondary",
-                  fontSize: "0.8em",
-                  border: "none",
-                  cursor: isMutating ? "not-allowed" : "pointer",
-                  opacity: isMutating ? 0.6 : 1,
-                  transition: "background-color 0.2s ease-in-out",
-                  "&:hover:not(:disabled)": {
-                    bgcolor: "rgba(0, 0, 0, 0.1)",
-                  },
-                }}
-              >
-                <Box component="span" sx={{ mr: 0.5, display: "flex" }}>
-                  <CommitIcon fontSize="small" />
-                </Box>
-                {currentRevisionId}
-              </Box>
-            </Tooltip>
           </Typography>
+          <Tooltip title="View Revision History">
+            <Box
+              ref={revisionButtonRef}
+              component="button"
+              onClick={handleToggleRevisionPopover}
+              aria-describedby={revisionListId}
+              disabled={isMutating}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                bgcolor: "rgba(0, 0, 0, 0.05)",
+                borderRadius: "4px",
+                px: 0.8,
+                py: 0.2,
+                color: "text.secondary",
+                fontSize: "0.8em",
+                border: "none",
+                cursor: isMutating ? "not-allowed" : "pointer",
+                opacity: isMutating ? 0.6 : 1,
+                transition: "background-color 0.2s ease-in-out",
+                "&:hover:not(:disabled)": {
+                  bgcolor: "rgba(0, 0, 0, 0.1)",
+                },
+              }}
+            >
+              <Box component="span" sx={{ mr: 0.5, display: "flex" }}>
+                <CommitIcon fontSize="small" />
+              </Box>
+              {currentRevisionId}
+            </Box>
+          </Tooltip>
+          <DeletePipelineButton
+            pipelineId={pipeline.id}
+            pipelineName={displayName}
+            disabled={isMutating && !isDeleting}
+            onDeleteStarted={() => setIsDeleting(true)}
+            onDeleteFinished={() => setIsDeleting(false)}
+          />
+          <LaunchPipelineButton disabled={isMutating} />
         </Stack>
-        <DeletePipelineButton
-          pipelineId={pipeline.id}
-          pipelineName={displayName}
-          disabled={isMutating && !isDeleting}
-          onDeleteStarted={() => setIsDeleting(true)}
-          onDeleteFinished={() => setIsDeleting(false)}
-        />
-        <LaunchPipelineButton disabled={isMutating} />
       </>
     )
   }

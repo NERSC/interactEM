@@ -56,7 +56,6 @@ export const LaunchPipelineButton: React.FC<LaunchPipelineButtonProps> = ({
             disabled || isLaunching || !currentPipelineId || !currentRevisionId
           }
           color="primary"
-          sx={{ mr: 0.5 }}
         >
           {isLaunching ? (
             <CircularProgress size={20} color="primary" />
