@@ -49,6 +49,7 @@
 
     ```bash
     make setup
+    # then fix your GITHUB_USERNAME/TOKEN in .env
     make docker-up
     make operators
     ```
