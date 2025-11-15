@@ -15,13 +15,15 @@ function useComposerPipeline() {
   })
 
   const revisionId =
-    currentRevisionId || pipelineQuery.data?.current_revision_id || null
+    currentRevisionId != null
+      ? currentRevisionId
+      : (pipelineQuery.data?.current_revision_id ?? null)
 
   const revisionQuery = useQuery({
     ...pipelinesReadPipelineRevisionOptions({
       path: { id: currentPipelineId!, revision_id: revisionId! },
     }),
-    enabled: !!currentPipelineId && !!revisionId,
+    enabled: !!currentPipelineId && revisionId != null,
   })
 
   return {
@@ -53,7 +55,7 @@ function useRuntimePipeline() {
     ...pipelinesReadPipelineRevisionOptions({
       path: { id: canonicalId!, revision_id: revisionId! },
     }),
-    enabled: !!canonicalId && !!revisionId && !deploymentLoading,
+    enabled: !!canonicalId && revisionId != null && !deploymentLoading,
   })
 
   return {

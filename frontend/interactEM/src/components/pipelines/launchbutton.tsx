@@ -33,7 +33,7 @@ export const LaunchPipelineButton: React.FC<LaunchPipelineButtonProps> = ({
   })
 
   const handleLaunchClick = () => {
-    if (!currentPipelineId || !currentRevisionId) {
+    if (!currentPipelineId || currentRevisionId == null) {
       toast.error("No pipeline or revision selected")
       return
     }
@@ -53,7 +53,10 @@ export const LaunchPipelineButton: React.FC<LaunchPipelineButtonProps> = ({
           size="small"
           onClick={handleLaunchClick}
           disabled={
-            disabled || isLaunching || !currentPipelineId || !currentRevisionId
+            disabled ||
+            isLaunching ||
+            !currentPipelineId ||
+            currentRevisionId == null
           }
           color="primary"
         >
