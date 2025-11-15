@@ -2,6 +2,8 @@
 
 # Script to copy all .env.example files to .env in their respective folders
 # Only copies if .env doesn't already exist
+# NOTE: Most backend services now use consolidated .env at root, but legacy
+# .env files may still be copied for services not yet consolidated (callout, etc)
 
 set -euo pipefail
 
