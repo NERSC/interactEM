@@ -37,8 +37,8 @@
     Edit your `.env` file and add GitHub info:
 
     ```bash
-    GITHUB_USERNAME=your_github_username
-    GITHUB_TOKEN=your_personal_token
+    APP_GITHUB_USERNAME=your_github_username
+    APP_GITHUB_TOKEN=your_personal_token
     ```
 
     You can get a personal token from your [GitHub account settings](https://github.com/settings/tokens). Use a classic token with `read:packages`.
@@ -49,7 +49,7 @@
 
     ```bash
     make setup
-    # then fix your GITHUB_USERNAME/TOKEN in .env
+    # then fix your APP_GITHUB_USERNAME/TOKEN in .env
     make docker-up
     make operators
     ```
@@ -59,7 +59,7 @@
     Open your browser to [http://localhost:5173](http://localhost:5173)
 
     - Username: `admin@example.com`
-    - Password: Check your `.env` file for `FIRST_SUPERUSER_PASSWORD` (auto-generated), or output from `make docker-up`
+    - Password: Check your `.env` file for `APP_FIRST_SUPERUSER_PASSWORD` (auto-generated), or output from `make docker-up`
 
 ### Stopping services
 

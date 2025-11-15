@@ -13,7 +13,9 @@ class LogLevel(str, Enum):
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_prefix="CORE_", extra="ignore"
+    )
     CORE_PACKAGE_DIR: pathlib.Path = pathlib.Path(__file__).parent.parent
     OPERATORS_PACKAGE_DIR: pathlib.Path = (
         pathlib.Path(__file__).parent.parent.parent.parent / "operators" / "interactem"

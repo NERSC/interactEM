@@ -38,7 +38,9 @@ except ImportError:
 # Settings
 # ==============================
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", extra="ignore", env_prefix="REGISTRY_"
+    )
 
     PODMAN_SERVICE_URI: str | None = None
     BAKE_FILE: Path = Field(default=Path(__file__).parent / "docker-bake.hcl")
