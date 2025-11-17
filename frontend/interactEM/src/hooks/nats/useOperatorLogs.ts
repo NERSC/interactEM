@@ -26,8 +26,6 @@ export function useOperatorLogs({
     true,
   )
 
-  // We may want to pass in deploymentId in the future to look at
-  // historical logs, but in current impl we just use active pipeline ID
   const deploymentIdOrActiveId = deploymentId || runtimePipelineId
 
   const operators = useMemo(
@@ -47,8 +45,24 @@ export function useOperatorLogs({
   const [logs, setLogs] = useState<OperatorLog[]>([])
 
   const config = useMemo(() => {
-    if (sortedOperatorIds.length === 0) {
+    if (!deploymentIdOrActiveId) {
       return null
+    }
+
+    // Use consistent durable name for the deployment to avoid duplicate consumers
+    const durableName = `operator-logs-${deploymentIdOrActiveId}`
+
+    // If we have no operators, use wildcard pattern to fetch historical logs
+    if (sortedOperatorIds.length === 0) {
+      return {
+        filter_subjects: [
+          `${SUBJECT_LOGS_DEPLOYMENTS}.${deploymentIdOrActiveId}.${OPERATORS}.>`,
+        ],
+        deliver_policy: DeliverPolicy.All,
+        ack_policy: AckPolicy.All,
+        replay_policy: ReplayPolicy.Instant,
+        durable_name: durableName,
+      }
     }
 
     const subjects = sortedOperatorIds.map(
@@ -61,7 +75,7 @@ export function useOperatorLogs({
       deliver_policy: DeliverPolicy.All,
       ack_policy: AckPolicy.All,
       replay_policy: ReplayPolicy.Instant,
-      durable_name: `operator-logs-${deploymentIdOrActiveId}-${sortedOperatorIds.join("-")}`,
+      durable_name: durableName,
     }
   }, [deploymentIdOrActiveId, sortedOperatorIds])
 

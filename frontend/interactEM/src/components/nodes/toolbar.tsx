@@ -5,6 +5,7 @@ import { useNodesData } from "@xyflow/react"
 import type React from "react"
 import { useState } from "react"
 import type { OperatorSpecParameter, OperatorSpecTag } from "../../client"
+import { useActivePipeline } from "../../hooks/api/useActivePipeline"
 import { ViewMode, useViewModeStore } from "../../stores"
 import type { OperatorNodeType } from "../../types/nodes"
 import OperatorLogsDialog from "../logs/operatordialog"
@@ -26,6 +27,7 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
   const nodeData = useNodesData<OperatorNodeType>(id)
   const nodeTags = nodeData?.data.tags || []
   const { viewMode } = useViewModeStore()
+  const { runtimePipelineId } = useActivePipeline()
   const [logsDialogOpen, setLogsDialogOpen] = useState(false)
 
   return (
@@ -56,6 +58,7 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
                 onClose={() => setLogsDialogOpen(false)}
                 canonicalOperatorId={id}
                 operatorLabel={nodeData?.data.label || "Unknown"}
+                deploymentId={runtimePipelineId}
               />
             )}
           </>

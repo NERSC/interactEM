@@ -19,6 +19,7 @@ interface OperatorLogsDialogProps {
   onClose: () => void
   canonicalOperatorId: string
   operatorLabel: string
+  deploymentId?: string
 }
 
 const OperatorLogsDialog: React.FC<OperatorLogsDialogProps> = ({
@@ -26,9 +27,11 @@ const OperatorLogsDialog: React.FC<OperatorLogsDialogProps> = ({
   onClose,
   canonicalOperatorId,
   operatorLabel,
+  deploymentId,
 }) => {
   const { logs, operators } = useOperatorLogs({
     canonicalOperatorId,
+    deploymentId,
   })
 
   const [selectedTab, setSelectedTab] = useState(0)
@@ -64,7 +67,7 @@ const OperatorLogsDialog: React.FC<OperatorLogsDialogProps> = ({
         </Box>
       </DialogTitle>
       <DialogContent>
-        {operators.length === 0 ? (
+        {operators.length === 0 && logs.length === 0 ? (
           <Typography color="text.secondary">
             No runtime operators found for this canonical operator.
           </Typography>
