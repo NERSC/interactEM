@@ -69,3 +69,7 @@ update_env_file "cli/.env" "INTERACTEM_PASSWORD" "changethis" "$INTERACTEM_PW"
 
 # Update backend/callout/service/.env if it exists
 update_env_file "backend/callout/service/.env" "JWT_SECRET_KEYS" "changethis" "$SECRET_KEY"
+
+# Ensure NATS credential file paths exist as files (not directories)
+echo ""
+./scripts/ensure-nats-credentials.sh
