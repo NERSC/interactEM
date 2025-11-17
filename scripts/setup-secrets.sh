@@ -54,18 +54,16 @@ update_env_file() {
     fi
 }
 
-# Update root .env
-update_env_file ".env" "SECRET_KEY" "changethis" "$SECRET_KEY"
-update_env_file ".env" "FIRST_SUPERUSER_PASSWORD" "changethis" "$FIRST_SUPERUSER_PASSWORD"
-update_env_file ".env" "POSTGRES_PASSWORD" "changethis" "$POSTGRES_PASSWORD"
-update_env_file ".env" "EXTERNAL_SECRET_KEY" "changeme" "$EXTERNAL_SECRET_KEY"
+# Update root .env with prefixed variables
+update_env_file ".env" "APP_SECRET_KEY" "changethis" "$SECRET_KEY"
+update_env_file ".env" "APP_FIRST_SUPERUSER_PASSWORD" "changethis" "$INTERACTEM_PW"
+update_env_file ".env" "APP_POSTGRES_PASSWORD" "changethis" "$POSTGRES_PASSWORD"
+update_env_file ".env" "APP_EXTERNAL_SECRET_KEY" "changeme" "$EXTERNAL_SECRET_KEY"
+update_env_file ".env" "CLI_INTERACTEM_PASSWORD" "changethis" "$INTERACTEM_PW"
+# Both app and orchestrator need the same API key
+update_env_file ".env" "APP_ORCHESTRATOR_API_KEY" "changethis" "$ORCHESTRATOR_API_KEY"
 update_env_file ".env" "ORCHESTRATOR_API_KEY" "changethis" "$ORCHESTRATOR_API_KEY"
 
-# Update backend/orchestrator/.env if it exists
-update_env_file "backend/orchestrator/.env" "ORCHESTRATOR_API_KEY" "changethis" "$ORCHESTRATOR_API_KEY"
-
-# Update cli/.env if it exists
-update_env_file "cli/.env" "INTERACTEM_PASSWORD" "changethis" "$INTERACTEM_PW"
 
 # Update backend/callout/service/.env if it exists
 update_env_file "backend/callout/service/.env" "JWT_SECRET_KEYS" "changethis" "$SECRET_KEY"

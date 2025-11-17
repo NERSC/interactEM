@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=None)
+    model_config = SettingsConfigDict(env_file=".env", env_prefix="METRICS_")
     NATS_SERVER_URL: AnyWebsocketUrl | NatsDsn = NatsDsn("nats://localhost:4222")
     PROMETHEUS_PORT: int = 8001
 

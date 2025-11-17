@@ -10,7 +10,10 @@ class Settings(BaseSettings):
     api_base_url: str = "http://localhost:8080/api/v1"
 
     model_config = SettingsConfigDict(
-        env_file=".env", env_file_encoding="utf-8", case_sensitive=False
+        env_file=".env",
+        env_file_encoding="utf-8",
+        env_prefix="CLI_",
+        case_sensitive=False,
     )
 
 

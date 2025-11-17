@@ -11,25 +11,26 @@ x-backend-base:
     env_file:
       - .env
     environment:
-      - DOMAIN=${DOMAIN}
-      - ENVIRONMENT=${ENVIRONMENT}
-      - BACKEND_CORS_ORIGINS=${BACKEND_CORS_ORIGINS}
-      - SECRET_KEY=${SECRET_KEY?Variable not set}
-      - FIRST_SUPERUSER_USERNAME=${FIRST_SUPERUSER_USERNAME?Variable not set}
-      - FIRST_SUPERUSER_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
-      - POSTGRES_SERVER=db
-      - POSTGRES_PORT=${POSTGRES_PORT}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
-      - SENTRY_DSN=${SENTRY_DSN}
+      - APP_DOMAIN=${APP_DOMAIN}
+      - APP_ENVIRONMENT=${APP_ENVIRONMENT}
+      - APP_BACKEND_CORS_ORIGINS=${APP_BACKEND_CORS_ORIGINS}
+      - APP_SECRET_KEY=${APP_SECRET_KEY?Variable not set}
+      - APP_FIRST_SUPERUSER_USERNAME=${APP_FIRST_SUPERUSER_USERNAME?Variable not set}
+      - APP_FIRST_SUPERUSER_PASSWORD=${APP_FIRST_SUPERUSER_PASSWORD?Variable not set}
+      - APP_POSTGRES_SERVER=db
+      - APP_POSTGRES_PORT=${APP_POSTGRES_PORT}
+      - APP_POSTGRES_DB=${APP_POSTGRES_DB}
+      - APP_POSTGRES_USER=${APP_POSTGRES_USER?Variable not set}
+      - APP_POSTGRES_PASSWORD=${APP_POSTGRES_PASSWORD?Variable not set}
+      - APP_SENTRY_DSN=${APP_SENTRY_DSN}
+      - APP_NATS_CREDS_FILE=/backend.creds
+      - APP_NATS_FRONTEND_CREDS=/frontend.creds
+      - APP_GITHUB_USERNAME=${APP_GITHUB_USERNAME}
+      - APP_GITHUB_TOKEN=${APP_GITHUB_TOKEN}
+      - APP_ORCHESTRATOR_API_KEY=${APP_ORCHESTRATOR_API_KEY?Variable not set}
       - NATS_CREDS_FILE=/backend.creds
-      - NATS_FRONTEND_CREDS=/frontend.creds
       - NATS_SECURITY_MODE=creds
-      - GITHUB_USERNAME=${GITHUB_USERNAME}
-      - GITHUB_TOKEN=${GITHUB_TOKEN}
       - NATS_STREAM_STORAGE_TYPE=file
-      - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY?Variable not set}
     volumes:
       - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
       - "./conf/nats-conf/out_jwt/frontend.creds:/frontend.creds"
@@ -122,9 +123,9 @@ services:
       - .env
     environment:
       - PGDATA=/var/lib/postgresql/data/pgdata
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD?Variable not set}
-      - POSTGRES_USER=${POSTGRES_USER?Variable not set}
-      - POSTGRES_DB=${POSTGRES_DB?Variable not set}
+      - POSTGRES_PASSWORD=${APP_POSTGRES_PASSWORD?Variable not set}
+      - POSTGRES_USER=${APP_POSTGRES_USER?Variable not set}
+      - POSTGRES_DB=${APP_POSTGRES_DB?Variable not set}
 
   prestart:
     <<: *backend-base
@@ -213,12 +214,12 @@ services:
       nats-healthcheck:
         condition: service_healthy
     env_file:
-      - backend/launcher/.env
+      - .env
     environment:
       - NATS_CREDS_FILE=/backend.creds
       - NATS_SECURITY_MODE=creds
-      - SFAPI_KEY_PATH=/key.pem
-      - NATS_SERVER_URL=nats://nats1:4222
+      - LAUNCHER_SFAPI_KEY_PATH=/key.pem
+      - LAUNCHER_NATS_SERVER_URL=nats://nats1:4222
       - NATS_STREAM_STORAGE_TYPE=file
     volumes:
       - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"

@@ -97,7 +97,7 @@ class DeploymentStateMachine(AsyncMachine):
             state=self.current_state,
         )
         await publish_deployment_update(
-            self.js, update, api_key=cfg.ORCHESTRATOR_API_KEY
+            self.js, update, api_key=cfg.API_KEY
         )
 
 

@@ -78,7 +78,7 @@ docker-up: services ## Start all services with docker-compose
 	@echo "  Visit http://localhost:5173 in your browser"
 	@echo ""
 	@echo "Login credentials:"
-	@grep "FIRST_SUPERUSER_USERNAME\|FIRST_SUPERUSER_PASSWORD" .env | sed 's/^/  /'
+	@grep "APP_FIRST_SUPERUSER_USERNAME\|APP_FIRST_SUPERUSER_PASSWORD" .env | sed 's/^/  /'
 	@echo ""
 
 docker-down: ## Stop all services

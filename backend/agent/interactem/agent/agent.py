@@ -143,8 +143,8 @@ class Agent:
         self.error_publisher: LogicPublisher
 
         self.agent_val: AgentVal = AgentVal(
-            name=cfg.AGENT_NAME,
-            tags=cfg.AGENT_TAGS,
+            name=cfg.NAME,
+            tags=cfg.TAGS,
             uri=URI(
                 id=self.id,
                 location=URILocation.agent,
@@ -152,7 +152,7 @@ class Agent:
                 comm_backend=CommBackend.NATS,
             ),
             status=AgentStatus.INITIALIZING,
-            networks=cfg.AGENT_NETWORKS,
+            networks=cfg.NETWORKS,
         )
         self.agent_kv: KeyValueLoop[AgentVal]
         self.container_trackers: dict[RuntimeOperatorID, ContainerTracker] = {}

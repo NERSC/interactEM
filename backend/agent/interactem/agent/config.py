@@ -19,18 +19,19 @@ logger = get_logger()
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env", env_prefix="AGENT_", extra="ignore"
+    )
     ID: uuid.UUID = Field(default_factory=uuid.uuid4)
     LOCAL: bool = False
-    DOCKER_COMPATIBILITY_MODE: bool = False
     PODMAN_SERVICE_URI: str | None = None
     NATS_SERVER_URL: AnyWebsocketUrl | NatsDsn = NatsDsn("nats://localhost:4222")
     NATS_SERVER_URL_IN_CONTAINER: AnyWebsocketUrl | NatsDsn = NatsDsn(
         "nats://nats1:4222"
     )
-    AGENT_TAGS: list[str] = []
-    AGENT_NETWORKS: set[str] = set()
-    AGENT_NAME: str | None = None
+    TAGS: list[str] = []
+    NETWORKS: set[str] = set()
+    NAME: str | None = None
     MOUNT_LOCAL_REPO: bool = False
     OPERATOR_CREDS_FILE: Path
 
@@ -47,7 +48,9 @@ class Settings(BaseSettings):
     VECTOR_CONFIG_PATH: Path | None = None
 
     @model_validator(mode="after")
-    def ensure_operator_creds_file(self) -> "Settings":
+    def expand_paths(self) -> "Settings":
+        # Expand user home directory in paths that may come from environment
+        self.LOG_DIR = self.LOG_DIR.expanduser().resolve()
         self.OPERATOR_CREDS_FILE = self.OPERATOR_CREDS_FILE.expanduser().resolve()
         if not self.OPERATOR_CREDS_FILE.is_file():
             raise ValueError("OPERATOR_CREDS_FILE must be provided")
