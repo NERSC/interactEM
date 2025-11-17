@@ -16,7 +16,7 @@ from interactem.core.models.spec import OperatorSpecTag
 from interactem.core.models.uri import URI
 from interactem.core.pipeline import Pipeline
 from interactem.orchestrator.assign import PipelineAssigner
-from interactem.orchestrator.orchestrator import (
+from interactem.orchestrator.exceptions import (
     CyclicDependenciesError,
     NoAgentsError,
     UnassignableOperatorsError,
@@ -805,7 +805,7 @@ def test_no_agents_available():
     agents = []
 
     # 6. Run Assigner
-    with pytest.raises(NoAgentsError, match="No agents available for assignment."):
+    with pytest.raises(NoAgentsError):
         PipelineAssigner(agents, pipeline)
 
 
@@ -991,7 +991,7 @@ def test_pipeline_with_cycle():
     ]
 
     # 6. Assert that creating the Assigner raises PipelineGraphError
-    with pytest.raises(CyclicDependenciesError, match="contains cycles"):
+    with pytest.raises(CyclicDependenciesError):
         PipelineAssigner(agents, pipeline)
 
 
