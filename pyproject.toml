@@ -46,3 +46,8 @@ interactem-metrics = {path = "backend/metrics", develop = true}
 interactem-cli = {path = "cli", develop = true}
 interactem-orchestrator = {path = "backend/orchestrator", develop = true}
 interactem-sfapi-models = {path = "backend/sfapi_models", develop = true}
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+]

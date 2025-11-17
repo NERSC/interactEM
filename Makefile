@@ -125,3 +125,7 @@ push-operators: setup-docker-registry ## Build + push operators to remote regist
 	$(call section,Building + pushing to remote registry...)
 	$(OPERATORS_DIR)/bake.sh --push-remote --build-base
 	$(call success,Operators pushed to remote registry)
+
+test: ## Run tests 
+	uv run pytest backend/ --ignore=backend/launcher/ --ignore=backend/app/
+	$(call success,Tests complete)
