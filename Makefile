@@ -54,15 +54,16 @@ setup: ## Setup .env file with generated secure secrets
 	$(SCRIPTS_DIR)/copy-dotenv.sh
 	$(SCRIPTS_DIR)/setup-podman-socket.sh
 	$(SCRIPTS_DIR)/setup-secrets.sh
+	uv sync
 	$(call success,Environment setup complete! Next steps:)
-	@echo "  1. Edit .env to add GITHUB_USERNAME and GITHUB_TOKEN. Should be a classic token with read:packages scope."
+	@echo "  1. Edit .env to add APP_GITHUB_USERNAME and APP_GITHUB_TOKEN. Should be a classic token with read:packages scope."
 	@echo "  2. Run 'make docker-up' to build + start services."
 
 services: check-docker-permission ## Build Docker images for all services
 	@echo "Building Docker images..."
 	$(DOCKER_DIR)/bake.sh
 
-docker-up: services ## Start all services with docker-compose
+docker-up: ## Start all services with docker-compose
 	@USER_ID=$(shell id -u) GROUP_ID=$(shell id -g) docker compose up --force-recreate --remove-orphans --build -d
 	$(call success,Services started)
 	$(SCRIPTS_DIR)/setup-container-host.sh
@@ -87,6 +88,14 @@ docker-down: ## Stop all services
 clean: ## Stop services and remove volumes (WARNING: will delete database data)
 	@docker compose down -v
 	$(call success,Services stopped and volumes removed)
+	@echo "Removing .venvs..."
+	@find . -type d -name ".venv" -prune -exec rm -rf {} + 2>/dev/null || true
+	$(call success,.venvs removed)
+	@echo "Removing .env files..."
+	@echo "Saved credentials:"
+	@find . -name ".env" -type f -exec grep -h "APP_GITHUB_USERNAME\|APP_GITHUB_TOKEN" {} \; 2>/dev/null || true
+	@find . -name ".env" -type f -delete
+	$(call success,.env files removed)
 
 lint: ## Run backend (ruff) and frontend (biome) linters
 	@echo "Running ruff linter..."
