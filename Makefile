@@ -67,6 +67,14 @@ docker-up: services ## Start all services with docker-compose
 	$(call success,Services started)
 	$(SCRIPTS_DIR)/setup-container-host.sh
 	$(call success,Container host setup complete)
+	@bash -c '\
+		if grep -qE "^GITHUB_USERNAME=$$|^GITHUB_TOKEN=$$" .env; then \
+			echo ""; \
+			echo "⚠️  WARNING: GitHub credentials not configured"; \
+			echo "GITHUB_USERNAME and/or GITHUB_TOKEN are empty in .env"; \
+			echo "Frontend will only display local operators and skip operators on the remote container registry."; \
+			echo ""; \
+		fi'
 	@echo "  Visit http://localhost:5173 in your browser"
 	@echo ""
 	@echo "Login credentials:"

@@ -94,6 +94,14 @@ class Settings(BaseSettings):
             "FIRST_SUPERUSER_PASSWORD", self.FIRST_SUPERUSER_PASSWORD
         )
 
+        # Require GitHub credentials for staging/production
+        if self.ENVIRONMENT in ("staging", "production"):
+            if not self.GITHUB_USERNAME or not self.GITHUB_TOKEN:
+                raise ValueError(
+                    "GITHUB_USERNAME and GITHUB_TOKEN are required in "
+                    f"{self.ENVIRONMENT} environment"
+                )
+
         return self
 
     # NATS
@@ -113,8 +121,8 @@ class Settings(BaseSettings):
 
     # Container Registry
     CONTAINER_REGISTRY_URL: HttpUrl = Field(default="https://ghcr.io")
-    GITHUB_USERNAME: str
-    GITHUB_TOKEN: str
+    GITHUB_USERNAME: str | None = None
+    GITHUB_TOKEN: str | None = None
     CONTAINER_REGISTRY_NAMESPACE: str = "nersc"
     OPERATOR_CONTAINER_PREFIX: str = "interactem"
 

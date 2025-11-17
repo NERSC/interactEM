@@ -26,8 +26,8 @@ x-backend-base:
       - NATS_CREDS_FILE=/backend.creds
       - NATS_FRONTEND_CREDS=/frontend.creds
       - NATS_SECURITY_MODE=creds
-      - GITHUB_USERNAME=${GITHUB_USERNAME?Variable not set}
-      - GITHUB_TOKEN=${GITHUB_TOKEN?Variable not set}
+      - GITHUB_USERNAME=${GITHUB_USERNAME}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
       - NATS_STREAM_STORAGE_TYPE=file
       - ORCHESTRATOR_API_KEY=${ORCHESTRATOR_API_KEY?Variable not set}
     volumes:
