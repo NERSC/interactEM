@@ -97,22 +97,29 @@ async def fetch_operators() -> list[OperatorSpec]:
 
     logger.info("Loaded local operators: %s", [op.label for op in local_ops])
 
-    # Fetch operators from the container registry
-    async with ContainerRegistry(
-        str(settings.CONTAINER_REGISTRY_URL),
-        settings.GITHUB_USERNAME,
-        settings.GITHUB_TOKEN,
-    ) as registry:
-        images = await registry.images(settings.CONTAINER_REGISTRY_NAMESPACE)
-        prefix = f"{settings.CONTAINER_REGISTRY_NAMESPACE}/{settings.OPERATOR_CONTAINER_PREFIX}"
-        images = [image for image in images if image.startswith(prefix)]
+    # Fetch operators from the container registry if GitHub credentials are set
+    registry_ops: list[OperatorSpec] = []
+    if settings.GITHUB_USERNAME and settings.GITHUB_TOKEN:
+        async with ContainerRegistry(
+            str(settings.CONTAINER_REGISTRY_URL),
+            settings.GITHUB_USERNAME,
+            settings.GITHUB_TOKEN,
+        ) as registry:
+            images = await registry.images(settings.CONTAINER_REGISTRY_NAMESPACE)
+            prefix = f"{settings.CONTAINER_REGISTRY_NAMESPACE}/{settings.OPERATOR_CONTAINER_PREFIX}"
+            images = [image for image in images if image.startswith(prefix)]
 
-        fetch_operator_tasks: list[Coroutine[Any, Any, OperatorSpec | None]] = []
-        for image in images:
-            fetch_operator_tasks.append(_fetch_operator(registry, image))
+            fetch_operator_tasks: list[Coroutine[Any, Any, OperatorSpec | None]] = []
+            for image in images:
+                fetch_operator_tasks.append(_fetch_operator(registry, image))
 
-        registry_ops = await asyncio.gather(*fetch_operator_tasks)
-        registry_ops = [op for op in registry_ops if op]
+            registry_ops_tmp = await asyncio.gather(*fetch_operator_tasks)
+            registry_ops = [op for op in registry_ops_tmp if op]
+    else:
+        logger.warning(
+            "GitHub credentials not configured (GITHUB_USERNAME or GITHUB_TOKEN missing). "
+            "Skipping container registry operators. Only local operators will be available."
+        )
 
     merged: dict[OperatorSpecID, OperatorSpec] = {op.id: op for op in registry_ops}
     merged.update({op.id: op for op in local_ops})
