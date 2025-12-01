@@ -78,7 +78,7 @@ This will generate the files you need under whatever directory you specify. The 
 Operators will be updated **ONLY** in the operators panel during a refresh. Your existing pipelines will **NOT** be updated. One should manually replace the operators in existing pipelines with the refreshed operator.
 ```
 
-You can build the operators as discussed [above](#running-operators-locally).
+You can build the operators as discussed [above](#getting-operators-into-podman-storage).
 
 ### run.py
 
