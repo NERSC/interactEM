@@ -75,6 +75,10 @@ pip install .
 interactem operator new
 ```
 
+
+```{note}
+Operators will be updated **ONLY** in the operators panel during a refresh. Your existing pipelines will **NOT** be updated. One should manually replace the operators in existing pipelines with the refreshed operator.
+```
 This will generate the files you need under whatever directory you specify. If you put them in the [operators directory (interactEM/operators/)](/operators), and refresh the frontend, you will see it appear there.
 
 You can build the operators as discussed [above](#running-operators-locally).
