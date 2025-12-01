@@ -43,7 +43,7 @@ while IFS= read -r example; do
     [ -f "$env" ] || continue
 
     updated=false
-    while IFS='=' read -r key val; do
+    while IFS='=' read -r key val || [ -n "$key" ]; do
         [[ -z "$key" || "$key" =~ ^# ]] && continue
         [[ "$val" == *"host.containers.internal"* ]] || continue
 
