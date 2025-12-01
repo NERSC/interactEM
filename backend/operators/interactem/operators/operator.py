@@ -62,7 +62,7 @@ from .config import cfg
 from .messengers.base import (
     BaseMessenger,
 )
-from .messengers.zmq import ZmqMessenger
+from .messengers.zeromq.messenger import ZmqMessenger
 
 logger = get_logger()
 

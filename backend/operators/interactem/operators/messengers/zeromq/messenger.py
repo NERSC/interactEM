@@ -34,11 +34,11 @@ from interactem.core.models.uri import URI, CommBackend, URILocation, ZMQAddress
 from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
 from interactem.core.pipeline import Pipeline
 
-from ..config import cfg
-from ..zsocket import Context, Socket, SocketInfo
-from .base import (
+from ...config import cfg
+from ..base import (
     BaseMessenger,
 )
+from ._socket import Context, Socket, SocketInfo
 
 PORTS_KV_UPDATE_INTERVAL = 1.0  # seconds
 METRICS_KV_UPDATE_INTERVAL = 1.0
