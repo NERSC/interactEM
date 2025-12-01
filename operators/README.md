@@ -86,6 +86,8 @@ We need to define the code that will operate on incoming messages. The incoming 
 
 Here is an example of the [`run.py`](/operators/center-of-mass-partial/run.py) file for the partial center of mass operator. You can see that the parameters (defined in the [spec](#specification), see below).
 
+Prior to building the operator, one can quickly check if `run.py` will be importable by python by running `python -m py_compile run.py`.
+
 ### Containerfile
 
 We need to use the operator [base image](/docker/Dockerfile.operator) the parent image for our [`Containerfile`](/operators/center-of-mass-partial/Containerfile). In this case, we are using the [`distiller-streaming`](/operators/distiller-streaming/Containerfile) image as the base, as it contains a lot of utilities for processing 4D Camera frames.
