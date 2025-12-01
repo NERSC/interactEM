@@ -363,25 +363,26 @@ podman<span class="w"> </span>build<span class="w"> </span>-t<span class="w"> </
 <li><p><a class="reference internal" href="#specification">Specification</a></p></li>
 </ol>
 <p>As a part of our <code class="docutils literal notranslate"><span class="pre">cli</span></code> tool, we have some templates that can get you started. Using <code class="docutils literal notranslate"><span class="pre">uv</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>cli
-uv<span class="w"> </span>sync
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync
 uv<span class="w"> </span>run<span class="w"> </span>interactem<span class="w"> </span>operator<span class="w"> </span>new
 </pre></div>
 </div>
 <p>or <code class="docutils literal notranslate"><span class="pre">poetry</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>cli
-poetry<span class="w"> </span>install
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>install
 poetry<span class="w"> </span>run<span class="w"> </span>interactem<span class="w"> </span>operator<span class="w"> </span>new
 </pre></div>
 </div>
 <p>Or if you are feeling dangerous:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>cli
-pip<span class="w"> </span>install<span class="w"> </span>.<span class="w"> </span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>.<span class="w"> </span>
 interactem<span class="w"> </span>operator<span class="w"> </span>new
 </pre></div>
 </div>
-<p>This will generate the files you need under whatever directory you specify. If you put them in the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators">operators directory (interactEM/operators/)</a>, and refresh the frontend, you will see it appear there.</p>
-<p>You can build the operators as discussed <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main/running-operators-locally">above</a>.</p>
+<p>This will generate the files you need under whatever directory you specify. The default for the output directory output is <code class="docutils literal notranslate"><span class="pre">operators/</span></code>, so if you run the commands above from the git root, it will appear in the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators">operators directory (interactEM/operators/)</a>. You can then refresh the operators in the frontend, and it will be updated with your new operator.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Operators will be updated <strong>ONLY</strong> in the operators panel during a refresh. Your existing pipelines will <strong>NOT</strong> be updated. One should manually replace the operators in existing pipelines with the refreshed operator.</p>
+</div>
+<p>You can build the operators as discussed <a class="reference internal" href="#getting-operators-into-podman-storage">above</a>.</p>
 <section id="run-py">
 <h3>run.py<a class="headerlink" href="#run-py" title="Link to this heading">#</a></h3>
 <p>We need to define the code that will operate on incoming messages. The incoming messages will come in as <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//backend/core/interactem/core/models/messages.py">BytesMessages</a>, which contain data, metadata, and tracking information.</p>
