@@ -54,7 +54,6 @@ At the very least, three files are required to make an operator:
 As a part of our `cli` tool, we have some templates that can get you started. Using `uv`:
 
 ```bash
-cd cli
 uv sync
 uv run interactem operator new
 ```
@@ -62,7 +61,6 @@ uv run interactem operator new
 or `poetry`:
 
 ```bash
-cd cli
 poetry install
 poetry run interactem operator new
 ```
@@ -70,16 +68,15 @@ poetry run interactem operator new
 Or if you are feeling dangerous:
 
 ```bash
-cd cli
 pip install . 
 interactem operator new
 ```
 
+This will generate the files you need under whatever directory you specify. The default for the output directory output is `operators/`, so if you run the commands above from the git root, it will appear in the [operators directory (interactEM/operators/)](/operators). You can then refresh the operators in the frontend, and it will be updated with your new operator.
 
 ```{note}
 Operators will be updated **ONLY** in the operators panel during a refresh. Your existing pipelines will **NOT** be updated. One should manually replace the operators in existing pipelines with the refreshed operator.
 ```
-This will generate the files you need under whatever directory you specify. If you put them in the [operators directory (interactEM/operators/)](/operators), and refresh the frontend, you will see it appear there.
 
 You can build the operators as discussed [above](#running-operators-locally).
 
