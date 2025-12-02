@@ -3,7 +3,7 @@ from collections.abc import Callable, Sequence
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, RootModel, model_validator
 
 from interactem.core.models.base import IdType, PortType
 from interactem.core.models.canonical import (
@@ -16,7 +16,15 @@ from interactem.core.models.canonical import (
     CanonicalPortID,
 )
 from interactem.core.models.containers import MountMixin, NetworkMode
-from interactem.core.models.spec import OperatorSpecParameter, ParameterSpecType
+from interactem.core.models.spec import (
+    OperatorSpecParameterBoolean,
+    OperatorSpecParameterFloat,
+    OperatorSpecParameterInteger,
+    OperatorSpecParameterMount,
+    OperatorSpecParameterStrEnum,
+    OperatorSpecParameterString,
+    ParameterSpecType,
+)
 
 """
 These models represent the runtime form of a pipeline. They are converted from canonical form.
@@ -30,14 +38,31 @@ RuntimePipelineID = IdType
 RuntimePortID = IdType
 
 
-class RuntimeOperatorParameter(OperatorSpecParameter):
-    value: str | None = None  # Value of the parameter at runtime
+class RuntimeOperatorParameterString(OperatorSpecParameterString):
+    value: str | None = None
+
+
+class RuntimeOperatorParameterMount(OperatorSpecParameterMount):
+    value: str | None = None
+
+
+class RuntimeOperatorParameterInteger(OperatorSpecParameterInteger):
+    value: int | None = None
+
+
+class RuntimeOperatorParameterFloat(OperatorSpecParameterFloat):
+    value: float | None = None
+
+
+class RuntimeOperatorParameterBoolean(OperatorSpecParameterBoolean):
+    value: bool | None = None
+
+
+class RuntimeOperatorParameterStrEnum(OperatorSpecParameterStrEnum):
+    value: str | None = None
 
     @model_validator(mode="after")
-    def validate_value(self):
-        if self.type != ParameterSpecType.STR_ENUM:
-            return self
-
+    def validate_value_in_options(self):
         v = self.value
         if v is not None and self.options and v not in self.options:
             raise ValueError(
@@ -45,21 +70,51 @@ class RuntimeOperatorParameter(OperatorSpecParameter):
             )
         return self
 
-    def get_typed_value(self) -> Any:
-        """Get the properly typed value for kernel execution"""
-        raw_value = self.value if self.value is not None else self.default
 
-        type_map = {
-            ParameterSpecType.STRING: str,
-            ParameterSpecType.INTEGER: int,
-            ParameterSpecType.FLOAT: float,
-            ParameterSpecType.BOOLEAN: lambda x: x.lower() in ("true", "1", "yes"),
-            ParameterSpecType.STR_ENUM: str,
-        }
+RuntimeOperatorParameterAny = (
+    RuntimeOperatorParameterString
+    | RuntimeOperatorParameterMount
+    | RuntimeOperatorParameterInteger
+    | RuntimeOperatorParameterFloat
+    | RuntimeOperatorParameterBoolean
+    | RuntimeOperatorParameterStrEnum
+)
 
-        converter = type_map.get(self.type, str)
-        return converter(raw_value)
 
+class RuntimeOperatorParameter(RootModel):
+    """Enables discriminated unions for runtime operator params
+
+    We want to be able to discriminate on 'type' field like in spec parameters.
+    """
+
+    root: RuntimeOperatorParameterAny = Field(discriminator="type")
+
+    # Convenience/proxy attributes so callers don't need to use `.root.*`
+    @property
+    def name(self) -> str:
+        return self.root.name
+
+    @property
+    def value(self) -> None | str | int | float | bool:
+        if self.root.value is None:
+            return self.root.default
+        return self.root.value
+
+    @property
+    def type(self) -> ParameterSpecType:
+        t = ParameterSpecType(self.root.type)
+        return t
+
+    @property
+    def default(self) -> str | int | float | bool:
+        return self.root.default
+
+    @value.setter
+    def value(self, new_val):
+        """convenience for `param.value = x`"""
+        kls = type(self.root)
+        validated = kls.model_validate({**self.root.model_dump(), "value": new_val})
+        self.root = validated
 
 class RuntimeParameterCollectionType(str, Enum):
     OPERATOR = "operator"
@@ -70,24 +125,29 @@ class RuntimeParameterCollection(BaseModel):
     """Unified parameter collection for both regular and mount parameters"""
 
     type: RuntimeParameterCollectionType
-    parameters: dict[str, RuntimeOperatorParameter] = {}
-    _value_cache: dict[str, Any] = {}
+    # store root model here to preserve discriminated unions
+    parameters: dict[str, RuntimeOperatorParameter] = Field(default_factory=dict)
+    # Use PrivateAttr so pydantic doesn't validated/serialize
+    _value_cache: dict[str, Any] = PrivateAttr(default_factory=dict)
 
     @classmethod
     def from_parameter_list(
         cls,
-        params: Sequence[OperatorSpecParameter | RuntimeOperatorParameter],
+        params: Sequence[RuntimeOperatorParameter],
         collection_type: RuntimeParameterCollectionType,
     ) -> "RuntimeParameterCollection":
-        """Create parameter collection from parameter list.
+        """If we are in an operator, we don't need mount parameters, and vice versa if
+        we are in an agent.
 
         Args:
             params: List of parameters to include
             collection_type: Type of collection to create (OPERATOR or MOUNT)
         """
 
-        # Map collection types to their filtering logic
-        type_filters: dict[RuntimeParameterCollectionType, Callable[[Any], bool]] = {
+        type_filters: dict[
+            RuntimeParameterCollectionType,
+            Callable[[RuntimeOperatorParameter], bool],
+        ] = {
             RuntimeParameterCollectionType.OPERATOR: lambda p: p.type
             != ParameterSpecType.MOUNT,
             RuntimeParameterCollectionType.MOUNT: lambda p: p.type
@@ -95,14 +155,8 @@ class RuntimeParameterCollection(BaseModel):
         }
 
         filter_func = type_filters[collection_type]
-        filtered_params = [p for p in params if filter_func(p)]
-
-        _params = {
-            param.name: RuntimeOperatorParameter(**param.model_dump())
-            for param in filtered_params
-        }
-
-        instance = cls(type=collection_type, parameters=_params)
+        filtered_params = {p.name: p for p in params if filter_func(p)}
+        instance = cls(type=collection_type, parameters=filtered_params)
         instance._rebuild_cache()
         return instance
 
@@ -113,26 +167,23 @@ class RuntimeParameterCollection(BaseModel):
 
         param = self.parameters[name]
         old_value = self._value_cache.get(name)
-
-        # Update the parameter
         param.value = value
+        self._value_cache[name] = param.value
 
-        # Update cache with converted value
-        new_value = param.get_typed_value()
-        self._value_cache[name] = new_value
-
-        # Return whether the value actually changed
-        return old_value != new_value
+        return old_value != param.value
 
     def _rebuild_cache(self) -> None:
-        """Rebuild the value cache"""
         self._value_cache = {
-            name: param.get_typed_value() for name, param in self.parameters.items()
+            name: (
+                param.value
+                if param.value is not None
+                else getattr(param.root, "default", None)
+            )
+            for name, param in self.parameters.items()
         }
 
     @property
     def values(self) -> dict[str, Any]:
-        """Return the cached values dictionary"""
         return self._value_cache
 
 
@@ -269,7 +320,9 @@ class RuntimePipeline(CanonicalPipeline):
         if not port:
             return "unknown"
 
-        operator = next((op for op in self.operators if op.id == port.operator_id), None)
+        operator = next(
+            (op for op in self.operators if op.id == port.operator_id), None
+        )
         return operator.label if operator else "unknown"
 
     def get_operator_label_by_id(self, operator_id: RuntimeOperatorID) -> str:
