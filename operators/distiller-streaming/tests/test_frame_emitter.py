@@ -12,7 +12,7 @@ def emit_all(emitter):
     messages = []
     try:
         while True:
-            messages.append(emitter.get_next_frame_message())
+            messages.append(emitter.get_next_batch_message())
     except StopIteration:
         return messages
 
@@ -31,7 +31,7 @@ def test_init_and_invalid_args(sparse_array):
 def test_single_vs_batched(sparse_array):
     for n in (1.0, 5.0):  # here 5.0 MB will likely batch multiple frames
         e = BatchEmitter(sparse_array, 42, n)
-        m = e.get_next_frame_message()
+        m = e.get_next_batch_message()
         assert isinstance(m, BytesMessage)
 
 
@@ -69,7 +69,7 @@ def test_exhaustion(sparse_array):
     emit_all(e)
     assert e.finished
     with pytest.raises(StopIteration):
-        e.get_next_frame_message()
+        e.get_next_batch_message()
 
 
 @pytest.mark.parametrize(

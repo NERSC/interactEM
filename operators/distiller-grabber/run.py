@@ -90,7 +90,7 @@ def grabber(
 
     if active_emitter:
         try:
-            result = active_emitter.get_next_frame_message()
+            result = active_emitter.get_next_batch_message()
             return result
 
         except StopIteration:
@@ -133,7 +133,7 @@ def grabber(
                     f"Frames: {active_emitter.total_frames})"
                 )
                 try:
-                    return active_emitter.get_next_frame_message()
+                    return active_emitter.get_next_batch_message()
                 except StopIteration:
                     active_emitter = None
 

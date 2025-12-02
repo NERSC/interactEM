@@ -172,10 +172,9 @@ class BatchEmitter:
             f"Emitted {self._frames_emitted} frames in {self._messages_emitted} messages."
         )
 
-    def get_next_frame_message(self) -> BytesMessage:
+    def get_next_batch_message(self) -> BytesMessage:
         """
-        Gets the next valid frame message from the internal generator.
-        May return a single frame or batched frames depending on the configured size limit.
+        Gets the next batch of frames as a BytesMessage.
         """
         if self.finished:
             raise StopIteration("BatchEmitter is finished.")

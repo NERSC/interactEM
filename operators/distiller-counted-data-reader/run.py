@@ -79,7 +79,8 @@ def reader(
     # Process and Send Frames using Emitter
     if active_emitter:
         try:
-            result = active_emitter.get_next_frame_message()
+            # This will send a BytesMessage containing a batch of frames
+            result = active_emitter.get_next_batch_message()
             return result
 
         except StopIteration:

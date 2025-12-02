@@ -2,9 +2,8 @@ from collections import OrderedDict
 from typing import Any
 
 from distiller_streaming.accumulator import FrameAccumulator
-
-# Import FrameAccumulator and FrameHeader
-from distiller_streaming.util import get_summed_diffraction_pattern, validate_message
+from distiller_streaming.models import BatchedFrames
+from distiller_streaming.util import get_summed_diffraction_pattern
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import (
@@ -35,14 +34,10 @@ def accumulate_diffraction(
     if not inputs:
         return None
 
-    # --- 1. Extract Metadata and Frame Data ---
-    header, data = validate_message(inputs)
-    scan_number = header.scan_number
-    scan_shape = header.scan_shape
-    frame_shape = header.frame_shape
-
-    # --- 2. Get or Create FrameAccumulator ---
     max_concurrent_scans = parameters.get("max_concurrent_scans", 2)
+
+    batch = BatchedFrames.from_bytes_message(inputs)
+    scan_number = batch.header.scan_number
 
     if scan_number not in accumulators:
         # Check if we need to evict old accumulators before creating new one
@@ -55,22 +50,24 @@ def accumulate_diffraction(
 
         try:
             logger.info(f"Creating new FrameAccumulator for scan {scan_number}")
-            accumulators[scan_number] = FrameAccumulator(
-                scan_number=scan_number,
-                scan_shape=scan_shape,
-                frame_shape=frame_shape,
+            accumulators[scan_number] = FrameAccumulator.from_message(
+                inputs,
+                add=False,  # Don't add frames yet because we'll do it below
             )
         except ValueError as e:
-             logger.error(f"Failed to initialize FrameAccumulator for scan {scan_number}: {e}")
-             raise
+            logger.error(
+                f"Failed to initialize FrameAccumulator for scan {scan_number}: {e}"
+            )
+            raise
 
-    # --- 3. Accumulate Frame ---
-    # Move the accessed scan to the end (most recently used)
+    # Get accumulator, move to end to mark as recently used
     accumulator = accumulators[scan_number]
     accumulators.move_to_end(scan_number)
+
+    # now add batch to accumulator
     accumulator.add_message(inputs)
 
-    # --- 4. Check Emission Frequency ---
+    # Determine if we should emit an update, if not return early with None
     update_frequency = int(parameters.get("update_frequency", 100))
     if update_frequency <= 0:
         update_frequency = 100
@@ -93,7 +90,8 @@ def accumulate_diffraction(
     # --- Prepare raw data output ---
     array_bytes = summed_dp.tobytes()
 
-    # Create output message with raw array bytes and required metadata
+    # Create output message with raw array bytes + metadata
+    # TODO: prob don't need the metdata ... but keeping in for now
     output_meta = {
         "scan_number": scan_number,
         "accumulated_frames": accumulator.num_frames_added,
