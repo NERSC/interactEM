@@ -1,5 +1,5 @@
 FROM ghcr.io/nersc/interactem/operator
 
-RUN pip install numpy
+RUN poetry add numpy~=2.2.6
 
 COPY ./run.py /app/run.py

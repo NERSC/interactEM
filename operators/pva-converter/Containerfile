@@ -1,6 +1,6 @@
 FROM ghcr.io/nersc/interactem/operator
 
-RUN pip install pvapy
+RUN poetry add pvapy
 
 EXPOSE 11111
 
