@@ -301,9 +301,9 @@ def _get_parameter_default(param_type: ParameterSpecType) -> str:
     """Get default value based on parameter type."""
     msg = "  Enter default value"
     default_handlers = {
-        "bool": lambda: str(typer.confirm(msg + " (bool)", default=False)),
-        "int": lambda: str(typer.prompt(msg + " (int)", type=int)),
-        "float": lambda: str(typer.prompt(msg + " (float)", type=float)),
+        "bool": lambda: typer.confirm(msg + " (bool)", default=False),
+        "int": lambda: typer.prompt(msg + " (int)", type=int),
+        "float": lambda: typer.prompt(msg + " (float)", type=float),
         "mount": lambda: str(typer.prompt(msg + " (path)", type=Path)),
         "str": lambda: typer.prompt(msg + " (str)", type=str),
         "str-enum": lambda: typer.prompt(msg + " (str)", type=str),
