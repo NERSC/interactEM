@@ -50,6 +50,13 @@ def reader(
             time.sleep(1)
             raise FileNotFoundError(f"Source file not found: {source_dataset_path}")
         try:
+            if first_time:
+                first_time = False
+                time.sleep(3)
+            else:
+                logger.info(f"Sleeping for {acquisition_delay_sec} seconds.")
+                time.sleep(acquisition_delay_sec)
+
             logger.info(f"Loading dataset from: {source_dataset_path} for Scan {current_scan_number}")
             loaded_sparse_array = stempy.io.load_electron_counts(source_dataset_path)
             active_emitter = BatchEmitter(
@@ -64,12 +71,6 @@ def reader(
                 f"Total Frames: {active_emitter.total_frames}. "
                 f"Batch size: {batch_size_mb} MB)."
             )
-            if first_time:
-                first_time = False
-                time.sleep(3)
-            else:
-                logger.info(f"Sleeping for {acquisition_delay_sec} seconds.")
-                time.sleep(acquisition_delay_sec)
         except Exception as e:
             logger.error(f"Failed to load dataset or create emitter from {source_dataset_path}: {e}")
             active_emitter = None

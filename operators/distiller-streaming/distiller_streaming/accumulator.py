@@ -234,3 +234,25 @@ class FrameAccumulator(SparseArrayWithoutValidation):
 
         # Replace data
         self.data = new_data
+
+    def clear(self) -> None:
+        """Clear stored frames and reset counters so the accumulator releases memory.
+
+        This reinitializes the internal object-array to contain a single empty
+        array per scan position and resets all counters / tracking structures.
+        """
+        num_scan_positions = int(np.prod(self.scan_shape))
+
+        # Create a fresh small object array (one slot per position)
+        initial_data = np.empty((num_scan_positions, 1), dtype=object)
+        empty_array = np.array([], dtype=self.dtype)
+        for i in range(num_scan_positions):
+            initial_data[i, 0] = empty_array
+
+        # Replace backing storage and reset trackers
+        self.data = initial_data
+        self._frames_per_position.clear()
+        self.num_batches_added = 0
+        self._num_frames_added = 0
+        self._total_batches_expected = None
+        self._total_frames_expected = None

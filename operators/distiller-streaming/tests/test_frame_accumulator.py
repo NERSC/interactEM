@@ -113,3 +113,60 @@ def test_size_mismatch_and_insufficient_data(
     msg = batched_frames.to_bytes_message()
     with pytest.raises(ValueError, match="buffer is smaller than requested size"):
         frame_accumulator.add_message(msg)
+
+
+def test_clear_resets_accumulator(
+    frame_accumulator: FrameAccumulator,
+    sample_frame_header: FrameHeader,
+    sample_frame_data,
+):
+    header = msgspec.structs.replace(
+        sample_frame_header, data_size_bytes=len(sample_frame_data.tobytes())
+    )
+    batched_header = BatchedFrameHeader(
+        scan_number=header.scan_number,
+        headers=[header],
+        batch_size_bytes=len(sample_frame_data.tobytes()),
+    )
+    batched_frames = BatchedFrames.from_np_arrays(batched_header, [sample_frame_data])
+    msg = batched_frames.to_bytes_message()
+
+    # add a batch so we have data
+    frame_accumulator.add_message(msg)
+    assert frame_accumulator.num_frames_added == 1
+
+    # expand to force more slots
+    frame_accumulator.expand_frame_dimension_if_needed(5)
+    assert frame_accumulator.data.shape[1] >= 5
+
+    # clear and assert reset
+    frame_accumulator.clear()
+    assert frame_accumulator.num_frames_added == 0
+    assert frame_accumulator.data.shape == (100, 1)
+    assert frame_accumulator.frames_added_indices == set()
+
+
+def test_clear_then_reuse(
+    frame_accumulator: FrameAccumulator,
+    sample_frame_header: FrameHeader,
+    sample_frame_data,
+):
+    header = msgspec.structs.replace(
+        sample_frame_header, data_size_bytes=len(sample_frame_data.tobytes())
+    )
+    batched_header = BatchedFrameHeader(
+        scan_number=header.scan_number,
+        headers=[header],
+        batch_size_bytes=len(sample_frame_data.tobytes()),
+    )
+    batched_frames = BatchedFrames.from_np_arrays(batched_header, [sample_frame_data])
+    msg = batched_frames.to_bytes_message()
+
+    frame_accumulator.add_message(msg)
+    assert frame_accumulator.num_frames_added == 1
+
+    frame_accumulator.clear()
+
+    # Add again after clear
+    frame_accumulator.add_message(msg)
+    assert frame_accumulator.num_frames_added == 1
