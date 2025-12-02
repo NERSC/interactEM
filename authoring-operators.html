@@ -431,7 +431,12 @@ interactem<span class="w"> </span>operator<span class="w"> </span>new
 <span class="c"># resolves to /backend/core inside the container. We symlink it here </span>
 <span class="c"># so poetry can find it.</span>
 <span class="k">RUN</span><span class="w"> </span>mkdir<span class="w"> </span>-p<span class="w"> </span>/backend<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
-<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-d<span class="w"> </span>/interactem/core<span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span>ln<span class="w"> </span>-sfn<span class="w"> </span>/interactem/core<span class="w"> </span>/backend/core<span class="p">;</span><span class="w"> </span><span class="k">fi</span>
+<span class="w">	</span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-d<span class="w"> </span>/interactem/core<span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>ln<span class="w"> </span>-sfn<span class="w"> </span>/interactem/core<span class="w"> </span>/backend/core<span class="p">;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="k">fi</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-d<span class="w"> </span>/interactem/operators<span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span><span class="w"> </span><span class="se">\</span>
+<span class="w">        </span>ln<span class="w"> </span>-sfn<span class="w"> </span>/interactem/operators<span class="w"> </span>/backend/operators<span class="p">;</span><span class="w"> </span><span class="se">\</span>
+<span class="w">    </span><span class="k">fi</span>
 
 <span class="k">RUN</span><span class="w"> </span>poetry<span class="w"> </span>install<span class="w"> </span>--no-root<span class="w"> </span>--without<span class="w"> </span>dev
 
