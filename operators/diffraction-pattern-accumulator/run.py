@@ -44,6 +44,8 @@ def accumulate_diffraction(
         if len(accumulators) >= max_concurrent_scans:
             # Remove the oldest accumulator (first item in OrderedDict)
             oldest_scan, oldest_accumulator = accumulators.popitem(last=False)
+            # Clear memory storage
+            oldest_accumulator.clear()
             logger.info(
                 f"Evicting accumulator for scan {oldest_scan} to make room for scan {scan_number}"
             )
