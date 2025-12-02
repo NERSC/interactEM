@@ -611,7 +611,7 @@ dependencies = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.10.5,<4" },
     { name = "interactem-core", editable = "../../backend/core" },
-    { name = "pyzmq", specifier = ">=27.0.1,<28" },
+    { name = "pyzmq", specifier = ">=27.1.0,<28" },
 ]
 
 [[package]]

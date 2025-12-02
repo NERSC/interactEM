@@ -683,7 +683,7 @@ develop = true
 [package.dependencies]
 aiohttp = ">=3.10.5,<4"
 interactem-core = "*"
-pyzmq = ">=27.0.1,<28"
+pyzmq = ">=27.1.0,<28"
 
 [package.source]
 type = "directory"
