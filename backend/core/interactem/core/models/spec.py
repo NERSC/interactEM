@@ -1,6 +1,7 @@
 from enum import Enum
+from typing import Literal
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, RootModel, model_validator
 
 from interactem.core.models.base import IdType
 
@@ -38,27 +39,63 @@ class ParameterSpecType(str, Enum):
 ParameterName = str
 
 
-class OperatorSpecParameter(BaseModel):
+class OperatorSpecParameterBase(BaseModel):
     name: ParameterName  # Name of the parameter
     label: str  # Human readable name of the parameter
     description: str  # Human readable description of the parameter
     type: ParameterSpecType  # Type of the parameter
     default: str  # Default value of the parameter
     required: bool  # If the parameter is required
-    options: list[str] | None = None  # List of options for STR_ENUM
+
+
+class OperatorSpecParameterString(OperatorSpecParameterBase):
+    type: Literal["str"]
+    default: str
+
+
+class OperatorSpecParameterMount(OperatorSpecParameterBase):
+    type: Literal["mount"]
+    default: str
+
+
+class OperatorSpecParameterInteger(OperatorSpecParameterBase):
+    type: Literal["int"]
+    default: int
+
+
+class OperatorSpecParameterFloat(OperatorSpecParameterBase):
+    type: Literal["float"]
+    default: float
+
+
+class OperatorSpecParameterBoolean(OperatorSpecParameterBase):
+    type: Literal["bool"]
+    default: bool
+
+
+class OperatorSpecParameterStrEnum(OperatorSpecParameterBase):
+    type: Literal["str-enum"]
+    default: str
+    options: list[str]
 
     @model_validator(mode="after")
-    def validate_options(self):
-        if self.type == ParameterSpecType.STR_ENUM:
-            if not self.options:
-                raise ValueError(
-                    f"Parameter '{self.name}' of type STR_ENUM must have options."
-                )
-            if self.default not in self.options:
-                raise ValueError(
-                    f"Default value '{self.default}' for parameter '{self.name}' is not in options."
-                )
+    def check_default_in_options(self):
+        if self.default not in self.options:
+            raise ValueError(
+                f"Default value '{self.default}' for parameter '{self.name}' is not in options."
+            )
         return self
+
+
+class OperatorSpecParameter(RootModel):
+    root: (
+        OperatorSpecParameterString
+        | OperatorSpecParameterMount
+        | OperatorSpecParameterInteger
+        | OperatorSpecParameterFloat
+        | OperatorSpecParameterBoolean
+        | OperatorSpecParameterStrEnum
+    ) = Field(discriminator="type")
 
 
 class OperatorSpecTag(BaseModel):
