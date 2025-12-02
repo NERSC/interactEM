@@ -120,6 +120,8 @@ class ZMQAddress(BaseModel):
         if self.protocol == Protocol.tcp:
             if not self.hostname:
                 raise ValueError("Hostname must be set for connecting.")
+            if not self.port:
+                raise ValueError("Port must be set for TCP connections.")
             return f"{self.protocol.value}://{self.hostname}:{self.port}"
         elif self.protocol in [Protocol.inproc, Protocol.ipc]:
             return f"{self.protocol.value}://{self.endpoint}"

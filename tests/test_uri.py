@@ -53,6 +53,18 @@ def test_zmqaddress_tcp():
     assert address.to_connect_address() == "tcp://12.123.45.123:1234"
 
 
+def test_zmqaddress_tcp_missing_port_from_address():
+    address = ZMQAddress.from_address("tcp://?hostname=12.123.45.123")
+    with pytest.raises(ValueError, match="Port must be set for TCP connections."):
+        address.to_connect_address()
+
+
+def test_zmqaddress_tcp_missing_port_from_model():
+    address = ZMQAddress(protocol=Protocol.tcp, hostname="12.123.45.123")
+    with pytest.raises(ValueError, match="Port must be set for TCP connections."):
+        address.to_connect_address()
+
+
 def test_zmqaddress_tcp_with_interface():
     address = ZMQAddress.from_address("tcp://?interface=eth0&port=1234")
     assert address.protocol == Protocol.tcp
