@@ -65,7 +65,7 @@ async def publish_operator_parameter_ack(
     parameter: RuntimeOperatorParameter,
 ):
     event = RuntimeOperatorParameterAck(
-        canonical_operator_id=id, name=parameter.name, value=parameter.value
+        canonical_operator_id=id, name=parameter.name, value=str(parameter.value)
     )
     await js.publish(
         subject=f"{SUBJECT_OPERATORS_PARAMETERS}.{id}.{parameter.name}",
@@ -167,7 +167,7 @@ async def publish_agent_mount_parameter_ack(
     event = RuntimeOperatorParameterAck(
         canonical_operator_id=canonical_operator_id,
         name=parameter.name,
-        value=parameter.value,
+        value=str(parameter.value),
     )
     await publisher.publish(
         message=event.model_dump_json().encode(),
