@@ -1,5 +1,5 @@
 FROM ghcr.io/nersc/interactem/operator
 
-RUN pip install numpy pillow
+RUN poetry add numpy~=2.2.6 pillow
 
 COPY ./run.py /app/run.py

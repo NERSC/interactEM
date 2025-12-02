@@ -1,5 +1,5 @@
 FROM ghcr.io/nersc/interactem/distiller-streaming
 
-RUN pip install matplotlib
+RUN poetry add matplotlib
 
 COPY ./run.py /app/run.py

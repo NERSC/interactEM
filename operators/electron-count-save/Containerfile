@@ -1,5 +1,5 @@
 FROM ghcr.io/nersc/interactem/operator
 
-RUN pip install stempy h5py
+RUN poetry add stempy h5py
 
 COPY ./run.py /app/run.py
