@@ -15,6 +15,7 @@ dependencies = [
     "stempy>=3.4.0,<4.0.0",
     "numpy>=2.2.6,<2.3.0",
     "msgspec>=0.19.0,<0.20.0",
+    "interactem-core"
 ]
 
 [dependency-groups]
@@ -25,6 +26,12 @@ dev = [
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.uv.sources]
+interactem-core = { path = "../../backend/core", editable = true }
+
+[tool.poetry.dependencies]
+interactem-core = {path = "../../backend/core", develop = true}
 
 [tool.ruff]
 target-version = "py310"

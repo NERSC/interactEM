@@ -3,6 +3,13 @@ FROM ghcr.io/nersc/interactem/operator
 WORKDIR /app
 COPY ./pyproject.toml ./poetry.lock ./README.md /app/
 
+# Base image installs interactem-core at /interactem/core. 
+# Locally, the project uses ../../backend/core which
+# resolves to /backend/core inside the container. We symlink it here 
+# so poetry can find it.
+RUN mkdir -p /backend && \
+	if [ -d /interactem/core ]; then ln -sfn /interactem/core /backend/core; fi
+
 RUN poetry install --no-root --without dev
 
 COPY ./distiller_streaming/ /app/distiller_streaming/
