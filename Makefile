@@ -88,6 +88,17 @@ clean: ## Stop services and remove volumes (WARNING: will delete database data)
 	@docker compose down -v
 	$(call success,Services stopped and volumes removed)
 
+gen: ## Generate client, models, and type definitions (gen-client + pydantic-to-ts + deduplicate-enums)
+	$(call section,Generating TypeScript client and models...)
+	$(SCRIPTS_DIR)/generate-client.sh
+	$(call section,Generating TypeScript models from Pydantic...)
+	uv run --project backend/core/ backend/core/scripts/pydantic_to_ts.py
+	$(call section,Deduplicating enums...)
+	cd $(FRONTEND_DIR) && npm run deduplicate-enums
+	$(call section,Running linters...)
+	$(MAKE) lint
+	$(call success,Code generation complete)
+
 lint: ## Run backend (ruff) and frontend (biome) linters
 	@echo "Running ruff linter..."
 	. .venv/bin/activate && poetry run ruff check .
