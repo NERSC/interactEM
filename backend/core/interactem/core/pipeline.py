@@ -106,19 +106,23 @@ class Pipeline(nx.DiGraph):
         Create Pipeline from either CanonicalPipeline or RuntimePipeline.
         Always produces a runtime pipeline representation internally.
 
+        - RuntimePipeline -> Pipeline: load the existing runtime graph structure.
+        - CanonicalPipeline -> Pipeline: expand canonical definition into runtime graph.
+
         Args:
             pipeline: Either CanonicalPipeline or RuntimePipeline to convert
-            runtime_pipeline_id: Override runtime pipeline ID
+            runtime_pipeline_id: Override runtime pipeline ID (required for
+                CanonicalPipeline expansion)
             parallel_factor: Factor for parallel expansion (only applies to CanonicalPipeline)
 
         Returns:
             Pipeline graph with runtime models
         """
         if isinstance(pipeline, RuntimePipeline):
-            # Convert canonical to runtime with parallel expansion
+            # Load runtime pipeline graph directly
             return cls.from_runtime_pipeline(pipeline)
         elif isinstance(pipeline, CanonicalPipeline):
-            # Create from existing runtime pipeline
+            # Expand canonical pipeline definition into runtime representation
             if runtime_pipeline_id is None:
                 raise ValueError(
                     "runtime_pipeline_id must be provided for CanonicalPipeline conversion."
