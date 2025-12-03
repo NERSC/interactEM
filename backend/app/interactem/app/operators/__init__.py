@@ -93,7 +93,7 @@ async def fetch_operators() -> list[OperatorSpec]:
                     op = json.load(f)
                     local_ops.append(OperatorSpec(**op))
             except Exception:
-                logger.warning(f"Failed to load local operator file: {op_file}")
+                logger.exception(f"Failed to load local operator file: {op_file}")
 
     logger.info("Loaded local operators: %s", [op.label for op in local_ops])
 
