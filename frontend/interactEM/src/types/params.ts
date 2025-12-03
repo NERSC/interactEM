@@ -21,20 +21,33 @@ export const RuntimeOperatorParameterAckSchema = z.object({
 
 export type ParameterValue = NonNullable<RuntimeOperatorParameter["value"]>
 
-export const parameterTypeSchemas: Record<
-  ParameterSpecType,
-  z.ZodType<ParameterValue>
-> = {
-  int: z.coerce
+const coerceNumber = <Schema extends z.ZodNumber | z.ZodEffects<z.ZodNumber>>(
+  schema: Schema,
+) =>
+  z.coerce
     .number({
       invalid_type_error: "Must be a number",
       required_error: "Value is required",
     })
-    .int("Must be an integer"),
-  float: z.coerce.number({
-    invalid_type_error: "Must be a number",
-    required_error: "Value is required",
-  }),
+    .superRefine((_, ctx) => {
+      if (
+        typeof ctx.originalInput === "string" &&
+        ctx.originalInput.trim() === ""
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Value is required",
+        })
+      }
+    })
+    .pipe(schema)
+
+export const parameterTypeSchemas: Record<
+  ParameterSpecType,
+  z.ZodType<ParameterValue>
+> = {
+  int: coerceNumber(z.number().int("Must be an integer")),
+  float: coerceNumber(z.number()),
   bool: z
     .union([
       z.boolean(),
