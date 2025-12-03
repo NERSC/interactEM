@@ -32,6 +32,10 @@
 - to check out what is going on with nats, you can use commands like `nats --creds={repo_root}/conf/nats-conf/out_jwt/backend.creds stream ls` to access information in the nats cluster running in docker compose
 - find the stream names in interactem.core.constants
 
-## Auto-generation
+## Frontend auto-generation
 
-- generate the frontend client with `scripts/generate-client.sh` followed by `make lint`
+- use `make gen` to generate types after changing any models in the backend
+
+## Testing
+
+- use `make test` for tests
