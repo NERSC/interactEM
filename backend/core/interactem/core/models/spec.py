@@ -108,7 +108,7 @@ class OperatorSpecTag(BaseModel):
 
 class ParallelType(str, Enum):
     NONE = "none"
-    EMBARASSING = "embarrassing"
+    EMBARRASSING = "embarrassing"
 
 
 class ParallelConfig(BaseModel):
