@@ -2,6 +2,7 @@ import { z } from "zod"
 import type { OperatorSpecParameter } from "../client"
 import type {
   ParameterSpecType,
+  RuntimeOperatorParameter,
   RuntimeOperatorParameterAck,
   RuntimeOperatorParameterUpdate,
 } from "./gen"
@@ -18,21 +19,41 @@ export const RuntimeOperatorParameterAckSchema = z.object({
   value: z.string().nullable().optional(),
 }) satisfies z.ZodType<RuntimeOperatorParameterAck>
 
-const mountPathRegex = /^(\/|~\/)(?!.*(?:^|\/)\.\.(?:\/|$)).*$/
+export type ParameterValue = NonNullable<RuntimeOperatorParameter["value"]>
 
-export const parameterTypeSchemas: Record<ParameterSpecType, z.ZodTypeAny> = {
-  int: z
-    .string()
-    .regex(/^-?\d+$/, "Must be an integer")
-    .transform((val) => Number.parseInt(val, 10)),
-  float: z
-    .string()
-    .regex(/^-?\d+(\.\d+)?$/, "Must be a float")
-    .transform((val) => Number.parseFloat(val)),
-  bool: z.enum(["true", "false"]),
+export const parameterTypeSchemas: Record<
+  ParameterSpecType,
+  z.ZodType<ParameterValue>
+> = {
+  int: z.coerce
+    .number({
+      invalid_type_error: "Must be a number",
+      required_error: "Value is required",
+    })
+    .int("Must be an integer"),
+  float: z.coerce.number({
+    invalid_type_error: "Must be a number",
+    required_error: "Value is required",
+  }),
+  bool: z
+    .union([
+      z.boolean(),
+      z.enum(["true", "false"]).transform((val) => val === "true"),
+    ])
+    .transform((val) => val as boolean),
   str: z.string(),
   "str-enum": z.string(),
-  mount: z.string().regex(mountPathRegex, "Invalid file path"),
+  mount: z
+    .string()
+    .trim()
+    .refine(
+      (val) => val.startsWith("/") || val.startsWith("~/"),
+      "Mount paths must start with / or ~/",
+    )
+    .refine(
+      (val) => !val.split("/").includes(".."),
+      "Mount paths cannot contain '..'",
+    ),
 }
 
 export const getParameterSchema = (parameter: OperatorSpecParameter) => {
@@ -42,5 +63,8 @@ export const getParameterSchema = (parameter: OperatorSpecParameter) => {
     schema = z.enum(parameter.options as [string, ...string[]])
   }
 
-  return schema
+  return schema as z.ZodType<ParameterValue>
 }
+
+export const stringifyParameterValue = (value: ParameterValue): string =>
+  typeof value === "string" ? value : String(value)

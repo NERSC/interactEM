@@ -20,7 +20,11 @@ import { useParameterUpdate } from "../../hooks/nats/useParameterUpdate"
 import { useParameterAck } from "../../hooks/nats/useParameterValue"
 import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
 import type { OperatorNodeType } from "../../types/nodes"
-import { getParameterSchema } from "../../types/params"
+import {
+  type ParameterValue,
+  getParameterSchema,
+  stringifyParameterValue,
+} from "../../types/params"
 import ParameterInfoTooltip from "./parameterinfotooltip"
 
 type ParameterUpdaterProps = {
@@ -40,12 +44,20 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   const { getNode, setNodes, getEdges, getNodes } =
     useReactFlow<OperatorNodeType>()
 
-  const param_default = parameter.default.toString()
+  // Build Zod schema for this parameter
+  const schema = getParameterSchema(parameter)
+
+  const parsedDefaultValue = schema.safeParse(parameter.default)
+  const defaultValue = (
+    parsedDefaultValue.success ? parsedDefaultValue.data : parameter.default
+  ) as ParameterValue
+  const defaultString = stringifyParameterValue(defaultValue)
   const { actualValue: runtimeValue, hasReceivedMessage } = useParameterAck(
     operatorCanonicalID,
     parameter.name,
-    param_default,
+    defaultString,
   )
+  const parsedRuntimeValue = schema.safeParse(runtimeValue)
 
   const { saveRevision } = useSavePipelineRevision()
   const { mutateAsync: updateParameter } = useParameterUpdate(
@@ -64,23 +76,24 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   const comparisonTarget =
     viewMode === ViewMode.Runtime && hasRuntimePipeline
       ? hasReceivedMessage
-        ? runtimeValue
-        : param_default
-      : param_default
+        ? parsedRuntimeValue.success
+          ? (parsedRuntimeValue.data as ParameterValue)
+          : defaultValue
+        : defaultValue
+      : defaultValue
 
-  const [inputValue, setInputValue] = useState<string>(comparisonTarget)
+  const [inputValue, setInputValue] = useState<string>(
+    stringifyParameterValue(comparisonTarget),
+  )
   const [error, setError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
   const [userEditing, setUserEditing] = useState(false)
 
   const isReadOnly = viewMode === ViewMode.Runtime ? !hasRuntimePipeline : false
 
-  // Build Zod schema for this parameter
-  const schema = getParameterSchema(parameter)
-
   useEffect(() => {
     if (!userEditing || isReadOnly) {
-      setInputValue(comparisonTarget)
+      setInputValue(stringifyParameterValue(comparisonTarget))
     }
     if (isReadOnly) {
       setUserEditing(false)
@@ -125,7 +138,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     )
   }
 
-  const compareValues = (value1: string, value2: string): boolean => {
+  const compareValues = (value1: ParameterValue, value2: string): boolean => {
     const parsed1 = schema.safeParse(value1)
     const parsed2 = schema.safeParse(value2)
     if (!parsed1.success || !parsed2.success) return false
@@ -134,8 +147,17 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 
   const handleUpdateClick = async () => {
     if (error || isReadOnly) return
-    updateNodeParameter((p) => ({ ...p, value: inputValue }))
-    await updateParameter(inputValue)
+
+    const result = schema.safeParse(inputValue)
+    if (!result.success) {
+      setError(true)
+      setErrorMessage(result.error.errors[0]?.message || "Invalid value")
+      return
+    }
+
+    const parsedValue = result.data
+    updateNodeParameter((p) => ({ ...p, value: parsedValue }))
+    await updateParameter(stringifyParameterValue(parsedValue))
     setUserEditing(false)
   }
 
