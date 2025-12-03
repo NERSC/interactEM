@@ -41,7 +41,7 @@ class PipelineBuilder:
             inputs=[],
             outputs=[],
             tags=kwargs.get("tags", []),
-            parallel_config=ParallelConfig(type=ParallelType.EMBARASSING)
+            parallel_config=ParallelConfig(type=ParallelType.EMBARRASSING)
             if parallel
             else None,
         )

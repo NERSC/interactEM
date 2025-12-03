@@ -42,7 +42,7 @@ def canonical() -> CanonicalPipeline:
         inputs=[],
         outputs=[],
         tags=[],
-        parallel_config=ParallelConfig(type=ParallelType.EMBARASSING),  # Parallel
+        parallel_config=ParallelConfig(type=ParallelType.EMBARRASSING),  # Parallel
     )
 
     op3 = CanonicalOperator(
