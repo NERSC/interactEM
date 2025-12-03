@@ -1,0 +1,3 @@
+FROM ghcr.io/nersc/interactem/distiller-streaming
+
+COPY ./run.py /app/run.py
