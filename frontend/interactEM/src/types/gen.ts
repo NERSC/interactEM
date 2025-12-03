@@ -184,12 +184,14 @@ export interface ParallelConfig {
 export interface RuntimeOperatorParameterAck {
   canonical_operator_id: string
   name: string
-  value?: string | null
+  type: ParameterSpecType
+  value?: number | boolean | string | null
 }
 export interface RuntimeOperatorParameterUpdate {
   canonical_operator_id: string
   name: string
-  value: string
+  type: ParameterSpecType
+  value: number | boolean | string
 }
 export interface RuntimePipeline {
   operators?: RuntimeOperator[]
