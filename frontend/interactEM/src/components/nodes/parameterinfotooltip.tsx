@@ -28,11 +28,6 @@ const ParameterInfoTooltip: React.FC<ParameterInfoTooltipProps> = ({
         <Typography variant="caption" component="div">
           <strong>Required:</strong> {parameter.required ? "Yes" : "No"}
         </Typography>
-        {parameter.options && parameter.options.length > 0 && (
-          <Typography variant="caption" component="div">
-            <strong>Options:</strong> {parameter.options.join(", ")}
-          </Typography>
-        )}
       </Box>
     </Paper>
   )
