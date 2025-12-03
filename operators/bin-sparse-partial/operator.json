@@ -1,5 +1,5 @@
 {
-  "id": "70dd71a7-5Qbf-4515-8bf9-941d1284328c",
+  "id": "2af8232a-b0e0-40ea-9757-d63d1ae28555",
   "image": "ghcr.io/nersc/interactem/bin-sparse-partial",
   "label": "Partial sparse frame binning",
   "description": "Bins sparse frames to reduce their overall size",
@@ -25,7 +25,7 @@
       "label": "Binning value",
       "type": "int",
       "default": "2",
-      "description": "The value to bin each frame by (2, 4, etc.)",
+      "description": "The value to bin each frame by",
       "required": true
     }
   ],

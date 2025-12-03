@@ -1,13 +1,11 @@
 from typing import Any
 
-# from distiller_streaming.com import com_sparse
+from distiller_streaming.bin import bin_frames_simple
 from distiller_streaming.models import BatchedFrames, COMPartial
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
 from interactem.operators.operator import operator
-
-import stempy.image as stim
 
 logger = get_logger()
 
@@ -37,14 +35,27 @@ def bin_partial(
         bin_value = bin_param
     
     batch = BatchedFrames.from_bytes_message(inputs)
-    #binned_frames = com_sparse(batch, init_center=center, crop_to=crop, replace_nans=False)
-    frame_shape = 
-    stim.
+    #binned_frames = bin_sparse(batch, bin_value)
+    
+    # Ravel the data for easier manipulation in this function
+    scan_shape = batch.header.scan_shape
+    frame_shape = batch.header.frame_shape
+    all_events_concat, position_indices = batch.get_frame_arrays_with_positions()
+    scan_positions = position_indices
 
-    return COMPartial(header=batch.header, array=com).to_bytes_message()
+    data = all_events_concat
 
+    rows = data // frame_shape[0] // bin_factor
+    cols = data % frame_shape[1] // bin_factor
 
-def profile_com_partial():
+    rows *= (frame_shape[0] // bin_factor)
+    rows += cols
+    
+    batch.header.frame_shape = [ii//bin_value for ii in batch.header.frame_shape]
+
+    return COMPartial(header=batch.header, array=rows).to_bytes_message()
+
+def profile_bin_partial():
     NUM_ITERS = 20
     inputs = BatchedFrames.create_synthetic_batch(
         scan_size=128,
@@ -52,22 +63,22 @@ def profile_com_partial():
         frames_per_position=2,
         events_per_frame=10,
     ).to_bytes_message()
-    for i in range(NUM_ITERS):
-        logger.info(f"iter {i + 1} / {NUM_ITERS}")
-        logger.info(f"Data size (MB): {len(inputs.data) / 1024 / 1024:.1f}")
-        parameters = {
-            "init_center_x": 255,
-            "init_center_y": 255,
-            "crop_to_x": 128,
-            "crop_to_y": 128,
-        }
+    
+    scan_shape = batch.header.scan_shape
 
-        ret = com_partial(inputs, parameters)
-        if not ret:
-            continue
-        ret.header.model_copy()
-        ret.header.model_dump_json().encode()
+    #for ii in range(NUM_ITERS):
+    #    logger.info(f"iter {ii + 1} / {NUM_ITERS}")
+    #    logger.info(f"Data size (MB): {len(inputs.data) / 1024 / 1024:.1f}")
+    #    parameters = {
+    #        "bin_value": 2,
+    #    }
+
+    #    ret = bin_partial(inputs, parameters)
+    #    if not ret:
+    #        continue
+    #    ret.header.model_copy()
+    #    ret.header.model_dump_json().encode()
 
 
 if __name__ == "__main__":
-    profile_com_partial()
+    profile_bin_partial()
