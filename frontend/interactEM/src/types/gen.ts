@@ -5,6 +5,19 @@
 /* Do not modify it by hand - just update the pydantic models and then re-run the script
 */
 
+/**
+ * Enables discriminated unions for runtime operator params
+ *
+ * We want to be able to discriminate on 'type' field like in spec parameters.
+ */
+export type RuntimeOperatorParameter =
+  | RuntimeOperatorParameterString
+  | RuntimeOperatorParameterMount
+  | RuntimeOperatorParameterInteger
+  | RuntimeOperatorParameterFloat
+  | RuntimeOperatorParameterBoolean
+  | RuntimeOperatorParameterStrEnum
+
 export interface AgentLog {
   agent_id: string
   host: string
@@ -40,6 +53,9 @@ export interface URI {
     [k: string]: string[]
   }
   [k: string]: unknown
+}
+export interface ExportParameterSpecType {
+  type: ParameterSpecType
 }
 export interface OperatorLog {
   agent_id: string
@@ -95,15 +111,66 @@ export interface RuntimePortMap {
   canonical_id: string
   [k: string]: unknown
 }
-export interface RuntimeOperatorParameter {
+export interface RuntimeOperatorParameterString {
   name: string
   label: string
   description: string
-  type: ParameterSpecType
+  type: Type
   default: string
   required: boolean
-  options?: string[] | null
   value?: string | null
+  [k: string]: unknown
+}
+export interface RuntimeOperatorParameterMount {
+  name: string
+  label: string
+  description: string
+  type: Type1
+  default: string
+  required: boolean
+  value?: string | null
+  [k: string]: unknown
+}
+export interface RuntimeOperatorParameterInteger {
+  name: string
+  label: string
+  description: string
+  type: Type2
+  default: number
+  required: boolean
+  value?: number | null
+  [k: string]: unknown
+}
+export interface RuntimeOperatorParameterFloat {
+  name: string
+  label: string
+  description: string
+  type: Type3
+  default: number
+  required: boolean
+  value?: number | null
+  [k: string]: unknown
+}
+export interface RuntimeOperatorParameterBoolean {
+  name: string
+  label: string
+  description: string
+  type: Type4
+  default: boolean
+  required: boolean
+  value?: boolean | null
+  [k: string]: unknown
+}
+export interface RuntimeOperatorParameterStrEnum {
+  name: string
+  label: string
+  description: string
+  type: Type5
+  default: string
+  required: boolean
+  options: string[]
+  value?: string | null
+  [k: string]: unknown
 }
 export interface OperatorSpecTag {
   value: string
@@ -168,6 +235,14 @@ export enum AgentStatus {
   deployment_error = "deployment_error",
   shutting_down = "shutting_down",
 }
+export enum ParameterSpecType {
+  str = "str",
+  int = "int",
+  float = "float",
+  bool = "bool",
+  mount = "mount",
+  "str-enum" = "str-enum",
+}
 export enum OperatorStatus {
   initializing = "initializing",
   running = "running",
@@ -179,30 +254,38 @@ export enum PortStatus {
   idle = "idle",
   busy = "busy",
 }
-export enum ParameterSpecType {
+export enum Type {
   str = "str",
-  int = "int",
-  float = "float",
-  bool = "bool",
+}
+export enum Type1 {
   mount = "mount",
+}
+export enum Type2 {
+  int = "int",
+}
+export enum Type3 {
+  float = "float",
+}
+export enum Type4 {
+  bool = "bool",
+}
+export enum Type5 {
   "str-enum" = "str-enum",
 }
 export enum ParallelType {
   none = "none",
   embarrassing = "embarrassing",
 }
-
+export enum NodeType {
+  operator = "operator",
+  port = "port",
+}
 export enum NetworkMode {
   bridge = "bridge",
   none = "none",
   container = "container",
   host = "host",
   ns = "ns",
-}
-
-export enum NodeType {
-  operator = "operator",
-  port = "port",
 }
 
 export enum PortType {

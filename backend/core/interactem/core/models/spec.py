@@ -35,6 +35,9 @@ class ParameterSpecType(str, Enum):
     MOUNT = "mount"
     STR_ENUM = "str-enum"
 
+class ExportParameterSpecType(BaseModel):
+    # Unused, just for generation of TypeScript enums
+    type: ParameterSpecType
 
 ParameterName = str
 
