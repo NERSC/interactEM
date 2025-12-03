@@ -34,15 +34,93 @@ export const zCanonicalOperator = z.object({
   parameters: z
     .union([
       z.array(
-        z.object({
-          name: z.string(),
-          label: z.string(),
-          description: z.string(),
-          type: z.enum(["str", "int", "float", "bool", "mount", "str-enum"]),
-          default: z.string(),
-          required: z.boolean(),
-          options: z.union([z.array(z.string()), z.null()]).optional(),
-        }),
+        z.union([
+          z
+            .object({
+              type: z.literal("str").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("str"),
+                default: z.string(),
+                required: z.boolean(),
+              }),
+            ),
+          z
+            .object({
+              type: z.literal("mount").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("mount"),
+                default: z.string(),
+                required: z.boolean(),
+              }),
+            ),
+          z
+            .object({
+              type: z.literal("int").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("int"),
+                default: z.number().int(),
+                required: z.boolean(),
+              }),
+            ),
+          z
+            .object({
+              type: z.literal("float").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("float"),
+                default: z.number(),
+                required: z.boolean(),
+              }),
+            ),
+          z
+            .object({
+              type: z.literal("bool").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("bool"),
+                default: z.boolean(),
+                required: z.boolean(),
+              }),
+            ),
+          z
+            .object({
+              type: z.literal("str-enum").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("str-enum"),
+                default: z.string(),
+                required: z.boolean(),
+                options: z.array(z.string()),
+              }),
+            ),
+        ]),
       ),
       z.null(),
     ])
@@ -153,15 +231,93 @@ export const zOperatorSpec = z.object({
   parameters: z
     .union([
       z.array(
-        z.object({
-          name: z.string(),
-          label: z.string(),
-          description: z.string(),
-          type: z.enum(["str", "int", "float", "bool", "mount", "str-enum"]),
-          default: z.string(),
-          required: z.boolean(),
-          options: z.union([z.array(z.string()), z.null()]).optional(),
-        }),
+        z.union([
+          z
+            .object({
+              type: z.literal("str").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("str"),
+                default: z.string(),
+                required: z.boolean(),
+              }),
+            ),
+          z
+            .object({
+              type: z.literal("mount").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("mount"),
+                default: z.string(),
+                required: z.boolean(),
+              }),
+            ),
+          z
+            .object({
+              type: z.literal("int").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("int"),
+                default: z.number().int(),
+                required: z.boolean(),
+              }),
+            ),
+          z
+            .object({
+              type: z.literal("float").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("float"),
+                default: z.number(),
+                required: z.boolean(),
+              }),
+            ),
+          z
+            .object({
+              type: z.literal("bool").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("bool"),
+                default: z.boolean(),
+                required: z.boolean(),
+              }),
+            ),
+          z
+            .object({
+              type: z.literal("str-enum").optional(),
+            })
+            .merge(
+              z.object({
+                name: z.string(),
+                label: z.string(),
+                description: z.string(),
+                type: z.literal("str-enum"),
+                default: z.string(),
+                required: z.boolean(),
+                options: z.array(z.string()),
+              }),
+            ),
+        ]),
       ),
       z.null(),
     ])
@@ -201,14 +357,147 @@ export const zOperatorSpecOutput = z.object({
   type: z.string(),
 })
 
-export const zOperatorSpecParameter = z.object({
+export const zOperatorSpecParameter = z.union([
+  z
+    .object({
+      type: z.literal("str").optional(),
+    })
+    .merge(
+      z.object({
+        name: z.string(),
+        label: z.string(),
+        description: z.string(),
+        type: z.literal("str"),
+        default: z.string(),
+        required: z.boolean(),
+      }),
+    ),
+  z
+    .object({
+      type: z.literal("mount").optional(),
+    })
+    .merge(
+      z.object({
+        name: z.string(),
+        label: z.string(),
+        description: z.string(),
+        type: z.literal("mount"),
+        default: z.string(),
+        required: z.boolean(),
+      }),
+    ),
+  z
+    .object({
+      type: z.literal("int").optional(),
+    })
+    .merge(
+      z.object({
+        name: z.string(),
+        label: z.string(),
+        description: z.string(),
+        type: z.literal("int"),
+        default: z.number().int(),
+        required: z.boolean(),
+      }),
+    ),
+  z
+    .object({
+      type: z.literal("float").optional(),
+    })
+    .merge(
+      z.object({
+        name: z.string(),
+        label: z.string(),
+        description: z.string(),
+        type: z.literal("float"),
+        default: z.number(),
+        required: z.boolean(),
+      }),
+    ),
+  z
+    .object({
+      type: z.literal("bool").optional(),
+    })
+    .merge(
+      z.object({
+        name: z.string(),
+        label: z.string(),
+        description: z.string(),
+        type: z.literal("bool"),
+        default: z.boolean(),
+        required: z.boolean(),
+      }),
+    ),
+  z
+    .object({
+      type: z.literal("str-enum").optional(),
+    })
+    .merge(
+      z.object({
+        name: z.string(),
+        label: z.string(),
+        description: z.string(),
+        type: z.literal("str-enum"),
+        default: z.string(),
+        required: z.boolean(),
+        options: z.array(z.string()),
+      }),
+    ),
+])
+
+export const zOperatorSpecParameterBoolean = z.object({
   name: z.string(),
   label: z.string(),
   description: z.string(),
-  type: z.enum(["str", "int", "float", "bool", "mount", "str-enum"]),
+  type: z.literal("bool"),
+  default: z.boolean(),
+  required: z.boolean(),
+})
+
+export const zOperatorSpecParameterFloat = z.object({
+  name: z.string(),
+  label: z.string(),
+  description: z.string(),
+  type: z.literal("float"),
+  default: z.number(),
+  required: z.boolean(),
+})
+
+export const zOperatorSpecParameterInteger = z.object({
+  name: z.string(),
+  label: z.string(),
+  description: z.string(),
+  type: z.literal("int"),
+  default: z.number().int(),
+  required: z.boolean(),
+})
+
+export const zOperatorSpecParameterMount = z.object({
+  name: z.string(),
+  label: z.string(),
+  description: z.string(),
+  type: z.literal("mount"),
   default: z.string(),
   required: z.boolean(),
-  options: z.union([z.array(z.string()), z.null()]).optional(),
+})
+
+export const zOperatorSpecParameterStrEnum = z.object({
+  name: z.string(),
+  label: z.string(),
+  description: z.string(),
+  type: z.literal("str-enum"),
+  default: z.string(),
+  required: z.boolean(),
+  options: z.array(z.string()),
+})
+
+export const zOperatorSpecParameterString = z.object({
+  name: z.string(),
+  label: z.string(),
+  description: z.string(),
+  type: z.literal("str"),
+  default: z.string(),
+  required: z.boolean(),
 })
 
 export const zOperatorSpecTag = z.object({
@@ -225,15 +514,6 @@ export const zParallelConfig = z.object({
 })
 
 export const zParallelType = z.enum(["none", "embarrassing"])
-
-export const zParameterSpecType = z.enum([
-  "str",
-  "int",
-  "float",
-  "bool",
-  "mount",
-  "str-enum",
-])
 
 export const zPipelineCreate = z.object({
   data: z.object({}),
