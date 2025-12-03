@@ -598,6 +598,17 @@ class Agent:
 
         await pub.start()
 
+        # Publish the current (default) mount value when the task starts so
+        # subsequent launches begin from the default instead of any prior
+        # overrides that may still be in the stream.
+        if self._current_deployment:
+            self._current_deployment.spawn_task(
+                publish_agent_mount_parameter_ack(
+                    pub, operator.canonical_id, mount_params.parameters[parameter.name]
+                ),
+                name=f"ack-{operator.id}-{parameter.name}-initial",
+            )
+
         async def handle_parameter_update(update: RuntimeOperatorParameterUpdate):
             logger.info(f"Received mount parameter message: {update}")
 
