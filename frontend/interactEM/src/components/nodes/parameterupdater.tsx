@@ -20,7 +20,10 @@ import { useParameterUpdate } from "../../hooks/nats/useParameterUpdate"
 import { useParameterAck } from "../../hooks/nats/useParameterValue"
 import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
 import type { OperatorNodeType } from "../../types/nodes"
-import { getParameterSchema } from "../../types/params"
+import {
+  getParameterInputSchema,
+  getParameterNativeValue,
+} from "../../types/params"
 import ParameterInfoTooltip from "./parameterinfotooltip"
 
 type ParameterUpdaterProps = {
@@ -61,33 +64,36 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
   // In Runtime mode, check if we have a selected runtime pipeline deployment AND operator is in it
   const hasRuntimePipeline = !!selectedRuntimePipelineId && isInRunningPipeline
 
-  const comparisonTarget =
+  const currentValue =
     viewMode === ViewMode.Runtime && hasRuntimePipeline
       ? hasReceivedMessage
         ? runtimeValue
-        : param_default
-      : param_default
+        : parameter.default
+      : parameter.default
 
-  const [inputValue, setInputValue] = useState<string>(comparisonTarget)
+  // Convert to string for form display
+  const displayValue = String(currentValue)
+
+  const [inputValue, setInputValue] = useState<string>(displayValue)
   const [error, setError] = useState(false)
   const [errorMessage, setErrorMessage] = useState("")
   const [userEditing, setUserEditing] = useState(false)
 
   const isReadOnly = viewMode === ViewMode.Runtime ? !hasRuntimePipeline : false
 
-  // Build Zod schema for this parameter
-  const schema = getParameterSchema(parameter)
-
   useEffect(() => {
     if (!userEditing || isReadOnly) {
-      setInputValue(comparisonTarget)
+      setInputValue(displayValue)
     }
     if (isReadOnly) {
       setUserEditing(false)
     }
-  }, [comparisonTarget, isReadOnly, userEditing])
+  }, [displayValue, isReadOnly, userEditing])
 
-  const validateInput = (value: string) => schema.safeParse(value)
+  const validateInput = (value: string) => {
+    const schema = getParameterInputSchema(parameter)
+    return schema.safeParse(value)
+  }
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
@@ -125,13 +131,6 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     )
   }
 
-  const compareValues = (value1: string, value2: string): boolean => {
-    const parsed1 = schema.safeParse(value1)
-    const parsed2 = schema.safeParse(value2)
-    if (!parsed1.success || !parsed2.success) return false
-    return parsed1.data === parsed2.data
-  }
-
   const handleUpdateClick = async () => {
     if (error || isReadOnly) return
     updateNodeParameter((p) => ({ ...p, value: inputValue }))
@@ -141,7 +140,7 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 
   const handleSetDefaultClick = () => {
     if (error) return
-    const result = schema.safeParse(inputValue)
+    const result = validateInput(inputValue)
     if (!result.success) return
 
     const parsedValue = result.data
@@ -160,6 +159,29 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     switch (parameter.type) {
       case "int":
       case "float":
+        return (
+          <TextField
+            type="number"
+            value={inputValue}
+            size="small"
+            label="Set Point"
+            variant="outlined"
+            onChange={handleInputChange}
+            error={error}
+            helperText={error ? errorMessage : ""}
+            sx={{
+              flexGrow: 1,
+              // remove arrows from number input
+              "& input[type=number]": {
+                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
+                  display: "none",
+                },
+                MozAppearance: "textfield",
+              },
+            }}
+            disabled={isReadOnly}
+          />
+        )
       case "str":
       case "mount":
         return (
@@ -222,8 +244,12 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     }
   }
 
+  const parsedInputValue = getParameterNativeValue(parameter, inputValue)
   const showButtons =
-    !error && !isReadOnly && !compareValues(comparisonTarget, inputValue)
+    !error &&
+    !isReadOnly &&
+    parsedInputValue !== undefined &&
+    currentValue !== parsedInputValue
 
   return (
     <Container>

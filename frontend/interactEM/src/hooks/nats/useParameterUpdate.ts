@@ -10,7 +10,10 @@ import {
   SUBJECT_OPERATORS_PARAMETERS_UPDATE,
 } from "../../constants/nats"
 import { useNats } from "../../contexts/nats"
-import { RuntimeOperatorParameterUpdateSchema } from "../../types/params"
+import {
+  RuntimeOperatorParameterUpdateSchema,
+  getParameterNativeValue,
+} from "../../types/params"
 
 // TODO: for now, we are sending an update to all operators with the same
 // canonical ID. This will produce unintended updates to other operators
@@ -30,10 +33,17 @@ export const useParameterUpdate = (
     }
 
     try {
+      // Convert string input to native type
+      const nativeValue = getParameterNativeValue(parameter, value)
+      if (nativeValue === undefined) {
+        throw new Error("Failed to parse parameter value")
+      }
+
       const updateData = RuntimeOperatorParameterUpdateSchema.parse({
         canonical_operator_id: operatorID,
         name: parameter.name,
-        value: value,
+        type: parameter.type,
+        value: nativeValue,
       })
       const subject = `${SUBJECT_OPERATORS_PARAMETERS_UPDATE}.${operatorID}.${parameter.name}`
       const encoder = new TextEncoder()
