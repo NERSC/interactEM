@@ -160,7 +160,7 @@ class RuntimeParameterCollection(BaseModel):
         instance._rebuild_cache()
         return instance
 
-    def update_value(self, name: str, value: str) -> bool:
+    def update_value(self, name: str, value: int | float | bool | str) -> bool:
         """Update parameter value. Returns True if value changed."""
         if name not in self.parameters:
             raise KeyError(f"Parameter '{name}' not found")
@@ -190,13 +190,15 @@ class RuntimeParameterCollection(BaseModel):
 class RuntimeOperatorParameterUpdate(BaseModel):
     canonical_operator_id: CanonicalOperatorID
     name: str
-    value: str
+    type: ParameterSpecType
+    value: int | float | bool | str
 
 
 class RuntimeOperatorParameterAck(BaseModel):
     canonical_operator_id: CanonicalOperatorID
     name: str
-    value: str | None = None
+    type: ParameterSpecType
+    value: int | float | bool | str | None = None
 
 
 class RuntimePortMap(BaseModel):
