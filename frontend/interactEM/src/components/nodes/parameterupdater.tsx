@@ -39,10 +39,12 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 
   const { getNode, setNodes, getEdges, getNodes } =
     useReactFlow<OperatorNodeType>()
+
+  const param_default = parameter.default.toString()
   const { actualValue: runtimeValue, hasReceivedMessage } = useParameterAck(
     operatorCanonicalID,
     parameter.name,
-    parameter.default,
+    param_default,
   )
 
   const { saveRevision } = useSavePipelineRevision()
@@ -63,8 +65,8 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
     viewMode === ViewMode.Runtime && hasRuntimePipeline
       ? hasReceivedMessage
         ? runtimeValue
-        : parameter.default
-      : parameter.default
+        : param_default
+      : param_default
 
   const [inputValue, setInputValue] = useState<string>(comparisonTarget)
   const [error, setError] = useState(false)
@@ -139,10 +141,14 @@ const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
 
   const handleSetDefaultClick = () => {
     if (error) return
+    const result = schema.safeParse(inputValue)
+    if (!result.success) return
+
+    const parsedValue = result.data
     updateNodeParameter((p) => ({
       ...p,
-      default: inputValue,
-      value: inputValue,
+      default: parsedValue,
+      value: parsedValue,
     }))
     if (viewMode === ViewMode.Runtime && hasRuntimePipeline) {
       saveRevision(getNodes(), getEdges())

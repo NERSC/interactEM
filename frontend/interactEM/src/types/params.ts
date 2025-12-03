@@ -1,6 +1,7 @@
 import { z } from "zod"
-import type { OperatorSpecParameter, ParameterSpecType } from "../client"
+import type { OperatorSpecParameter } from "../client"
 import type {
+  ParameterSpecType,
   RuntimeOperatorParameterAck,
   RuntimeOperatorParameterUpdate,
 } from "./gen"

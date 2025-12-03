@@ -99,14 +99,79 @@ export type OperatorSpecOutput = {
   type: string
 }
 
-export type OperatorSpecParameter = {
+export type OperatorSpecParameter =
+  | ({
+      type?: "str"
+    } & OperatorSpecParameterString)
+  | ({
+      type?: "mount"
+    } & OperatorSpecParameterMount)
+  | ({
+      type?: "int"
+    } & OperatorSpecParameterInteger)
+  | ({
+      type?: "float"
+    } & OperatorSpecParameterFloat)
+  | ({
+      type?: "bool"
+    } & OperatorSpecParameterBoolean)
+  | ({
+      type?: "str-enum"
+    } & OperatorSpecParameterStrEnum)
+
+export type OperatorSpecParameterBoolean = {
   name: string
   label: string
   description: string
-  type: ParameterSpecType
+  type: "bool"
+  default: boolean
+  required: boolean
+}
+
+export type OperatorSpecParameterFloat = {
+  name: string
+  label: string
+  description: string
+  type: "float"
+  default: number
+  required: boolean
+}
+
+export type OperatorSpecParameterInteger = {
+  name: string
+  label: string
+  description: string
+  type: "int"
+  default: number
+  required: boolean
+}
+
+export type OperatorSpecParameterMount = {
+  name: string
+  label: string
+  description: string
+  type: "mount"
   default: string
   required: boolean
-  options?: Array<string> | null
+}
+
+export type OperatorSpecParameterStrEnum = {
+  name: string
+  label: string
+  description: string
+  type: "str-enum"
+  default: string
+  required: boolean
+  options: Array<string>
+}
+
+export type OperatorSpecParameterString = {
+  name: string
+  label: string
+  description: string
+  type: "str"
+  default: string
+  required: boolean
 }
 
 export type OperatorSpecTag = {
@@ -123,14 +188,6 @@ export type ParallelConfig = {
 }
 
 export type ParallelType = "none" | "embarrassing"
-
-export type ParameterSpecType =
-  | "str"
-  | "int"
-  | "float"
-  | "bool"
-  | "mount"
-  | "str-enum"
 
 export type PipelineCreate = {
   data: {

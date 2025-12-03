@@ -1538,20 +1538,35 @@
         "title": "OperatorSpecOutput"
       },
       "OperatorSpecParameter": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/OperatorSpecParameterString" },
+          { "$ref": "#/components/schemas/OperatorSpecParameterMount" },
+          { "$ref": "#/components/schemas/OperatorSpecParameterInteger" },
+          { "$ref": "#/components/schemas/OperatorSpecParameterFloat" },
+          { "$ref": "#/components/schemas/OperatorSpecParameterBoolean" },
+          { "$ref": "#/components/schemas/OperatorSpecParameterStrEnum" }
+        ],
+        "title": "OperatorSpecParameter",
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "bool": "#/components/schemas/OperatorSpecParameterBoolean",
+            "float": "#/components/schemas/OperatorSpecParameterFloat",
+            "int": "#/components/schemas/OperatorSpecParameterInteger",
+            "mount": "#/components/schemas/OperatorSpecParameterMount",
+            "str": "#/components/schemas/OperatorSpecParameterString",
+            "str-enum": "#/components/schemas/OperatorSpecParameterStrEnum"
+          }
+        }
+      },
+      "OperatorSpecParameterBoolean": {
         "properties": {
           "name": { "type": "string", "title": "Name" },
           "label": { "type": "string", "title": "Label" },
           "description": { "type": "string", "title": "Description" },
-          "type": { "$ref": "#/components/schemas/ParameterSpecType" },
-          "default": { "type": "string", "title": "Default" },
-          "required": { "type": "boolean", "title": "Required" },
-          "options": {
-            "anyOf": [
-              { "items": { "type": "string" }, "type": "array" },
-              { "type": "null" }
-            ],
-            "title": "Options"
-          }
+          "type": { "type": "string", "const": "bool", "title": "Type" },
+          "default": { "type": "boolean", "title": "Default" },
+          "required": { "type": "boolean", "title": "Required" }
         },
         "type": "object",
         "required": [
@@ -1562,7 +1577,113 @@
           "default",
           "required"
         ],
-        "title": "OperatorSpecParameter"
+        "title": "OperatorSpecParameterBoolean"
+      },
+      "OperatorSpecParameterFloat": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "label": { "type": "string", "title": "Label" },
+          "description": { "type": "string", "title": "Description" },
+          "type": { "type": "string", "const": "float", "title": "Type" },
+          "default": { "type": "number", "title": "Default" },
+          "required": { "type": "boolean", "title": "Required" }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "description",
+          "type",
+          "default",
+          "required"
+        ],
+        "title": "OperatorSpecParameterFloat"
+      },
+      "OperatorSpecParameterInteger": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "label": { "type": "string", "title": "Label" },
+          "description": { "type": "string", "title": "Description" },
+          "type": { "type": "string", "const": "int", "title": "Type" },
+          "default": { "type": "integer", "title": "Default" },
+          "required": { "type": "boolean", "title": "Required" }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "description",
+          "type",
+          "default",
+          "required"
+        ],
+        "title": "OperatorSpecParameterInteger"
+      },
+      "OperatorSpecParameterMount": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "label": { "type": "string", "title": "Label" },
+          "description": { "type": "string", "title": "Description" },
+          "type": { "type": "string", "const": "mount", "title": "Type" },
+          "default": { "type": "string", "title": "Default" },
+          "required": { "type": "boolean", "title": "Required" }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "description",
+          "type",
+          "default",
+          "required"
+        ],
+        "title": "OperatorSpecParameterMount"
+      },
+      "OperatorSpecParameterStrEnum": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "label": { "type": "string", "title": "Label" },
+          "description": { "type": "string", "title": "Description" },
+          "type": { "type": "string", "const": "str-enum", "title": "Type" },
+          "default": { "type": "string", "title": "Default" },
+          "required": { "type": "boolean", "title": "Required" },
+          "options": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Options"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "description",
+          "type",
+          "default",
+          "required",
+          "options"
+        ],
+        "title": "OperatorSpecParameterStrEnum"
+      },
+      "OperatorSpecParameterString": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "label": { "type": "string", "title": "Label" },
+          "description": { "type": "string", "title": "Description" },
+          "type": { "type": "string", "const": "str", "title": "Type" },
+          "default": { "type": "string", "title": "Default" },
+          "required": { "type": "boolean", "title": "Required" }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "label",
+          "description",
+          "type",
+          "default",
+          "required"
+        ],
+        "title": "OperatorSpecParameterString"
       },
       "OperatorSpecTag": {
         "properties": {
@@ -1602,11 +1723,6 @@
         "type": "string",
         "enum": ["none", "embarrassing"],
         "title": "ParallelType"
-      },
-      "ParameterSpecType": {
-        "type": "string",
-        "enum": ["str", "int", "float", "bool", "mount", "str-enum"],
-        "title": "ParameterSpecType"
       },
       "PipelineCreate": {
         "properties": {
