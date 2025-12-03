@@ -35,7 +35,9 @@ group "operators" {
     "center-of-mass-partial",
     "center-of-mass-reduce",
     "center-of-mass-plot",
-    "dpc"
+    "dpc",
+    "read-data-pae",
+    "bin-sparse-partial"
   ]
 }
 
@@ -117,7 +119,7 @@ target "electron-count" {
 }
 
 target "electron-count-save" {
-  inherits = ["common"]
+  inheritfs = ["common"]
   context = "operators/electron-count-save"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/electron-count-save:${TAG}"]
@@ -261,4 +263,18 @@ target "dpc" {
   context = "operators/dpc"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/dpc:${TAG}"]
+}
+
+target "read-data-pae" {
+  inherits = ["common"]
+  context = "operators/read-data-pae"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/read-data-pae:${TAG}"]
+}
+
+target "bin-sparse-partial" {
+  inherits = ["common"]
+  context = "operators/bin-sparse-partial"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/bin-sparse-partial:${TAG}"]
 }
