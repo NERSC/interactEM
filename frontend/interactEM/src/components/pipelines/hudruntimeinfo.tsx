@@ -13,6 +13,7 @@ import {
   getDeploymentStateColor,
 } from "../../utils/deployments"
 import { RevisionButton } from "./revisionbutton"
+import { StopPipelineButton } from "./stopbutton"
 
 interface HudRuntimeInfoProps {
   deployment: PipelineDeploymentPublic | undefined
@@ -68,6 +69,9 @@ export const HudRuntimeInfo: React.FC<HudRuntimeInfoProps> = ({
           variant="filled"
         />
       </Tooltip>
+      {deployment.state === "running" && (
+        <StopPipelineButton deploymentId={deployment.id} />
+      )}
     </Stack>
   )
 }
