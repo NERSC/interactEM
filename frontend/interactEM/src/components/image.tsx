@@ -21,16 +21,16 @@ const Image: React.FC<ImageProps> = ({ imageData }) => {
   const [imageSrc, setImageSrc] = useState<string | null>(null)
 
   useEffect(() => {
-    if (imageData) {
-      const url = URL.createObjectURL(
-        // TODO: Pass the MIME type with the image data
-        new Blob([imageData.buffer as ArrayBuffer], { type: "image/jpeg" }),
-      )
-      setImageSrc(url)
+    if (!imageData) return
 
-      return () => {
-        URL.revokeObjectURL(url)
-      }
+    const url = URL.createObjectURL(
+      // TODO: Pass the MIME type with the image data
+      new Blob([imageData], { type: "image/jpeg" }),
+    )
+    setImageSrc(url)
+
+    return () => {
+      URL.revokeObjectURL(url)
     }
   }, [imageData])
 
