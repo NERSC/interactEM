@@ -16,7 +16,7 @@ async function deduplicateEnums(filePath: string): Promise<void> {
     "NodeType",
     "PortType",
     "OperatorEventType",
-    "PipelineEventType",
+    "DeploymentEventType",
     "ParameterSpecType",
   ];
 

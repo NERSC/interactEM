@@ -2,14 +2,14 @@ import anyio
 from nats.js import JetStreamContext
 from pydantic import ValidationError
 
-from interactem.core.events.pipelines import (
+from interactem.core.events.deployments import (
+    AgentDeploymentRunEvent,
+    AgentDeploymentStopEvent,
     AgentOperatorRestartEvent,
-    AgentPipelineRunEvent,
-    AgentPipelineStopEvent,
+    DeploymentAssignmentsEvent,
+    DeploymentRunEvent,
+    DeploymentStopEvent,
     OperatorRestartEvent,
-    PipelineAssignmentsEvent,
-    PipelineRunEvent,
-    PipelineStopEvent,
 )
 from interactem.core.logger import get_logger
 from interactem.core.models.canonical import CanonicalPipeline
@@ -30,8 +30,8 @@ from .state import OrchestratorState
 logger = get_logger()
 
 
-async def handle_run_pipeline(
-    event: PipelineRunEvent,
+async def handle_run_deployment(
+    event: DeploymentRunEvent,
     js: JetStreamContext,
     state: OrchestratorState,
 ):
@@ -63,7 +63,7 @@ async def handle_run_pipeline(
 
     async with anyio.create_task_group() as tg:
         for assignment in assignments:
-            ev = AgentPipelineRunEvent(
+            ev = AgentDeploymentRunEvent(
                 agent_id=assignment.agent_id,
                 assignment=assignment,
                 deployment_id=event.deployment_id,
@@ -72,7 +72,7 @@ async def handle_run_pipeline(
 
     logger.info(f"Published {len(assignments)} assignments for pipeline {pipeline.id}.")
 
-    assignments_event = PipelineAssignmentsEvent(
+    assignments_event = DeploymentAssignmentsEvent(
         deployment_id=event.deployment_id, assignments=assignments
     )
     async with anyio.create_task_group() as tg:
@@ -82,8 +82,8 @@ async def handle_run_pipeline(
         tg.start_soon(publish_deployment_assignment, js, assignments_event)
 
 
-async def handle_stop_pipeline_event(
-    event: PipelineStopEvent,
+async def handle_stop_deployment_event(
+    event: DeploymentStopEvent,
     js: JetStreamContext,
     state: OrchestratorState,
 ):
@@ -91,7 +91,7 @@ async def handle_stop_pipeline_event(
     agents = state.agents
 
     stop_events = [
-        AgentPipelineStopEvent(
+        AgentDeploymentStopEvent(
             agent_id=agent_id,
             deployment_id=deployment_id,
         )

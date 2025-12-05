@@ -54,6 +54,13 @@ export type CanonicalPort = {
 
 export type ComputeType = "gpu" | "cpu"
 
+export type DeploymentEventType =
+  | "deployment_run"
+  | "deployment_stop"
+  | "deployment_update"
+  | "deployment_assignments"
+  | "operator_restart"
+
 export type HttpValidationError = {
   detail?: Array<ValidationError>
 }
@@ -65,7 +72,7 @@ export type Message = {
 export type NodeType = "operator" | "port"
 
 export type OperatorEventCreate = {
-  type: "operator_restart"
+  type: DeploymentEventType
 }
 
 /**

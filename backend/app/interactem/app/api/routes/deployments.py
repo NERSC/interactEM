@@ -24,13 +24,11 @@ from interactem.app.models import (
     PipelineDeploymentUpdate,
     PipelineRevision,
 )
-from interactem.core.events.operators import (
+from interactem.core.events.deployments import (
+    DeploymentRunEvent,
+    DeploymentStopEvent,
     OperatorEventCreate,
     OperatorRestartEvent,
-)
-from interactem.core.events.pipelines import (
-    PipelineRunEvent,
-    PipelineStopEvent,
 )
 from interactem.core.logger import get_logger
 
@@ -130,7 +128,7 @@ async def create_pipeline_deployment(
     session.refresh(deployment)
 
     # Publish initialization event for orchestrator to handle
-    event = PipelineRunEvent(
+    event = DeploymentRunEvent(
         canonical_id=deployment.pipeline_id,
         data=deployment.revision.data,
         revision_id=deployment.revision_id,
@@ -183,7 +181,7 @@ async def update_pipeline_deployment(
 
     # Publish events for orchestrator to handle
     if new_state == PipelineDeploymentState.CANCELLED:
-        event = PipelineStopEvent(deployment_id=deployment.id)
+        event = DeploymentStopEvent(deployment_id=deployment.id)
         await publish_pipeline_deployment_event(event)
         logger.info(f"Published stop event for deployment {deployment.id}")
 

@@ -1472,6 +1472,17 @@
         "enum": ["gpu", "cpu"],
         "title": "ComputeType"
       },
+      "DeploymentEventType": {
+        "type": "string",
+        "enum": [
+          "deployment_run",
+          "deployment_stop",
+          "deployment_update",
+          "deployment_assignments",
+          "operator_restart"
+        ],
+        "title": "DeploymentEventType"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1496,11 +1507,7 @@
       },
       "OperatorEventCreate": {
         "properties": {
-          "type": {
-            "type": "string",
-            "const": "operator_restart",
-            "title": "Type"
-          }
+          "type": { "$ref": "#/components/schemas/DeploymentEventType" }
         },
         "type": "object",
         "required": ["type"],

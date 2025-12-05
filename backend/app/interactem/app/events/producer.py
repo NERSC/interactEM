@@ -18,10 +18,10 @@ from interactem.core.constants import (
     SUBJECT_PIPELINES_DEPLOYMENTS,
     SUBJECT_SFAPI_JOBS,
 )
-from interactem.core.events.operators import OperatorRestartEvent
-from interactem.core.events.pipelines import (
-    PipelineRunEvent,
-    PipelineStopEvent,
+from interactem.core.events.deployments import (
+    DeploymentRunEvent,
+    DeploymentStopEvent,
+    OperatorRestartEvent,
 )
 from interactem.core.nats import create_all_buckets, create_all_streams, nc
 from interactem.sfapi_models import AgentCreateEvent, StatusRequest
@@ -107,7 +107,7 @@ async def nats_req_rep(
 
 
 async def publish_pipeline_deployment_event(
-    event: PipelineRunEvent | PipelineStopEvent | OperatorRestartEvent,
+    event: DeploymentRunEvent | DeploymentStopEvent | OperatorRestartEvent,
 ) -> None:
     """Publish pipeline deployment event to the deployments subject."""
     await publish_jetstream_event(
