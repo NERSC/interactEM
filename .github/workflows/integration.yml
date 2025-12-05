@@ -24,6 +24,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Install podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
+
+      - name: Start podman socket service
+        env:
+          XDG_RUNTIME_DIR: /run/user/$(id -u)
+        run: |
+          mkdir -p "$XDG_RUNTIME_DIR/podman"
+          podman system service --time=0 unix://$XDG_RUNTIME_DIR/podman/podman.sock >/tmp/podman-service.log 2>&1 &
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
