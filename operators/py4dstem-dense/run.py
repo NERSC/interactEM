@@ -103,34 +103,55 @@ def py4dstem_parallax(
 
     logger.debug(f"Scan {scan_number}: Calculating parallax images.")
 
-    probe_semiangle_mrad = 25
+    probe_semiangle = 25
     energy = 300e3
     additional_rotation = 0
     com_rotaiton = -169 + additional_rotation
 
-    data = accumuklator.get_dense()
-    dc = em.datastructures.Dataset4dstem.from_array(data, 'test', (0,0,0,0), (1,1,2,2), ('A', 'A', 'mrad', 'mrad'), )
-    dc.get_dp_mean()
+    data = accumulator.get_dense()
+    dset = em.datastructures.Dataset4dstem.from_array(array=data)
+    dset.get_dp_mean()
 
-    probe_qy0, probe_qx0, probe_semiangle_px = fit_probe_circle(
-        dc.dp_mean.array, show=False,
-        threshold=10
+    probe_qy0, probe_qx0, probe_R = fit_probe_circle(
+        dset.dp_mean.array, show=False
     )
 
-    dc.sampling[2] = probe_semiangle_mrad / probe_semiangle_px
-    dc.sampling[3] = probe_semiangle_mrad / probe_semiangle_px
-    dc.units[2:] = ["mrad", "mrad"]
+    dset.sampling[2] = probe_semiangle / probe_R
+    dset.sampling[3] = probe_semiangle / probe_R
+    dset.units[2:] = ["mrad", "mrad"]
+
+    ## this has to be Anggstrom for quantem
+    dset.sampling[0] = 0.14383155 * 10
+    dset.sampling[1] = 0.14383155 * 10
+    dset.units[0:2] = ["A", "A"]
+    direct_ptycho = em.diffractive_imaging.direct_ptychography.DirectPtychography.from_dataset4d(
+                        dset,
+                        energy=energy,
+                        semiangle_cutoff=probe_semiangle,
+                        device="gpcpuu", 
+                        aberration_coefs={'C10':0},
+                        max_batch_size=10,
+                        rotation_angle=np.deg2rad(0),
+                        )
+    # optimize
+    direct_ptycho.fit_hyperparameters()
+    initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(
+        upsampling_factor = 2,  ### this can be changed
+        max_batch_size = 10
+    )
+
+
 
     # Process and return result
     output_meta = {
         "scan_number": scan_number,
         "accumulated_messages": accumulator.num_batches_added,
-        "shape": dc.dp_mean.shape,
-        "dtype": str(dc.dp_mean.dtype),
+        "shape": dset.dp_mean.shape,
+        "dtype": str(dset.dp_mean.dtype),
         "center_used": center,
         "source_operator": "py4dstem-dense",
     }
 
-    parallax_BF_bytes = parallax.recon_BF.tobytes()
+    output_bytes = initial_parallax.obj.tobytes()
     header = MessageHeader(subject=MessageSubject.BYTES, meta={})
-    return BytesMessage(header=header, data=parallax_BF_bytes)
+    return BytesMessage(header=header, data=output_bytes)
