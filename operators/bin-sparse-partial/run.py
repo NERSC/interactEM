@@ -47,7 +47,8 @@ def bin_partial(
     new_batch_header = BatchedFrameHeader(
             scan_number=batch.header.scan_number,
             headers=new_headers,
-            batch_size_bytes=batch.header.batch_size_bytes)
+            batch_size_bytes=batch.header.batch_size_bytes,
+            total_frames=batch.header.total_frames)
     out = BatchedFrames.from_np_arrays(new_batch_header, rows)
     return out.to_bytes_message()
 
