@@ -19,6 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DOCKER_BUILDKIT: 1
+      XDG_RUNTIME_DIR: /tmp/podman-run
     timeout-minutes: 60
     steps:
       - name: Checkout repository
@@ -30,10 +31,11 @@ jobs:
           sudo apt-get install -y podman
 
       - name: Start podman socket service
-        env:
-          XDG_RUNTIME_DIR: /run/user/$(id -u)
         run: |
+          # Ensure the runtime directory exists and is writable
           mkdir -p "$XDG_RUNTIME_DIR/podman"
+
+          # Start the rootless podman service socket in the configured runtime dir
           podman system service --time=0 unix://$XDG_RUNTIME_DIR/podman/podman.sock >/tmp/podman-service.log 2>&1 &
 
       - name: Set up Docker Buildx
