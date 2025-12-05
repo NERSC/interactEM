@@ -77,5 +77,6 @@ async def agent_pipeline_event_handler(
     HANDLERS = {
         AgentPipelineEventType.START: agent.receive_assignment,
         AgentPipelineEventType.STOP: agent.receive_cancellation,
+        AgentPipelineEventType.RESTART_OPERATOR: agent.restart_canonical_operator,
     }
     await HANDLERS[event.root.type](event.root)

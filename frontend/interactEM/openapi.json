@@ -1175,6 +1175,59 @@
         }
       }
     },
+    "/api/v1/deployments/{id}/operators/{canonical_operator_id}/events": {
+      "post": {
+        "tags": ["deployments"],
+        "summary": "Create Operator Event",
+        "description": "Publish an operator event for the specified deployment and operator.",
+        "operationId": "deployments-create_operator_event",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid", "title": "Id" }
+          },
+          {
+            "name": "canonical_operator_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Canonical Operator Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/OperatorEventCreate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Message" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/operators/": {
       "get": {
         "tags": ["operators"],
@@ -1440,6 +1493,18 @@
         "type": "string",
         "enum": ["operator", "port"],
         "title": "NodeType"
+      },
+      "OperatorEventCreate": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "const": "operator_restart",
+            "title": "Type"
+          }
+        },
+        "type": "object",
+        "required": ["type"],
+        "title": "OperatorEventCreate"
       },
       "OperatorPosition": {
         "properties": {

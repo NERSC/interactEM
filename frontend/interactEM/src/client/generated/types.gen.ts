@@ -64,6 +64,10 @@ export type Message = {
 
 export type NodeType = "operator" | "port"
 
+export type OperatorEventCreate = {
+  type: "operator_restart"
+}
+
 /**
  * Position metadata for an operator on the canvas.
  */
@@ -1124,6 +1128,36 @@ export type DeploymentsUpdatePipelineDeploymentResponses = {
 
 export type DeploymentsUpdatePipelineDeploymentResponse =
   DeploymentsUpdatePipelineDeploymentResponses[keyof DeploymentsUpdatePipelineDeploymentResponses]
+
+export type DeploymentsCreateOperatorEventData = {
+  body: OperatorEventCreate
+  path: {
+    id: string
+    canonical_operator_id: string
+  }
+  query?: never
+  url: "/api/v1/deployments/{id}/operators/{canonical_operator_id}/events"
+}
+
+export type DeploymentsCreateOperatorEventErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type DeploymentsCreateOperatorEventError =
+  DeploymentsCreateOperatorEventErrors[keyof DeploymentsCreateOperatorEventErrors]
+
+export type DeploymentsCreateOperatorEventResponses = {
+  /**
+   * Successful Response
+   */
+  200: Message
+}
+
+export type DeploymentsCreateOperatorEventResponse =
+  DeploymentsCreateOperatorEventResponses[keyof DeploymentsCreateOperatorEventResponses]
 
 export type OperatorsReadOperatorsData = {
   body?: never

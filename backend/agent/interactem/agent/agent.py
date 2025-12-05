@@ -22,6 +22,7 @@ from interactem.core.constants import (
 )
 from interactem.core.constants.mounts import CORE_MOUNT, OPERATORS_MOUNT
 from interactem.core.events.pipelines import (
+    AgentOperatorRestartEvent,
     AgentPipelineRunEvent,
     AgentPipelineStopEvent,
 )
@@ -317,6 +318,59 @@ class Agent:
 
             self._current_deployment = None
             self._deployment_task = None
+
+    async def restart_canonical_operator(self, event: AgentOperatorRestartEvent):
+        """Restart all operators matching the canonical ID for the current deployment."""
+
+        if self._current_deployment is None or self.pipeline is None:
+            logger.warning(
+                "Restart requested for %s but no deployment is active",
+                event.canonical_operator_id,
+            )
+            return
+
+        if self._current_deployment.deployment_id != event.deployment_id:
+            logger.warning(
+                "Restart event for deployment %s does not match current deployment %s",
+                event.deployment_id,
+                self._current_deployment.deployment_id,
+            )
+            return
+
+        matching_trackers = [
+            tracker
+            for tracker in self.container_trackers.values()
+            if tracker.operator.canonical_id == event.canonical_operator_id
+        ]
+
+        if not matching_trackers:
+            logger.warning(
+                "No operators found for canonical ID %s to restart",
+                event.canonical_operator_id,
+            )
+            return
+
+        logger.info(
+            "Restarting %d operators for canonical ID %s",
+            len(matching_trackers),
+            event.canonical_operator_id,
+        )
+
+        self._suppress_monitor = True
+        try:
+            for tracker in matching_trackers:
+                try:
+                    await self.restart_operator(tracker)
+                except Exception as e:
+                    logger.exception(
+                        "Failed to restart operator %s: %s", tracker.operator.id, e
+                    )
+                    if self.error_publisher:
+                        await self.error_publisher.publish(
+                            f"Failed to restart operator {tracker.operator.id}: {e}"
+                        )
+        finally:
+            self._suppress_monitor = False
 
     async def receive_assignment(self, event: AgentPipelineRunEvent):
         """Handle incoming deployment assignment.

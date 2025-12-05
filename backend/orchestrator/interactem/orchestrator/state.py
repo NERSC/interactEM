@@ -121,7 +121,8 @@ class OrchestratorState:
             depl_id = ev.root.deployment_id
             event_type = ev.root.type
 
-            dict_to_update[event_type][depl_id] = ev.root
+            if event_type in dict_to_update:
+                dict_to_update[event_type][depl_id] = ev.root
             messages_processed += 1
 
         # Get all unique deployment IDs from all event types

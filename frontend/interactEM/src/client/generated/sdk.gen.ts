@@ -10,6 +10,9 @@ import { client as _heyApiClient } from "./client.gen"
 import type {
   AgentsLaunchAgentData,
   AgentsLaunchAgentError,
+  DeploymentsCreateOperatorEventData,
+  DeploymentsCreateOperatorEventError,
+  DeploymentsCreateOperatorEventResponse,
   DeploymentsCreatePipelineDeploymentData,
   DeploymentsCreatePipelineDeploymentError,
   DeploymentsCreatePipelineDeploymentResponse,
@@ -845,6 +848,35 @@ export const deploymentsUpdatePipelineDeployment = <
       },
     ],
     url: "/api/v1/deployments/{id}",
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...options?.headers,
+    },
+  })
+}
+
+/**
+ * Create Operator Event
+ * Publish an operator event for the specified deployment and operator.
+ */
+export const deploymentsCreateOperatorEvent = <
+  ThrowOnError extends boolean = false,
+>(
+  options: Options<DeploymentsCreateOperatorEventData, ThrowOnError>,
+) => {
+  return (options.client ?? _heyApiClient).post<
+    DeploymentsCreateOperatorEventResponse,
+    DeploymentsCreateOperatorEventError,
+    ThrowOnError
+  >({
+    security: [
+      {
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
+    url: "/api/v1/deployments/{id}/operators/{canonical_operator_id}/events",
     ...options,
     headers: {
       "Content-Type": "application/json",

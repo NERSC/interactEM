@@ -3,8 +3,10 @@ from nats.js import JetStreamContext
 from pydantic import ValidationError
 
 from interactem.core.events.pipelines import (
+    AgentOperatorRestartEvent,
     AgentPipelineRunEvent,
     AgentPipelineStopEvent,
+    OperatorRestartEvent,
     PipelineAssignmentsEvent,
     PipelineRunEvent,
     PipelineStopEvent,
@@ -18,7 +20,11 @@ from interactem.core.nats.publish import (
 from interactem.core.pipeline import Pipeline
 
 from .assign import PipelineAssigner
-from .exceptions import InvalidPipelineError
+from .exceptions import (
+    InvalidPipelineError,
+    NoAgentAssignmentsError,
+    OperatorNotFoundError,
+)
 from .state import OrchestratorState
 
 logger = get_logger()
@@ -99,3 +105,50 @@ async def handle_stop_pipeline_event(
             tg.start_soon(publish_agent_deployment_event, js, e)
 
     logger.info(f"Pipeline stop event for {deployment_id} processed.")
+
+
+async def handle_restart_operator_event(
+    event: OperatorRestartEvent, js: JetStreamContext, state: OrchestratorState
+):
+    """Handle operator restart requests by forwarding to relevant agents."""
+
+    deployment_id = event.deployment_id
+    canonical_operator_id = event.canonical_operator_id
+
+    matching_operators = [
+        op
+        for op in state.operators.values()
+        if op.canonical_id == canonical_operator_id
+        and op.runtime_pipeline_id == deployment_id
+    ]
+
+    if not matching_operators:
+        raise OperatorNotFoundError
+
+    agent_ids = set()
+    for agent_id, agent_val in state.agents.items():
+        if agent_val.current_deployment_id != deployment_id:
+            continue
+
+        assignments = agent_val.operator_assignments or []
+        if any(op.id in assignments for op in matching_operators):
+            agent_ids.add(agent_id)
+
+    if not agent_ids:
+        raise NoAgentAssignmentsError
+
+    async with anyio.create_task_group() as tg:
+        for agent_id in agent_ids:
+            restart_event = AgentOperatorRestartEvent(
+                agent_id=agent_id,
+                deployment_id=deployment_id,
+                canonical_operator_id=canonical_operator_id,
+            )
+            tg.start_soon(publish_agent_deployment_event, js, restart_event)
+
+    logger.info(
+        "Restart events published for canonical operator %s on deployment %s to %d agents",
+        canonical_operator_id,
+        deployment_id,
+        len(agent_ids),
+    )

@@ -18,6 +18,7 @@ from interactem.core.constants import (
     OPERATORS,
     SUBJECT_PIPELINES_DEPLOYMENTS,
 )
+from interactem.core.events.operators import OperatorRestartEvent
 from interactem.core.events.pipelines import (
     PipelineEvent,
     PipelineRunEvent,
@@ -42,6 +43,7 @@ from .constants import (
 )
 from .exceptions import PipelineExceptionMiddleware
 from .orchestrator import (
+    handle_restart_operator_event,
     handle_run_pipeline,
     handle_stop_pipeline_event,
 )
@@ -94,6 +96,7 @@ context_repo = ContextRepo(
 HANDLERS: dict[type[BaseModel], Callable] = {
     PipelineRunEvent: handle_run_pipeline,
     PipelineStopEvent: handle_stop_pipeline_event,
+    OperatorRestartEvent: handle_restart_operator_event,
 }
 
 
