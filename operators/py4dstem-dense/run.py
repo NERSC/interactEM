@@ -131,7 +131,7 @@ def py4dstem_parallax(
                         device="gpcpuu", 
                         aberration_coefs={'C10':0},
                         max_batch_size=10,
-                        rotation_angle=np.deg2rad(0),
+                        rotation_angle=0, # need radians
                         )
     # optimize
     direct_ptycho.fit_hyperparameters()
