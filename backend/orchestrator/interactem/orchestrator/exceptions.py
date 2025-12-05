@@ -46,6 +46,14 @@ class NetworkPreferenceError(PipelineRunException):
     message = "Network preference violations. Check networks on operator definitions."
 
 
+class OperatorNotFoundError(PipelineRunException):
+    message = "No operators found to restart."
+
+
+class NoAgentAssignmentsError(PipelineRunException):
+    message = "No agents assigned to the requested operators."
+
+
 class PipelineExceptionMiddleware(BaseMiddleware[NatsPublishCommand]):
     """Logs handled pipeline exceptions while allowing proper message rejection.
 

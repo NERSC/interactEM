@@ -191,6 +191,10 @@ export const zMessage = z.object({
 
 export const zNodeType = z.enum(["operator", "port"])
 
+export const zOperatorEventCreate = z.object({
+  type: z.literal("operator_restart"),
+})
+
 export const zOperatorPosition = z.object({
   canonical_operator_id: z.string().uuid(),
   x: z.number(),
@@ -722,5 +726,7 @@ export const zDeploymentsReadPipelineDeploymentResponse =
 
 export const zDeploymentsUpdatePipelineDeploymentResponse =
   zPipelineDeploymentPublic
+
+export const zDeploymentsCreateOperatorEventResponse = zMessage
 
 export const zOperatorsReadOperatorsResponse = zOperatorSpecs

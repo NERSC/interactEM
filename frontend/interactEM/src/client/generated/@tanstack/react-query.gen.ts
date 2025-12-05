@@ -12,6 +12,7 @@ import { client as _heyApiClient } from "../client.gen"
 import {
   type Options,
   agentsLaunchAgent,
+  deploymentsCreateOperatorEvent,
   deploymentsCreatePipelineDeployment,
   deploymentsListPipelineDeployments,
   deploymentsReadPipelineDeployment,
@@ -46,6 +47,9 @@ import {
 import type {
   AgentsLaunchAgentData,
   AgentsLaunchAgentError,
+  DeploymentsCreateOperatorEventData,
+  DeploymentsCreateOperatorEventError,
+  DeploymentsCreateOperatorEventResponse,
   DeploymentsCreatePipelineDeploymentData,
   DeploymentsCreatePipelineDeploymentError,
   DeploymentsCreatePipelineDeploymentResponse,
@@ -1177,6 +1181,47 @@ export const deploymentsUpdatePipelineDeploymentMutation = (
   > = {
     mutationFn: async (localOptions) => {
       const { data } = await deploymentsUpdatePipelineDeployment({
+        ...options,
+        ...localOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
+}
+
+export const deploymentsCreateOperatorEventQueryKey = (
+  options: Options<DeploymentsCreateOperatorEventData>,
+) => createQueryKey("deploymentsCreateOperatorEvent", options)
+
+export const deploymentsCreateOperatorEventOptions = (
+  options: Options<DeploymentsCreateOperatorEventData>,
+) => {
+  return queryOptions({
+    queryFn: async ({ queryKey, signal }) => {
+      const { data } = await deploymentsCreateOperatorEvent({
+        ...options,
+        ...queryKey[0],
+        signal,
+        throwOnError: true,
+      })
+      return data
+    },
+    queryKey: deploymentsCreateOperatorEventQueryKey(options),
+  })
+}
+
+export const deploymentsCreateOperatorEventMutation = (
+  options?: Partial<Options<DeploymentsCreateOperatorEventData>>,
+) => {
+  const mutationOptions: UseMutationOptions<
+    DeploymentsCreateOperatorEventResponse,
+    AxiosError<DeploymentsCreateOperatorEventError>,
+    Options<DeploymentsCreateOperatorEventData>
+  > = {
+    mutationFn: async (localOptions) => {
+      const { data } = await deploymentsCreateOperatorEvent({
         ...options,
         ...localOptions,
         throwOnError: true,

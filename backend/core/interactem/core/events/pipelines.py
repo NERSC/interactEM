@@ -4,8 +4,10 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field, RootModel
 
+from interactem.core.events.operators import OperatorRestartEvent
 from interactem.core.models.base import IdType, PipelineDeploymentState
 from interactem.core.models.canonical import (
+    CanonicalOperatorID,
     CanonicalPipelineID,
     CanonicalPipelineRevisionID,
 )
@@ -58,12 +60,14 @@ class PipelineEvent(RootModel):
         | PipelineStopEvent
         | PipelineUpdateEvent
         | PipelineAssignmentsEvent
+        | OperatorRestartEvent
     ) = Field(discriminator="type")
 
 
 class AgentPipelineEventType(str, Enum):
     START = "agent_start"
     STOP = "agent_stop"
+    RESTART_OPERATOR = "agent_restart_operator"
 
 
 class AgentPipelineBase(BaseModel):
@@ -80,5 +84,16 @@ class AgentPipelineStopEvent(AgentPipelineBase):
     type: Literal[AgentPipelineEventType.STOP] = AgentPipelineEventType.STOP
 
 
+class AgentOperatorRestartEvent(AgentPipelineBase):
+    type: Literal[AgentPipelineEventType.RESTART_OPERATOR] = (
+        AgentPipelineEventType.RESTART_OPERATOR
+    )
+    canonical_operator_id: CanonicalOperatorID
+
+
 class AgentPipelineEvent(RootModel):
-    root: AgentPipelineRunEvent | AgentPipelineStopEvent = Field(discriminator="type")
+    root: (
+        AgentPipelineRunEvent
+        | AgentPipelineStopEvent
+        | AgentOperatorRestartEvent
+    ) = Field(discriminator="type")

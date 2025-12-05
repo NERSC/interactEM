@@ -18,6 +18,7 @@ from interactem.core.constants import (
     SUBJECT_PIPELINES_DEPLOYMENTS,
     SUBJECT_SFAPI_JOBS,
 )
+from interactem.core.events.operators import OperatorRestartEvent
 from interactem.core.events.pipelines import (
     PipelineRunEvent,
     PipelineStopEvent,
@@ -106,9 +107,9 @@ async def nats_req_rep(
 
 
 async def publish_pipeline_deployment_event(
-    event: PipelineRunEvent | PipelineStopEvent,
+    event: PipelineRunEvent | PipelineStopEvent | OperatorRestartEvent,
 ) -> None:
-    """Publish pipeline deployment event (run or stop) to the deployments subject."""
+    """Publish pipeline deployment event to the deployments subject."""
     await publish_jetstream_event(
         STREAM_DEPLOYMENTS,
         f"{SUBJECT_PIPELINES_DEPLOYMENTS}.{event.deployment_id}",

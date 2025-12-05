@@ -14,6 +14,7 @@ from interactem.app.events.producer import (
     publish_pipeline_deployment_event,
 )
 from interactem.app.models import (
+    Message,
     Pipeline,
     PipelineDeployment,
     PipelineDeploymentCreate,
@@ -22,6 +23,10 @@ from interactem.app.models import (
     PipelineDeploymentState,
     PipelineDeploymentUpdate,
     PipelineRevision,
+)
+from interactem.core.events.operators import (
+    OperatorEventCreate,
+    OperatorRestartEvent,
 )
 from interactem.core.events.pipelines import (
     PipelineRunEvent,
@@ -183,3 +188,32 @@ async def update_pipeline_deployment(
         logger.info(f"Published stop event for deployment {deployment.id}")
 
     return PipelineDeploymentPublic.model_validate(deployment)
+
+
+@router.post("/{id}/operators/{canonical_operator_id}/events", response_model=Message)
+async def create_operator_event(
+    *,
+    session: SessionDep,
+    current_user: CurrentUser,
+    id: uuid.UUID,
+    canonical_operator_id: uuid.UUID,
+    operator_event: OperatorEventCreate,
+) -> Message:
+    """Publish an operator event for the specified deployment and operator."""
+
+    deployment = session.get(PipelineDeployment, id)
+    deployment = check_deployment_authorized(deployment, current_user, id)
+
+    event = OperatorRestartEvent(
+        deployment_id=deployment.id, canonical_operator_id=canonical_operator_id
+    )
+    await publish_pipeline_deployment_event(event)
+
+    logger.info(
+        "Published %s event for operator %s on deployment %s",
+        operator_event.type,
+        canonical_operator_id,
+        deployment.id,
+    )
+
+    return Message(message="Operator event submitted")
