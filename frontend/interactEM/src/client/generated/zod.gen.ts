@@ -173,6 +173,14 @@ export const zCanonicalPort = z.object({
 
 export const zComputeType = z.enum(["gpu", "cpu"])
 
+export const zDeploymentEventType = z.enum([
+  "deployment_run",
+  "deployment_stop",
+  "deployment_update",
+  "deployment_assignments",
+  "operator_restart",
+])
+
 export const zHttpValidationError = z.object({
   detail: z
     .array(
@@ -192,7 +200,7 @@ export const zMessage = z.object({
 export const zNodeType = z.enum(["operator", "port"])
 
 export const zOperatorEventCreate = z.object({
-  type: z.literal("operator_restart"),
+  type: zDeploymentEventType,
 })
 
 export const zOperatorPosition = z.object({

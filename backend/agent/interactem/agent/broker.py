@@ -5,7 +5,10 @@ from faststream import Context, ContextRepo, Depends, FastStream
 from faststream.nats import NatsMessage
 
 from interactem.core.constants import NATS_TIMEOUT_DEFAULT, SUBJECT_AGENTS_DEPLOYMENTS
-from interactem.core.events.pipelines import AgentPipelineEvent, AgentPipelineEventType
+from interactem.core.events.deployments import (
+    AgentDeploymentEvent,
+    AgentDeploymentEventType,
+)
 from interactem.core.logger import get_logger
 from interactem.core.nats.broker import get_nats_broker
 from interactem.core.nats.consumers import AGENT_CONSUMER_CONFIG
@@ -71,12 +74,12 @@ agent_consumer_config.description = f"agent-{AGENT_ID}"
     pull_sub=True,
     dependencies=[progress_dep],
 )
-async def agent_pipeline_event_handler(
-    event: AgentPipelineEvent, agent: Agent = Context()
+async def agent_deployment_event_handler(
+    event: AgentDeploymentEvent, agent: Agent = Context()
 ):
     HANDLERS = {
-        AgentPipelineEventType.START: agent.receive_assignment,
-        AgentPipelineEventType.STOP: agent.receive_cancellation,
-        AgentPipelineEventType.RESTART_OPERATOR: agent.restart_canonical_operator,
+        AgentDeploymentEventType.START: agent.receive_assignment,
+        AgentDeploymentEventType.STOP: agent.receive_cancellation,
+        AgentDeploymentEventType.RESTART_OPERATOR: agent.restart_canonical_operator,
     }
     await HANDLERS[event.root.type](event.root)

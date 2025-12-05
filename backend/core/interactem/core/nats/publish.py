@@ -2,10 +2,10 @@ from faststream.nats.broker import NatsBroker
 from faststream.nats.publisher.usecase import LogicPublisher
 from nats.js import JetStreamContext
 
-from interactem.core.events.pipelines import (
-    AgentPipelineBase,
-    PipelineAssignmentsEvent,
-    PipelineUpdateEvent,
+from interactem.core.events.deployments import (
+    AgentDeploymentBase,
+    DeploymentAssignmentsEvent,
+    DeploymentUpdateEvent,
 )
 from interactem.core.models.kvs import CanonicalOperatorID
 from interactem.core.models.runtime import RuntimeOperatorParameter
@@ -78,7 +78,7 @@ async def publish_operator_parameter_ack(
     )
 
 async def publish_agent_deployment_event(
-    js: JetStreamContext, event: AgentPipelineBase
+    js: JetStreamContext, event: AgentDeploymentBase
 ):
     await js.publish(
         subject=f"{SUBJECT_AGENTS_DEPLOYMENTS}.{event.agent_id}",
@@ -90,7 +90,7 @@ async def publish_agent_deployment_event(
 
 async def publish_deployment_assignment(
     js: JetStreamContext,
-    assignments: PipelineAssignmentsEvent,
+    assignments: DeploymentAssignmentsEvent,
 ):
     await js.publish(
         subject=f"{SUBJECT_PIPELINES_DEPLOYMENTS}.{assignments.deployment_id}.{ASSIGNMENTS}",
@@ -102,7 +102,7 @@ async def publish_deployment_assignment(
 
 async def publish_deployment_update(
     js: JetStreamContext,
-    event: PipelineUpdateEvent,
+    event: DeploymentUpdateEvent,
     api_key: str | None = None,
 ):
     await js.publish(

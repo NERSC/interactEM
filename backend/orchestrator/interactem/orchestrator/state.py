@@ -16,13 +16,13 @@ from interactem.core.constants import (
     STREAM_DEPLOYMENTS,
     SUBJECT_PIPELINES_DEPLOYMENTS,
 )
-from interactem.core.events.pipelines import (
-    PipelineAssignmentsEvent,
-    PipelineEvent,
-    PipelineEventType,
-    PipelineRunEvent,
-    PipelineStopEvent,
-    PipelineUpdateEvent,
+from interactem.core.events.deployments import (
+    DeploymentAssignmentsEvent,
+    DeploymentEvent,
+    DeploymentEventType,
+    DeploymentRunEvent,
+    DeploymentStopEvent,
+    DeploymentUpdateEvent,
 )
 from interactem.core.logger import get_logger
 from interactem.core.models.base import (
@@ -102,21 +102,21 @@ class OrchestratorState:
                 ack_policy=AckPolicy.NONE,
             ),
         )
-        updates: dict[DeploymentID, PipelineUpdateEvent] = {}
-        runs: dict[DeploymentID, PipelineRunEvent] = {}
-        stops: dict[DeploymentID, PipelineStopEvent] = {}
-        assignments: dict[DeploymentID, PipelineAssignmentsEvent] = {}
-        dict_to_update: dict[PipelineEventType, dict] = {
-            PipelineEventType.PIPELINE_UPDATE: updates,
-            PipelineEventType.PIPELINE_ASSIGNMENTS: assignments,
-            PipelineEventType.PIPELINE_RUN: runs,
-            PipelineEventType.PIPELINE_STOP: stops,
+        updates: dict[DeploymentID, DeploymentUpdateEvent] = {}
+        runs: dict[DeploymentID, DeploymentRunEvent] = {}
+        stops: dict[DeploymentID, DeploymentStopEvent] = {}
+        assignments: dict[DeploymentID, DeploymentAssignmentsEvent] = {}
+        dict_to_update: dict[DeploymentEventType, dict] = {
+            DeploymentEventType.UPDATE: updates,
+            DeploymentEventType.ASSIGNMENTS: assignments,
+            DeploymentEventType.RUN: runs,
+            DeploymentEventType.STOP: stops,
         }
 
         # Grab messages into respective dicts
         messages_processed = 0
         async for msg in exhaust_stream(psub):
-            ev = PipelineEvent.model_validate_json(msg.data)
+            ev = DeploymentEvent.model_validate_json(msg.data)
 
             depl_id = ev.root.deployment_id
             event_type = ev.root.type

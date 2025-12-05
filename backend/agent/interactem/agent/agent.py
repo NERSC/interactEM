@@ -21,10 +21,10 @@ from interactem.core.constants import (
     VECTOR_IMAGE,
 )
 from interactem.core.constants.mounts import CORE_MOUNT, OPERATORS_MOUNT
-from interactem.core.events.pipelines import (
+from interactem.core.events.deployments import (
+    AgentDeploymentRunEvent,
+    AgentDeploymentStopEvent,
     AgentOperatorRestartEvent,
-    AgentPipelineRunEvent,
-    AgentPipelineStopEvent,
 )
 from interactem.core.logger import get_logger
 from interactem.core.models.containers import (
@@ -286,7 +286,7 @@ class Agent:
             container.start()
             return container
 
-    async def receive_cancellation(self, event: AgentPipelineStopEvent):
+    async def receive_cancellation(self, event: AgentDeploymentStopEvent):
         deployment_id = event.deployment_id
         logger.info(f"Received cancellation for deployment {deployment_id}")
 
@@ -372,7 +372,7 @@ class Agent:
         finally:
             self._suppress_monitor = False
 
-    async def receive_assignment(self, event: AgentPipelineRunEvent):
+    async def receive_assignment(self, event: AgentDeploymentRunEvent):
         """Handle incoming deployment assignment.
 
         This method creates and runs a deployment within a DeploymentContext context.
@@ -405,7 +405,7 @@ class Agent:
                 name=f"deployment-{deployment_id}",
             )
 
-    async def _run_deployment(self, event: AgentPipelineRunEvent) -> None:
+    async def _run_deployment(self, event: AgentDeploymentRunEvent) -> None:
         """Run a deployment within a DeploymentContext context.
 
         This method manages the entire lifecycle of a deployment:

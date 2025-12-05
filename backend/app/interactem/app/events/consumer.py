@@ -1,5 +1,5 @@
 from interactem.core.constants import SUBJECT_PIPELINES_DEPLOYMENTS, UPDATES
-from interactem.core.events.pipelines import PipelineUpdateEvent
+from interactem.core.events.deployments import DeploymentUpdateEvent
 from interactem.core.logger import get_logger
 from interactem.core.nats.broker import get_nats_broker
 from interactem.core.nats.consumers import PIPELINE_UPDATE_CONSUMER_CONFIG
@@ -25,7 +25,7 @@ pipeline_update_consumer_config.description = "API pipeline updates consumer"
     description=pipeline_update_consumer_config.description,
     dependencies=[OrchestratorApiKeyDep],
 )
-async def pipeline_updates_consumer(update: PipelineUpdateEvent, session: SessionDep):
+async def pipeline_updates_consumer(update: DeploymentUpdateEvent, session: SessionDep):
     """
     Consume deployment state updates from the orchestrator and update the database.
     The orchestrator is the source of truth for deployment state transitions.

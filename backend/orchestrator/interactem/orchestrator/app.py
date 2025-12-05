@@ -18,11 +18,11 @@ from interactem.core.constants import (
     OPERATORS,
     SUBJECT_PIPELINES_DEPLOYMENTS,
 )
-from interactem.core.events.operators import OperatorRestartEvent
-from interactem.core.events.pipelines import (
-    PipelineEvent,
-    PipelineRunEvent,
-    PipelineStopEvent,
+from interactem.core.events.deployments import (
+    DeploymentEvent,
+    DeploymentRunEvent,
+    DeploymentStopEvent,
+    OperatorRestartEvent,
 )
 from interactem.core.logger import get_logger
 from interactem.core.nats.broker import get_nats_broker
@@ -44,8 +44,8 @@ from .constants import (
 from .exceptions import PipelineExceptionMiddleware
 from .orchestrator import (
     handle_restart_operator_event,
-    handle_run_pipeline,
-    handle_stop_pipeline_event,
+    handle_run_deployment,
+    handle_stop_deployment_event,
 )
 
 """
@@ -56,7 +56,7 @@ out updates
 3. we are putting several different publishers into the context "repo", which is like a
 dict that we can pass around in the functions that are wrapped by faststream
 
-When we get a message, it comes in already deserialized into a PipelineEvent object,
+When we get a message, it comes in already deserialized into a DeploymentEvent object,
 and we look up the appropriate handler function for that event type, and we call it.
 If an exception is raised it will be sent to this middleware
 """
@@ -94,8 +94,8 @@ context_repo = ContextRepo(
 )
 
 HANDLERS: dict[type[BaseModel], Callable] = {
-    PipelineRunEvent: handle_run_pipeline,
-    PipelineStopEvent: handle_stop_pipeline_event,
+    DeploymentRunEvent: handle_run_deployment,
+    DeploymentStopEvent: handle_stop_deployment_event,
     OperatorRestartEvent: handle_restart_operator_event,
 }
 
@@ -110,7 +110,7 @@ HANDLERS: dict[type[BaseModel], Callable] = {
     pull_sub=True,
 )
 async def handle_deployment_event(
-    event: PipelineEvent,
+    event: DeploymentEvent,
     broker: BrokerAnnotation,
     context: ContextRepoAnnotation,
     state: OrchestratorStateAnnotation,

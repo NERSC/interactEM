@@ -4,8 +4,8 @@ from faststream.nats.annotations import NatsBroker as BrokerAnnotation
 from nats.js import JetStreamContext
 from transitions.extensions.asyncio import AsyncMachine
 
-from interactem.core.events.pipelines import (
-    PipelineUpdateEvent,
+from interactem.core.events.deployments import (
+    DeploymentUpdateEvent,
 )
 from interactem.core.logger import get_logger
 from interactem.core.models.base import (
@@ -92,7 +92,7 @@ class DeploymentStateMachine(AsyncMachine):
 
     async def publish_state_update(self):
         """Publish the current deployment state as an update event."""
-        update = PipelineUpdateEvent(
+        update = DeploymentUpdateEvent(
             deployment_id=self.id,
             state=self.current_state,
         )
