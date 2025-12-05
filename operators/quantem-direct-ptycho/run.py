@@ -21,12 +21,14 @@ from quantem.core import config
 from quantem.core.datastructures import Dataset4dstem
 from quantem.core.utils.diffractive_imaging_utils import fit_probe_circle
 
+import numpy as np
+
 logger = get_logger()
 
 # --- Operator State ---
 # OrderedDict to hold FrameAccumulator instances with LRU behavior
 accumulators: OrderedDict[int, FrameAccumulator] = OrderedDict()
-
+result: OrderedDict[int, Any] = OrderedDict()
 
 @operator
 def py4dstem_parallax(
@@ -37,6 +39,7 @@ def py4dstem_parallax(
     and calculates/emits virtual bright field images.
     """
     global accumulators
+    global result
 
     if not inputs:
         return None
@@ -154,8 +157,9 @@ def py4dstem_parallax(
             max_batch_size = 10
         )
 
-        logger.debug(f"reconstruction done")
+        
         # Process and return result
+        logger.info(f"reconstruction done")
         output_bytes = initial_parallax.obj.tobytes()
         output_meta = {
             "scan_number": scan_number,
@@ -164,14 +168,14 @@ def py4dstem_parallax(
             "source_operator": "quantem-direct-ptycho",
         }
     except:
-        raise
+        zeros_out = np.zeros(accumulator.scan_shape, dtype=np.uint8)
         logger.info(f"Direct ptychography reconstruction failed for scan {scan_number}.")
-        output_bytes = dp.tobytes()
+        output_bytes = zeros_out.tobytes()
         output_meta = {
             "scan_number": scan_number,
             "accumulated_messages": accumulator.num_batches_added,
-            "shape": dp.shape,
-            "dtype": str(dp.dtype),
+            "shape": zeros_out.scan_shape,
+            "dtype": str(zeros_out.dtype),
             "source_operator": "quantem-direct-ptycho-failed",
         }
 
