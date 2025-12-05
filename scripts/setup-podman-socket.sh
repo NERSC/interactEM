@@ -10,11 +10,11 @@ REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 echo "Setting up PODMAN_SERVICE_URI in .env files..."
 
 # Get the podman socket path in the unix:// format
-PODMAN_SERVICE_URI=$("$SCRIPT_DIR/podman-socket-path.sh" || true)
+PODMAN_SERVICE_URI=$("$SCRIPT_DIR/podman-socket-path.sh")
 
 if [ -z "$PODMAN_SERVICE_URI" ]; then
-    echo "Podman socket not available; skipping PODMAN_SERVICE_URI updates (docker-only environment)." >&2
-    exit 0
+    echo "Error: Could not determine podman socket URI" >&2
+    exit 1
 fi
 
 echo "Using podman socket URI: $PODMAN_SERVICE_URI"
