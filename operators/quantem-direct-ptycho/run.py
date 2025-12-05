@@ -174,7 +174,7 @@ def py4dstem_parallax(
         output_meta = {
             "scan_number": scan_number,
             "accumulated_messages": accumulator.num_batches_added,
-            "shape": zeros_out.scan_shape,
+            "shape": zeros_out.shape,
             "dtype": str(zeros_out.dtype),
             "source_operator": "quantem-direct-ptycho-failed",
         }
