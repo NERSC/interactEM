@@ -72,86 +72,108 @@ def py4dstem_parallax(
     accumulator.add_message(inputs)
 
     # --- 4. Check Calculation Frequency ---
-    calc_freq = int(parameters.get("calculation_frequency", 100))
-    if calc_freq <= 0:
-        calc_freq = 100
+    # calc_freq = int(parameters.get("calculation_frequency", 100))
+    # if calc_freq <= 0:
+    #     calc_freq = 100
 
-    if not accumulator.finished and (
-        accumulator.num_batches_added == 0
-        or accumulator.num_batches_added % calc_freq != 0
-    ):
-        logger.debug(
-            f"Scan {scan_number}: Not time to calculate yet. Messages added: {accumulator.num_batches_added}."
-        )
+    # if not accumulator.finished and (
+    #     accumulator.num_batches_added == 0
+    #     or accumulator.num_batches_added % calc_freq != 0
+    # ):
+    #     logger.debug(
+    #         f"Scan {scan_number}: Not time to calculate yet. Messages added: {accumulator.num_batches_added}."
+    #     )
+    #     return None
+
+    if not accumulator.num_batches_added == 244:
+        if accumulator.num_batches_added % 20 == 0:
+            logger.info(
+                f"Scan {scan_number}: Not time to calculate yet. Frames added: {accumulator.num_frames_added}."
+            )
         return None
 
     # --- 5. Perform Calculation ---
-    logger.debug(
+    logger.info(
         f"Scan {scan_number}: Triggering calculation after {accumulator.num_batches_added} messages."
     )
+    logger.info(f"Accumulator finished: {accumulator.finished}")
 
     subsample_step = int(parameters.get("subsample_step_center", 2))
     if subsample_step <= 0:
         subsample_step = 2
 
-    logger.debug(
+    logger.info(
         f"Scan {scan_number}: Calculating center (subsample_step={subsample_step})."
     )
     dp = get_summed_diffraction_pattern(accumulator, subsample_step=subsample_step)
-    center = calculate_diffraction_center(dp)
-    logger.debug(f"Scan {scan_number}: Center calculated: {center}.")
 
-    logger.debug(f"Scan {scan_number}: Calculating parallax images.")
+    logger.info(f"Scan {scan_number}: Calculating ptycho images.")
 
     probe_semiangle = 25
     energy = 300e3
-    additional_rotation = 0
-    com_rotaiton = -169 + additional_rotation
 
-    data = accumulator.to_dense()
+    logger.info(f"densify")
+    data = accumulator.to_dense()[:,:-1,:,:]  ## remove last row and column to make it even sized
     dset = em.datastructures.Dataset4dstem.from_array(array=data)
-    dset.get_dp_mean()
+    logger.info(f"dense shape = {data.shape}")
 
+    dset.get_dp_mean()
+    logger.info(f"fit probe circle")
     probe_qy0, probe_qx0, probe_R = fit_probe_circle(
         dset.dp_mean.array, show=False
     )
+    logger.info(f"{probe_qy0}, {probe_qx0}, {probe_R}")
 
+    logger.info(f"input metadata")
     dset.sampling[2] = probe_semiangle / probe_R
     dset.sampling[3] = probe_semiangle / probe_R
     dset.units[2:] = ["mrad", "mrad"]
 
-    ## this has to be Anggstrom for quantem
-    dset.sampling[0] = 0.14383155 * 10
+    dset.sampling[0] = 0.14383155 * 10 ## this has to be Anggstrom for quantem
     dset.sampling[1] = 0.14383155 * 10
     dset.units[0:2] = ["A", "A"]
-    direct_ptycho = em.diffractive_imaging.direct_ptychography.DirectPtychography.from_dataset4d(
-                        dset,
-                        energy=energy,
-                        semiangle_cutoff=probe_semiangle,
-                        device="cpu", 
-                        aberration_coefs={'C10':0},
-                        max_batch_size=10,
-                        rotation_angle=0, # need radians
-                        )
-    # optimize
-    direct_ptycho.fit_hyperparameters()
-    initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(
-        upsampling_factor = 2,  ### this can be changed
-        max_batch_size = 10
-    )
 
+    logger.info(f"{dset.units}")
 
+    logger.info(f"run direct ptycho")
+    try:
+        direct_ptycho = em.diffractive_imaging.direct_ptychography.DirectPtychography.from_dataset4d(
+                            dset,
+                            energy=energy,
+                            semiangle_cutoff=probe_semiangle,
+                            device="cpu", 
+                            aberration_coefs={'C10':0},
+                            max_batch_size=10,
+                            rotation_angle=0, # need radians
+                            )
+        
+        logger.info(f"fit hyperparameters")
+        direct_ptycho.fit_hyperparameters()
+        initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(
+            upsampling_factor = 2,  ### this can be changed
+            max_batch_size = 10
+        )
 
-    # Process and return result
-    output_meta = {
-        "scan_number": scan_number,
-        "accumulated_messages": accumulator.num_batches_added,
-        "shape": dset.dp_mean.shape,
-        "dtype": str(dset.dp_mean.dtype),
-        "center_used": center,
-        "source_operator": "py4dstem-dense",
-    }
+        logger.debug(f"reconstruction done")
+        # Process and return result
+        output_bytes = initial_parallax.obj.tobytes()
+        output_meta = {
+            "scan_number": scan_number,
+            "shape": initial_parallax.obj.shape,
+            "dtype": str(initial_parallax.obj.dtype),
+            "source_operator": "quantem-direct-ptycho",
+        }
+    except:
+        raise
+        logger.info(f"Direct ptychography reconstruction failed for scan {scan_number}.")
+        output_bytes = dp.tobytes()
+        output_meta = {
+            "scan_number": scan_number,
+            "accumulated_messages": accumulator.num_batches_added,
+            "shape": dp.shape,
+            "dtype": str(dp.dtype),
+            "source_operator": "quantem-direct-ptycho-failed",
+        }
 
-    output_bytes = initial_parallax.obj.tobytes()
-    header = MessageHeader(subject=MessageSubject.BYTES, meta={})
+    header = MessageHeader(subject=MessageSubject.BYTES, meta=output_meta)
     return BytesMessage(header=header, data=output_bytes)
