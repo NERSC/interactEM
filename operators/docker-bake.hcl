@@ -37,7 +37,8 @@ group "operators" {
     "center-of-mass-plot",
     "dpc",
     "read-data-pae",
-    "bin-sparse-partial"
+    "bin-sparse-partial",
+    "py4dstem-dense"
   ]
 }
 
@@ -277,4 +278,11 @@ target "bin-sparse-partial" {
   context = "operators/bin-sparse-partial"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/bin-sparse-partial:${TAG}"]
+}
+
+target "py4dstem-dense" {
+  inherits = ["common"]
+  context = "operators/py4dstem-dense"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/py4dstem-dense:${TAG}"]
 }
