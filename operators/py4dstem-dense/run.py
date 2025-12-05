@@ -108,7 +108,7 @@ def py4dstem_parallax(
     additional_rotation = 0
     com_rotaiton = -169 + additional_rotation
 
-    data = accumulator.get_dense()
+    data = accumulator.to_dense()
     dset = em.datastructures.Dataset4dstem.from_array(array=data)
     dset.get_dp_mean()
 
@@ -128,7 +128,7 @@ def py4dstem_parallax(
                         dset,
                         energy=energy,
                         semiangle_cutoff=probe_semiangle,
-                        device="gpcpuu", 
+                        device="cpu", 
                         aberration_coefs={'C10':0},
                         max_batch_size=10,
                         rotation_angle=0, # need radians
