@@ -113,16 +113,16 @@ def py4dstem_parallax(
     logger.info("densify")
     data = accumulator.to_dense()[:,:-1,:,:]  ## remove last row and column to make it even sized
     dset = em.datastructures.Dataset4dstem.from_array(array=data)
-    logger.info(f"dense shape = {data.shape}")
+    logger.debug(f"dense shape = {data.shape}")
 
     dset.get_dp_mean()
-    logger.info("fit probe circle")
+    logger.debug(f"fit probe circle")
     probe_qy0, probe_qx0, probe_R = fit_probe_circle(
         dset.dp_mean.array, show=False
     )
-    logger.info(f"{probe_qy0}, {probe_qx0}, {probe_R}")
+    logger.debug(f"{probe_qy0}, {probe_qx0}, {probe_R}")
 
-    logger.info("input metadata")
+    logger.info(f"Scan {scan_number}: Using hard coded metadata")
     dset.sampling[2] = probe_semiangle / probe_R
     dset.sampling[3] = probe_semiangle / probe_R
     dset.units[2:] = ["mrad", "mrad"]
@@ -131,9 +131,7 @@ def py4dstem_parallax(
     dset.sampling[1] = 0.14383155 * 10
     dset.units[0:2] = ["A", "A"]
 
-    logger.info(f"{dset.units}")
-
-    logger.info("run direct ptycho")
+    logger.info(f"Scan {scan_number}: Start direct ptycho")
     try:
         direct_ptycho = em.diffractive_imaging.direct_ptychography.DirectPtychography.from_dataset4d(
                             dset,
@@ -144,8 +142,8 @@ def py4dstem_parallax(
                             max_batch_size=10,
                             rotation_angle=0, # need radians
                             )
-
-        logger.info("fit hyperparameters")
+        
+        logger.info(f"Scan {scan_number}: Fit hyperparameters")
         direct_ptycho.fit_hyperparameters()
         initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(
             upsampling_factor = 2,  ### this can be changed
@@ -154,7 +152,7 @@ def py4dstem_parallax(
 
 
         # Process and return result
-        logger.info("reconstruction done")
+        logger.info(f"Scan {scan_number}: Reconstruction done")
         output_bytes = initial_parallax.obj.tobytes()
         output_meta = {
             "scan_number": scan_number,

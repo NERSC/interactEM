@@ -17,10 +17,7 @@ def bin_partial(
         logger.warning("No input provided to the bin operator.")
         return None
 
-    bin_value = None
-    bin_param = parameters.get("bin_value")
-    if bin_param is not None:
-        bin_value = bin_param
+    bin_param = parameters.get("bin_value", 1)
 
     # Get the batch of frames from the input
     batch = BatchedFrames.from_bytes_message(inputs)
