@@ -49,7 +49,7 @@ interactem-sfapi-models = {path = "backend/sfapi_models", develop = true}
 
 [dependency-groups]
 dev = [
-    "pytest>=9.0.1",
+    "pytest>=9.0.1,<10",
 ]
 
 [tool.pytest.ini_options]

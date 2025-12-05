@@ -877,7 +877,7 @@ requires-dist = [
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "pytest", specifier = ">=9.0.1" }]
+dev = [{ name = "pytest", specifier = ">=9.0.1,<10" }]
 
 [[package]]
 name = "interactem-agent"
@@ -963,7 +963,7 @@ dev = [
     { name = "coverage", specifier = ">=7.4.3,<8" },
     { name = "mypy", specifier = ">=1.8.0,<2" },
     { name = "pre-commit", specifier = ">=3.6.2,<4" },
-    { name = "pytest", specifier = ">=7.4.3,<8" },
+    { name = "pytest", specifier = ">=9.0.1,<10" },
     { name = "ruff", specifier = ">=0.2.2,<0.3" },
     { name = "types-passlib", specifier = ">=1.7.7,<2" },
 ]
@@ -1019,7 +1019,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "pydantic-to-typescript", specifier = ">=2.0.0,<3" },
-    { name = "pytest", specifier = ">=7.4.3,<8" },
+    { name = "pytest", specifier = ">=9.0.1,<10" },
 ]
 
 [[package]]
@@ -1047,8 +1047,8 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pytest", specifier = ">=8.3.4,<9" },
-    { name = "pytest-asyncio", specifier = ">=0.25.3,<1" },
+    { name = "pytest", specifier = ">=9.0.1,<10" },
+    { name = "pytest-asyncio", specifier = ">=1.0.0,<2" },
     { name = "python-dotenv", extras = ["cli"], specifier = ">=1.0.1,<2" },
 ]
 
@@ -1107,7 +1107,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "pytest", specifier = ">=8.3.5,<9" },
+    { name = "pytest", specifier = ">=9.0.1,<10" },
     { name = "pytest-mock", specifier = ">=3.14.0,<4" },
 ]
 

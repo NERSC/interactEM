@@ -280,7 +280,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "pydantic-to-typescript", specifier = ">=2.0.0,<3" },
-    { name = "pytest", specifier = ">=7.4.3,<8" },
+    { name = "pytest", specifier = ">=9.0.1,<10" },
 ]
 
 [[package]]
