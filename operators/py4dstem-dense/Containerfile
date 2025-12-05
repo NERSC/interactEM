@@ -1,0 +1,7 @@
+FROM ghcr.io/nersc/interactem/distiller-streaming
+
+# Install additional dependencies
+RUN pip install quantem
+
+# Copy the operator script
+COPY ./run.py /app/run.py
