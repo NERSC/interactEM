@@ -5,10 +5,12 @@ FRONTEND_DIR := ./frontend/interactEM
 OPERATORS_DIR := ./operators
 
 # Makefile configuration
-.PHONY: help setup setup-docker-registry services docker-up docker-down clean lint operators check-docker-permission
+.PHONY: help setup setup-docker-registry services docker-up docker-down clean lint operators check-docker-permission integration-test
 SHELL := /bin/bash
 .SHELLFLAGS := -euo pipefail -c
 .DEFAULT_GOAL := help
+
+INTEGRATION_MARKER ?= integration
 
 # Reusable function
 define success
@@ -112,7 +114,7 @@ lint: ## Run backend (ruff) and frontend (biome) linters
 	$(call success,Linting complete)
 
 ## Set up local Docker registry for operator builds
-setup-docker-registry: check-docker-permission 
+setup-docker-registry: check-docker-permission
 	$(call section,Setting up local Docker registry...)
 	$(SCRIPTS_DIR)/setup-docker-registry.sh
 
@@ -137,6 +139,20 @@ push-operators: setup-docker-registry ## Build + push operators to remote regist
 	$(OPERATORS_DIR)/bake.sh --push-remote --build-base
 	$(call success,Operators pushed to remote registry)
 
-test: ## Run tests 
+test: ## Run tests
 	uv run pytest backend/ --ignore=backend/launcher/ --ignore=backend/app/
 	$(call success,Tests complete)
+
+integration-test: ## Run integration tests against the docker-compose stack using the configured marker
+	$(call section,Starting services for integration tests...)
+	$(MAKE) setup
+	$(MAKE) docker-up
+	$(call section,Running integration tests...)
+	@status=0; \
+	trap '$(MAKE) docker-down' EXIT; \
+	uv run pytest tests -m "$(INTEGRATION_MARKER)" || status=$$?; \
+	if [ $$status -eq 5 ]; then \
+	echo "No tests collected for marker '$(INTEGRATION_MARKER)'; skipping."; \
+	status=0; \
+	fi; \
+	exit $$status
