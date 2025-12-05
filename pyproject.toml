@@ -51,3 +51,8 @@ interactem-sfapi-models = {path = "backend/sfapi_models", develop = true}
 dev = [
     "pytest>=9.0.1",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: marks tests as integration and assumes docker-compose services are running",
+]
