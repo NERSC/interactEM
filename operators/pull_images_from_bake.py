@@ -15,6 +15,7 @@ Features:
 import asyncio
 import json
 import logging
+import os
 import sys
 from pathlib import Path
 
@@ -109,21 +110,28 @@ class DockerBakeConfig:
 
     @property
     def tag(self) -> str:
+        env_tag = os.getenv("TAG")
+        if env_tag:
+            return env_tag
         for var_dict in self.config.variable:
             if "TAG" in var_dict:
                 return var_dict["TAG"].default or "latest"
         return "latest"
 
     def get_base_targets(self) -> list[str]:
+        base_target_names = ["base", "operator", "distiller-streaming"]
         groups: list[str] = []
         for group_dict in self.config.group:
-            if "base" in group_dict:
-                groups.extend(group_dict["base"].get("targets", []))
-            if "operator" in group_dict:
-                groups.extend(group_dict["operator"].get("targets", []))
-            if "distiller-streaming" in group_dict:
-                groups.extend(group_dict["distiller-streaming"].get("targets", []))
-        return groups
+            for target_name in base_target_names:
+                if target_name in group_dict:
+                    groups.extend(group_dict[target_name].get("targets", []))
+        if groups:
+            return groups
+
+        defined_targets = {
+            name for target_dict in self.config.target for name in target_dict
+        }
+        return [name for name in base_target_names if name in defined_targets]
 
     def get_operator_targets(self) -> list[str]:
         for group_dict in self.config.group:
@@ -156,10 +164,11 @@ class ImagePuller:
     async def pull_images_to_podman(
         self, targets: list[str] | None = None
     ) -> dict[str, bool]:
-        targets = targets or self.bake_config.get_operator_targets()
-        if not targets:
+        base_targets = self.bake_config.get_base_targets()
+        target_list = targets or self.bake_config.get_operator_targets()
+        target_list = list(dict.fromkeys(target_list + base_targets))
+        if not target_list:
             fatal("No targets found for pulling images")
-        targets.extend(self.bake_config.get_base_targets())
         podman_kwargs = {"base_url": self.podman_socket} if self.podman_socket else {}
 
         try:
@@ -172,16 +181,16 @@ class ImagePuller:
                     fatal(f"Failed to connect to Podman: {e}")
 
                 logger.info(
-                    f"Pulling {len(targets)} operator targets (limit={self.semaphore._value})..."
+                    f"Pulling {len(target_list)} targets (limit={self.semaphore._value})..."
                 )
                 results_list = await asyncio.gather(
-                    *(self._pull_target_images(client, t) for t in targets),
+                    *(self._pull_target_images(client, t) for t in target_list),
                     return_exceptions=True,
                 )
 
                 return {
                     target: not isinstance(result, Exception) and bool(result)
-                    for target, result in zip(targets, results_list, strict=True)
+                    for target, result in zip(target_list, results_list, strict=True)
                 }
         except Exception as e:
             fatal(f"Error connecting to Podman: {e}")
