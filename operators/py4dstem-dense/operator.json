@@ -1,0 +1,51 @@
+{
+  "id": "17460a60-01ac-4144-aa32-126bd62667aa",
+  "label": "quantem dense",
+  "description": "Convert a sparse array into a py4dstem datacube",
+  "image": "ghcr.io/nersc/interactem/py4dstem-dense:latest",
+  "inputs": [
+    {
+      "name": "counted_data",
+      "label": "Counted data",
+      "description": "Sparse frames of counted data",
+      "type": "BatchedFrames"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "datacube",
+      "label": "Datacube",
+      "description": "Datacube output",
+      "type": "bytes"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "calculation_frequency",
+      "label": "Calculation Frequency",
+      "type": "int",
+      "default": "100",
+      "description": "Number of frames to accumulate before recalculating the center and emitting a BF image.",
+      "required": true
+    },
+    {
+      "name": "subsample_step_center",
+      "label": "Center Subsample Step",
+      "type": "int",
+      "default": "2",
+      "description": "Step size for subsampling scan positions when calculating the center.",
+      "required": true
+    },
+    {
+      "name": "max_concurrent_scans",
+      "label": "Max Concurrent Scans",
+      "type": "int",
+      "default": "1",
+      "description": "Maximum number of scans to keep in memory simultaneously. Oldest scans are evicted when this limit is exceeded.",
+      "required": false
+    }
+  ],
+  "parallel_config": {
+    "type": "none"
+  }
+}
