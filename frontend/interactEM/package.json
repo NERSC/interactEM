@@ -23,7 +23,9 @@
     "lint": "biome check --unsafe --no-errors-on-unmatched --files-ignore-unknown=true ./",
     "preview": "vite preview",
     "generate-client": "openapi-ts",
-    "deduplicate-enums": "tsx scripts/deduplicate-enums.ts src/types/gen.ts"
+    "deduplicate-enums": "tsx scripts/deduplicate-enums.ts src/types/gen.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.4",
@@ -55,6 +57,7 @@
   "devDependencies": {
     "@biomejs/biome": "^1.9.3",
     "@hey-api/openapi-ts": "^0.64.3",
+    "@playwright/test": "^1.57.0",
     "@tanstack/react-query-devtools": "^5.66.0",
     "@types/node": "^24.10.1",
     "@types/react": "^18.2.53",
@@ -63,6 +66,7 @@
     "@typescript-eslint/parser": "^8.24.0",
     "@vitejs/plugin-react": "^4.3.4",
     "path": "^0.12.7",
+    "playwright": "^1.57.0",
     "rollup-plugin-visualizer": "^5.14.0",
     "ts-morph": "^27.0.2",
     "tsx": "^4.19.0",
