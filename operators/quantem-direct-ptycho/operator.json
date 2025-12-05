@@ -1,8 +1,8 @@
 {
   "id": "17460a60-01ac-4144-aa32-126bd62667aa",
-  "label": "quantem dense",
-  "description": "Convert a sparse array into a py4dstem datacube",
-  "image": "ghcr.io/nersc/interactem/py4dstem-dense:latest",
+  "label": "quantem direct ptycho",
+  "description": "Use quantem to calculate direct ptychography reconstructions from counted data.",
+  "image": "ghcr.io/nersc/interactem/quantem-direct-ptycho:latest",
   "inputs": [
     {
       "name": "counted_data",
