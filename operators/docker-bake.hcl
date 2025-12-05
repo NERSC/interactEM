@@ -37,7 +37,7 @@ group "operators" {
     "center-of-mass-plot",
     "dpc",
     "bin-sparse-partial",
-    "py4dstem-dense"
+    "quantem-direct-ptycho"
   ]
 }
 
@@ -272,9 +272,9 @@ target "bin-sparse-partial" {
   tags = ["${REGISTRY}/bin-sparse-partial:${TAG}"]
 }
 
-target "py4dstem-dense" {
+target "quantem-direct-ptycho" {
   inherits = ["common"]
-  context = "operators/py4dstem-dense"
+  context = "operators/quantem-direct-ptycho"
   dockerfile = "Containerfile"
-  tags = ["${REGISTRY}/py4dstem-dense:${TAG}"]
+  tags = ["${REGISTRY}/quantem-direct-ptycho:${TAG}"]
 }
