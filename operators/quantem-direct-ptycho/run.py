@@ -1,12 +1,14 @@
 from collections import OrderedDict
 from typing import Any
 
+import numpy as np
+import quantem as em
 from distiller_streaming.accumulator import FrameAccumulator
 from distiller_streaming.models import BatchedFrames
 from distiller_streaming.util import (
-    calculate_diffraction_center,
     get_summed_diffraction_pattern,
 )
+from quantem.core.utils.diffractive_imaging_utils import fit_probe_circle
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import (
@@ -15,13 +17,6 @@ from interactem.core.models.messages import (
     MessageSubject,
 )
 from interactem.operators.operator import operator
-
-import quantem as em
-from quantem.core import config
-from quantem.core.datastructures import Dataset4dstem
-from quantem.core.utils.diffractive_imaging_utils import fit_probe_circle
-
-import numpy as np
 
 logger = get_logger()
 
@@ -108,26 +103,26 @@ def py4dstem_parallax(
     logger.info(
         f"Scan {scan_number}: Calculating center (subsample_step={subsample_step})."
     )
-    dp = get_summed_diffraction_pattern(accumulator, subsample_step=subsample_step)
+    get_summed_diffraction_pattern(accumulator, subsample_step=subsample_step)
 
     logger.info(f"Scan {scan_number}: Calculating ptycho images.")
 
     probe_semiangle = 25
     energy = 300e3
 
-    logger.info(f"densify")
+    logger.info("densify")
     data = accumulator.to_dense()[:,:-1,:,:]  ## remove last row and column to make it even sized
     dset = em.datastructures.Dataset4dstem.from_array(array=data)
     logger.info(f"dense shape = {data.shape}")
 
     dset.get_dp_mean()
-    logger.info(f"fit probe circle")
+    logger.info("fit probe circle")
     probe_qy0, probe_qx0, probe_R = fit_probe_circle(
         dset.dp_mean.array, show=False
     )
     logger.info(f"{probe_qy0}, {probe_qx0}, {probe_R}")
 
-    logger.info(f"input metadata")
+    logger.info("input metadata")
     dset.sampling[2] = probe_semiangle / probe_R
     dset.sampling[3] = probe_semiangle / probe_R
     dset.units[2:] = ["mrad", "mrad"]
@@ -138,28 +133,28 @@ def py4dstem_parallax(
 
     logger.info(f"{dset.units}")
 
-    logger.info(f"run direct ptycho")
+    logger.info("run direct ptycho")
     try:
         direct_ptycho = em.diffractive_imaging.direct_ptychography.DirectPtychography.from_dataset4d(
                             dset,
                             energy=energy,
                             semiangle_cutoff=probe_semiangle,
-                            device="cpu", 
+                            device="cpu",
                             aberration_coefs={'C10':0},
                             max_batch_size=10,
                             rotation_angle=0, # need radians
                             )
-        
-        logger.info(f"fit hyperparameters")
+
+        logger.info("fit hyperparameters")
         direct_ptycho.fit_hyperparameters()
         initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(
             upsampling_factor = 2,  ### this can be changed
             max_batch_size = 10
         )
 
-        
+
         # Process and return result
-        logger.info(f"reconstruction done")
+        logger.info("reconstruction done")
         output_bytes = initial_parallax.obj.tobytes()
         output_meta = {
             "scan_number": scan_number,
@@ -167,7 +162,7 @@ def py4dstem_parallax(
             "dtype": str(initial_parallax.obj.dtype),
             "source_operator": "quantem-direct-ptycho",
         }
-    except:
+    except Exception:
         zeros_out = np.zeros(accumulator.scan_shape, dtype=np.uint8)
         logger.info(f"Direct ptychography reconstruction failed for scan {scan_number}.")
         output_bytes = zeros_out.tobytes()

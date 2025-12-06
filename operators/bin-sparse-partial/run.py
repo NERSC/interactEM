@@ -1,7 +1,7 @@
 from typing import Any
 
 #from distiller_streaming.bin import bin_frames_simple
-from distiller_streaming.models import BatchedFrames, BatchedFrameHeader
+from distiller_streaming.models import BatchedFrameHeader, BatchedFrames
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
@@ -21,25 +21,24 @@ def bin_partial(
     bin_param = parameters.get("bin_value")
     if bin_param is not None:
         bin_value = bin_param
-    
+
     # Get the batch of frames from the input
     batch = BatchedFrames.from_bytes_message(inputs)
-    
+
     # Extract necessary metadata from the header
-    scan_shape = batch.header.scan_shape
     frame_shape = batch.header.frame_shape
 
     # Get the sparse frames
     data, position_indices = batch.get_frame_arrays_with_positions()
     #scan_positions = position_indices
-    
+
     # Convert each event into the location on the reduced frame size (binning)
     rows = data // frame_shape[0] // bin_value # row location of event
     cols = data % frame_shape[1] // bin_value # column location of event
     # Convert to raveled location
     rows *= (frame_shape[0] // bin_value)
     rows += cols
-    
+
     # Update all frame header frame_size values
     new_headers = batch.header.headers
     for ii in range(len(new_headers)):
