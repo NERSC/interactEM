@@ -104,6 +104,6 @@ def array_image_converter(
     )
     try:
         logger.info(f"Output scan #{inputs.header.meta['scan_number']} image.")
-    except:
+    except Exception:
         logger.info("Unknown scan number")
     return output_message
