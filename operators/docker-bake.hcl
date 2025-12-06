@@ -35,7 +35,8 @@ group "operators" {
     "center-of-mass-partial",
     "center-of-mass-reduce",
     "center-of-mass-plot",
-    "dpc"
+    "dpc",
+    "read-tem-data"
   ]
 }
 
@@ -261,4 +262,11 @@ target "dpc" {
   context = "operators/dpc"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/dpc:${TAG}"]
+}
+
+target "read-tem-data" {
+  inherits = ["common"]
+  context = "operators/read-tem-data"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/read-tem-data:${TAG}"]
 }
