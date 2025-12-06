@@ -35,7 +35,9 @@ group "operators" {
     "center-of-mass-partial",
     "center-of-mass-reduce",
     "center-of-mass-plot",
-    "dpc"
+    "dpc",
+    "bin-sparse-partial",
+    "quantem-direct-ptycho"
   ]
 }
 
@@ -117,7 +119,7 @@ target "electron-count" {
 }
 
 target "electron-count-save" {
-  inherits = ["common"]
+  inheritfs = ["common"]
   context = "operators/electron-count-save"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/electron-count-save:${TAG}"]
@@ -261,4 +263,18 @@ target "dpc" {
   context = "operators/dpc"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/dpc:${TAG}"]
+}
+
+target "bin-sparse-partial" {
+  inherits = ["common"]
+  context = "operators/bin-sparse-partial"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/bin-sparse-partial:${TAG}"]
+}
+
+target "quantem-direct-ptycho" {
+  inherits = ["common"]
+  context = "operators/quantem-direct-ptycho"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/quantem-direct-ptycho:${TAG}"]
 }
