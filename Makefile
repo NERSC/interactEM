@@ -3,6 +3,7 @@ SCRIPTS_DIR := ./scripts
 DOCKER_DIR := ./docker
 FRONTEND_DIR := ./frontend/interactEM
 OPERATORS_DIR := ./operators
+ROOT_DIR := $(shell pwd)
 
 # Makefile configuration
 .PHONY: help setup setup-docker-registry services docker-up docker-down clean lint operators check-docker-permission integration-test
@@ -144,15 +145,15 @@ test: ## Run tests
 	$(call success,Tests complete)
 
 integration-test: ## Run integration tests against the docker-compose stack using the configured marker
-	$(call section,Starting services for integration tests...)
-	$(MAKE) setup
-	$(MAKE) docker-up
 	$(call section,Running integration tests...)
 	@status=0; \
-	trap '$(MAKE) docker-down' EXIT; \
+	set -a; if [ -f .env ]; then . ./.env; fi; set +a; \
 	uv run pytest tests -m "$(INTEGRATION_MARKER)" || status=$$?; \
 	if [ $$status -eq 5 ]; then \
-	echo "No tests collected for marker '$(INTEGRATION_MARKER)'; skipping."; \
-	status=0; \
+		echo "No tests collected for marker '$(INTEGRATION_MARKER)'; skipping."; \
+		status=0; \
+	fi; \
+	if [ $$status -eq 0 ]; then \
+		cd $(FRONTEND_DIR) && npm run test:e2e -- --fail-on-flaky-tests || status=$$?; \
 	fi; \
 	exit $$status
