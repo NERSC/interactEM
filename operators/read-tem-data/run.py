@@ -1,14 +1,13 @@
-from typing import Any
-
-from pathlib import Path
 import time
+from pathlib import Path
+from typing import Any
 
 import ncempy
 import numpy as np
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
-from interactem.operators.operator import operator, DATA_DIRECTORY
+from interactem.operators.operator import DATA_DIRECTORY, operator
 
 logger = get_logger()
 
@@ -30,7 +29,7 @@ def read_data_pae(
 
     # TODO: Implement operator logic here
     logger.info("read_tem_data operator running...")
-    
+
     logger.info(f'directory: {directory}')
     logger.info(f'mount directory: {data_dir}')
     logger.info(f'file: {file}')
@@ -40,12 +39,12 @@ def read_data_pae(
         dd = ncempy.read(file_path)
         data = dd['data']
         logger.info(f'file data shape: {data.shape}')
-    except:
+    except Exception:
         data = np.zeros((100, 100), dtype=np.uint8)
         logger.info('Problem loading file. Using zeros array.')
     time.sleep(3.0)
-    
+
     # TODO: Process and return result
     data_bytes = data.tobytes()
-    header = MessageHeader(subject=MessageSubject.BYTES, meta={'shape':data.shape, 'dtype':str(data.dtype)})
+    header = MessageHeader(subject=MessageSubject.BYTES, meta={'shape': data.shape, 'dtype': str(data.dtype)})
     return BytesMessage(header=header, data=data_bytes)
