@@ -20,8 +20,9 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     // Recommended setting (not in strict, but should be)
-    "noUncheckedIndexedAccess": true
+    "noUncheckedIndexedAccess": true,
+    "types": ["node"]
   },
-  "include": ["src"],
+  "include": ["src", "tests", "playwright.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

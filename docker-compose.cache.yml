@@ -1,0 +1,64 @@
+x-cache-base: &cache-base
+  cache_from:
+    - type=registry,ref=${REGISTRY}/interactem:build-cache-${CACHE_PLATFORM:-amd64}
+
+x-cache-fastapi: &cache-fastapi
+  cache_from:
+    - type=registry,ref=${REGISTRY}/interactem:build-cache-${CACHE_PLATFORM:-amd64}
+    - type=registry,ref=${REGISTRY}/fastapi:build-cache-${CACHE_PLATFORM:-amd64}
+
+x-cache-frontend: &cache-frontend
+  cache_from:
+    - type=registry,ref=${REGISTRY}/frontend:build-cache-${CACHE_PLATFORM:-amd64}
+
+x-cache-orchestrator: &cache-orchestrator
+  cache_from:
+    - type=registry,ref=${REGISTRY}/interactem:build-cache-${CACHE_PLATFORM:-amd64}
+    - type=registry,ref=${REGISTRY}/orchestrator:build-cache-${CACHE_PLATFORM:-amd64}
+
+x-cache-callout: &cache-callout
+  cache_from:
+    - type=registry,ref=${REGISTRY}/callout:build-cache-${CACHE_PLATFORM:-amd64}
+
+x-cache-launcher: &cache-launcher
+  cache_from:
+    - type=registry,ref=${REGISTRY}/interactem:build-cache-${CACHE_PLATFORM:-amd64}
+    - type=registry,ref=${REGISTRY}/launcher:build-cache-${CACHE_PLATFORM:-amd64}
+
+x-cache-metrics: &cache-metrics
+  cache_from:
+    - type=registry,ref=${REGISTRY}/interactem:build-cache-${CACHE_PLATFORM:-amd64}
+    - type=registry,ref=${REGISTRY}/metrics:build-cache-${CACHE_PLATFORM:-amd64}
+
+services:
+  base:
+    build:
+      <<: *cache-base
+
+  prestart:
+    build:
+      <<: *cache-fastapi
+
+  backend:
+    build:
+      <<: *cache-fastapi
+
+  frontend:
+    build:
+      <<: *cache-frontend
+
+  orchestrator:
+    build:
+      <<: *cache-orchestrator
+
+  callout:
+    build:
+      <<: *cache-callout
+
+  launcher:
+    build:
+      <<: *cache-launcher
+
+  metrics:
+    build:
+      <<: *cache-metrics
