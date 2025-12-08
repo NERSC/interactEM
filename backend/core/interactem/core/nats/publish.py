@@ -14,6 +14,7 @@ from ..constants import (
     ASSIGNMENTS,
     NATS_API_KEY_HEADER,
     NATS_TIMEOUT_DEFAULT,
+    NATS_TIMEOUT_DEPLOYMENT,
     STREAM_DEPLOYMENTS,
     STREAM_IMAGES,
     STREAM_PARAMETERS,
@@ -146,7 +147,7 @@ async def publish_pipeline_to_operators(
         subject=f"{SUBJECT_OPERATORS_DEPLOYMENTS}.{operator_id}",
         message=pipeline.to_runtime().model_dump_json(),
         stream=STREAM_DEPLOYMENTS,
-        timeout=NATS_TIMEOUT_DEFAULT,
+        timeout=NATS_TIMEOUT_DEPLOYMENT,
     )
 
 def create_agent_mount_publisher(
