@@ -613,6 +613,11 @@ class Agent:
         if cfg.log_mount:
             operator.add_internal_mount(cfg.log_mount)
 
+        # Publish pipeline to JetStream
+        await publish_pipeline_to_operators(self.broker, self.pipeline, operator.id)
+        logger.debug(f"Published pipeline for operator {operator.id}")
+        logger.debug(f"Pipeline: {self.pipeline.to_runtime().model_dump_json()}")
+
         if cfg.ALWAYS_PULL_IMAGES:
             pull_image(client, operator.image)
 
@@ -622,11 +627,6 @@ class Agent:
         if not container:
             raise RuntimeError(f"Failed to create container for operator {operator.id}")
         container.start()
-
-        # Publish pipeline to JetStream
-        await publish_pipeline_to_operators(self.broker, self.pipeline, operator.id)
-        logger.debug(f"Published pipeline for operator {operator.id}")
-        logger.debug(f"Pipeline: {self.pipeline.to_runtime().model_dump_json()}")
 
         return operator, container
 
