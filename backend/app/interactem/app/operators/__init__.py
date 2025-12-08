@@ -1,5 +1,5 @@
 import json
-from typing import Any, Coroutine
+from typing import Any, Coroutine, Iterable
 import asyncio
 from pathlib import Path
 
@@ -16,10 +16,41 @@ OPERATOR_JSON_FILENAME = "operator.json"
 logger = get_logger()
 
 
+def _pick_manifest(manifests: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Return a platform manifest, preferring linux/amd64 then linux/arm64."""
+    preferred: Iterable[tuple[str, str]] = [("linux", "amd64"), ("linux", "arm64")]
+    for os, arch in preferred:
+        for manifest in manifests:
+            platform = manifest.get("platform", {})
+            if platform.get("os") == os and platform.get("architecture") == arch:
+                return manifest
+    return manifests[0] if manifests else None
+
+
+def _is_index(media_type: str) -> bool:
+    return "image.index" in media_type or "manifest.list" in media_type
+
+
 async def _labels(
     registry: ContainerRegistry, image: str, tag: str
 ) -> dict[str, Any] | None:
     manifest = await registry.manifest(image, tag)
+
+    if _is_index(manifest.get("mediaType", "")):
+        platform_manifest = _pick_manifest(manifest.get("manifests", []))
+        if not platform_manifest:
+            logger.warning(
+                f"No platform manifests found for image '{image}:{tag}'. Skipping."
+            )
+            return None
+        digest = platform_manifest.get("digest")
+        if not digest:
+            logger.warning(
+                f"No digest on platform manifest for image '{image}:{tag}'. Skipping."
+            )
+            return None
+        manifest = await registry.manifest(image, digest)
+
     path = parse("$.config.digest")
     matches = path.find(manifest)
     if not matches:
@@ -29,7 +60,7 @@ async def _labels(
         return None
 
     digest = matches[0].value
-    blob = await registry.blob(image, digest)
+    blob = await registry.config_blob(image, digest)
 
     path = parse("$.config.Labels")
     matches = path.find(blob)

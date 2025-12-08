@@ -5,9 +5,17 @@ from httpx import AsyncClient, Limits, Timeout
 from jsonpath_ng import parse
 
 GITHUB_API_URL = "https://api.github.com"
-MANIFEST_MIME_TYPE = "application/vnd.oci.image.manifest.v1+json"
+MANIFEST_MIME_TYPES = [
+    "application/vnd.oci.image.index.v1+json",
+    "application/vnd.docker.distribution.manifest.list.v2+json",
+    "application/vnd.oci.image.manifest.v1+json",
+    "application/vnd.docker.distribution.manifest.v2+json",
+]
 GITHUB_API_MIME_TYPE = "application/vnd.github.v3+json"
-BLOB_MIME_TYPE = "application/vnd.docker.distribution.manifest.v2+json"
+CONFIG_MIME_TYPES = [
+    "application/vnd.oci.image.config.v1+json",
+    "application/vnd.docker.container.image.v1+json",
+]
 
 MAX_CONNECTIONS = 20
 READ_TIMEOUT = 30
@@ -105,18 +113,20 @@ class ContainerRegistry:
 
         return [f"{namespace}/{r}" for r in r.json()["repositories"]]
 
-    async def manifest(self, image: str, tag: str) -> dict[str, Any]:
+    async def manifest(self, image: str, tag_or_digest: str) -> dict[str, Any]:
         headers = await self._headers()
-        headers["Accept"] = MANIFEST_MIME_TYPE
+        headers["Accept"] = ",".join(MANIFEST_MIME_TYPES)
 
-        r = await self._client.get(f"v2/{image}/manifests/{tag}", headers=headers)
+        r = await self._client.get(
+            f"v2/{image}/manifests/{tag_or_digest}", headers=headers
+        )
         r.raise_for_status()
 
         return r.json()
 
-    async def blob(self, image: str, digest: str) -> dict[str, Any]:
+    async def config_blob(self, image: str, digest: str) -> dict[str, Any]:
         headers = await self._headers()
-        headers["Accept"] = BLOB_MIME_TYPE
+        headers["Accept"] = ",".join(CONFIG_MIME_TYPES)
         r = await self._client.get(
             f"v2/{image}/blobs/{digest}", headers=headers, follow_redirects=True
         )
