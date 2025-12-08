@@ -595,7 +595,7 @@ requires-dist = [
     { name = "netifaces2", specifier = ">=0.0.22,<0.1" },
     { name = "nkeys", specifier = ">=0.2.1,<0.3" },
     { name = "podman", specifier = ">=5.0.0,<6" },
-    { name = "podman-hpc", marker = "extra == 'hpc'", specifier = ">=1.1.4,<2" },
+    { name = "podman-hpc", marker = "extra == 'hpc'", git = "https://github.com/cjh1/podman-hpc.git?rev=d01773a8ae14489af7654d799d9738a2c5629248" },
     { name = "podman-hpc-py", marker = "extra == 'hpc'", git = "https://github.com/cjh1/podman-hpc-py.git?rev=577e467ab5bf10840df81234e477a3ebbd436f7e" },
     { name = "pydantic-settings", specifier = ">=2.4,<3" },
     { name = "stamina", specifier = ">=25.1.0,<26" },
@@ -932,15 +932,11 @@ wheels = [
 [[package]]
 name = "podman-hpc"
 version = "1.1.4"
-source = { registry = "https://pypi.org/simple" }
+source = { git = "https://github.com/cjh1/podman-hpc.git?rev=d01773a8ae14489af7654d799d9738a2c5629248#d01773a8ae14489af7654d799d9738a2c5629248" }
 dependencies = [
     { name = "click" },
     { name = "pyyaml" },
     { name = "toml" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/1a/6c/f46f997f1f5f658fe8bdbd8433f900016975fc7c9ccc536726c1014e4593/podman-hpc-1.1.4.tar.gz", hash = "sha256:fd4fe1229c33a83cfe0c901af86a85b8f5070529b155d2c112671840df5b47e3", size = 2991154, upload-time = "2025-01-06T19:27:54.281Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/22/09/2bbb1ddfc8dfb5534d1a8b105f95ed971f2fb6bb667f9a98d3d3977b9166/podman_hpc-1.1.4-py3-none-any.whl", hash = "sha256:b8a62afd040f38cf567f6369793172da324e662deaf53818c6d3236d3f531719", size = 33198, upload-time = "2025-01-06T19:27:51.085Z" },
 ]
 
 [[package]]
