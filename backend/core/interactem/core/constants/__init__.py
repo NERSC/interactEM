@@ -10,11 +10,7 @@ We should ideally keep these short, nats recommends <16 tokens (hierarchy levels
 ref: https://github.com/nats-io/nats.docs/blob/master/nats-concepts/subjects.md
 """
 
-# NATS timeouts
 NATS_TIMEOUT_DEFAULT = 10
-# Deployment publishes can contend when many operators start at once; give JetStream
-# more time to acknowledge those messages.
-NATS_TIMEOUT_DEPLOYMENT = 120
 
 # Streams/buckets
 BUCKET_STATUS = "stat"
