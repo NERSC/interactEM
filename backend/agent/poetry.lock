@@ -1129,15 +1129,19 @@ optional = true
 python-versions = "*"
 groups = ["main"]
 markers = "extra == \"hpc\""
-files = [
-    {file = "podman-hpc-1.1.4.tar.gz", hash = "sha256:fd4fe1229c33a83cfe0c901af86a85b8f5070529b155d2c112671840df5b47e3"},
-    {file = "podman_hpc-1.1.4-py3-none-any.whl", hash = "sha256:b8a62afd040f38cf567f6369793172da324e662deaf53818c6d3236d3f531719"},
-]
+files = []
+develop = false
 
 [package.dependencies]
 click = "*"
 pyyaml = "*"
 toml = "*"
+
+[package.source]
+type = "git"
+url = "https://github.com/cjh1/podman-hpc.git"
+reference = "d01773a8ae14489af7654d799d9738a2c5629248"
+resolved_reference = "d01773a8ae14489af7654d799d9738a2c5629248"
 
 [[package]]
 name = "podman-hpc-py"
@@ -1965,4 +1969,4 @@ hpc = ["podman-hpc", "podman-hpc-py"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10"
-content-hash = "211c45261ad7e27ec84766cf2f057a921bfa0646d145fabd4ed2794d1567e8a4"
+content-hash = "c0b8fddc65829d0da3c7d3d07fd954c56d4203fa51078c1ca7968187d59c85cf"

@@ -21,7 +21,7 @@ dependencies = [
 
 [project.optional-dependencies]
 hpc = [
-    "podman-hpc>=1.1.4,<2",
+    "podman-hpc @ git+https://github.com/cjh1/podman-hpc.git@d01773a8ae14489af7654d799d9738a2c5629248",
     "podman-hpc-py @ git+https://github.com/cjh1/podman-hpc-py.git@577e467ab5bf10840df81234e477a3ebbd436f7e",
 ]
 
