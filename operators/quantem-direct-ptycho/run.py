@@ -24,6 +24,24 @@ logger = get_logger()
 # OrderedDict to hold FrameAccumulator instances with LRU behavior
 accumulators: OrderedDict[int, FrameAccumulator] = OrderedDict()
 
+class FrameAccumulatorFull(FrameAccumulator):
+
+    def completely_finished(self) -> bool:
+        """Check if all expected frames have been added."""
+        num_batches_added = self.num_batches_added
+        total_batches_expected = self._total_batches_expected
+
+        if not num_batches_added:
+            return False
+
+        if not total_batches_expected:
+            return False
+
+        if (num_batches_added // total_batches_expected == 1):
+            return True
+        else:
+            return False
+
 @operator
 def py4dstem_parallax(
     inputs: BytesMessage | None, parameters: dict[str, Any]
