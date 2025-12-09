@@ -7,9 +7,7 @@ from quantem.diffractive_imaging.direct_ptychography import DirectPtychography
 
 from distiller_streaming.accumulator import FrameAccumulator
 from distiller_streaming.models import BatchedFrames
-from distiller_streaming.util import (
-    get_summed_diffraction_pattern,
-)
+
 from quantem.core.utils.diffractive_imaging_utils import fit_probe_circle
 
 from interactem.core.logger import get_logger
@@ -70,7 +68,7 @@ def py4dstem_parallax(
     accumulator.add_message(inputs)
 
     # Check if all frames have been added
-    if not (accumulator.num_batches_added // accumulator._total_batches_expected == 1):
+    if not (accumulator.num_batches_added == 244):
         if accumulator.num_batches_added % 20 == 0:
             logger.info(
                 f"Scan {scan_number}: Not time to calculate yet. Frames added: {accumulator.num_frames_added}."
@@ -106,7 +104,6 @@ def py4dstem_parallax(
     )
     logger.debug(f"{probe_qy0}, {probe_qx0}, {probe_R}")
 
-    logger.info(f"Scan {scan_number}: Using hard coded metadata")
     dset.sampling[2] = probe_semiangle / probe_R
     dset.sampling[3] = probe_semiangle / probe_R
     dset.units[2:] = ["mrad", "mrad"]
