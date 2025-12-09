@@ -23,7 +23,6 @@ logger = get_logger()
 # --- Operator State ---
 # OrderedDict to hold FrameAccumulator instances with LRU behavior
 accumulators: OrderedDict[int, FrameAccumulator] = OrderedDict()
-result: OrderedDict[int, Any] = OrderedDict()
 
 @operator
 def py4dstem_parallax(
@@ -34,7 +33,6 @@ def py4dstem_parallax(
     and calculates/emits virtual bright field images.
     """
     global accumulators
-    global result
 
     if not inputs:
         return None
