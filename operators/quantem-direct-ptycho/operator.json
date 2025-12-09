@@ -35,6 +35,46 @@
       "default": "1",
       "description": "Maximum number of scans to keep in memory simultaneously. Oldest scans are evicted when this limit is exceeded.",
       "required": false
+    },
+   {  
+      "name": "accelerating_voltage",
+      "label": "Accelerating voltage",
+      "type": "int",
+      "default": "300000",
+      "description": "The accelerating voltage of the microscope in V.",
+      "required": false
+    },
+    {  
+      "name": "probe_semiangle",
+      "label": "STEM probe semiangle",
+      "type": "float",
+      "default": "25",
+      "description": "The probe semiangle in mrad.",
+      "required": false
+    },
+    {  
+      "name": "probe_step_size",
+      "label": "STEM probe step size",
+      "type": "float",
+      "default": "0.1",
+      "description": "The STEM probe step size in nm.",
+      "required": false
+    },
+    {  
+      "name": "initial_defocus",
+      "label": "Initial STEM defocus for optimization routine",
+      "type": "float",
+      "default": "0.0",
+      "description": "The STEM defocus in nm.",
+      "required": false
+    },
+    {  
+      "name": "diffraction_rotation_angle",
+      "label": "Initial diffraction pattern rotation angle for optimization routine",
+      "type": "float",
+      "default": "0.0",
+      "description": "The rotation angle in degrees.",
+      "required": false
     }
   ],
   "parallel_config": {
