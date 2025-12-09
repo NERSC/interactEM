@@ -119,7 +119,7 @@ target "electron-count" {
 }
 
 target "electron-count-save" {
-  inheritfs = ["common"]
+  inherits = ["common"]
   context = "operators/electron-count-save"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/electron-count-save:${TAG}"]
