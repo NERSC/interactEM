@@ -17,8 +17,8 @@ def bin_partial(
         logger.warning("No input provided to the bin operator.")
         return None
 
-    bin_param = parameters.get("bin_value", 1)
-
+    bin_value = parameters.get("bin_value", 1)
+    
     # Get the batch of frames from the input
     batch = BatchedFrames.from_bytes_message(inputs)
 
@@ -35,8 +35,8 @@ def bin_partial(
     # Convert to raveled location
     rows *= (frame_shape[0] // bin_value)
     rows += cols
-
-    # Update all frame header frame_size values
+    
+    # Update all frame header frame_shape values
     new_headers = batch.header.headers
     for ii in range(len(new_headers)):
         new_headers[ii].frame_shape = (new_headers[ii].frame_shape[0] // bin_value, new_headers[ii].frame_shape[1] // bin_value)

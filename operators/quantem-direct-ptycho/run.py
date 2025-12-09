@@ -44,7 +44,7 @@ def py4dstem_parallax(
     scan_number = batch.header.scan_number
 
     # --- 2. Get or Create FrameAccumulator ---
-    max_concurrent_scans = int(parameters.get("max_concurrent_scans", 3))
+    max_concurrent_scans = int(parameters.get("max_concurrent_scans", 1))
 
     if scan_number not in accumulators:
         # Check if we need to evict old accumulators before creating new one
