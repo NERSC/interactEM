@@ -69,21 +69,8 @@ def py4dstem_parallax(
     accumulators.move_to_end(scan_number)
     accumulator.add_message(inputs)
 
-    # --- 4. Check Calculation Frequency ---
-    # calc_freq = int(parameters.get("calculation_frequency", 100))
-    # if calc_freq <= 0:
-    #     calc_freq = 100
-
-    # if not accumulator.finished and (
-    #     accumulator.num_batches_added == 0
-    #     or accumulator.num_batches_added % calc_freq != 0
-    # ):
-    #     logger.debug(
-    #         f"Scan {scan_number}: Not time to calculate yet. Messages added: {accumulator.num_batches_added}."
-    #     )
-    #     return None
-
-    if not accumulator.num_batches_added == 244:
+    # Check if all frames have been added
+    if not (accumulator.num_batches_added // accumulator._total_batches_expected == 1):
         if accumulator.num_batches_added % 20 == 0:
             logger.info(
                 f"Scan {scan_number}: Not time to calculate yet. Frames added: {accumulator.num_frames_added}."
