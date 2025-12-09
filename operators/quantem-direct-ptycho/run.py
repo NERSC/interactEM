@@ -3,6 +3,8 @@ from typing import Any
 
 import numpy as np
 import quantem as em
+from quantem.diffractive_imaging.direct_ptychography import DirectPtychography
+
 from distiller_streaming.accumulator import FrameAccumulator
 from distiller_streaming.models import BatchedFrames
 from distiller_streaming.util import (
@@ -115,7 +117,7 @@ def py4dstem_parallax(
 
     logger.info(f"Scan {scan_number}: Start direct ptycho")
     try:
-        direct_ptycho = em.diffractive_imaging.direct_ptychography.DirectPtychography.from_dataset4d(
+        direct_ptycho = DirectPtychography.from_dataset4d(
                             dset,
                             energy=energy,
                             semiangle_cutoff=probe_semiangle,
