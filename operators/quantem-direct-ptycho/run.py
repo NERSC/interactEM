@@ -20,10 +20,6 @@ from interactem.operators.operator import operator
 
 logger = get_logger()
 
-# --- Operator State ---
-# OrderedDict to hold FrameAccumulator instances with LRU behavior
-accumulators: OrderedDict[int, FrameAccumulator] = OrderedDict()
-
 class FrameAccumulatorFull(FrameAccumulator):
 
     def completely_finished(self) -> bool:
@@ -41,6 +37,10 @@ class FrameAccumulatorFull(FrameAccumulator):
             return True
         else:
             return False
+
+# --- Operator State ---
+# OrderedDict to hold FrameAccumulator instances with LRU behavior
+accumulators: OrderedDict[int, FrameAccumulatorFull] = OrderedDict()
 
 @operator
 def py4dstem_parallax(
