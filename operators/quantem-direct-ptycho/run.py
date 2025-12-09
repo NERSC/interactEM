@@ -86,7 +86,7 @@ def py4dstem_parallax(
     accumulator.add_message(inputs)
 
     # Check if all frames have been added
-    if not (accumulator.num_batches_added == 244):
+    if not (accumulator.completely_finished()):
         if accumulator.num_batches_added % 20 == 0:
             logger.info(
                 f"Scan {scan_number}: Not time to calculate yet. Frames added: {accumulator.num_frames_added}."
