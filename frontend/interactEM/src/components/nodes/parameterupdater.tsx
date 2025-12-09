@@ -1,16 +1,4 @@
-import {
-  Box,
-  Button,
-  Container,
-  FormControl,
-  FormControlLabel,
-  InputLabel,
-  MenuItem,
-  Select,
-  Switch,
-  TextField,
-  Typography,
-} from "@mui/material"
+import { Box, Button, Stack } from "@mui/material"
 import { useReactFlow } from "@xyflow/react"
 import { memo, useEffect, useState } from "react"
 import type { OperatorSpecParameter } from "../../client"
@@ -24,268 +12,136 @@ import {
   getParameterInputSchema,
   getParameterNativeValue,
 } from "../../types/params"
+import NodeFieldInput, { type NodeFieldType } from "./nodefieldinput"
 import ParameterInfoTooltip from "./parameterinfotooltip"
 
-type ParameterUpdaterProps = {
+const ParameterUpdater: React.FC<{
   parameter: OperatorSpecParameter
   operatorCanonicalID: string
-}
-
-const ParameterUpdater: React.FC<ParameterUpdaterProps> = ({
-  parameter,
-  operatorCanonicalID,
-}) => {
+}> = ({ parameter, operatorCanonicalID }) => {
   const { viewMode } = useViewModeStore()
   const { selectedRuntimePipelineId } = usePipelineStore()
   const { isInRunningPipeline } =
     useOperatorInSelectedPipeline(operatorCanonicalID)
-
-  const { getNode, setNodes, getEdges, getNodes } =
-    useReactFlow<OperatorNodeType>()
-
-  const param_default = parameter.default.toString()
-  const { actualValue: runtimeValue, hasReceivedMessage } = useParameterAck(
-    operatorCanonicalID,
-    parameter.name,
-    param_default,
-  )
-
+  const { setNodes, getNodes, getEdges } = useReactFlow<OperatorNodeType>()
   const { saveRevision } = useSavePipelineRevision()
   const { mutateAsync: updateParameter } = useParameterUpdate(
     operatorCanonicalID,
     parameter,
   )
 
-  const node = getNode(operatorCanonicalID)
-  if (!node) {
-    throw new Error(`Node with id ${operatorCanonicalID} not found`)
-  }
+  const { actualValue, hasReceivedMessage } = useParameterAck(
+    operatorCanonicalID,
+    parameter.name,
+    String(parameter.default),
+  )
 
-  // In Runtime mode, check if we have a selected runtime pipeline deployment AND operator is in it
   const hasRuntimePipeline = !!selectedRuntimePipelineId && isInRunningPipeline
+  const isRuntimeMode = viewMode === ViewMode.Runtime && hasRuntimePipeline
 
-  const currentValue =
-    viewMode === ViewMode.Runtime && hasRuntimePipeline
-      ? hasReceivedMessage
-        ? runtimeValue
-        : parameter.default
+  const currentValue = isRuntimeMode
+    ? hasReceivedMessage
+      ? actualValue
       : parameter.default
+    : parameter.default
 
-  // Convert to string for form display
   const displayValue = String(currentValue)
+  const isReadOnly = viewMode === ViewMode.Runtime && !hasRuntimePipeline
 
-  const [inputValue, setInputValue] = useState<string>(displayValue)
-  const [error, setError] = useState(false)
-  const [errorMessage, setErrorMessage] = useState("")
+  const [inputValue, setInputValue] = useState(displayValue)
+  const [error, setError] = useState<string | null>(null)
   const [userEditing, setUserEditing] = useState(false)
-
-  const isReadOnly = viewMode === ViewMode.Runtime ? !hasRuntimePipeline : false
 
   useEffect(() => {
     if (!userEditing || isReadOnly) {
       setInputValue(displayValue)
     }
-    if (isReadOnly) {
-      setUserEditing(false)
-    }
+    if (isReadOnly) setUserEditing(false)
   }, [displayValue, isReadOnly, userEditing])
 
-  const validateInput = (value: string) => {
-    const schema = getParameterInputSchema(parameter)
-    return schema.safeParse(value)
-  }
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleValueChange = (val: string) => {
     if (isReadOnly) return
-    const newValue = e.target.value
-    setInputValue(newValue)
+    setInputValue(val)
     setUserEditing(true)
 
-    const result = validateInput(newValue)
-    if (!result.success) {
-      setError(true)
-      setErrorMessage(result.error.errors[0]?.message || "Invalid value")
-      return
-    }
-    setError(false)
-    setErrorMessage("")
-  }
-
-  const updateNodeParameter = (updateFn: (p: any) => any) => {
-    setNodes((nodes) =>
-      nodes.map((n) =>
-        n.id === operatorCanonicalID
-          ? {
-              ...n,
-              data: {
-                ...n.data,
-                parameters: n.data.parameters?.map((p) =>
-                  p.name === parameter.name ? updateFn(p) : p,
-                ),
-              },
-            }
-          : n,
-      ),
+    const result = getParameterInputSchema(parameter).safeParse(val)
+    setError(
+      result.success ? null : result.error.errors[0]?.message || "Invalid",
     )
   }
 
-  const handleUpdateClick = async () => {
+  const handleSave = async (mode: "update" | "default") => {
     if (error || isReadOnly) return
-    updateNodeParameter((p) => ({ ...p, value: inputValue }))
-    await updateParameter(inputValue)
-    setUserEditing(false)
-  }
 
-  const handleSetDefaultClick = () => {
-    if (error) return
-    const result = validateInput(inputValue)
+    const result = getParameterInputSchema(parameter).safeParse(inputValue)
     if (!result.success) return
 
-    const parsedValue = result.data
-    updateNodeParameter((p) => ({
-      ...p,
-      default: parsedValue,
-      value: parsedValue,
-    }))
-    if (viewMode === ViewMode.Runtime && hasRuntimePipeline) {
-      saveRevision(getNodes(), getEdges())
+    if (mode === "update") {
+      await updateParameter(inputValue)
+    } else {
+      setNodes((nodes) =>
+        nodes.map((n) =>
+          n.id === operatorCanonicalID
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  parameters: n.data.parameters?.map((p) =>
+                    p.name === parameter.name
+                      ? { ...p, default: result.data, value: result.data }
+                      : p,
+                  ),
+                },
+              }
+            : n,
+        ),
+      )
+      if (isRuntimeMode) saveRevision(getNodes(), getEdges())
     }
     setUserEditing(false)
   }
 
-  const renderInputField = () => {
-    switch (parameter.type) {
-      case "int":
-      case "float":
-        return (
-          <TextField
-            type="number"
-            value={inputValue}
-            size="small"
-            label="Set Point"
-            variant="outlined"
-            onChange={handleInputChange}
-            error={error}
-            helperText={error ? errorMessage : ""}
-            sx={{
-              flexGrow: 1,
-              // remove arrows from number input
-              "& input[type=number]": {
-                "&::-webkit-outer-spin-button, &::-webkit-inner-spin-button": {
-                  display: "none",
-                },
-                MozAppearance: "textfield",
-              },
-            }}
-            disabled={isReadOnly}
-          />
-        )
-      case "str":
-      case "mount":
-        return (
-          <TextField
-            value={inputValue}
-            size="small"
-            label="Set Point"
-            variant="outlined"
-            onChange={handleInputChange}
-            error={error}
-            helperText={error ? errorMessage : ""}
-            sx={{ flexGrow: 1 }}
-            disabled={isReadOnly}
-          />
-        )
-      case "str-enum":
-        return (
-          <FormControl fullWidth size="small" disabled={isReadOnly}>
-            <InputLabel id={`${parameter.name}-label`}>Set Point</InputLabel>
-            <Select
-              labelId={`${parameter.name}-label`}
-              value={inputValue}
-              label="Set Point"
-              onChange={(e) => {
-                if (isReadOnly) return
-                setInputValue(e.target.value as string)
-                setUserEditing(true)
-                setError(false)
-              }}
-            >
-              {parameter.options?.map((option) => (
-                <MenuItem key={option} value={option}>
-                  {option}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        )
-      case "bool":
-        return (
-          <FormControlLabel
-            control={
-              <Switch
-                checked={inputValue === "true"}
-                onChange={(e) => {
-                  if (isReadOnly) return
-                  const val = e.target.checked ? "true" : "false"
-                  setInputValue(val)
-                  setUserEditing(true)
-                  setError(false)
-                }}
-                disabled={isReadOnly}
-              />
-            }
-            label="Set Point"
-          />
-        )
-      default:
-        return null
-    }
-  }
-
-  const parsedInputValue = getParameterNativeValue(parameter, inputValue)
-  const showButtons =
+  const parsedInput = getParameterNativeValue(parameter, inputValue)
+  const hasChanged =
     !error &&
     !isReadOnly &&
-    parsedInputValue !== undefined &&
-    currentValue !== parsedInputValue
+    parsedInput !== undefined &&
+    currentValue !== parsedInput
 
   return (
-    <Container>
-      <Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-        <Typography sx={{ fontSize: 16 }}>{parameter.label}</Typography>
-        <ParameterInfoTooltip parameter={parameter} />
-      </Box>
-      <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-        {renderInputField()}
-        {showButtons &&
-          (viewMode === ViewMode.Runtime && hasRuntimePipeline ? (
-            // Runtime mode → only allow Update
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              onClick={handleUpdateClick}
-            >
-              Update
-            </Button>
-          ) : (
-            // Design/Edit mode → only allow Set Default
-            <Button
-              variant="contained"
-              color="primary"
-              size="small"
-              onClick={handleSetDefaultClick}
-            >
-              Set Default
-            </Button>
-          ))}
-      </Box>
-      {error && (
-        <Typography color="error">Failed to update parameter</Typography>
+    <Box>
+      <Stack direction="row" spacing={1} alignItems="flex-start">
+        <Box sx={{ flex: 1 }}>
+          <NodeFieldInput
+            fieldType={parameter.type as NodeFieldType}
+            name={parameter.name}
+            label={parameter.label}
+            value={inputValue}
+            options={
+              parameter.type === "str-enum" ? (parameter as any).options : []
+            }
+            disabled={isReadOnly}
+            error={error ?? null}
+            onChange={handleValueChange}
+          />
+        </Box>
+        <Box sx={{ pt: 1 }}>
+          <ParameterInfoTooltip parameter={parameter} />
+        </Box>
+      </Stack>
+
+      {hasChanged && (
+        <Box sx={{ mt: 1, display: "flex", justifyContent: "flex-end" }}>
+          <Button
+            variant="contained"
+            size="small"
+            onClick={() => handleSave(isRuntimeMode ? "update" : "default")}
+          >
+            {isRuntimeMode ? "Update" : "Set Default"}
+          </Button>
+        </Box>
       )}
-    </Container>
+    </Box>
   )
 }
 
