@@ -26,8 +26,7 @@ def bin_partial(
     frame_shape = batch.header.frame_shape
 
     # Get the sparse frames
-    data, position_indices = batch.get_frame_arrays_with_positions()
-    #scan_positions = position_indices
+    data, _ = batch.get_frame_arrays_with_positions()
 
     # Convert each event into the location on the reduced frame size (binning)
     rows = data // frame_shape[0] // bin_value # row location of event
