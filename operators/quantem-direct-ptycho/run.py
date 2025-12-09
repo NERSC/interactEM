@@ -83,15 +83,6 @@ def py4dstem_parallax(
     )
     logger.info(f"Accumulator finished: {accumulator.finished}")
 
-    subsample_step = int(parameters.get("subsample_step_center", 2))
-    if subsample_step <= 0:
-        subsample_step = 2
-
-    logger.info(
-        f"Scan {scan_number}: Calculating center (subsample_step={subsample_step})."
-    )
-    get_summed_diffraction_pattern(accumulator, subsample_step=subsample_step)
-
     logger.info(f"Scan {scan_number}: Calculating ptycho images.")
 
     probe_semiangle = 25

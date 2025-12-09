@@ -29,14 +29,6 @@
       "required": true
     },
     {
-      "name": "subsample_step_center",
-      "label": "Center Subsample Step",
-      "type": "int",
-      "default": "2",
-      "description": "Step size for subsampling scan positions when calculating the center.",
-      "required": true
-    },
-    {
       "name": "max_concurrent_scans",
       "label": "Max Concurrent Scans",
       "type": "int",
