@@ -10,34 +10,32 @@ interface ParameterInfoTooltipProps {
 const ParameterInfoTooltip: React.FC<ParameterInfoTooltipProps> = ({
   parameter,
 }) => {
-  const content = (
-    <Paper sx={{ p: 1.5, maxWidth: 280 }}>
-      <Typography variant="subtitle2" fontWeight="bold">
-        {parameter.label}
-      </Typography>
-      <Typography variant="body2" sx={{ mt: 0.5 }}>
-        {parameter.description}
-      </Typography>
-      <Box sx={{ mt: 1 }}>
-        <Typography variant="caption" component="div">
-          <strong>Type:</strong> {parameter.type}
-        </Typography>
-        <Typography variant="caption" component="div">
-          <strong>Default:</strong> {parameter.default}
-        </Typography>
-        <Typography variant="caption" component="div">
-          <strong>Required:</strong> {parameter.required ? "Yes" : "No"}
-        </Typography>
-      </Box>
-    </Paper>
-  )
-
   return (
     <Tooltip
-      title={content}
+      title={
+        <Paper sx={{ p: 1.5, maxWidth: 280 }}>
+          <Typography variant="subtitle2" fontWeight="bold">
+            {parameter.label}
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5 }}>
+            {parameter.description}
+          </Typography>
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="caption" component="div">
+              <strong>Type:</strong> {parameter.type}
+            </Typography>
+            <Typography variant="caption" component="div">
+              <strong>Default:</strong> {parameter.default}
+            </Typography>
+            <Typography variant="caption" component="div">
+              <strong>Required:</strong> {parameter.required ? "Yes" : "No"}
+            </Typography>
+          </Box>
+        </Paper>
+      }
       placement="top"
       arrow
-      componentsProps={{
+      slotProps={{
         tooltip: { sx: { backgroundColor: "transparent", p: 0 } },
       }}
     >
