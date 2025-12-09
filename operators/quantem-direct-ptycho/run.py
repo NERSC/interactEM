@@ -116,11 +116,8 @@ def py4dstem_parallax(
     logger.debug(f"dense shape = {data.shape}")
 
     dset.get_dp_mean()
-    logger.debug(f"fit probe circle")
-    probe_qy0, probe_qx0, probe_R = fit_probe_circle(
-        dset.dp_mean.array, show=False
-    )
-    logger.debug(f"{probe_qy0}, {probe_qx0}, {probe_R}")
+    probe_qy0, probe_qx0, probe_R = fit_probe_circle(dset.dp_mean.array, show=False)
+    logger.debug(f"fit probe circle: {probe_qy0}, {probe_qx0}, {probe_R}")
 
     dset.sampling[2] = probe_semiangle / probe_R
     dset.sampling[3] = probe_semiangle / probe_R
@@ -141,7 +138,7 @@ def py4dstem_parallax(
                             max_batch_size=10,
                             rotation_angle=rotation_angle, # need radians
                             )
-        
+
         logger.info(f"Scan {scan_number}: Fit hyperparameters")
         direct_ptycho.fit_hyperparameters()
         initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(

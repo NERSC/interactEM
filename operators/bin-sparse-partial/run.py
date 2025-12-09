@@ -18,7 +18,7 @@ def bin_partial(
         return None
 
     bin_value = parameters.get("bin_value", 1)
-    
+
     # Get the batch of frames from the input
     batch = BatchedFrames.from_bytes_message(inputs)
 
@@ -35,7 +35,7 @@ def bin_partial(
     # Convert to raveled location
     rows *= (frame_shape[0] // bin_value)
     rows += cols
-    
+
     # Update all frame header frame_shape values
     new_headers = batch.header.headers
     for ii in range(len(new_headers)):
@@ -49,4 +49,3 @@ def bin_partial(
             current_batch_index=batch.header.current_batch_index,)
     out = BatchedFrames.from_np_arrays(new_batch_header, rows)
     return out.to_bytes_message()
-
