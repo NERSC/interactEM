@@ -73,7 +73,7 @@ def py4dstem_parallax(
 
         try:
             logger.info(f"Creating new FrameAccumulator for scan {scan_number}")
-            accumulators[scan_number] = FrameAccumulator.from_header(batch.header)
+            accumulators[scan_number] = FrameAccumulatorFull.from_header(batch.header)
         except ValueError as e:
             logger.error(
                 f"Failed to initialize FrameAccumulator for scan {scan_number}: {e}"
