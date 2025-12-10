@@ -17,12 +17,6 @@ export type RuntimeOperatorParameter =
   | RuntimeOperatorParameterFloat
   | RuntimeOperatorParameterBoolean
   | RuntimeOperatorParameterStrEnum
-export type OperatorSpecTriggerField =
-  | OperatorSpecTriggerFieldString
-  | OperatorSpecTriggerFieldInteger
-  | OperatorSpecTriggerFieldFloat
-  | OperatorSpecTriggerFieldBoolean
-  | OperatorSpecTriggerFieldStrEnum
 
 export interface AgentLog {
   agent_id: string
@@ -62,9 +56,6 @@ export interface URI {
 }
 export interface ExportParameterSpecType {
   type: ParameterSpecType
-}
-export interface ExportTriggerSpecType {
-  type: TriggerSpecType
 }
 export interface OperatorLog {
   agent_id: string
@@ -196,53 +187,6 @@ export interface OperatorSpecTrigger {
   label: string
   description?: string | null
   mode?: TriggerInvocationMode
-  fields?: OperatorSpecTriggerField[] | null
-  [k: string]: unknown
-}
-export interface OperatorSpecTriggerFieldString {
-  name: string
-  label: string
-  description: string
-  type: Type6
-  required?: boolean
-  default?: string | null
-  [k: string]: unknown
-}
-export interface OperatorSpecTriggerFieldInteger {
-  name: string
-  label: string
-  description: string
-  type: Type7
-  required?: boolean
-  default?: number | null
-  [k: string]: unknown
-}
-export interface OperatorSpecTriggerFieldFloat {
-  name: string
-  label: string
-  description: string
-  type: Type8
-  required?: boolean
-  default?: number | null
-  [k: string]: unknown
-}
-export interface OperatorSpecTriggerFieldBoolean {
-  name: string
-  label: string
-  description: string
-  type: Type9
-  required?: boolean
-  default?: boolean | null
-  [k: string]: unknown
-}
-export interface OperatorSpecTriggerFieldStrEnum {
-  name: string
-  label: string
-  description: string
-  type: Type10
-  required?: boolean
-  default?: string | null
-  options: string[]
   [k: string]: unknown
 }
 export interface RuntimeOperatorParameterAck {
@@ -278,15 +222,9 @@ export interface RuntimePort {
 export interface TriggerInvocation {
   canonical_operator_id: string
   trigger: string
-  payload?: {
-    [k: string]: unknown
-  }
 }
 export interface TriggerInvocationRequest {
   trigger: string
-  payload?: {
-    [k: string]: unknown
-  } | null
 }
 export interface TriggerInvocationResponse {
   status: TriggerInvocationResponseStatus
@@ -326,13 +264,6 @@ export enum ParameterSpecType {
   mount = "mount",
   "str-enum" = "str-enum",
 }
-export enum TriggerSpecType {
-  str = "str",
-  int = "int",
-  float = "float",
-  bool = "bool",
-  "str-enum" = "str-enum",
-}
 export enum OperatorStatus {
   initializing = "initializing",
   running = "running",
@@ -369,21 +300,6 @@ export enum ParallelType {
 export enum TriggerInvocationMode {
   single = "single",
   drain = "drain",
-}
-export enum Type6 {
-  str = "str",
-}
-export enum Type7 {
-  int = "int",
-}
-export enum Type8 {
-  float = "float",
-}
-export enum Type9 {
-  bool = "bool",
-}
-export enum Type10 {
-  "str-enum" = "str-enum",
 }
 export enum NodeType {
   operator = "operator",

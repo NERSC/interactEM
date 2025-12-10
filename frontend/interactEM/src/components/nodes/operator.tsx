@@ -33,6 +33,7 @@ const OperatorNodeBase = ({
         id={id}
         image={data.image}
         parameters={data.parameters}
+        triggers={data.triggers}
         nodeRef={nodeRef}
       />
     </div>
