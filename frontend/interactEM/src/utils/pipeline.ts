@@ -47,6 +47,7 @@ export const fromPipelineJSON = (
         tags: operatorJSON.tags,
         parallel_config: operatorJSON.parallel_config,
         spec_id: operatorJSON.spec_id,
+        triggers: operatorJSON.triggers,
         node_type: NodeType.operator,
       },
       sourcePosition: Position.Right,
@@ -99,6 +100,7 @@ export const toJSON = (nodes: OperatorNodeTypes[], edges: Edge[]) => {
     const outputs = data.outputs
     const parameters = data.parameters
     const tags = data.tags
+    const triggers = data.triggers
 
     for (const portID of inputs ?? []) {
       if (portIDs.has(portID)) continue
@@ -142,6 +144,7 @@ export const toJSON = (nodes: OperatorNodeTypes[], edges: Edge[]) => {
       parameters: parameters,
       tags: tags,
       parallel_config: data.parallel_config,
+      triggers: triggers,
     }
     operatorsJSON.push(op)
   }

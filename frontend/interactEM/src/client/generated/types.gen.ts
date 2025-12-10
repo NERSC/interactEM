@@ -34,6 +34,7 @@ export type CanonicalOperator = {
   parameters?: Array<OperatorSpecParameter> | null
   tags?: Array<OperatorSpecTag>
   parallel_config?: ParallelConfig | null
+  triggers?: Array<OperatorSpecTrigger> | null
   spec_id: string
   node_type?: NodeType
 }
@@ -94,6 +95,7 @@ export type OperatorSpec = {
   parameters?: Array<OperatorSpecParameter> | null
   tags?: Array<OperatorSpecTag> | null
   parallel_config?: ParallelConfig | null
+  triggers?: Array<OperatorSpecTrigger> | null
 }
 
 export type OperatorSpecInput = {
@@ -188,6 +190,13 @@ export type OperatorSpecParameterString = {
 export type OperatorSpecTag = {
   value: string
   description?: string | null
+}
+
+export type OperatorSpecTrigger = {
+  name: string
+  label: string
+  description?: string | null
+  mode?: TriggerInvocationMode
 }
 
 export type OperatorSpecs = {
@@ -288,6 +297,8 @@ export type Token = {
   token_type?: string
   nats_jwt: string
 }
+
+export type TriggerInvocationMode = "single" | "drain"
 
 export type UpdatePassword = {
   current_password: string

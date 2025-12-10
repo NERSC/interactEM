@@ -1414,6 +1414,16 @@
               { "type": "null" }
             ]
           },
+          "triggers": {
+            "anyOf": [
+              {
+                "items": { "$ref": "#/components/schemas/OperatorSpecTrigger" },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Triggers"
+          },
           "spec_id": { "type": "string", "format": "uuid", "title": "Spec Id" },
           "node_type": {
             "$ref": "#/components/schemas/NodeType",
@@ -1581,6 +1591,16 @@
               { "$ref": "#/components/schemas/ParallelConfig" },
               { "type": "null" }
             ]
+          },
+          "triggers": {
+            "anyOf": [
+              {
+                "items": { "$ref": "#/components/schemas/OperatorSpecTrigger" },
+                "type": "array"
+              },
+              { "type": "null" }
+            ],
+            "title": "Triggers"
           }
         },
         "type": "object",
@@ -1768,6 +1788,23 @@
         "type": "object",
         "required": ["value"],
         "title": "OperatorSpecTag"
+      },
+      "OperatorSpecTrigger": {
+        "properties": {
+          "name": { "type": "string", "title": "Name" },
+          "label": { "type": "string", "title": "Label" },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "mode": {
+            "$ref": "#/components/schemas/TriggerInvocationMode",
+            "default": "single"
+          }
+        },
+        "type": "object",
+        "required": ["name", "label"],
+        "title": "OperatorSpecTrigger"
       },
       "OperatorSpecs": {
         "properties": {
@@ -2053,6 +2090,11 @@
         "type": "object",
         "required": ["access_token", "nats_jwt"],
         "title": "Token"
+      },
+      "TriggerInvocationMode": {
+        "type": "string",
+        "enum": ["single", "drain"],
+        "title": "TriggerInvocationMode"
       },
       "UpdatePassword": {
         "properties": {

@@ -96,6 +96,7 @@ export interface RuntimeOperator {
   parameters?: RuntimeOperatorParameter[] | null
   tags?: OperatorSpecTag[]
   parallel_config?: ParallelConfig | null
+  triggers?: OperatorSpecTrigger[] | null
   spec_id: string
   node_type?: NodeType
   canonical_id: string
@@ -181,6 +182,13 @@ export interface ParallelConfig {
   type?: ParallelType
   [k: string]: unknown
 }
+export interface OperatorSpecTrigger {
+  name: string
+  label: string
+  description?: string | null
+  mode?: TriggerInvocationMode
+  [k: string]: unknown
+}
 export interface RuntimeOperatorParameterAck {
   canonical_operator_id: string
   name: string
@@ -210,6 +218,17 @@ export interface RuntimePort {
   canonical_id: string
   operator_id: string
   targets_canonical_operator_id?: string | null
+}
+export interface TriggerInvocation {
+  canonical_operator_id: string
+  trigger: string
+}
+export interface TriggerInvocationRequest {
+  trigger: string
+}
+export interface TriggerInvocationResponse {
+  status: TriggerInvocationResponseStatus
+  message?: string | null
 }
 
 export enum LogType {
@@ -278,6 +297,10 @@ export enum ParallelType {
   none = "none",
   embarrassing = "embarrassing",
 }
+export enum TriggerInvocationMode {
+  single = "single",
+  drain = "drain",
+}
 export enum NodeType {
   operator = "operator",
   port = "port",
@@ -293,4 +316,8 @@ export enum NetworkMode {
 export enum PortType {
   input = "input",
   output = "output",
+}
+export enum TriggerInvocationResponseStatus {
+  ok = "ok",
+  error = "error",
 }

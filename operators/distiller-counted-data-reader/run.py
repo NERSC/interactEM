@@ -1,5 +1,4 @@
 import pathlib
-import time
 from typing import Any
 
 import stempy.io
@@ -18,19 +17,21 @@ current_scan_number: int = 1
 current_filename: str | None = None
 
 data_dir = pathlib.Path(f"{DATA_DIRECTORY}/raw_data_dir")
-first_time = True
 
 
 @operator
 def reader(
-    inputs: BytesMessage | None, parameters: dict[str, Any]
+    inputs: BytesMessage | None, parameters: dict[str, Any], trigger=None
 ) -> BytesMessage | None:
+    """Emit counted data batches only when explicitly triggered."""
+    if trigger is None:
+        return None
+
     global source_dataset_path, active_emitter, current_scan_number
-    global current_filename, first_time
+    global current_filename
 
     filename = parameters.get("filename", None)
     batch_size_mb = parameters.get("batch_size_mb", 1.0)
-    acquisition_delay_sec = parameters.get("acquisition_delay_s", 30)
 
     if not filename:
         raise ValueError("Filename parameter 'filename' is not set.")
@@ -47,17 +48,11 @@ def reader(
     if active_emitter is None:
         if not source_dataset_path.exists():
             logger.error(f"Source file not found: {source_dataset_path}")
-            time.sleep(1)
             raise FileNotFoundError(f"Source file not found: {source_dataset_path}")
         try:
-            if first_time:
-                first_time = False
-                time.sleep(3)
-            else:
-                logger.info(f"Sleeping for {acquisition_delay_sec} seconds.")
-                time.sleep(acquisition_delay_sec)
-
-            logger.info(f"Loading dataset from: {source_dataset_path} for Scan {current_scan_number}")
+            logger.info(
+                f"Loading dataset from: {source_dataset_path} for Scan {current_scan_number}"
+            )
             loaded_sparse_array = stempy.io.load_electron_counts(source_dataset_path)
             active_emitter = BatchEmitter(
                 sparse_array=loaded_sparse_array,
@@ -72,9 +67,10 @@ def reader(
                 f"Batch size: {batch_size_mb} MB)."
             )
         except Exception as e:
-            logger.error(f"Failed to load dataset or create emitter from {source_dataset_path}: {e}")
+            logger.error(
+                f"Failed to load dataset or create emitter from {source_dataset_path}: {e}"
+            )
             active_emitter = None
-            time.sleep(1)
             raise e
 
     # Process and Send Frames using Emitter
@@ -95,8 +91,10 @@ def reader(
             active_emitter = None
             return None
         except Exception as e:
-             logger.error(f"Error during frame emission or delay for scan {active_emitter.scan_number}: {e}")
-             active_emitter = None
-             raise e
-    else:
-        return None
+            logger.error(
+                f"Error during frame emission for scan {active_emitter.scan_number}: {e}"
+            )
+            active_emitter = None
+            raise e
+
+    return None

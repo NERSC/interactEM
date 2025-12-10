@@ -142,6 +142,19 @@ export const zCanonicalOperator = z.object({
       z.null(),
     ])
     .optional(),
+  triggers: z
+    .union([
+      z.array(
+        z.object({
+          name: z.string(),
+          label: z.string(),
+          description: z.union([z.string(), z.null()]).optional(),
+          mode: z.enum(["single", "drain"]).optional(),
+        }),
+      ),
+      z.null(),
+    ])
+    .optional(),
   spec_id: z.string().uuid(),
   node_type: z.enum(["operator", "port"]).optional(),
 })
@@ -353,6 +366,19 @@ export const zOperatorSpec = z.object({
       z.null(),
     ])
     .optional(),
+  triggers: z
+    .union([
+      z.array(
+        z.object({
+          name: z.string(),
+          label: z.string(),
+          description: z.union([z.string(), z.null()]).optional(),
+          mode: z.enum(["single", "drain"]).optional(),
+        }),
+      ),
+      z.null(),
+    ])
+    .optional(),
 })
 
 export const zOperatorSpecInput = z.object({
@@ -517,6 +543,13 @@ export const zOperatorSpecTag = z.object({
   description: z.union([z.string(), z.null()]).optional(),
 })
 
+export const zOperatorSpecTrigger = z.object({
+  name: z.string(),
+  label: z.string(),
+  description: z.union([z.string(), z.null()]).optional(),
+  mode: z.enum(["single", "drain"]).optional(),
+})
+
 export const zOperatorSpecs = z.object({
   data: z.array(zOperatorSpec),
 })
@@ -619,6 +652,8 @@ export const zToken = z.object({
   token_type: z.string().optional().default("bearer"),
   nats_jwt: z.string(),
 })
+
+export const zTriggerInvocationMode = z.enum(["single", "drain"])
 
 export const zUpdatePassword = z.object({
   current_password: z.string().min(8).max(40),

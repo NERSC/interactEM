@@ -15,15 +15,18 @@ import {
 import { useOperatorStatusContext } from "../../contexts/nats/operatorstatus"
 import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
 import { OperatorStatus } from "../../types/gen"
+import type { OperatorSpecTrigger } from "../../types/triggers"
 
 import type { OperatorNodeType } from "../../types/nodes"
 import OperatorLogsDialog from "../logs/operatordialog"
 import ParametersButton from "./parametersbutton"
+import TriggersButton from "./triggersbutton"
 
 interface OperatorToolbarProps {
   id: string
   image: string
   parameters?: OperatorSpecParameter[] | null
+  triggers?: OperatorSpecTrigger[] | null
   nodeRef: React.RefObject<HTMLDivElement>
 }
 
@@ -31,6 +34,7 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
   id,
   image,
   parameters,
+  triggers,
   nodeRef,
 }) => {
   const nodeData = useNodesData<OperatorNodeType>(id)
@@ -39,6 +43,8 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
   const { selectedRuntimePipelineId } = usePipelineStore()
   const { operators } = useOperatorStatusContext()
   const [logsDialogOpen, setLogsDialogOpen] = useState(false)
+  const effectiveTriggers = triggers ?? []
+  const triggersDisabled = viewMode !== ViewMode.Runtime
 
   // Find the operator status for this operator in the selected deployment
   const operatorStatus = operators.find(
@@ -87,6 +93,15 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
               <RestartAltIcon fontSize="small" />
             </IconButton>
           </Tooltip>
+        )}
+
+        {effectiveTriggers.length > 0 && (
+          <TriggersButton
+            operatorID={id}
+            triggers={effectiveTriggers}
+            disabled={triggersDisabled}
+            nodeRef={nodeRef}
+          />
         )}
 
         {parameters && parameters.length > 0 && (

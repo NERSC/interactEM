@@ -115,6 +115,18 @@ class ParallelConfig(BaseModel):
     type: ParallelType = ParallelType.NONE
 
 
+class TriggerInvocationMode(str, Enum):
+    SINGLE = "single"
+    DRAIN = "drain"
+
+
+class OperatorSpecTrigger(BaseModel):
+    name: str
+    label: str
+    description: str | None = None
+    mode: TriggerInvocationMode = TriggerInvocationMode.SINGLE
+
+
 class OperatorSpec(BaseModel):
     id: OperatorSpecID
     label: str  # Human readable name of the operator
@@ -125,3 +137,4 @@ class OperatorSpec(BaseModel):
     parameters: list[OperatorSpecParameter] | None = None  # List of parameters
     tags: list[OperatorSpecTag] | None = None  # List of tags to match on
     parallel_config: ParallelConfig | None = None  # Parallel execution config
+    triggers: list[OperatorSpecTrigger] | None = None  # List of triggers
