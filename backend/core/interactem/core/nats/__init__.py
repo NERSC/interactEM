@@ -1,8 +1,7 @@
 import asyncio
 import json
-from typing import Awaitable, Callable, Set
+from typing import Awaitable, Callable, Set, Type, TypeVar
 
-from interactem.core.util import create_task_with_ref
 import nats
 
 from interactem.core.constants import (
@@ -25,16 +24,18 @@ from nats.js.errors import (
     APIError,
 )
 from nats.js.kv import KeyValue
-from nats.aio.msg import Msg as NATSMsg
 from nats.aio.client import Client as NATSClient
+from nats.aio.msg import Msg as NATSMsg
 from nats.js.api import StreamConfig, StreamInfo
 from nats.js.errors import BadRequestError
-from typing import TypeVar, Type
 from pydantic import BaseModel, ValidationError
-from nats.js.kv import KeyValue
-from nats.js.errors import KeyNotFoundError
 
 from interactem.core.logger import get_logger
+from interactem.core.models.triggers import (
+    TriggerInvocationResponse,
+    TriggerInvocationResponseStatus,
+)
+from interactem.core.util import create_task_with_ref
 from .config import get_nats_config, NatsMode
 from .storage import cfg as storage_cfg
 from .streams import (
@@ -343,4 +344,14 @@ def publish_notification(
             payload=msg.encode(),
             timeout=NATS_TIMEOUT_DEFAULT,
         ),
+    )
+
+async def respond_trigger(
+    msg: NATSMsg, status: TriggerInvocationResponseStatus, message: str | None = None
+):
+    """Send a trigger invocation response on the given NATS message."""
+    await msg.respond(
+        TriggerInvocationResponse(status=status, message=message)
+        .model_dump_json()
+        .encode()
     )
