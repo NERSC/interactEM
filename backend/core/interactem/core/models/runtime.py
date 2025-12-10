@@ -220,7 +220,9 @@ class RuntimeOperator(CanonicalOperator):
     inputs: list[RuntimePortMap] = []
     outputs: list[RuntimePortMap] = []
 
-    def update_parameter_value(self, name: str, value: str | None) -> None:
+    def update_parameter_value(
+        self, name: str, value: int | float | bool | str | None
+    ) -> None:
         for parameter in self.parameters or []:
             if parameter.name == name:
                 parameter.value = value
