@@ -27,14 +27,14 @@
       "default": "test_file.h5",
       "description": "The file to be processed",
       "required": true
-    },
+    }
+  ],
+  "triggers": [
     {
-      "name": "acquisition_delay_s",
-      "label": "Acquisition delay (seconds)",
-      "type": "int",
-      "default": "30",
-      "description": "The time between acquisitions in seconds",
-      "required": true
+      "name": "read_now",
+      "label": "Read counted data now",
+      "description": "Manually read and emit the next batch of counted data without waiting.",
+      "mode": "drain"
     }
   ]
 }
