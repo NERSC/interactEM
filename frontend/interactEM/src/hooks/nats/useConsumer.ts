@@ -4,7 +4,10 @@ import {
   JetStreamApiError,
   JetStreamError,
 } from "@nats-io/jetstream"
-import { DrainingConnectionError } from "@nats-io/nats-core/internal"
+import {
+  DrainingConnectionError,
+  RequestError,
+} from "@nats-io/nats-core/internal"
 import { useEffect, useRef, useState } from "react"
 import { useNats } from "../../contexts/nats"
 
@@ -17,7 +20,7 @@ export const useConsumer = ({
   stream,
   config,
 }: UseConsumerOptions): Consumer | null => {
-  const { jetStreamClient, jetStreamManager } = useNats()
+  const { jetStreamClient, jetStreamManager, isConnected } = useNats()
   const [consumer, setConsumer] = useState<Consumer | null>(null)
   const isMounted = useRef(true)
   // Ref to hold the current consumer instance across renders
@@ -26,6 +29,11 @@ export const useConsumer = ({
   useEffect(() => {
     // Mark component as mounted when effect runs
     isMounted.current = true
+
+    // If not connected, skip creating consumers
+    if (!isConnected) {
+      return
+    }
 
     // If config is null, clear the consumer
     if (!config) {
@@ -89,6 +97,13 @@ export const useConsumer = ({
             await deleteConsumer(newConsumer)
           }
         } catch (createError) {
+          if (
+            createError instanceof DrainingConnectionError ||
+            createError instanceof RequestError
+          ) {
+            // Ignore transient connection issues; will retry when connection stabilizes
+            return
+          }
           console.error(
             `Failed to create ephemeral consumer in stream "${stream}":`,
             createError,
@@ -111,7 +126,7 @@ export const useConsumer = ({
         })
       }
     }
-  }, [jetStreamManager, jetStreamClient, stream, config])
+  }, [jetStreamManager, jetStreamClient, stream, config, isConnected])
 
   return consumer
 }

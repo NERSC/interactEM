@@ -1,4 +1,8 @@
 import type { KvEntry, KvWatchOptions } from "@nats-io/kv"
+import {
+  DrainingConnectionError,
+  RequestError,
+} from "@nats-io/nats-core/internal"
 import { useEffect, useState } from "react"
 import type { z } from "zod"
 import { useBucket } from "./useBucket"
@@ -110,11 +114,17 @@ export function useBucketWatch<T extends WithId>({
 
         processWatch()
       } catch (err) {
-        if (!signal.aborted) {
-          console.error(`Watch error for bucket ${bucketName}:`, err)
-          setError(`Failed to watch bucket ${bucketName}`)
-          setIsLoading(false)
+        if (signal.aborted) return
+        if (
+          err instanceof DrainingConnectionError ||
+          err instanceof RequestError
+        ) {
+          // Ignore transient connection issues; hooks will re-run after reconnect
+          return
         }
+        console.error(`Watch error for bucket ${bucketName}:`, err)
+        setError(`Failed to watch bucket ${bucketName}`)
+        setIsLoading(false)
       }
     })()
 

@@ -1,4 +1,5 @@
 import type { Consumer, JsMsg } from "@nats-io/jetstream"
+import { DrainingConnectionError } from "@nats-io/nats-core/internal"
 import { useEffect, useRef } from "react"
 
 interface UseConsumeMessagesOptions {
@@ -61,9 +62,12 @@ export const useConsumeMessages = ({
           message.ack()
         }
       } catch (consumeError) {
-        if (!aborted) {
-          console.error("Error consuming messages:", consumeError)
+        if (aborted) return
+        if (consumeError instanceof DrainingConnectionError) {
+          // Ignore during connection drain; will re-consume on reconnect
+          return
         }
+        console.error("Error consuming messages:", consumeError)
       }
     }
 

@@ -65,12 +65,10 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
     isConnected: false,
   })
 
-  const [natsConnection, setNatsConnection] = useState<NatsConnection | null>(
-    null,
-  )
   const { token, natsJwt, isAuthenticated } = useAuth()
   const tokenRef = useRef(token)
   const natsJwtRef = useRef(natsJwt)
+  const connectionRef = useRef<NatsConnection | null>(null)
 
   useEffect(() => {
     tokenRef.current = token
@@ -80,12 +78,16 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
     if (!isAuthenticated) {
       return
     }
+
+    let cancelled = false
+
     async function setupNatsServices(nc: NatsConnection) {
       try {
         const js = jetstream(nc)
         const jsm = await jetstreamManager(nc)
         const kvm = new Kvm(nc)
 
+        if (cancelled) return
         setState({
           natsConnection: nc,
           jetStreamClient: js,
@@ -98,7 +100,12 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
         setState((prev) => ({ ...prev, isConnected: false }))
       }
     }
+
     async function connect() {
+      // Avoid duplicate connects
+      if (connectionRef.current) {
+        return
+      }
       try {
         const servers = Array.isArray(natsServers) ? natsServers : [natsServers]
         const nc = await wsconnect({
@@ -127,19 +134,13 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
 
         console.log("NATS connection successful")
 
-        setNatsConnection(nc)
+        connectionRef.current = nc
         await setupNatsServices(nc)
-
-        // natsConnection will cycle through the following status sequence when
-        // it is disconnected:
-        // 1. Error
-        // 2. staleConnection
-        // 3. disconnect
-        // 4. reconnecting
-        // 5. update
-        // 6. reconnect
         ;(async () => {
           for await (const status of nc.status()) {
+            if (cancelled) {
+              break
+            }
             switch (status.type) {
               case "reconnect":
                 setState((prev) => ({ ...prev, isConnected: true }))
@@ -160,30 +161,55 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
       }
     }
 
-    if (!natsConnection) {
-      connect()
-    }
+    connect()
+
     return () => {
-      if (natsConnection) {
-        console.log("Draining NATS connection")
+      cancelled = true
+    }
+  }, [isAuthenticated, natsServers])
+
+  useEffect(() => {
+    // Drain when user logs out or component unmounts
+    if (isAuthenticated) {
+      return
+    }
+    const conn = connectionRef.current
+    if (conn) {
+      console.log("Draining NATS connection")
+      ;(async () => {
+        try {
+          await conn.drain()
+          console.log("NATS connection drained and closed")
+        } catch (err) {
+          console.error("Error draining NATS connection:", err)
+        } finally {
+          connectionRef.current = null
+          setState({
+            natsConnection: null,
+            jetStreamClient: null,
+            jetStreamManager: null,
+            keyValueManager: null,
+            isConnected: false,
+          })
+        }
+      })()
+    }
+  }, [isAuthenticated])
+
+  useEffect(() => {
+    return () => {
+      const conn = connectionRef.current
+      if (conn) {
         ;(async () => {
           try {
-            await natsConnection.drain()
-            console.log("NATS connection drained and closed")
+            await conn.drain()
           } catch (err) {
-            console.error("Error draining NATS connection:", err)
+            console.error("Error draining NATS connection on unmount:", err)
           }
         })()
       }
-      setState({
-        natsConnection: null,
-        jetStreamClient: null,
-        jetStreamManager: null,
-        keyValueManager: null,
-        isConnected: false,
-      })
     }
-  }, [isAuthenticated, natsConnection, natsServers])
+  }, [])
 
   if (!isAuthenticated) {
     return null
