@@ -585,7 +585,6 @@ class SharedStateClient:
             else:
                 update_pusher.send_pyobj(NodeDisconnectedUpdate())
             return new_head_node_id
-
         return last_head_node_id
 
     @staticmethod
@@ -807,23 +806,17 @@ class SharedStateClient:
         self.receive_update(timeout_ms=0)
         new_head_node_id = self.current_head_node_id
 
-        # Handle head node change
+        # Check if we need to update the data socket
         if new_head_node_id != self._connected_node_id:
-            # Close existing connection
-            if self._data_pull_socket:
-                self._data_pull_socket.close()
-                self._data_pull_socket = None
-
-            # Connect to new head node if available
+            self._close_data_socket()
             if new_head_node_id:
                 data_pull_addr = f"tcp://{new_head_node_id}:{self.DATA_PORT}"
                 try:
-                    self._data_pull_socket = self._zmq_data_context.socket(zmq.SUB)
+                    self._data_pull_socket = self._zmq_data_context.socket(zmq.PULL)
                     if not self._data_pull_socket:
                         raise RuntimeError("Unable to create data socket")
                     self._data_pull_socket.setsockopt(zmq.LINGER, 0)
-                    self._data_pull_socket.setsockopt(zmq.RCVTIMEO, 1000)
-                    self._data_pull_socket.setsockopt_string(zmq.SUBSCRIBE, "")
+                    self._data_pull_socket.setsockopt(zmq.RCVTIMEO, 100)
                     self._data_pull_socket.connect(data_pull_addr)
                     self._connected_node_id = new_head_node_id
                     logger.info(f"[Client] Connected to data port: {data_pull_addr}")
@@ -858,10 +851,7 @@ class SharedStateClient:
         if self._ipc_context and not self._ipc_context.closed:
             self._ipc_context.term()
 
-        # Close data socket
         self._close_data_socket()
-
-        # Clean up IPC file
         self._cleanup_ipc_file()
 
     def shutdown(self, timeout_sec: int = 5):
