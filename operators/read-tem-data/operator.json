@@ -1,0 +1,35 @@
+{
+  "id": "389712a9-edb9-4dcb-89d8-c13264a0c356",
+  "label": "Read TEM data",
+  "description": "This reads data from disk using ncempy and sends it on.",
+  "image": "ghcr.io/nersc/interactem/read-tem-data:latest",
+  "outputs": [
+    {
+      "name": "data",
+      "label": "Output array",
+      "description": "Array output",
+      "type": "bytes"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "raw_data_dir",
+      "label": "Raw data directory",
+      "description": "The directory containing the files to read.",
+      "type": "mount",
+      "default": "~/test_data",
+      "required": true
+    },
+    {
+      "name": "file",
+      "label": "File name",
+      "description": "The name of the file to read.",
+      "type": "str",
+      "default": "file.emd",
+      "required": true
+    }
+  ],
+  "parallel_config": {
+    "type": "none"
+  }
+}
