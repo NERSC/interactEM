@@ -19,6 +19,38 @@
       "default": "tcp://localhost:7082",
       "description": "Address of the publisher",
       "required": true
+    },
+    {
+      "name": "override_data_enable",
+      "label": "Override data address?",
+      "type": "bool",
+      "default": false,
+      "description": "True if we are going to use a custom address to receive data.",
+      "required": true
+    },
+    {
+      "name": "override_data_addr",
+      "label": "Override Data TCP address",
+      "type": "str",
+      "default": "tcp://localhost:17000",
+      "description": "Use custom address to receive data",
+      "required": false
+    },
+    {
+      "name": "enable_sparse_array",
+      "label": "Enable SparseArray Support",
+      "type": "bool",
+      "default": false,
+      "description": "Enable receiving full SparseArray datasets (legacy format). When disabled, only BatchedFrames streaming format is supported.",
+      "required": false
+    },
+    {
+      "name": "batch_size_mb",
+      "label": "Batch Size (MB)",
+      "type": "float",
+      "default": 1.0,
+      "description": "Maximum batch size in MB when converting SparseArray to batched frames. Only used when SparseArray support is enabled.",
+      "required": false
     }
   ]
 }
