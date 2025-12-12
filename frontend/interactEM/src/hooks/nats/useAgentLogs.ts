@@ -1,5 +1,5 @@
 import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { STREAM_LOGS, SUBJECT_AGENTS_LOGS } from "../../constants/nats"
 import type { AgentLog } from "../../types/gen"
 import { useConsumeMessages } from "./useConsumeMessages"
@@ -28,6 +28,13 @@ export function useAgentLogs({ id }: UseLogsOptions) {
     stream: STREAM_LOGS,
     config,
   })
+
+  // ensure fresh state when reopening the logs panel
+  useEffect(() => {
+    if (consumer) {
+      setLogs([])
+    }
+  }, [consumer])
 
   const handleMessage = useCallback((msg: any) => {
     try {

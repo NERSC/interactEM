@@ -1,4 +1,4 @@
-import type { Consumer, JsMsg } from "@nats-io/jetstream"
+import type { Consumer, ConsumerMessages, JsMsg } from "@nats-io/jetstream"
 import { useEffect, useRef } from "react"
 
 interface UseConsumeMessagesOptions {
@@ -12,25 +12,6 @@ export const useConsumeMessages = ({
 }: UseConsumeMessagesOptions) => {
   const handlerRef = useRef(handleMessage)
 
-  // We should be able to pass in memoized or non-memoized
-  // functions and it should be fine...
-
-  // I pass in callbacks be safe
-
-  // TODO: still getting this error, thought i fixed it:
-
-  // Error consuming messages: InvalidOperationError: ordered consumer doesn't support concurrent consume
-  //   at PullConsumerImpl.consume (chunk-64MGA3Q7.js?v=f913c564:1502:35)
-  //   at consumeMessages (useConsumeMessages.ts:36:41)
-  //   at useConsumeMessages.ts:47:5
-  //   at commitHookEffectListMount (chunk-XQLYTHWV.js?v=f913c564:16915:34)
-  //   at commitPassiveMountOnFiber (chunk-XQLYTHWV.js?v=f913c564:18156:19)
-  //   at commitPassiveMountEffects_complete (chunk-XQLYTHWV.js?v=f913c564:18129:17)
-  //   at commitPassiveMountEffects_begin (chunk-XQLYTHWV.js?v=f913c564:18119:15)
-  //   at commitPassiveMountEffects (chunk-XQLYTHWV.js?v=f913c564:18109:11)
-  //   at flushPassiveEffectsImpl (chunk-XQLYTHWV.js?v=f913c564:19490:11)
-  //   at flushPassiveEffects (chunk-XQLYTHWV.js?v=f913c564:19447:22)
-
   // Update the ref when the handler changes
   useEffect(() => {
     handlerRef.current = handleMessage
@@ -42,13 +23,15 @@ export const useConsumeMessages = ({
 
     // Flag to handle cleanup
     let aborted = false
+    // Store reference to the message iterator for cleanup
+    let messagesIterator: ConsumerMessages | null = null
 
     // Start consuming messages
     const consumeMessages = async () => {
       try {
-        const messages = await consumer.consume()
+        messagesIterator = await consumer.consume()
 
-        for await (const message of messages) {
+        for await (const message of messagesIterator) {
           if (aborted) break
 
           try {
@@ -73,6 +56,13 @@ export const useConsumeMessages = ({
     // Cleanup function
     return () => {
       aborted = true
+      // Properly close the message iterator to release resources
+      messagesIterator?.close().catch((err) => {
+        // Ignore errors during cleanup (e.g., connection already closed)
+        if (!aborted) {
+          console.error("Error closing message iterator:", err)
+        }
+      })
     }
   }, [consumer]) // Only re-run when consumer changes
 }

@@ -13,18 +13,11 @@ export interface TablePayload {
   [tables: string]: TablesDict
 }
 
-const streamConfig = {
-  name: STREAM_TABLES,
-  subjects: [`${STREAM_TABLES}.*`],
-  max_msgs_per_subject: 1,
-}
-
 export const useTableData = (operatorID: string): TablePayload | null => {
   const subject = `${STREAM_TABLES}.${operatorID}`
 
   const { data } = useStreamMessage<TablePayload>({
     streamName: STREAM_TABLES,
-    streamConfig,
     subject,
     transform: (jsonData) => {
       // Basic validation: Check if it's a non-null object

@@ -38,6 +38,7 @@ group "operators" {
     "dpc",
     "bin-sparse-partial",
     "quantem-direct-ptycho"
+    "read-tem-data"
   ]
 }
 
@@ -277,4 +278,10 @@ target "quantem-direct-ptycho" {
   context = "operators/quantem-direct-ptycho"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/quantem-direct-ptycho:${TAG}"]
+
+target "read-tem-data" {
+  inherits = ["common"]
+  context = "operators/read-tem-data"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/read-tem-data:${TAG}"]
 }

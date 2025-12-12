@@ -1,0 +1,7 @@
+FROM ghcr.io/nersc/interactem/operator
+
+# Install additional dependencies
+RUN poetry add ncempy numpy@~2.2.6 h5py
+
+# Copy the operator script
+COPY ./run.py /app/run.py
