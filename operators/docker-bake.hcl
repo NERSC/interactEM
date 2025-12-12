@@ -36,6 +36,8 @@ group "operators" {
     "center-of-mass-reduce",
     "center-of-mass-plot",
     "dpc",
+    "bin-sparse-partial",
+    "quantem-direct-ptycho"
     "read-tem-data"
   ]
 }
@@ -263,6 +265,19 @@ target "dpc" {
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/dpc:${TAG}"]
 }
+
+target "bin-sparse-partial" {
+  inherits = ["common"]
+  context = "operators/bin-sparse-partial"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/bin-sparse-partial:${TAG}"]
+}
+
+target "quantem-direct-ptycho" {
+  inherits = ["common"]
+  context = "operators/quantem-direct-ptycho"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/quantem-direct-ptycho:${TAG}"]
 
 target "read-tem-data" {
   inherits = ["common"]

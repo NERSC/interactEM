@@ -1,0 +1,35 @@
+{
+  "id": "2af8232a-b0e0-40ea-9757-d63d1ae28555",
+  "image": "ghcr.io/nersc/interactem/bin-sparse-partial",
+  "label": "Partial sparse frame binning",
+  "description": "Bins sparse frames to reduce their overall size",
+  "inputs": [
+    {
+      "name": "in",
+      "label": "The input",
+      "type": "frame",
+      "description": "A batch of sparse frames"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "frame_bin_partial",
+      "label": "The output",
+      "type": "com_partial",
+      "description": "A batch of binned frames"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "bin_value",
+      "label": "Binning value",
+      "type": "int",
+      "default": "2",
+      "description": "The value to bin each frame by",
+      "required": true
+    }
+  ],
+  "parallel_config": {
+    "type": "embarrassing"
+  }
+}
