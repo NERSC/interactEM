@@ -170,23 +170,27 @@ class DistillerGrabberState:
 _state: DistillerGrabberState | None = None
 
 
-def _try_receive_batched_frames(socket: zmq.Socket) -> BatchedFrames | None:
-    """Try to receive and decode BatchedFrames from socket."""
+def _receive_raw_message(socket: zmq.Socket) -> bytes | None:
+    """Non-blocking receive of a raw message from the socket."""
     try:
-        raw_message = socket.recv(flags=zmq.NOBLOCK)
-        return msgspec.msgpack.decode(raw_message, type=BatchedFrames)
+        return socket.recv(flags=zmq.NOBLOCK)
     except zmq.Again:
         return None
+
+
+def _decode_batched_frames(raw_message: bytes) -> BatchedFrames | None:
+    """Decode BatchedFrames from raw message bytes."""
+    try:
+        return msgspec.msgpack.decode(raw_message, type=BatchedFrames)
     except msgspec.DecodeError:
         return None
 
 
-def _try_receive_sparse_array(
-    socket: zmq.Socket, scan_number: int, batch_size_mb: float
+def _decode_sparse_array(
+    raw_message: bytes, scan_number: int, batch_size_mb: float
 ) -> BatchEmitter | None:
-    """Try to receive and unpack a SparseArray from socket."""
+    """Try to unpack a SparseArray from raw message bytes."""
     try:
-        raw_message = socket.recv(flags=zmq.NOBLOCK)
         sparse_array = unpack_sparse_array(raw_message)
         scan_num = sparse_array.metadata.get("scan_number", scan_number)
         logger.info(
@@ -200,8 +204,6 @@ def _try_receive_sparse_array(
             scan_number=scan_num,
             batch_size_mb=batch_size_mb,
         )
-    except zmq.Again:
-        return None
     except Exception as e:
         logger.warning("Failed to unpack SparseArray: %s", e)
         return None
@@ -257,14 +259,18 @@ def grabber(
     if not data_socket:
         return None
 
-    # Try to receive BatchedFrames (streaming format)
-    batch = _try_receive_batched_frames(data_socket)
+    raw_message = _receive_raw_message(data_socket)
+    if raw_message is None:
+        return None
+
+    # Try to decode BatchedFrames (streaming format)
+    batch = _decode_batched_frames(raw_message)
     if batch:
         return batch.to_bytes_message()
 
     # Optionally try SparseArray format (full dataset)
     if enable_sparse_array:
-        emitter = _try_receive_sparse_array(data_socket, 0, batch_size_mb)
+        emitter = _decode_sparse_array(raw_message, 0, batch_size_mb)
         if emitter:
             _state.emitter_manager.add(emitter)
             _state.emitter_manager.activate_next()
