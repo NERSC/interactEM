@@ -22,10 +22,10 @@ const ParameterInfoTooltip: React.FC<ParameterInfoTooltipProps> = ({
           </Typography>
           <Box sx={{ mt: 1 }}>
             <Typography variant="caption" component="div">
-              <strong>Type:</strong> {parameter.type}
+              <strong>Type:</strong> {String(parameter.type)}
             </Typography>
             <Typography variant="caption" component="div">
-              <strong>Default:</strong> {parameter.default}
+              <strong>Default:</strong> {String(parameter.default)}
             </Typography>
             <Typography variant="caption" component="div">
               <strong>Required:</strong> {parameter.required ? "Yes" : "No"}
