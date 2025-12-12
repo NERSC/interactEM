@@ -1,4 +1,4 @@
-import type { Consumer, JsMsg } from "@nats-io/jetstream"
+import type { Consumer, ConsumerMessages, JsMsg } from "@nats-io/jetstream"
 import { useEffect, useRef } from "react"
 
 interface UseConsumeMessagesOptions {
@@ -42,13 +42,15 @@ export const useConsumeMessages = ({
 
     // Flag to handle cleanup
     let aborted = false
+    // Store reference to the message iterator for cleanup
+    let messagesIterator: ConsumerMessages | null = null
 
     // Start consuming messages
     const consumeMessages = async () => {
       try {
-        const messages = await consumer.consume()
+        messagesIterator = await consumer.consume()
 
-        for await (const message of messages) {
+        for await (const message of messagesIterator) {
           if (aborted) break
 
           try {
@@ -73,6 +75,13 @@ export const useConsumeMessages = ({
     // Cleanup function
     return () => {
       aborted = true
+      // Properly close the message iterator to release resources
+      messagesIterator?.close().catch((err) => {
+        // Ignore errors during cleanup (e.g., connection already closed)
+        if (!aborted) {
+          console.error("Error closing message iterator:", err)
+        }
+      })
     }
   }, [consumer]) // Only re-run when consumer changes
 }
