@@ -1,9 +1,5 @@
 import type { Consumer, ConsumerConfig } from "@nats-io/jetstream"
-import {
-  JetStreamApiCodes,
-  JetStreamApiError,
-  JetStreamError,
-} from "@nats-io/jetstream"
+import { JetStreamError } from "@nats-io/jetstream"
 import { DrainingConnectionError } from "@nats-io/nats-core/internal"
 import { useEffect, useRef, useState } from "react"
 import { useNats } from "../../contexts/nats"
@@ -55,14 +51,7 @@ export const useConsumer = ({
           // quietly ignore if connection is draining
           return
         }
-        if (error instanceof JetStreamApiError) {
-          if (error.code === JetStreamApiCodes.ConsumerNotFound) {
-            return
-          }
-          console.error(
-            `JetStream API error during consumer deletion: ${error.message}`,
-          )
-        } else if (error instanceof JetStreamError) {
+        if (error instanceof JetStreamError) {
           console.error(
             `JetStream error during consumer deletion: ${error.message}`,
           )
