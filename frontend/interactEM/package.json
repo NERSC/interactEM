@@ -28,7 +28,7 @@
     "test:e2e:headed": "playwright test --headed"
   },
   "dependencies": {
-    "@dagrejs/dagre": "^1.1.4",
+    "@dagrejs/dagre": "^1.1.8",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
     "@hey-api/client-axios": "^0.6.1",
