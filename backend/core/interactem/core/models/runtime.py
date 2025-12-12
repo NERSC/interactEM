@@ -280,7 +280,12 @@ class RuntimeOperator(CanonicalOperator):
 
 class AgentRuntimeOperator(RuntimeOperator, MountMixin):
     # We need to check resolve mounts on the agent side
-    pass
+    requires_gpus: bool = False
+
+    @model_validator(mode="after")
+    def coerce_requires_gpus(self):
+        self.requires_gpus = any(t.value == "gpu" for t in self.tags)
+        return self
 
 
 class RuntimePort(CanonicalPort):

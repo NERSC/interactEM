@@ -57,6 +57,9 @@ from interactem.core.pipeline import Pipeline
 
 from .config import cfg
 from .deployment import DeploymentContext
+from .util import (
+    detect_gpu_enabled,
+)
 
 # Can use this for mac:
 # https://podman-desktop.io/blog/5-things-to-know-for-a-docker-user#docker-compatibility-mode
@@ -143,9 +146,14 @@ class Agent:
         # this is set in the broker code
         self.error_publisher: LogicPublisher
 
+        agent_tags = list(cfg.AGENT_TAGS)
+        if detect_gpu_enabled() and "gpu" not in agent_tags:
+            agent_tags.append("gpu")
+            logger.info("Detected GPU-capable agent; adding tag 'gpu'")
+
         self.agent_val: AgentVal = AgentVal(
             name=cfg.AGENT_NAME,
-            tags=cfg.AGENT_TAGS,
+            tags=agent_tags,
             uri=URI(
                 id=self.id,
                 location=URILocation.agent,
@@ -854,6 +862,11 @@ async def create_container(
         with attempt:
             if attempt.num > 1:
                 await handle_name_conflict(client, op_name)
+
+            create_kwargs: dict[str, object] = {}
+            if not cfg.LOCAL and operator.requires_gpus:
+                create_kwargs["gpu"] = True
+
             return client.containers.create(
                 image=operator.image,
                 environment=operator.env,
@@ -867,6 +880,7 @@ async def create_container(
                 remove=True,
                 labels={"agent.id": str(agent_id)},
                 mounts=[mount.model_dump() for mount in operator.all_mounts],
+                **create_kwargs,
             )
 
     raise RuntimeError(
