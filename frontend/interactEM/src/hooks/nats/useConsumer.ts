@@ -73,27 +73,27 @@ export const useConsumer = ({
     }
 
     const createConsumer = async () => {
-      if (jetStreamManager && jetStreamClient) {
-        try {
-          await jetStreamManager.consumers.add(stream, config)
-          const newConsumer = await jetStreamClient.consumers.get(stream, {
-            ...config,
-          })
+      if (!jetStreamManager || !jetStreamClient) return
 
-          if (isMounted.current) {
-            // If component is still mounted, update state and ref
-            setConsumer(newConsumer)
-            consumerRef.current = newConsumer
-          } else {
-            // If unmounted before consumer was set, delete the consumer
-            await deleteConsumer(newConsumer)
-          }
-        } catch (createError) {
-          console.error(
-            `Failed to create ephemeral consumer in stream "${stream}":`,
-            createError,
-          )
+      try {
+        const consumerInfo = await jetStreamManager.consumers.add(
+          stream,
+          config,
+        )
+        const newConsumer = await jetStreamClient.consumers.get(
+          stream,
+          consumerInfo.name,
+        )
+
+        if (isMounted.current) {
+          setConsumer(newConsumer)
+          consumerRef.current = newConsumer
+        } else {
+          // If unmounted before consumer was set, delete it
+          await deleteConsumer(newConsumer)
         }
+      } catch (error) {
+        console.error(`Failed to create consumer in stream "${stream}":`, error)
       }
     }
 
