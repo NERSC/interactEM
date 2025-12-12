@@ -1,9 +1,5 @@
 import type { Consumer, ConsumerConfig } from "@nats-io/jetstream"
-import {
-  JetStreamApiCodes,
-  JetStreamApiError,
-  JetStreamError,
-} from "@nats-io/jetstream"
+import { JetStreamError } from "@nats-io/jetstream"
 import { DrainingConnectionError } from "@nats-io/nats-core/internal"
 import { useEffect, useRef, useState } from "react"
 import { useNats } from "../../contexts/nats"
@@ -55,14 +51,7 @@ export const useConsumer = ({
           // quietly ignore if connection is draining
           return
         }
-        if (error instanceof JetStreamApiError) {
-          if (error.code === JetStreamApiCodes.ConsumerNotFound) {
-            return
-          }
-          console.error(
-            `JetStream API error during consumer deletion: ${error.message}`,
-          )
-        } else if (error instanceof JetStreamError) {
+        if (error instanceof JetStreamError) {
           console.error(
             `JetStream error during consumer deletion: ${error.message}`,
           )
@@ -73,27 +62,27 @@ export const useConsumer = ({
     }
 
     const createConsumer = async () => {
-      if (jetStreamManager && jetStreamClient) {
-        try {
-          await jetStreamManager.consumers.add(stream, config)
-          const newConsumer = await jetStreamClient.consumers.get(stream, {
-            ...config,
-          })
+      if (!jetStreamManager || !jetStreamClient) return
 
-          if (isMounted.current) {
-            // If component is still mounted, update state and ref
-            setConsumer(newConsumer)
-            consumerRef.current = newConsumer
-          } else {
-            // If unmounted before consumer was set, delete the consumer
-            await deleteConsumer(newConsumer)
-          }
-        } catch (createError) {
-          console.error(
-            `Failed to create ephemeral consumer in stream "${stream}":`,
-            createError,
-          )
+      try {
+        const consumerInfo = await jetStreamManager.consumers.add(
+          stream,
+          config,
+        )
+        const newConsumer = await jetStreamClient.consumers.get(
+          stream,
+          consumerInfo.name,
+        )
+
+        if (isMounted.current) {
+          setConsumer(newConsumer)
+          consumerRef.current = newConsumer
+        } else {
+          // If unmounted before consumer was set, delete it
+          await deleteConsumer(newConsumer)
         }
+      } catch (error) {
+        console.error(`Failed to create consumer in stream "${stream}":`, error)
       }
     }
 

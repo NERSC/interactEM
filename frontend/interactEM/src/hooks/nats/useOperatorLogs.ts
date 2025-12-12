@@ -1,5 +1,5 @@
 import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
-import { useCallback, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   OPERATORS,
   STREAM_LOGS,
@@ -61,11 +61,17 @@ export function useOperatorLogs({
       deliver_policy: DeliverPolicy.All,
       ack_policy: AckPolicy.All,
       replay_policy: ReplayPolicy.Instant,
-      durable_name: `operator-logs-${deploymentIdOrActiveId}-${sortedOperatorIds.join("-")}`,
     }
   }, [deploymentIdOrActiveId, sortedOperatorIds])
 
   const consumer = useConsumer({ stream: STREAM_LOGS, config })
+
+  // ensure fresh state when reopening the logs panel
+  useEffect(() => {
+    if (consumer) {
+      setLogs([])
+    }
+  }, [consumer])
 
   const handleMessage = useCallback((msg: any) => {
     try {

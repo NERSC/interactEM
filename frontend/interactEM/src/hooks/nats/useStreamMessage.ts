@@ -3,15 +3,9 @@ import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
 import { useCallback, useMemo, useState } from "react"
 import { useConsumeMessages } from "./useConsumeMessages"
 import { useConsumer } from "./useConsumer"
-import { useStream } from "./useStream"
 
 interface UseStreamMessageOptions<T> {
   streamName: string
-  streamConfig: {
-    name: string
-    subjects: string[]
-    max_msgs_per_subject?: number
-  }
   subject: string
   deliverPolicy?: DeliverPolicy
   initialValue?: T | null
@@ -21,7 +15,6 @@ interface UseStreamMessageOptions<T> {
 
 export function useStreamMessage<T>({
   streamName,
-  streamConfig,
   subject,
   deliverPolicy = DeliverPolicy.LastPerSubject,
   initialValue = null,
@@ -31,11 +24,8 @@ export function useStreamMessage<T>({
   const [data, setData] = useState<T | null>(initialValue)
   const [hasReceivedMessage, setHasReceivedMessage] = useState<boolean>(false)
 
-  // Ensure stream exists
-  useStream(streamConfig)
-
   const consumerConfig = useMemo(() => {
-    if (enabled === false) return null
+    if (!enabled) return null
 
     return {
       filter_subjects: [subject],
