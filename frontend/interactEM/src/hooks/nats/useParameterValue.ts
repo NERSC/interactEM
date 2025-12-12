@@ -7,11 +7,6 @@ import { RuntimeOperatorParameterAckSchema } from "../../types/params"
 import { useOperatorInSelectedPipeline } from "./useOperatorStatus"
 import { useStreamMessage } from "./useStreamMessage"
 
-const streamConfig = {
-  name: STREAM_PARAMETERS,
-  subjects: [`${STREAM_PARAMETERS}.>`],
-}
-
 export const useParameterAck = (
   operatorID: string,
   parameterName: string,
@@ -23,7 +18,6 @@ export const useParameterAck = (
   const { data, hasReceivedMessage } =
     useStreamMessage<RuntimeOperatorParameterAck>({
       streamName: STREAM_PARAMETERS,
-      streamConfig,
       subject,
       initialValue: null,
       enabled: isInRunningPipeline,
