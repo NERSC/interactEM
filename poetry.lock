@@ -1189,7 +1189,7 @@ pydantic-settings = ">=2.4,<3"
 stamina = ">=25.1.0,<26"
 
 [package.extras]
-hpc = ["podman-hpc (>=1.1.4,<2)", "podman-hpc-py @ git+https://github.com/cjh1/podman-hpc-py.git@577e467ab5bf10840df81234e477a3ebbd436f7e"]
+hpc = ["podman-hpc @ git+https://github.com/cjh1/podman-hpc.git@d01773a8ae14489af7654d799d9738a2c5629248", "podman-hpc-py @ git+https://github.com/cjh1/podman-hpc-py.git@577e467ab5bf10840df81234e477a3ebbd436f7e"]
 
 [package.source]
 type = "directory"
