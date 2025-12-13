@@ -902,7 +902,7 @@ requires-dist = [
     { name = "netifaces2", specifier = ">=0.0.22,<0.1" },
     { name = "nkeys", specifier = ">=0.2.1,<0.3" },
     { name = "podman", specifier = ">=5.0.0,<6" },
-    { name = "podman-hpc", marker = "extra == 'hpc'", specifier = ">=1.1.4,<2" },
+    { name = "podman-hpc", marker = "extra == 'hpc'", git = "https://github.com/cjh1/podman-hpc.git?rev=d01773a8ae14489af7654d799d9738a2c5629248" },
     { name = "podman-hpc-py", marker = "extra == 'hpc'", git = "https://github.com/cjh1/podman-hpc-py.git?rev=577e467ab5bf10840df81234e477a3ebbd436f7e" },
     { name = "pydantic-settings", specifier = ">=2.4,<3" },
     { name = "stamina", specifier = ">=25.1.0,<26" },
