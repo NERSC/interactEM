@@ -104,6 +104,29 @@ jobs:
         env:
           TAG: latest
 
+      - name: Define operator targets
+        id: targets
+        run: |
+          OPERATORS=$(docker buildx bake -f docker-bake.hcl -f vars-base.hcl operators --print | jq -cr '[.group.operators.targets[]]')
+          echo "Operators found: ${OPERATORS}"
+          echo "operators=${OPERATORS}" >> $GITHUB_OUTPUT
+        working-directory: ./operators
+
+      - name: Generate operator tag overrides (digest push)
+        id: tags
+        env:
+          OPERATORS: ${{ steps.targets.outputs.operators }}
+          REGISTRY: ${{ env.REGISTRY }}
+        run: |
+          set -euo pipefail
+          {
+            echo "tags<<EOF"
+            echo "$OPERATORS" | jq -r '.[]' | while read -r name; do
+              echo "${name}.tags=${REGISTRY}/${name}"
+            done
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
       - name: Generate operator spec labels
         id: labels
         run: |
@@ -141,6 +164,7 @@ jobs:
           set: |
             *.platform=${{ matrix.platform.docker }}
             ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
+            ${{ steps.tags.outputs.tags }}
             ${{ steps.labels.outputs.labels }}
         env:
           TAG: ${{ env.TAG }}
