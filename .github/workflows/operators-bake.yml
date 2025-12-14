@@ -112,17 +112,18 @@ jobs:
           echo "operators=${OPERATORS}" >> $GITHUB_OUTPUT
         working-directory: ./operators
 
-      - name: Generate operator tag overrides (digest push)
-        id: tags
+      - name: Generate operator push overrides (digest push)
+        id: push
         env:
           OPERATORS: ${{ steps.targets.outputs.operators }}
           REGISTRY: ${{ env.REGISTRY }}
         run: |
           set -euo pipefail
           {
-            echo "tags<<EOF"
+            echo "overrides<<EOF"
             echo "$OPERATORS" | jq -r '.[]' | while read -r name; do
               echo "${name}.tags=${REGISTRY}/${name}"
+              echo "${name}.output=type=image,push-by-digest=true,name-canonical=true,push=true"
             done
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
@@ -163,8 +164,7 @@ jobs:
           targets: operators
           set: |
             *.platform=${{ matrix.platform.docker }}
-            ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
-            ${{ steps.tags.outputs.tags }}
+            ${{ github.event_name != 'pull_request' && steps.push.outputs.overrides || '' }}
             ${{ steps.labels.outputs.labels }}
         env:
           TAG: ${{ env.TAG }}
