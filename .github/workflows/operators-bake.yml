@@ -1,0 +1,247 @@
+name: Operator Docker Bake Build and Push
+# This is mostly taken from
+# here: https://docs.docker.com/build/ci/github-actions/multi-platform/#with-bake
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'README.md'
+      - 'LICENSE'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'README.md'
+      - 'LICENSE'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io/nersc/interactem
+
+jobs:
+  build:
+    # Only run for: pushes, workflow_dispatch, PRs from same repo, or Dependabot
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      matrix:
+        platform:
+          - { name: amd64, runner: ubuntu-24.04, docker: linux/amd64 }
+          - { name: arm64, runner: ubuntu-24.04-arm, docker: linux/arm64 }
+    runs-on: ${{ matrix.platform.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        run: |
+          TAG=$(git rev-parse --short=6 HEAD)
+          echo "TAG=${TAG}" >> $GITHUB_ENV
+          echo "Generated tag: ${TAG}"
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build base image (local)
+        uses: docker/bake-action@v6
+        with:
+          source: .
+          files: |
+            ./operators/docker-bake.hcl
+            ./operators/vars-base.hcl
+          targets: base
+          set: |
+            *.platform=${{ matrix.platform.docker }}
+            *.output=type=image
+        env:
+          TAG: latest
+
+      - name: Build operator base image (local)
+        uses: docker/bake-action@v6
+        with:
+          source: .
+          files: |
+            ./operators/docker-bake.hcl
+            ./operators/vars-base.hcl
+          targets: operator
+          set: |
+            *.platform=${{ matrix.platform.docker }}
+            *.output=type=image
+        env:
+          TAG: latest
+
+      - name: Build distiller-streaming base image (local)
+        uses: docker/bake-action@v6
+        with:
+          source: .
+          files: |
+            ./operators/docker-bake.hcl
+            ./operators/vars-base.hcl
+          targets: distiller-streaming
+          set: |
+            *.platform=${{ matrix.platform.docker }}
+            *.output=type=image
+        env:
+          TAG: latest
+
+      - name: Generate operator spec labels
+        id: labels
+        run: |
+          set -euo pipefail
+          has_labels=false
+          {
+            echo "labels<<EOF"
+            for dir in operators/*; do
+              if [ -d "$dir" ] && [ -f "$dir/operator.json" ] && [ -f "$dir/Containerfile" ]; then
+                op_name="$(basename "$dir")"
+                operator_json="$(jq -c . "$dir/operator.json")"
+                if [ -n "$operator_json" ]; then
+                  echo "${op_name}.labels.interactem.operator.spec=${operator_json}"
+                  has_labels=true
+                fi
+              fi
+            done
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ "$has_labels" = false ]; then
+            echo "No operator.json files found or all are empty."
+            exit 1
+          fi
+
+      - name: Build operators (and push by digest on main)
+        id: bake
+        uses: docker/bake-action@v6
+        with:
+          source: .
+          files: |
+            ./operators/docker-bake.hcl
+            ./operators/vars-base.hcl
+          targets: operators
+          set: |
+            *.platform=${{ matrix.platform.docker }}
+            ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
+            ${{ steps.labels.outputs.labels }}
+        env:
+          TAG: ${{ env.TAG }}
+
+      - name: Export digests
+        if: github.event_name != 'pull_request'
+        env:
+          BAKE_METADATA: ${{ steps.bake.outputs.metadata }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/digests
+
+          echo "$BAKE_METADATA" | jq -r '
+            to_entries[]
+            | select(.value."containerimage.digest" != null)
+            | "\(.key)\t\(.value.\"containerimage.digest\")"
+          ' | while IFS=$'\t' read -r target digest; do
+            mkdir -p "/tmp/digests/${target}"
+            touch "/tmp/digests/${target}/${digest#sha256:}"
+          done
+
+      - name: Upload digests
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: digests-operators-${{ matrix.platform.name }}
+          path: /tmp/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  merge-manifests:
+    if: github.event_name != 'pull_request'
+    needs: [build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Extract metadata
+        run: |
+          TAG=$(git rev-parse --short=6 HEAD)
+          echo "TAG=${TAG}" >> $GITHUB_ENV
+          echo "Generated tag: ${TAG}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: digests-*
+          merge-multiple: true
+
+      - name: Define operator targets
+        id: targets
+        run: |
+          OPERATORS=$(docker buildx bake -f docker-bake.hcl -f vars-base.hcl operators --print | jq -cr '[.group.operators.targets[]]')
+          echo "Operators found: ${OPERATORS}"
+          echo "operators=${OPERATORS}" >> $GITHUB_OUTPUT
+        working-directory: ./operators
+
+      - name: Create manifest lists and push
+        env:
+          OPERATORS: ${{ steps.targets.outputs.operators }}
+        run: |
+          set -euo pipefail
+
+          echo "$OPERATORS" | jq -r '.[]' | while read -r image; do
+            dir="/tmp/digests/${image}"
+            if [ ! -d "$dir" ]; then
+              echo "Missing digests directory: $dir"
+              exit 1
+            fi
+
+            digests=( "$dir"/* )
+            if [ "${#digests[@]}" -lt 2 ]; then
+              echo "Expected >=2 digests for $image, found ${#digests[@]}"
+              ls -la "$dir" || true
+              exit 1
+            fi
+
+            args=()
+            for f in "${digests[@]}"; do
+              args+=( "${{ env.REGISTRY }}/${image}@sha256:$(basename "$f")" )
+            done
+
+            docker buildx imagetools create \
+              -t ${{ env.REGISTRY }}/${image}:${{ env.TAG }} \
+              -t ${{ env.REGISTRY }}/${image}:latest \
+              "${args[@]}"
+          done
