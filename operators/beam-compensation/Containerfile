@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/distiller-streaming
+FROM distiller-streaming
 
 # had to add cffi because ncempy messes with that package when adding, and nkeys acts up...
 RUN poetry add ncempy cffi

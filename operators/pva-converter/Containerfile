@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/operator
+FROM operator
 
 RUN poetry add pvapy
 

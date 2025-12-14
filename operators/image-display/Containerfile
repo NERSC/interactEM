@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/operator
+FROM operator
 
 COPY ./run.py /app/run.py
 

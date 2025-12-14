@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/distiller-streaming
+FROM distiller-streaming
 
 # Install additional dependencies
 RUN pip install quantem
