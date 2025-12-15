@@ -79,5 +79,8 @@
   ],
   "parallel_config": {
     "type": "none"
-  }
+  },
+  "tags": [
+    "gpu"
+  ]
 }
