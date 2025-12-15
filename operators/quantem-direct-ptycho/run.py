@@ -144,14 +144,14 @@ def py4dstem_parallax(
     logger.info(f"Scan {scan_number}: Start direct ptycho")
     try:
         direct_ptycho = DirectPtychography.from_dataset4d(
-                            dset,
-                            energy=energy,
-                            semiangle_cutoff=probe_semiangle,
-                            device="cpu",
-                            aberration_coefs={'C10':initial_defocus_A},
-                            max_batch_size=10,
-                            rotation_angle=rotation_angle, # need radians
-                            )
+            dset,
+            energy=energy,
+            semiangle_cutoff=probe_semiangle,
+            device=QUANTEM_DEVICE,
+            aberration_coefs={"C10": initial_defocus_A},
+            max_batch_size=10,
+            rotation_angle=rotation_angle,  # need radians
+        )
 
         logger.info(f"Scan {scan_number}: Fit hyperparameters")
         direct_ptycho.fit_hyperparameters()
