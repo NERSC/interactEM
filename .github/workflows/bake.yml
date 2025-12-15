@@ -4,6 +4,7 @@ name: Docker Bake Build and Push
 on:
   push:
     branches: [ main ]
+    tags: [ 'v*.*.*' ]
     paths-ignore:
       - 'docs/**'
       - '*.md'
@@ -39,6 +40,7 @@ jobs:
       tags: ${{ steps.meta.outputs.tags }}
       services: ${{ steps.services.outputs.services }}
       all-images: ${{ steps.services.outputs.all-images }}
+      meta-json: ${{ steps.meta.outputs.json }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -53,11 +55,14 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.REGISTRY }}/interactem
+          # FIX 2: robust tagging strategy
           tags: |
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
-            type=sha,prefix=,format=short
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
 
       - name: Define services
         id: services
@@ -253,24 +258,42 @@ jobs:
           SERVICE="${{ matrix.service }}"
           DIGEST_DIR="/tmp/digests/${SERVICE}"
 
-          # List available digests for this service
-          echo "Digests for ${SERVICE}:"
-          ls -la "${DIGEST_DIR}"
-
-          # Build digest arguments
+          # 1. Gather all the digest arguments (platforms)
           DIGEST_ARGS=""
-          for digest in "${DIGEST_DIR}"/*; do
-            DIGEST_ARGS="${DIGEST_ARGS} ${{ env.REGISTRY }}/${SERVICE}@sha256:$(basename ${digest})"
+          for digest_file in "${DIGEST_DIR}"/*; do
+            # Guard against empty directory
+            [ -e "$digest_file" ] || continue
+            sha=$(basename "${digest_file}")
+            DIGEST_ARGS="${DIGEST_ARGS} ${{ env.REGISTRY }}/${SERVICE}@sha256:${sha}"
           done
 
-          echo "Creating manifest with: ${DIGEST_ARGS}"
+          if [ -z "$DIGEST_ARGS" ]; then
+            echo "::error::No digests found for service ${SERVICE}!"
+            exit 1
+          fi
 
-          # Create manifest from digests
-          docker buildx imagetools create \
-            -t ${{ env.REGISTRY }}/${SERVICE}:${{ needs.prepare.outputs.version }} \
-            -t ${{ env.REGISTRY }}/${SERVICE}:latest \
-            ${DIGEST_ARGS}
+          # 2. Extract clean tag names from the JSON output using jq
+          #    Input:  ["ghcr.io/owner/repo:latest", "ghcr.io/owner/repo:sha-123"]
+          #    Output: "latest sha-123"
+          TAGS=$(echo '${{ needs.prepare.outputs.meta-json }}' | jq -r '.tags[] | split(":") | last')
+
+          # 3. Build the tag arguments for the current service
+          TAG_ARGS=""
+          echo "Preparing tags for ${SERVICE}:"
+          for tag in $TAGS; do
+            TARGET_TAG="${{ env.REGISTRY }}/${SERVICE}:${tag}"
+            echo "  -> ${TARGET_TAG}"
+            TAG_ARGS="${TAG_ARGS} -t ${TARGET_TAG}"
+          done
+
+          # 4. Create and Push
+          #    Print command for debugging transparency
+          echo "Running: docker buildx imagetools create ${TAG_ARGS} ${DIGEST_ARGS}"
+          docker buildx imagetools create ${TAG_ARGS} ${DIGEST_ARGS}
 
       - name: Inspect image
+        # Inspect the SHA version specifically to verify the unique build exists
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ matrix.service }}:${{ needs.prepare.outputs.version }}
+          # Get the SHA tag specifically for verification
+          SHA_TAG=$(echo '${{ needs.prepare.outputs.meta-json }}' | jq -r '.tags[] | select(contains("sha-")) | split(":") | last' | head -n 1)
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ matrix.service }}:${SHA_TAG}
