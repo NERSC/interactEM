@@ -11,11 +11,8 @@ on:
       - 'LICENSE'
   pull_request:
     branches: [ main ]
-    paths-ignore:
-      - 'docs/**'
-      - '*.md'
-      - 'README.md'
-      - 'LICENSE'
+    paths:
+      - operators/**
   workflow_dispatch:
 
 concurrency:
