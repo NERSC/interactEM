@@ -179,10 +179,10 @@ def py4dstem_parallax(
             "dtype": str(initial_parallax.obj.dtype),
             "source_operator": "quantem-direct-ptycho",
         }
-    except Exception:
+    except Exception as e:
         zeros_out = np.zeros(accumulator.scan_shape, dtype=np.uint8)
-        logger.info(
-            f"Direct ptychography reconstruction failed for scan {scan_number}."
+        logger.exception(
+            f"Direct ptychography reconstruction failed for scan {scan_number}: {e}"
         )
         output_bytes = zeros_out.tobytes()
         output_meta = {
