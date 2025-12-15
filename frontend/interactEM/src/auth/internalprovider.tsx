@@ -17,6 +17,7 @@ export default function InternalAuthProvider({
   children,
   apiBaseUrl,
 }: AuthProviderProps) {
+  const baseUrl = (apiBaseUrl ?? "").replace(/\/+$/, "")
   const [showPassword, setShowPassword] = useState(false)
   const {
     register,
@@ -33,12 +34,13 @@ export default function InternalAuthProvider({
     ...loginLoginAccessTokenMutation(),
     onMutate: () => {
       client.setConfig({
-        baseURL: apiBaseUrl,
+        baseURL: baseUrl,
       })
     },
     onSuccess: (data) => {
       client.setConfig({
         auth: data.access_token,
+        baseURL: baseUrl,
       })
     },
     onError: (err) => {

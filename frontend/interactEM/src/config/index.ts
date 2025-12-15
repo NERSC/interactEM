@@ -3,12 +3,16 @@ interface Config {
   API_BASE_URL: string
 }
 
+const trimTrailingSlashes = (url: string): string => url.replace(/\/+$/, "")
+
 function buildConfig(): Config {
   // Use .env.development variables in development
   if (import.meta.env.DEV) {
     return {
       NATS_SERVER_URL: import.meta.env.VITE_NATS_SERVER_URL || "",
-      API_BASE_URL: import.meta.env.VITE_REACT_APP_API_BASE_URL || "",
+      API_BASE_URL: trimTrailingSlashes(
+        import.meta.env.VITE_REACT_APP_API_BASE_URL || "",
+      ),
     }
   }
 
@@ -17,7 +21,7 @@ function buildConfig(): Config {
 
   return {
     NATS_SERVER_URL: `${protocol}//${host}/nats`,
-    API_BASE_URL: `${window.location.protocol}//${host}/`,
+    API_BASE_URL: trimTrailingSlashes(`${window.location.protocol}//${host}`),
   }
 }
 
