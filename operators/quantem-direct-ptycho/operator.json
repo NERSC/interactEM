@@ -81,6 +81,9 @@
     "type": "none"
   },
   "tags": [
-    "gpu"
+    {
+      "value": "gpu",
+      "description": "This operator should be run on a GPU node."
+    }
   ]
 }
