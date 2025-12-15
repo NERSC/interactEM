@@ -1,6 +1,7 @@
 import asyncio
 from typing import Any
 
+from interactem.core.constants import STREAM_IMAGES
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
 from interactem.core.nats.publish import publish_image
@@ -27,6 +28,22 @@ class ImageDisplay(AsyncOperator):
             canonical_operator_id=self.info.canonical_id,
         )
 
+    async def _purge_image_stream(self) -> None:
+        if not self.js:
+            logger.warning("JetStream context not initialized, skipping purge.")
+            return
+
+        if not self.info:
+            logger.warning("Operator info not initialized, skipping purge.")
+            return
+
+        subject = f"{STREAM_IMAGES}.{self.info.canonical_id}"
+        try:
+            await self.js.purge_stream(STREAM_IMAGES, subject=subject)
+            logger.info(f"Purged image stream for subject '{subject}'.")
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(f"Failed to purge image stream for '{subject}': {exc}")
+
     async def kernel(
         self, inputs: BytesMessage | None, parameters: dict[str, Any]
     ) -> None:
@@ -42,6 +59,10 @@ class ImageDisplay(AsyncOperator):
 
         # Publish the image to the frontend
         await self._publish_image(image_data)
+
+    async def shutdown(self):
+        await self._purge_image_stream()
+        await super().shutdown()
 
 
 async def async_main():
