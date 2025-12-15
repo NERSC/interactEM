@@ -194,16 +194,6 @@ async def consume_messages(
         except nats.errors.TimeoutError:
             await asyncio.sleep(0.1)
             continue
-        except ServiceUnavailableError as e:
-            logger.warning(
-                f"NATS JetStream temporarily unavailable (likely during leader election): {e}. "
-                "Retrying in 1s..."
-            )
-            await asyncio.sleep(1.0)
-            continue
-        except nats.errors.ConnectionClosedError:
-            logger.error("NATS connection closed.")
-            raise
         except nats.errors.Error as e:
             # If we can't fetch messages for a nats error, try to reinitialize the consumer
             if create_consumer:
