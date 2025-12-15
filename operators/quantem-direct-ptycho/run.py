@@ -133,7 +133,7 @@ def py4dstem_parallax(
     crop_probes = int(parameters.get("crop_probes", 0))
     running_average = bool(parameters.get("running_average", True))
 
-    logger.info("densify")
+    logger.info("densify and crop")
     data = accumulator.to_dense()[
         crop_probes:-crop_probes, crop_probes:-crop_probes-1, :, :
     ]  ## crop the edges if needed and remove the flyback column
@@ -164,10 +164,14 @@ def py4dstem_parallax(
             aberration_coefs={"C10": initial_defocus_A},
             max_batch_size=10,
             rotation_angle=rotation_angle,  # need radians
-        )
+        ) # TODO: the manual settings are overridden below. Need a manual input option.
 
         logger.info(f"Scan {scan_number}: Fit hyperparameters")
-        direct_ptycho.fit_hyperparameters() # TODO: this overrides the manual settings above. Need to allow input of manual settings.
+        direct_ptycho.fit_hyperparameters(
+            # pair_connectivity=8,
+            running_average = True,
+            # alignment_method = "pairwise"
+            ) # TODO: this overrides the manual settings above. Need to allow input of manual settings.
         initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(
             upsampling_factor = 2,  ### this can be changed
             max_batch_size = 10,
