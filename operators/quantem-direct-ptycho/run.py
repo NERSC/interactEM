@@ -18,8 +18,24 @@ from interactem.operators.operator import operator
 
 logger = get_logger()
 
-class FrameAccumulatorFull(FrameAccumulator):
 
+def _detect_quantem_device() -> str:
+    try:
+        import torch  # quantem depends on torch
+    except Exception:
+        return "cpu"
+
+    if torch.cuda.is_available():
+        return "gpu"
+
+    return "cpu"
+
+
+QUANTEM_DEVICE = _detect_quantem_device()
+logger.info(f"quantem-direct-ptycho using device={QUANTEM_DEVICE}")
+
+
+class FrameAccumulatorFull(FrameAccumulator):
     def completely_finished(self) -> bool:
         """Check if all expected frames have been added."""
         num_batches_added = self.num_batches_added
