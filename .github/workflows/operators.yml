@@ -35,7 +35,7 @@ jobs:
     permissions:
       contents: read
     outputs:
-      tag: ${{ steps.meta.outputs.tag }}
+      version: ${{ steps.meta.outputs.version }}
       operators: ${{ steps.operators.outputs.operators }}
     steps:
       - name: Checkout
@@ -46,12 +46,16 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Extract metadata
+      - name: Docker meta
         id: meta
-        run: |
-          TAG=$(git rev-parse --short=6 HEAD)
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
-          echo "Generated tag: ${TAG}"
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/operator
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=sha,prefix=,format=short
 
       - name: Extract operator list
         id: operators
@@ -115,7 +119,7 @@ jobs:
           set: |
             *.platform=${{ matrix.docker-platform }}
         env:
-          TAG: ${{ needs.prepare.outputs.tag }}
+          TAG: ${{ needs.prepare.outputs.version }}
 
       - name: Export digests
         run: |
@@ -183,10 +187,10 @@ jobs:
 
           # Create manifest from digests
           docker buildx imagetools create \
-            -t ${{ env.REGISTRY }}/${OPERATOR}:${{ needs.prepare.outputs.tag }} \
+            -t ${{ env.REGISTRY }}/${OPERATOR}:${{ needs.prepare.outputs.version }} \
             -t ${{ env.REGISTRY }}/${OPERATOR}:latest \
             $(cd "${DIGEST_DIR}" && printf '${{ env.REGISTRY }}/%s@sha256:%s ' "${OPERATOR}" *)
 
       - name: Inspect image
         run: |
-          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ matrix.operator }}:${{ needs.prepare.outputs.tag }}
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ matrix.operator }}:${{ needs.prepare.outputs.version }}
