@@ -52,6 +52,41 @@ dev = [
     "pytest>=9.0.1,<10",
 ]
 
+[tool.bumpversion]
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+commit = false
+tag = false
+message = "Bump version: {current_version} -> {new_version}"
+tag_message = "Bump version: {current_version} -> {new_version}"
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "backend/core/pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "backend/app/pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "backend/agent/pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "backend/orchestrator/pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "backend/launcher/pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "backend/operators/pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "backend/metrics/pyproject.toml"
+
+[[tool.bumpversion.files]]
+filename = "backend/sfapi_models/pyproject.toml"
+
 [tool.pytest.ini_options]
 markers = [
     "integration: marks tests as integration and assumes docker-compose services are running",
