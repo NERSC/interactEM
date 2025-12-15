@@ -135,7 +135,7 @@ jobs:
           files: |
             ./operators/docker-bake.hcl
             ${{ runner.temp }}/operator-labels.hcl
-            ./operators/vars-ci.hcl
+            ${{ github.event_name != 'pull_request' && './operators/vars-ci.hcl' || '' }}
           targets: operators
           set: |
             *.platform=${{ matrix.docker-platform }}
@@ -143,6 +143,7 @@ jobs:
           TAG: ${{ needs.prepare.outputs.version }}
 
       - name: Export digests
+        if: github.event_name != 'pull_request'
         run: |
           mkdir -p /tmp/digests
           METADATA='${{ steps.bake.outputs.metadata }}'
@@ -162,6 +163,7 @@ jobs:
           done
 
       - name: Upload digests
+        if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: operator-digests-${{ matrix.platform }}
@@ -171,11 +173,12 @@ jobs:
 
 
   merge-manifests:
-    if: >
-      github.event_name != 'pull_request' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+    if: github.event_name != 'pull_request'
     needs: [prepare, build]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     strategy:
       matrix:
         operator: ${{ fromJson(needs.prepare.outputs.operators) }}
