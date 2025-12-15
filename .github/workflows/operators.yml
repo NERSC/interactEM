@@ -185,11 +185,19 @@ jobs:
           echo "Digests for ${OPERATOR}:"
           ls -la "${DIGEST_DIR}"
 
+          # Build digest arguments
+          DIGEST_ARGS=""
+          for digest in "${DIGEST_DIR}"/*; do
+            DIGEST_ARGS="${DIGEST_ARGS} ${{ env.REGISTRY }}/${OPERATOR}@sha256:$(basename ${digest})"
+          done
+
+          echo "Creating manifest with: ${DIGEST_ARGS}"
+
           # Create manifest from digests
           docker buildx imagetools create \
             -t ${{ env.REGISTRY }}/${OPERATOR}:${{ needs.prepare.outputs.version }} \
             -t ${{ env.REGISTRY }}/${OPERATOR}:latest \
-            $(cd "${DIGEST_DIR}" && printf '${{ env.REGISTRY }}/%s@sha256:%s ' "${OPERATOR}" *)
+            ${DIGEST_ARGS}
 
       - name: Inspect image
         run: |
