@@ -1,6 +1,6 @@
 [project]
 name = "interactem-orchestrator"
-version = "0.1.0"
+version = "0.1.1"
 description = ""
 authors = [{name = "Sam Welborn", email = "swelborn@lbl.gov"}]
 readme = "README.md"
