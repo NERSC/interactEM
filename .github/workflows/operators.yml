@@ -1,0 +1,192 @@
+name: Operator build
+# This is mostly taken from
+# here: https://docs.docker.com/build/ci/github-actions/multi-platform/#with-bake
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'README.md'
+      - 'LICENSE'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - 'docs/**'
+      - '*.md'
+      - 'README.md'
+      - 'LICENSE'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: ghcr.io/nersc/interactem
+
+jobs:
+  prepare:
+    # Only run for: pushes, workflow_dispatch, PRs from same repo, or Dependabot
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      operators: ${{ steps.operators.outputs.operators }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract metadata
+        id: meta
+        run: |
+          TAG=$(git rev-parse --short=6 HEAD)
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Generated tag: ${TAG}"
+
+      - name: Extract operator list
+        id: operators
+        run: |
+          OPERATORS=$(docker buildx bake -f docker-bake.hcl operators --print | jq -cr '[.group.operators.targets[]]')
+          echo "Operators found: ${OPERATORS}"
+          echo "operators=${OPERATORS}" >> $GITHUB_OUTPUT
+        working-directory: ./operators
+
+  build:
+    needs: prepare
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    strategy:
+      matrix:
+        include:
+          - platform: amd64
+            runner: ubuntu-24.04
+            docker-platform: linux/amd64
+          - platform: arm64
+            runner: ubuntu-24.04-arm
+            docker-platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Free up disk space
+        run: |
+          # Remove unnecessary tools and libraries
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Build and push operators
+        id: bake
+        uses: docker/bake-action@v6
+        with:
+          source: .
+          files: |
+            ./operators/docker-bake.hcl
+            ./operators/vars-ci.hcl
+          targets: operators
+          set: |
+            *.platform=${{ matrix.docker-platform }}
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+
+      - name: Export digests
+        run: |
+          mkdir -p /tmp/digests
+          METADATA='${{ steps.bake.outputs.metadata }}'
+          OPERATORS='${{ needs.prepare.outputs.operators }}'
+
+          # Iterate through each operator and extract its digest
+          for operator in $(echo "$OPERATORS" | jq -r '.[]'); do
+            digest=$(echo "$METADATA" | jq -r ".\"${operator}\"[\"containerimage.digest\"]")
+            if [ -n "$digest" ] && [ "$digest" != "null" ]; then
+              # Create a file for each operator with its digest
+              mkdir -p "/tmp/digests/${operator}"
+              touch "/tmp/digests/${operator}/${digest#sha256:}"
+              echo "Exported digest for ${operator}: ${digest}"
+            else
+              echo "Warning: No digest found for ${operator}"
+            fi
+          done
+
+      - name: Upload digests
+        uses: actions/upload-artifact@v4
+        with:
+          name: operator-digests-${{ matrix.platform }}
+          path: /tmp/digests
+          if-no-files-found: error
+          retention-days: 1
+
+
+  merge-manifests:
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        operator: ${{ fromJson(needs.prepare.outputs.operators) }}
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Download digests
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: operator-digests-*
+          merge-multiple: true
+
+      - name: Create manifest list and push
+        run: |
+          OPERATOR="${{ matrix.operator }}"
+          DIGEST_DIR="/tmp/digests/${OPERATOR}"
+
+          # List available digests for this operator
+          echo "Digests for ${OPERATOR}:"
+          ls -la "${DIGEST_DIR}"
+
+          # Create manifest from digests
+          docker buildx imagetools create \
+            -t ${{ env.REGISTRY }}/${OPERATOR}:${{ needs.prepare.outputs.tag }} \
+            -t ${{ env.REGISTRY }}/${OPERATOR}:latest \
+            $(cd "${DIGEST_DIR}" && printf '${{ env.REGISTRY }}/%s@sha256:%s ' "${OPERATOR}" *)
+
+      - name: Inspect image
+        run: |
+          docker buildx imagetools inspect ${{ env.REGISTRY }}/${{ matrix.operator }}:${{ needs.prepare.outputs.tag }}
