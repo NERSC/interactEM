@@ -421,7 +421,7 @@ interactem<span class="w"> </span>operator<span class="w"> </span>new
 <p>We need to use the operator <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//docker/Dockerfile.operator">base image</a> the parent image for our <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators/center-of-mass-partial/Containerfile"><code class="markdown_symlinks markdown_symlinks-xref docutils literal notranslate"><span class="pre">Containerfile</span></code></a>. In this case, we are using the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//operators/distiller-streaming/Containerfile"><code class="markdown_symlinks markdown_symlinks-xref docutils literal notranslate"><span class="pre">distiller-streaming</span></code></a> image as the base, as it contains a lot of utilities for processing 4D Camera frames.</p>
 <div class="literal-block-wrapper docutils container" id="id1">
 <div class="code-block-caption"><span class="caption-text">ghcr.io/nersc/interactem/distiller-streaming</span><a class="headerlink" href="#id1" title="Link to this code">#</a></div>
-<div class="highlight-Dockerfile notranslate"><div class="highlight"><pre><span></span><span class="k">FROM</span><span class="w"> </span><span class="s">ghcr.io/nersc/interactem/operator</span>
+<div class="highlight-Dockerfile notranslate"><div class="highlight"><pre><span></span><span class="k">FROM</span><span class="w"> </span><span class="s">interactem-operator</span>
 
 <span class="k">WORKDIR</span><span class="w"> </span><span class="s">/app</span>
 <span class="k">COPY</span><span class="w"> </span>./pyproject.toml<span class="w"> </span>./poetry.lock<span class="w"> </span>./README.md<span class="w"> </span>/app/
@@ -447,7 +447,7 @@ interactem<span class="w"> </span>operator<span class="w"> </span>new
 </div>
 <div class="literal-block-wrapper docutils container" id="id2">
 <div class="code-block-caption"><span class="caption-text">ghcr.io/nersc/interactem/center-of-mass-partial</span><a class="headerlink" href="#id2" title="Link to this code">#</a></div>
-<div class="highlight-Dockerfile notranslate"><div class="highlight"><pre><span></span><span class="k">FROM</span><span class="w"> </span><span class="s">ghcr.io/nersc/interactem/distiller-streaming</span>
+<div class="highlight-Dockerfile notranslate"><div class="highlight"><pre><span></span><span class="k">FROM</span><span class="w"> </span><span class="s">distiller-streaming</span>
 
 <span class="k">COPY</span><span class="w"> </span>./run.py<span class="w"> </span>/app/run.py
 </pre></div>
