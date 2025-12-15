@@ -1,4 +1,4 @@
-name: Bump version
+name: Bump version PR
 
 on:
   workflow_dispatch:
@@ -14,26 +14,45 @@ on:
         - patch
 
 jobs:
-  build:
+  bump_and_pr:
     permissions:
-      id-token: write
-      pull-requests: read
       contents: write
+      pull-requests: write
     runs-on: ubuntu-slim
     steps:
       - name: Checkout the code
         uses: actions/checkout@v4
 
-      - name: Bump version
+      - name: Configure git user
+        run: |
+          git config --global user.email "ci-version-bot@users.noreply.github.com"
+          git config --global user.name "CI Version Bot"
+
+      - name: Calculate and bump version
         id: bump
         uses: callowayproject/bump-my-version@master
-        env:
-          BUMPVERSION_TAG: "true"
         with:
           args: ${{ inputs.bump-type }}
-          github-token: ${{ secrets.VERSION_BUMP }}
 
-      - name: Check
+      - name: Record bumped version
         if: steps.bump.outputs.bumped == 'true'
         run: |
-          echo "Version was bumped from ${{ steps.bump.outputs.previous-version }} to ${{ steps.bump.outputs.current-version }}!"
+          echo "Version bumped from ${{ steps.bump.outputs.previous-version }} to ${{ steps.bump.outputs.current-version }}."
+          echo "NEW_VERSION=${{ steps.bump.outputs.current-version }}" >> "$GITHUB_ENV"
+
+      - name: Create Pull Request for version bump
+        if: steps.bump.outputs.bumped == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.VERSION_BUMP }}
+          commit-message: 'chore(release): bump version to ${{ env.NEW_VERSION }}'
+          title: 'Release: prepare v${{ env.NEW_VERSION }}'
+          body: |
+            ## Automated version bump
+
+            This PR updates the project version from `${{ steps.bump.outputs.previous-version }}` to `${{ env.NEW_VERSION }}`.
+
+            Merge this PR to create the official release tag.
+          branch: 'release/bump-${{ env.NEW_VERSION }}'
+          base: main
+          delete-branch: true
