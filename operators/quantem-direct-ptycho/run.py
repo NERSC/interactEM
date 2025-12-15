@@ -199,6 +199,7 @@ def py4dstem_parallax(
     finally:
         pass
         # TODO: free up GPU memory
+        # del direct_ptycho
         # torch.cuda.empty_cache()
         # gc.collect()
     header = MessageHeader(subject=MessageSubject.BYTES, meta=output_meta)
