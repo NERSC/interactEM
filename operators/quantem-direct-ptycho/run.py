@@ -47,14 +47,16 @@ class FrameAccumulatorFull(FrameAccumulator):
         if not total_batches_expected:
             return False
 
-        if (num_batches_added // total_batches_expected == 1):
+        if num_batches_added // total_batches_expected == 1:
             return True
         else:
             return False
 
+
 # --- Operator State ---
 # OrderedDict to hold FrameAccumulator instances with LRU behavior
 accumulators: OrderedDict[int, FrameAccumulatorFull] = OrderedDict()
+
 
 @operator
 def py4dstem_parallax(
@@ -118,14 +120,20 @@ def py4dstem_parallax(
     # Calculation parameters
     probe_semiangle = float(parameters.get("probe_semiangle", 25.0))
     energy = int(parameters.get("accelerating_voltage", 300e3))
-    probe_step_size = float(parameters.get("probe_step_size", 0.1)) # test data set: 0.14383155 nm
-    initial_defocus_nm = float(parameters.get("initial_defocus", 0)) # in nanometers
-    initial_defocus_A = initial_defocus_nm * 10 # convert to Angstroms
-    diffraction_rotation_angle = float(parameters.get("diffraction_rotation_angle", 0)) # in degrees
+    probe_step_size = float(
+        parameters.get("probe_step_size", 0.1)
+    )  # test data set: 0.14383155 nm
+    initial_defocus_nm = float(parameters.get("initial_defocus", 0))  # in nanometers
+    initial_defocus_A = initial_defocus_nm * 10  # convert to Angstroms
+    diffraction_rotation_angle = float(
+        parameters.get("diffraction_rotation_angle", 0)
+    )  # in degrees
     rotation_angle = diffraction_rotation_angle * np.pi / 180  # convert to radians
 
     logger.info("densify")
-    data = accumulator.to_dense()[:,:-1,:,:]  ## remove last row and column to make it even sized
+    data = accumulator.to_dense()[
+        :, :-1, :, :
+    ]  ## remove last row and column to make it even sized
     dset = em.datastructures.Dataset4dstem.from_array(array=data)
     logger.debug(f"dense shape = {data.shape}")
 
@@ -137,7 +145,9 @@ def py4dstem_parallax(
     dset.sampling[3] = probe_semiangle / probe_R
     dset.units[2:] = ["mrad", "mrad"]
 
-    dset.sampling[0] = probe_step_size * 10 ## convert to be Anggstrom for quantem. distiller will give nanometers.
+    dset.sampling[0] = (
+        probe_step_size * 10
+    )  ## convert to be Anggstrom for quantem. distiller will give nanometers.
     dset.sampling[1] = probe_step_size * 10
     dset.units[0:2] = ["A", "A"]
 
@@ -156,10 +166,9 @@ def py4dstem_parallax(
         logger.info(f"Scan {scan_number}: Fit hyperparameters")
         direct_ptycho.fit_hyperparameters()
         initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(
-            upsampling_factor = 2,  ### this can be changed
-            max_batch_size = 10
+            upsampling_factor=2,  ### this can be changed
+            max_batch_size=10,
         )
-
 
         # Process and return result
         logger.info(f"Scan {scan_number}: Reconstruction done")
@@ -172,7 +181,9 @@ def py4dstem_parallax(
         }
     except Exception:
         zeros_out = np.zeros(accumulator.scan_shape, dtype=np.uint8)
-        logger.info(f"Direct ptychography reconstruction failed for scan {scan_number}.")
+        logger.info(
+            f"Direct ptychography reconstruction failed for scan {scan_number}."
+        )
         output_bytes = zeros_out.tobytes()
         output_meta = {
             "scan_number": scan_number,
