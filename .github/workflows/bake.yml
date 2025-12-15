@@ -57,8 +57,8 @@ jobs:
       - name: Define services
         id: services
         run: |
-          # Extract services from the prod group in docker-bake.hcl and docker-bake-ci.hcl
-          SERVICES=$(docker buildx bake -f docker-bake.hcl -f docker-bake-ci.hcl prod --print | jq -cr '[.group.prod.targets[]]')
+          # Extract services from the prod group in docker-bake.hcl
+          SERVICES=$(docker buildx bake -f docker-bake.hcl prod --print | jq -cr '[.group.prod.targets[]]')
           echo "Services found: ${SERVICES}"
           echo "services=${SERVICES}" >> $GITHUB_OUTPUT
 
@@ -95,9 +95,9 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
 
       - name: Build and push base image by digest
         id: bake
@@ -106,10 +106,9 @@ jobs:
           source: .
           files: |
             ./docker/docker-bake.hcl
-            ./docker/docker-bake-ci.hcl
+            ./docker/docker-bake-${{matrix.platform}}.hcl
           targets: base
           set: |
-            *.platform=${{ matrix.docker-platform }}
             ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
             *.tags=${{ env.REGISTRY }}/interactem
             ${{ github.event_name == 'pull_request' && '*.cache-to=' || '' }}
@@ -120,16 +119,16 @@ jobs:
       - name: Export digest
         if: github.event_name != 'pull_request'
         run: |
-          mkdir -p /tmp/digests
+          mkdir -p /tmp/digests/interactem
           digest="${{ fromJSON(steps.bake.outputs.metadata).base['containerimage.digest'] }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          touch "/tmp/digests/interactem/${digest#sha256:}"
 
       - name: Upload digest
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: interactem-digest-${{ matrix.platform }}
-          path: /tmp/digests/*
+          name: base-digests-${{ matrix.platform }}
+          path: /tmp/digests
           if-no-files-found: error
           retention-days: 1
 
@@ -137,11 +136,12 @@ jobs:
     needs: [prepare, build-base]
     strategy:
       matrix:
-        platform:
-          - { name: amd64, runner: ubuntu-24.04, docker: linux/amd64 }
-          - { name: arm64, runner: ubuntu-24.04-arm, docker: linux/arm64 }
-        service: ${{ fromJson(needs.prepare.outputs.services) }}
-    runs-on: ${{ matrix.platform.runner }}
+        include:
+          - platform: amd64
+            runner: ubuntu-24.04
+          - platform: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
     permissions:
       contents: read
       packages: write
@@ -157,41 +157,51 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
 
-      - name: Build and push ${{ matrix.service }} by digest
+      - name: Build and push all services by digest
         id: bake
         uses: docker/bake-action@v6
         with:
           source: .
           files: |
             ./docker/docker-bake.hcl
-            ./docker/docker-bake-ci.hcl
-          targets: ${{ matrix.service }}
+            ./docker/docker-bake-${{ matrix.platform }}.hcl
+          targets: prod
           set: |
-            *.platform=${{ matrix.platform.docker }}
             ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
-            *.tags=${{ env.REGISTRY }}/${{ matrix.service }}
             ${{ github.event_name == 'pull_request' && '*.cache-to=' || '' }}
         env:
           TAG: ${{ needs.prepare.outputs.tag }}
-          CACHE_PLATFORM: ${{ matrix.platform.name }}
+          CACHE_PLATFORM: ${{ matrix.platform }}
 
-      - name: Export digest
+      - name: Export digests
         if: github.event_name != 'pull_request'
         run: |
           mkdir -p /tmp/digests
-          digest="${{ fromJSON(steps.bake.outputs.metadata)[matrix.service]['containerimage.digest'] }}"
-          touch "/tmp/digests/${digest#sha256:}"
+          METADATA='${{ steps.bake.outputs.metadata }}'
+          SERVICES='${{ needs.prepare.outputs.services }}'
 
-      - name: Upload digest
+          # Iterate through each service and extract its digest
+          for service in $(echo "$SERVICES" | jq -r '.[]'); do
+            digest=$(echo "$METADATA" | jq -r ".\"${service}\"[\"containerimage.digest\"]")
+            if [ -n "$digest" ] && [ "$digest" != "null" ]; then
+              mkdir -p "/tmp/digests/${service}"
+              touch "/tmp/digests/${service}/${digest#sha256:}"
+              echo "Exported digest for ${service}: ${digest}"
+            else
+              echo "Warning: No digest found for ${service}"
+            fi
+          done
+
+      - name: Upload digests
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.service }}-digest-${{ matrix.platform.name }}
-          path: /tmp/digests/*
+          name: service-digests-${{ matrix.platform }}
+          path: /tmp/digests
           if-no-files-found: error
           retention-days: 1
 
@@ -212,25 +222,40 @@ jobs:
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}
 
-      - name: Download digests
+      - name: Download base digests
+        if: matrix.service == 'interactem'
         uses: actions/download-artifact@v4
         with:
           path: /tmp/digests
-          pattern: ${{ matrix.service }}-digest-*
+          pattern: base-digests-*
+          merge-multiple: true
+
+      - name: Download service digests
+        if: matrix.service != 'interactem'
+        uses: actions/download-artifact@v4
+        with:
+          path: /tmp/digests
+          pattern: service-digests-*
           merge-multiple: true
 
       - name: Create manifest list and push
-        working-directory: /tmp/digests
         run: |
-          # Create manifest
+          SERVICE="${{ matrix.service }}"
+          DIGEST_DIR="/tmp/digests/${SERVICE}"
+
+          # List available digests for this service
+          echo "Digests for ${SERVICE}:"
+          ls -la "${DIGEST_DIR}"
+
+          # Create manifest from digests
           docker buildx imagetools create \
-            -t ${{ env.REGISTRY }}/${{ matrix.service }}:${{ needs.prepare.outputs.tag }} \
-            -t ${{ env.REGISTRY }}/${{ matrix.service }}:latest \
-            $(printf '${{ env.REGISTRY }}/${{ matrix.service }}@sha256:%s ' *)
+            -t ${{ env.REGISTRY }}/${SERVICE}:${{ needs.prepare.outputs.tag }} \
+            -t ${{ env.REGISTRY }}/${SERVICE}:latest \
+            $(cd "${DIGEST_DIR}" && printf '${{ env.REGISTRY }}/%s@sha256:%s ' "${SERVICE}" *)
 
       - name: Inspect image
         run: |
