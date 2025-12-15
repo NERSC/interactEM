@@ -174,8 +174,7 @@ def py4dstem_parallax(
             ) # TODO: this overrides the manual settings above. Need to allow input of manual settings.
         initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(
             upsampling_factor = 2,  ### this can be changed
-            max_batch_size = 10,
-            running_average = running_average
+            max_batch_size = 10
         )
 
         # Process and return result
