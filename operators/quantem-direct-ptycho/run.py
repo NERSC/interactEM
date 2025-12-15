@@ -130,10 +130,13 @@ def py4dstem_parallax(
     )  # in degrees
     rotation_angle = diffraction_rotation_angle * np.pi / 180  # convert to radians
 
+    crop_probes = int(parameters.get("crop_probes", 0))
+    running_average = bool(parameters.get("running_average", True))
+
     logger.info("densify")
     data = accumulator.to_dense()[
-        :, :-1, :, :
-    ]  ## remove last row and column to make it even sized
+        crop_probes:-crop_probes, crop_probes:-crop_probes-1, :, :
+    ]  ## crop the edges if needed and remove the flyback column
     dset = em.datastructures.Dataset4dstem.from_array(array=data)
     logger.debug(f"dense shape = {data.shape}")
 

@@ -75,6 +75,22 @@
       "default": "0.0",
       "description": "The rotation angle in degrees.",
       "required": false
+    },
+    {  
+      "name": "crop_probes",
+      "label": "Crop the scan area by this number of probe positions on each side",
+      "type": "int",
+      "default": "0",
+      "description": "The number of probe positions to crop.",
+      "required": false
+    },
+    {  
+      "name": "running_average",
+      "label": "Use the running average for reconstruction",
+      "type": "bool",
+      "default": "true",
+      "description": "Togle running_average input to quantem.",
+      "required": false
     }
   ],
   "parallel_config": {
