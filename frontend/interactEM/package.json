@@ -44,7 +44,7 @@
     "react-hook-form": "^7.54.2",
     "react-infinite-scroll-component": "^6.1.0",
     "react-toastify": "^11.0.3",
-    "react-virtuoso": "^4.14.1",
+    "react-virtuoso": "^4.17.0",
     "uuid": "^13.0.0"
   },
   "peerDependencies": {
