@@ -9,7 +9,15 @@ export default function ExternalAuthProvider({
   children,
   apiBaseUrl,
 }: AuthProviderProps) {
-  const baseUrl = (apiBaseUrl ?? "").replace(/\/+$/, "")
+  const trimTrailingSlashes = (value: string): string => {
+    let end = value.length
+    while (end > 0 && value[end - 1] === "/") {
+      end -= 1
+    }
+    return value.slice(0, end)
+  }
+
+  const baseUrl = trimTrailingSlashes(apiBaseUrl ?? "")
   const queryClient = useQueryClient()
 
   const authClient = createClient({
