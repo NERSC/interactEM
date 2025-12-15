@@ -110,7 +110,7 @@ jobs:
           targets: base
           set: |
             ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
-            *.tags=${{ env.REGISTRY }}/interactem
+            ${{ github.event_name != 'pull_request' && '*.tags=' || '' }}
             ${{ github.event_name == 'pull_request' && '*.cache-to=' || '' }}
         env:
           TAG: ${{ needs.prepare.outputs.tag }}
@@ -172,6 +172,7 @@ jobs:
           targets: prod
           set: |
             ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
+            ${{ github.event_name != 'pull_request' && '*.tags=' || '' }}
             ${{ github.event_name == 'pull_request' && '*.cache-to=' || '' }}
         env:
           TAG: ${{ needs.prepare.outputs.tag }}
