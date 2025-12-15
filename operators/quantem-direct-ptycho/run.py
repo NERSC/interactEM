@@ -167,10 +167,11 @@ def py4dstem_parallax(
         )
 
         logger.info(f"Scan {scan_number}: Fit hyperparameters")
-        direct_ptycho.fit_hyperparameters()
+        direct_ptycho.fit_hyperparameters() # TODO: this overrides the manual settings above. Need to allow input of manual settings.
         initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(
-            upsampling_factor=2,  ### this can be changed
-            max_batch_size=10,
+            upsampling_factor = 2,  ### this can be changed
+            max_batch_size = 10,
+            running_average = running_average
         )
 
         # Process and return result
@@ -195,6 +196,10 @@ def py4dstem_parallax(
             "dtype": str(zeros_out.dtype),
             "source_operator": "quantem-direct-ptycho-failed",
         }
-
+    finally:
+        pass
+        # TODO: free up GPU memory
+        # torch.cuda.empty_cache()
+        # gc.collect()
     header = MessageHeader(subject=MessageSubject.BYTES, meta=output_meta)
     return BytesMessage(header=header, data=output_bytes)
