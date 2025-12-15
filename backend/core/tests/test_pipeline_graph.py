@@ -2,6 +2,7 @@ from uuid import uuid4
 
 import pytest
 
+from interactem.core.config import cfg
 from interactem.core.models.base import PortType
 from interactem.core.models.canonical import (
     CanonicalEdge,
@@ -183,7 +184,8 @@ class TestPipelineSerialization:
     def test_to_canonical_deduplication(self, canonical: CanonicalPipeline, pipeline_graph: Pipeline):
         """Test conversion back to canonical deduplicates parallel instances."""
         # Runtime should have expanded operators/ports
-        assert len(pipeline_graph.operators) == 4  # 3 + 1 parallel copy
+        expected_runtime_ops = len(canonical.operators) - 1 + cfg.PARALLEL_EXPANSION_FACTOR
+        assert len(pipeline_graph.operators) == expected_runtime_ops
 
         # Canonical should be deduplicated back to original
         canonical_json = pipeline_graph.to_canonical()
@@ -215,7 +217,7 @@ class TestGraphOperations:
 
         # Test parallel operator group
         parallel_group = pipeline_graph.get_parallel_group(parallel_op.id)
-        assert len(parallel_group) == 2
+        assert len(parallel_group) == cfg.PARALLEL_EXPANSION_FACTOR
 
         # Test non-parallel operator group
         non_parallel_group = pipeline_graph.get_parallel_group(non_parallel_op.id)
