@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/distiller-streaming
+FROM distiller-streaming
 
 RUN poetry add matplotlib
 

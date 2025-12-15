@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/operator
+FROM interactem-operator
 
 # Install additional dependencies
 RUN poetry add ncempy numpy@~2.2.6 h5py

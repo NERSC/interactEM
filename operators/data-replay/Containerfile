@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/distiller-streaming
+FROM distiller-streaming
 
 COPY ./run.py /app/run.py
 

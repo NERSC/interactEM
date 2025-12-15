@@ -1,4 +1,4 @@
-FROM ghcr.io/nersc/interactem/operator
+FROM interactem-operator
 
 WORKDIR /app
 COPY ./pyproject.toml ./poetry.lock ./README.md /app/
