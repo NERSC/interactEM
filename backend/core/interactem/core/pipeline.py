@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import networkx as nx
 
+from .config import cfg
 from .logger import get_logger
 from .models.base import IdType, NodeType, PortType
 from .models.canonical import (
@@ -29,7 +30,7 @@ from .models.spec import ParallelType
 
 logger = get_logger()
 
-DEFAULT_PARALLEL_FACTOR = 2
+DEFAULT_PARALLEL_FACTOR = cfg.PARALLEL_EXPANSION_FACTOR
 
 """
 This module has the Pipeline graph implementation.

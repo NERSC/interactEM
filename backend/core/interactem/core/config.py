@@ -19,6 +19,7 @@ class Settings(BaseSettings):
         pathlib.Path(__file__).parent.parent.parent.parent / "operators" / "interactem"
     )
     LOG_LEVEL: LogLevel = LogLevel.INFO
+    PARALLEL_EXPANSION_FACTOR: int = 4
 
 
 cfg = Settings()
