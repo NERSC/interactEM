@@ -1,3 +1,5 @@
 FROM distiller-streaming
 
+ENV HDF5_USE_FILE_LOCKING=FALSE
+
 COPY ./run.py /app/run.py
