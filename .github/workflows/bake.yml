@@ -257,15 +257,19 @@ jobs:
           echo "Digests for ${SERVICE}:"
           ls -la "${DIGEST_DIR}"
 
-          # Build tag arguments from metadata
-          TAG_ARGS=""
-          while IFS= read -r tag; do
-            TAG_ARGS="${TAG_ARGS} -t ${{ env.REGISTRY }}/${SERVICE}:${tag}"
-          done <<< "${{ needs.prepare.outputs.tags }}"
+          # Build digest arguments
+          DIGEST_ARGS=""
+          for digest in "${DIGEST_DIR}"/*; do
+            DIGEST_ARGS="${DIGEST_ARGS} ${{ env.REGISTRY }}/${SERVICE}@sha256:$(basename ${digest})"
+          done
+
+          echo "Creating manifest with: ${DIGEST_ARGS}"
 
           # Create manifest from digests
-          docker buildx imagetools create ${TAG_ARGS} \
-            $(cd "${DIGEST_DIR}" && printf '${{ env.REGISTRY }}/%s@sha256:%s ' "${SERVICE}" *)
+          docker buildx imagetools create \
+            -t ${{ env.REGISTRY }}/${SERVICE}:${{ needs.prepare.outputs.version }} \
+            -t ${{ env.REGISTRY }}/${SERVICE}:latest \
+            ${DIGEST_ARGS}
 
       - name: Inspect image
         run: |
