@@ -112,10 +112,10 @@ jobs:
           files: |
             ./docker/docker-bake.hcl
             ./docker/docker-bake-${{matrix.platform}}.hcl
+            ${{ github.event_name != 'pull_request' && './docker/docker-bake-ci.hcl' || '' }}
           targets: base
           set: |
             ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
-            ${{ github.event_name != 'pull_request' && '*.tags=' || '' }}
             ${{ github.event_name == 'pull_request' && '*.cache-to=' || '' }}
         env:
           TAG: ${{ needs.prepare.outputs.version }}
@@ -174,10 +174,10 @@ jobs:
           files: |
             ./docker/docker-bake.hcl
             ./docker/docker-bake-${{ matrix.platform }}.hcl
+            ${{ github.event_name != 'pull_request' && './docker/docker-bake-ci.hcl' || '' }}
           targets: prod
           set: |
             ${{ github.event_name != 'pull_request' && '*.output=type=image,push-by-digest=true,name-canonical=true,push=true' || '' }}
-            ${{ github.event_name != 'pull_request' && '*.tags=' || '' }}
             ${{ github.event_name == 'pull_request' && '*.cache-to=' || '' }}
         env:
           TAG: ${{ needs.prepare.outputs.version }}
