@@ -129,13 +129,17 @@ def py4dstem_parallax(
         parameters.get("diffraction_rotation_angle", 0)
     )  # in degrees
     rotation_angle = diffraction_rotation_angle * np.pi / 180  # convert to radians
-
-    logger.info("densify")
-    data = accumulator.to_dense()[
-        :, :-1, :, :
-    ]  ## remove last row and column to make it even sized
-    dset = em.datastructures.Dataset4dstem.from_array(array=data)
-    logger.debug(f"dense shape = {data.shape}")
+    crop_probes = int(parameters.get("crop_probes", 0))
+    running_average = bool(parameters.get("running_average", True))
+    
+    if crop_probes == 0:
+        logger.info(f"Scan {scan_number}: No cropping of probes applied.")
+        dense_data = accumulator[:, :-1, :, :].to_dense()  ## remove the flyback column
+    else:
+        logger.info(f"Scan {scan_number}: Crop and densify.")
+        dense_data = accumulator[crop_probes:-crop_probes, crop_probes:-crop_probes-1, :, :].to_dense()  ## crop the edges if needed and remove the flyback column
+    dset = em.datastructures.Dataset4dstem.from_array(array=dense_data)
+    logger.debug(f"dense shape = {dense_data.shape}")
 
     dset.get_dp_mean()
     probe_qy0, probe_qx0, probe_R = fit_probe_circle(dset.dp_mean.array, show=False)
@@ -161,13 +165,17 @@ def py4dstem_parallax(
             aberration_coefs={"C10": initial_defocus_A},
             max_batch_size=10,
             rotation_angle=rotation_angle,  # need radians
-        )
+        ) # TODO: the manual settings are overridden below. Need a manual input option.
 
         logger.info(f"Scan {scan_number}: Fit hyperparameters")
-        direct_ptycho.fit_hyperparameters()
+        direct_ptycho.fit_hyperparameters(
+            # pair_connectivity=8,
+            running_average = running_average,
+            # alignment_method = "pairwise"
+            ) # TODO: this overrides the manual settings above. Need to allow input of manual settings.
         initial_parallax = direct_ptycho.reconstruct_with_fitted_parameters(
-            upsampling_factor=2,  ### this can be changed
-            max_batch_size=10,
+            upsampling_factor = 2,  ### this can be changed
+            max_batch_size = 10
         )
 
         # Process and return result
@@ -192,6 +200,11 @@ def py4dstem_parallax(
             "dtype": str(zeros_out.dtype),
             "source_operator": "quantem-direct-ptycho-failed",
         }
-
+    finally:
+        pass
+        # TODO: free up GPU memory
+        # del direct_ptycho
+        # torch.cuda.empty_cache()
+        # gc.collect()
     header = MessageHeader(subject=MessageSubject.BYTES, meta=output_meta)
     return BytesMessage(header=header, data=output_bytes)
