@@ -13,7 +13,10 @@ import {
   Select,
   TextField,
 } from "@mui/material"
+import { LocalizationProvider, TimeField } from "@mui/x-date-pickers"
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns"
 import { useMutation } from "@tanstack/react-query"
+import { format, parse } from "date-fns"
 import { useCallback, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
 import {
@@ -85,102 +88,116 @@ export const LaunchAgentButton = () => {
       >
         <DialogTitle>Launch Agent</DialogTitle>
         <DialogContent>
-          <form id="launch-agent-form" onSubmit={handleSubmit(onSubmit)}>
-            <FormControl
-              fullWidth
-              sx={{ marginTop: "1rem", marginBottom: "1rem" }}
-            >
-              <InputLabel error={!!errors.machine}>Machine</InputLabel>
-              <Controller
-                name="machine"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    {...field}
-                    label="Machine"
-                    variant="outlined"
-                    error={!!errors.machine}
-                    fullWidth
-                  >
-                    {zAgentCreateEvent.shape.machine._def.values.map(
-                      (machine) => (
-                        <MenuItem key={machine} value={machine}>
-                          {machine}
-                        </MenuItem>
-                      ),
-                    )}
-                  </Select>
-                )}
-              />
-            </FormControl>
+          <LocalizationProvider dateAdapter={AdapterDateFns}>
+            <form id="launch-agent-form" onSubmit={handleSubmit(onSubmit)}>
+              <FormControl
+                fullWidth
+                sx={{ marginTop: "1rem", marginBottom: "1rem" }}
+              >
+                <InputLabel error={!!errors.machine}>Machine</InputLabel>
+                <Controller
+                  name="machine"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      label="Machine"
+                      variant="outlined"
+                      error={!!errors.machine}
+                      fullWidth
+                    >
+                      {zAgentCreateEvent.shape.machine._def.values.map(
+                        (machine) => (
+                          <MenuItem key={machine} value={machine}>
+                            {machine}
+                          </MenuItem>
+                        ),
+                      )}
+                    </Select>
+                  )}
+                />
+              </FormControl>
 
-            <FormControl fullWidth sx={{ marginBottom: "1rem" }}>
-              <InputLabel error={!!errors.compute_type}>
-                Compute Type
-              </InputLabel>
-              <Controller
-                name="compute_type"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    {...field}
-                    label="Compute Type"
-                    variant="outlined"
-                    error={!!errors.compute_type}
-                    fullWidth
-                  >
-                    {zAgentCreateEvent.shape.compute_type._def.values.map(
-                      (compute_type) => (
-                        <MenuItem key={compute_type} value={compute_type}>
-                          {compute_type}
-                        </MenuItem>
-                      ),
-                    )}
-                  </Select>
-                )}
-              />
-            </FormControl>
+              <FormControl fullWidth sx={{ marginBottom: "1rem" }}>
+                <InputLabel error={!!errors.compute_type}>
+                  Compute Type
+                </InputLabel>
+                <Controller
+                  name="compute_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select
+                      {...field}
+                      label="Compute Type"
+                      variant="outlined"
+                      error={!!errors.compute_type}
+                      fullWidth
+                    >
+                      {zAgentCreateEvent.shape.compute_type._def.values.map(
+                        (compute_type) => (
+                          <MenuItem key={compute_type} value={compute_type}>
+                            {compute_type}
+                          </MenuItem>
+                        ),
+                      )}
+                    </Select>
+                  )}
+                />
+              </FormControl>
 
-            <FormControl fullWidth sx={{ marginBottom: "1rem" }}>
-              <Controller
-                name="duration"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    label="Duration (HH:MM:SS)"
-                    variant="outlined"
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    value={field.value}
-                    fullWidth
-                    error={!!errors.duration}
-                    helperText={errors.duration?.message}
-                  />
-                )}
-              />
-            </FormControl>
+              <FormControl fullWidth sx={{ marginBottom: "1rem" }}>
+                <Controller
+                  name="duration"
+                  control={control}
+                  render={({ field: { onChange, value, ...rest } }) => (
+                    <TimeField
+                      {...rest}
+                      label="Duration (HH:MM:SS)"
+                      format="HH:mm:ss"
+                      ampm={false}
+                      value={
+                        value
+                          ? parse(value, "HH:mm:ss", new Date())
+                          : null
+                      }
+                      onChange={(newValue) => {
+                        onChange(newValue ? format(newValue, "HH:mm:ss") : "")
+                      }}
+                      slotProps={{
+                        textField: {
+                          fullWidth: true,
+                          variant: "outlined",
+                          error: !!errors.duration,
+                          helperText: errors.duration?.message,
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </FormControl>
 
-            <FormControl fullWidth sx={{ marginBottom: "1rem" }}>
-              <Controller
-                name="num_nodes"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    label="Number of Nodes"
-                    variant="outlined"
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    value={field.value}
-                    fullWidth
-                    error={!!errors.num_nodes}
-                    helperText={
-                      errors.num_nodes ? "This should be an integer." : ""
-                    }
-                  />
-                )}
-              />
-            </FormControl>
-          </form>
+              <FormControl fullWidth sx={{ marginBottom: "1rem" }}>
+                <Controller
+                  name="num_nodes"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      label="Number of Nodes"
+                      variant="outlined"
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      value={field.value}
+                      fullWidth
+                      error={!!errors.num_nodes}
+                      helperText={
+                        errors.num_nodes ? "This should be an integer." : ""
+                      }
+                    />
+                  )}
+                />
+              </FormControl>
+            </form>
+          </LocalizationProvider>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpen(false)}>Cancel</Button>
