@@ -31,6 +31,16 @@ make autobuild
 
 This will start a local server and automatically rebuild the docs when you make changes.
 
+### Syncing repository READMEs
+
+The Markdown files in `docs/source/` are the source of truth. Run the helper to regenerate the top-level README files after editing docs:
+
+```bash
+make sync-readmes
+```
+
+The script strips `<!-- docs-only:start --> … <!-- docs-only:end -->` sections so Sphinx-only snippets stay out of the GitHub READMEs.
+
 ## Structure
 
 - `source/` - Documentation source files (RST and Markdown)
