@@ -27,6 +27,14 @@
       "default": "test_file.h5",
       "description": "The file to be processed",
       "required": true
+    },
+    {
+      "name": "cache_last_file",
+      "label": "Cache last file",
+      "type": "bool",
+      "default": false,
+      "description": "Cache the last loaded file to avoid re-reading between triggers.",
+      "required": false
     }
   ],
   "triggers": [
