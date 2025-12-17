@@ -3,7 +3,7 @@
   <head><meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="color-scheme" content="light dark"><meta name="viewport" content="width=device-width, initial-scale=1" />
-<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Operators" href="authoring-operators.html"><link rel="prev" title="Getting Started" href="getting-started.html">
+<link rel="index" title="Index" href="genindex.html"><link rel="search" title="Search" href="search.html"><link rel="next" title="Authoring Operators" href="authoring-operators.html"><link rel="prev" title="Getting Started" href="getting-started.html">
 
     <!-- Generated with Sphinx 8.2.3 and Furo 2025.09.25 -->
         <title>Launch an agent - interactEM Documentation</title>
@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ae138339" />
+    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=9a04e1c3" />
     
     
 
@@ -283,7 +283,7 @@
   <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a></li>
 <li class="toctree-l1 current current-page"><a class="current reference internal" href="#">Launch an agent</a></li>
-<li class="toctree-l1"><a class="reference internal" href="authoring-operators.html">Operators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authoring-operators.html">Authoring Operators</a></li>
 </ul>
 
 </div>
@@ -317,31 +317,34 @@
         <article role="main" id="furo-main-content">
           <section id="launch-an-agent">
 <h1>Launch an agent<a class="headerlink" href="#launch-an-agent" title="Link to this heading">#</a></h1>
-<p>The agent is core component in the InteractEM system for running operator containers, and coordinating their lifecycle and  via NATS messaging.</p>
+<p>The agent is the process that starts operator containers, coordinates their lifecycle, and talks to the platform over NATS. You need at least one running agent before operators can launch.</p>
 <section id="prerequisites">
 <h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">#</a></h2>
-<p>Some python environment manager (e.g., <a class="reference external" href="https://python-poetry.org/docs/"><code class="docutils literal notranslate"><span class="pre">poetry</span></code></a> or <a class="reference external" href="https://github.com/astral-sh/uv"><code class="docutils literal notranslate"><span class="pre">uv</span></code></a>).</p>
+<p>Have a Python environment manager available (e.g., <a class="reference external" href="https://python-poetry.org/docs/"><code class="docutils literal notranslate"><span class="pre">poetry</span></code></a> or <a class="reference external" href="https://github.com/astral-sh/uv"><code class="docutils literal notranslate"><span class="pre">uv</span></code></a>).</p>
 </section>
-<section id="configuration">
-<h2>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h2>
-<p><strong>Set up Environment Variables</strong></p>
-<p>You should have already run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">setup</span></code> in the root directory. Then go to agent directory:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>backend/agent
+<section id="configure-the-environment">
+<h2>Configure the environment<a class="headerlink" href="#configure-the-environment" title="Link to this heading">#</a></h2>
+<p>You should already have run <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">setup</span></code> in the repository root to create a base <code class="docutils literal notranslate"><span class="pre">.env</span></code>. Then:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>backend/agent
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>Update the <code class="docutils literal notranslate"><span class="pre">.env</span></code> file for the agent. You can for example set the agent’s name by changing <code class="docutils literal notranslate"><span class="pre">AGENT_NAME</span></code>:</p></li>
+<li><p>Copy <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> if you have not already, and update values as needed.</p></li>
+<li><p>Set the agent’s display name in <code class="docutils literal notranslate"><span class="pre">AGENT_NAME</span></code>:</p></li>
 </ul>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nv">AGENT_NAME</span><span class="o">=</span>SecretAgentMan<span class="w"> </span><span class="c1"># change to how you want it to display in the frontend</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">AGENT_NAME</span><span class="o">=</span>SecretAgentMan<span class="w">  </span><span class="c1"># change to how you want it to display in the frontend</span>
 </pre></div>
 </div>
-<p>If you have specific tags to match an operator on, run the following:</p>
-<div class="highlight-sh notranslate"><div class="highlight"><pre><span></span><span class="nv">AGENT_TAGS</span><span class="o">=</span><span class="s1">&#39;[&quot;ncem-4dcamera&quot;,&quot;gpu&quot;]&#39;</span>
+<ul class="simple">
+<li><p>If you want to target specific resources, set tags:</p></li>
+</ul>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">AGENT_TAGS</span><span class="o">=</span><span class="s1">&#39;[&quot;ncem-4dcamera&quot;,&quot;gpu&quot;]&#39;</span>
 </pre></div>
 </div>
 </section>
 <section id="install-and-run">
 <h2>Install and run<a class="headerlink" href="#install-and-run" title="Link to this heading">#</a></h2>
+<p>Install dependencies with your preferred tool:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>poetry<span class="w"> </span>install
 </pre></div>
 </div>
@@ -349,10 +352,7 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync
 </pre></div>
 </div>
-</section>
-<section id="run-agent">
-<h2>Run Agent<a class="headerlink" href="#run-agent" title="Link to this heading">#</a></h2>
-<p>Activate your virtual environment, then the following inside the directory where the <code class="docutils literal notranslate"><span class="pre">.env</span></code> is:</p>
+<p>Then activate your virtual environment and start the agent from the directory containing your <code class="docutils literal notranslate"><span class="pre">.env</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>backend/agent
 interactem-agent
 </pre></div>
@@ -375,7 +375,7 @@ uv<span class="w"> </span>run<span class="w"> </span>interactem-agent
                 <div class="context">
                   <span>Next</span>
                 </div>
-                <div class="title">Operators</div>
+                <div class="title">Authoring Operators</div>
               </div>
               <svg class="furo-related-icon"><use href="#svg-arrow-right"></use></svg>
             </a>
@@ -422,9 +422,8 @@ uv<span class="w"> </span>run<span class="w"> </span>interactem-agent
             <ul>
 <li><a class="reference internal" href="#">Launch an agent</a><ul>
 <li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
-<li><a class="reference internal" href="#configuration">Configuration</a></li>
+<li><a class="reference internal" href="#configure-the-environment">Configure the environment</a></li>
 <li><a class="reference internal" href="#install-and-run">Install and run</a></li>
-<li><a class="reference internal" href="#run-agent">Run Agent</a></li>
 </ul>
 </li>
 </ul>

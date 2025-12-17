@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="_static/copybutton.css?v=76b2166b" />
     <link rel="stylesheet" type="text/css" href="_static/sphinx-design.min.css?v=95c83b7e" />
     <link rel="stylesheet" type="text/css" href="_static/styles/furo-extensions.css?v=8dab3a3b" />
-    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=ae138339" />
+    <link rel="stylesheet" type="text/css" href="_static/css/custom.css?v=9a04e1c3" />
     
     
 
@@ -283,7 +283,7 @@
   <ul>
 <li class="toctree-l1"><a class="reference internal" href="getting-started.html">Getting Started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="launch-agent.html">Launch an agent</a></li>
-<li class="toctree-l1"><a class="reference internal" href="authoring-operators.html">Operators</a></li>
+<li class="toctree-l1"><a class="reference internal" href="authoring-operators.html">Authoring Operators</a></li>
 </ul>
 
 </div>
@@ -315,15 +315,23 @@
           </label>
         </div>
         <article role="main" id="furo-main-content">
-          <section id="introduction">
-<h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">#</a></h1>
-<p><code class="docutils literal notranslate"><span class="pre">interactEM</span></code> is an interactive <a class="reference external" href="https://en.wikipedia.org/wiki/Flow-based_programming">flow-based programming</a> platform for streaming experimental data to High-Performance Computing (HPC). Users can wire together containerized operators through a web frontend and deploy them on both HPC and edge resources.</p>
+          <section id="interactem">
+<h1>interactEM<a class="headerlink" href="#interactem" title="Link to this heading">#</a></h1>
+<p><code class="docutils literal notranslate"><span class="pre">interactEM</span></code> is an interactive <a class="reference external" href="https://en.wikipedia.org/wiki/Flow-based_programming">flow-based programming</a> platform for streaming experimental data to High-Performance Computing (HPC). Users wire together containerized operators through a web frontend and deploy them on both HPC and edge resources.</p>
 <section id="demo-video">
 <h2>Demo video<a class="headerlink" href="#demo-video" title="Link to this heading">#</a></h2>
-<video width="100%" controls>
-  <source src="https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08" type="video/mp4">
-  Your browser does not support the video tag.
-</video></section>
+<div class="readme-only">
+<https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08>
+</div>
+<!-- docs-only:start -->
+<div class="video-wrapper">
+  <video width="100%" controls>
+    <source src="https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</div>
+<!-- docs-only:end -->
+</section>
 <section id="features">
 <h2>Features<a class="headerlink" href="#features" title="Link to this heading">#</a></h2>
 <ul class="simple">
@@ -331,6 +339,83 @@
 <li><p><strong>Containerized Operators</strong>: Uses container technology to ensure consistent execution environments.</p></li>
 <li><p><strong>Data Streaming</strong>: Operators connect and data flows between them over network with point-to-point communication.</p></li>
 </ul>
+</section>
+<section id="running-locally">
+<h2>Running locally<a class="headerlink" href="#running-locally" title="Link to this heading">#</a></h2>
+<section id="prerequisites">
+<h3>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">#</a></h3>
+<ul class="simple">
+<li><p><strong><a class="reference external" href="https://docs.docker.com/engine/install/">Docker</a></strong>, <strong><a class="reference external" href="https://podman.io/docs/installation">Podman</a></strong>, <strong><a class="reference external" href="https://docs.astral.sh/uv/getting-started/installation/">uv</a></strong></p></li>
+</ul>
+</section>
+<section id="configuration">
+<h3>Configuration<a class="headerlink" href="#configuration" title="Link to this heading">#</a></h3>
+<ol class="arabic">
+<li><p><strong>Setup <code class="docutils literal notranslate"><span class="pre">.env</span></code> with secure secrets</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>setup
+</pre></div>
+</div>
+<p>This automatically:</p>
+<ul class="simple">
+<li><p>Copies <code class="docutils literal notranslate"><span class="pre">.env.example</span></code> to <code class="docutils literal notranslate"><span class="pre">.env</span></code></p></li>
+<li><p>Generates secure random values for all secrets</p></li>
+<li><p>Searches for your podman socket</p></li>
+<li><p>Updates your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file</p></li>
+</ul>
+</li>
+<li><p><strong>Add GitHub credentials</strong></p>
+<p>Edit your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file and add GitHub info:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">GITHUB_USERNAME</span><span class="o">=</span>your_github_username
+<span class="nv">GITHUB_TOKEN</span><span class="o">=</span>your_personal_token
+</pre></div>
+</div>
+<p>You can get a personal token from your <a class="reference external" href="https://github.com/settings/tokens">GitHub account settings</a>. Use a classic token with <code class="docutils literal notranslate"><span class="pre">read:packages</span></code>.</p>
+</li>
+</ol>
+</section>
+<section id="starting-services">
+<h3>Starting services<a class="headerlink" href="#starting-services" title="Link to this heading">#</a></h3>
+<ol class="arabic">
+<li><p><strong>Quick start</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>setup
+<span class="c1"># then fix your GITHUB_USERNAME/TOKEN in .env</span>
+make<span class="w"> </span>docker-up
+make<span class="w"> </span>operators
+</pre></div>
+</div>
+</li>
+<li><p><strong>Access the application</strong></p>
+<p>Open your browser to <a class="reference external" href="http://localhost:5173">http://localhost:5173</a></p>
+<ul class="simple">
+<li><p>Username: <code class="docutils literal notranslate"><span class="pre">admin&#64;example.com</span></code></p></li>
+<li><p>Password: Check your <code class="docutils literal notranslate"><span class="pre">.env</span></code> file for <code class="docutils literal notranslate"><span class="pre">FIRST_SUPERUSER_PASSWORD</span></code> (auto-generated), or output from <code class="docutils literal notranslate"><span class="pre">make</span> <span class="pre">docker-up</span></code></p></li>
+</ul>
+</li>
+</ol>
+</section>
+<section id="stopping-services">
+<h3>Stopping services<a class="headerlink" href="#stopping-services" title="Link to this heading">#</a></h3>
+<ol class="arabic">
+<li><p><strong>To stop services:</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>docker-down
+</pre></div>
+</div>
+</li>
+<li><p><strong>To stop and delete database (be careful):</strong></p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>clean
+</pre></div>
+</div>
+</li>
+</ol>
+</section>
+<section id="launching-an-agent">
+<h3>Launching an agent<a class="headerlink" href="#launching-an-agent" title="Link to this heading">#</a></h3>
+<p>For operators to launch, you need to startup an agent process. See <a class="reference internal" href="launch-agent.html"><span class="std std-doc">launching an agent</span></a> for instructions on how to do this.</p>
+</section>
+</section>
+<section id="license">
+<h2>License<a class="headerlink" href="#license" title="Link to this heading">#</a></h2>
+<p>This project is licensed under the LBNL BSD-3 License - see the <a class="reference internal" href="https://github.com/NERSC/interactEM/blob/main//LICENSE">LICENSE</a> file for details.</p>
 </section>
 </section>
 <div class="toctree-wrapper compound">
@@ -381,9 +466,18 @@
         <div class="toc-tree-container">
           <div class="toc-tree">
             <ul>
-<li><a class="reference internal" href="#">Introduction</a><ul>
+<li><a class="reference internal" href="#">interactEM</a><ul>
 <li><a class="reference internal" href="#demo-video">Demo video</a></li>
 <li><a class="reference internal" href="#features">Features</a></li>
+<li><a class="reference internal" href="#running-locally">Running locally</a><ul>
+<li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
+<li><a class="reference internal" href="#configuration">Configuration</a></li>
+<li><a class="reference internal" href="#starting-services">Starting services</a></li>
+<li><a class="reference internal" href="#stopping-services">Stopping services</a></li>
+<li><a class="reference internal" href="#launching-an-agent">Launching an agent</a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#license">License</a></li>
 </ul>
 </li>
 </ul>
