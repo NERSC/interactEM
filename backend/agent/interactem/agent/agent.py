@@ -76,6 +76,9 @@ else:
     PODMAN_COMMAND = "podman-hpc"
     from podman_hpc_client import PodmanHpcClient as PodmanClient
 
+if cfg.PODMAN_BINARY_PATH:
+    PODMAN_COMMAND = str(cfg.PODMAN_BINARY_PATH)
+
 agent_log_file = cfg.LOG_DIR / "agent.log"
 logger = get_logger(log_file=agent_log_file)
 logger.info(f"Agent logging initialized. Log file: {agent_log_file}")
