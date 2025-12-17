@@ -15,6 +15,7 @@ source_dataset_path: pathlib.Path = pathlib.Path()
 active_emitter: BatchEmitter | None = None
 current_scan_number: int = 1
 current_filename: str | None = None
+cached_sparse_array: tuple[str, Any] | None = None
 
 data_dir = pathlib.Path(f"{DATA_DIRECTORY}/raw_data_dir")
 
@@ -28,18 +29,23 @@ def reader(
         return None
 
     global source_dataset_path, active_emitter, current_scan_number
-    global current_filename
+    global current_filename, cached_sparse_array
 
     filename = parameters.get("filename", None)
     batch_size_mb = parameters.get("batch_size_mb", 1.0)
+    cache_last_file = parameters.get("cache_last_file", False)
 
     if not filename:
         raise ValueError("Filename parameter 'filename' is not set.")
+
+    if not cache_last_file:
+        cached_sparse_array = None
 
     if filename != current_filename:
         current_filename = filename
         current_scan_number = 1
         active_emitter = None
+        cached_sparse_array = None
         logger.info(f"New filename received: {filename}. Resetting scan number to 1.")
 
     source_dataset_path = data_dir / filename
@@ -53,7 +59,21 @@ def reader(
             logger.info(
                 f"Loading dataset from: {source_dataset_path} for Scan {current_scan_number}"
             )
-            loaded_sparse_array = stempy.io.load_electron_counts(source_dataset_path)
+            cached_array = (
+                cached_sparse_array[1]
+                if cache_last_file
+                and cached_sparse_array
+                and cached_sparse_array[0] == filename
+                else None
+            )
+
+            loaded_sparse_array = cached_array or stempy.io.load_electron_counts(
+                source_dataset_path
+            )
+
+            if cache_last_file:
+                cached_sparse_array = (filename, loaded_sparse_array)
+
             active_emitter = BatchEmitter(
                 sparse_array=loaded_sparse_array,
                 scan_number=current_scan_number,
