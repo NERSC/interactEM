@@ -220,7 +220,7 @@ all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2
 
 [[package]]
 name = "interactem-core"
-version = "0.1.0"
+version = "0.0.2"
 description = ""
 optional = false
 python-versions = ">=3.10"

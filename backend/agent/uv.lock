@@ -568,7 +568,7 @@ wheels = [
 
 [[package]]
 name = "interactem-agent"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
@@ -604,7 +604,7 @@ provides-extras = ["hpc"]
 
 [[package]]
 name = "interactem-core"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "../core" }
 dependencies = [
     { name = "anyio" },

@@ -842,7 +842,7 @@ wheels = [
 
 [[package]]
 name = "interactem"
-version = "0.1.0"
+version = "0.0.2"
 source = { virtual = "." }
 dependencies = [
     { name = "interactem-agent" },
@@ -881,7 +881,7 @@ dev = [{ name = "pytest", specifier = ">=9.0.1,<10" }]
 
 [[package]]
 name = "interactem-agent"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "backend/agent" }
 dependencies = [
     { name = "aiohttp" },
@@ -911,7 +911,7 @@ provides-extras = ["hpc"]
 
 [[package]]
 name = "interactem-app"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "backend/app" }
 dependencies = [
     { name = "aiohttp" },
@@ -970,7 +970,7 @@ dev = [
 
 [[package]]
 name = "interactem-cli"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "cli" }
 dependencies = [
     { name = "httpx" },
@@ -991,7 +991,7 @@ requires-dist = [
 
 [[package]]
 name = "interactem-core"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "backend/core" }
 dependencies = [
     { name = "anyio" },
@@ -1024,7 +1024,7 @@ dev = [
 
 [[package]]
 name = "interactem-launcher"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "backend/launcher" }
 dependencies = [
     { name = "h11" },
@@ -1054,7 +1054,7 @@ dev = [
 
 [[package]]
 name = "interactem-metrics"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "backend/metrics" }
 dependencies = [
     { name = "interactem-core" },
@@ -1069,7 +1069,7 @@ requires-dist = [
 
 [[package]]
 name = "interactem-operators"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "backend/operators" }
 dependencies = [
     { name = "aiohttp" },
@@ -1086,7 +1086,7 @@ requires-dist = [
 
 [[package]]
 name = "interactem-orchestrator"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "backend/orchestrator" }
 dependencies = [
     { name = "aiohttp" },
@@ -1113,7 +1113,7 @@ dev = [
 
 [[package]]
 name = "interactem-sfapi-models"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "backend/sfapi_models" }
 dependencies = [
     { name = "h11" },

@@ -231,7 +231,7 @@ wheels = [
 
 [[package]]
 name = "interactem-cli"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },
@@ -252,7 +252,7 @@ requires-dist = [
 
 [[package]]
 name = "interactem-core"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "../backend/core" }
 dependencies = [
     { name = "anyio" },

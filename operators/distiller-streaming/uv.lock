@@ -295,7 +295,7 @@ wheels = [
 
 [[package]]
 name = "distiller-streaming"
-version = "0.1.0"
+version = "0.0.1"
 source = { editable = "." }
 dependencies = [
     { name = "interactem-core" },
@@ -566,7 +566,7 @@ wheels = [
 
 [[package]]
 name = "interactem-core"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "../../backend/core" }
 dependencies = [
     { name = "anyio" },
@@ -599,7 +599,7 @@ dev = [
 
 [[package]]
 name = "interactem-operators"
-version = "0.1.0"
+version = "0.0.2"
 source = { editable = "../../backend/operators" }
 dependencies = [
     { name = "aiohttp" },

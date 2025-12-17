@@ -209,7 +209,7 @@ wheels = [
 
 [[package]]
 name = "interactem-docs"
-version = "0.0.1"
+version = "0.0.2"
 source = { virtual = "." }
 dependencies = [
     { name = "furo" },
