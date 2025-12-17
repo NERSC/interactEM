@@ -1,14 +1,6 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.5.0
-    hooks:
-    -   id: ruff
-        args:
-        - --fix 
-        - --config=pyproject.toml
-
   - repo: local
     hooks:
       - id: sync-readmes
