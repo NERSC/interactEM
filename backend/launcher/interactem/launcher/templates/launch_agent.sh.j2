@@ -1,6 +1,5 @@
 {% include "header.sh.j2" %}
 
-module load conda
-conda activate {{settings.CONDA_ENV}}
+export HDF5_USE_FILE_LOCKING=FALSE
 cd {{settings.ENV_FILE_DIR}}
-srun --nodes={{job.num_nodes}} --ntasks-per-node=1 interactem-agent
+srun --nodes={{job.num_nodes}} --ntasks-per-node=1 uv run --project {{settings.AGENT_PROJECT_DIR}} interactem-agent

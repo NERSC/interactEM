@@ -14,7 +14,6 @@
 #SBATCH --nodes=2
 #SBATCH --exclusive
 
-module load conda
-conda activate interactem
+export HDF5_USE_FILE_LOCKING=FALSE
 cd /path/to/.env
-srun --nodes=2 --ntasks-per-node=1 interactem-agent
+srun --nodes=2 --ntasks-per-node=1 uv run --project /path/to/interactEM/backend/agent interactem-agent
