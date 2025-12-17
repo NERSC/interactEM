@@ -4,14 +4,17 @@
 
 ## Demo video
 
-Watch the demo: https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08
+<div class="readme-only">
+<https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08>
+</div>
+
 <!-- docs-only:start -->
-```{raw} html
-<video width="100%" controls>
-  <source src="https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08" type="video/mp4">
-  Your browser does not support the video tag.
-</video>
-```
+<div class="video-wrapper">
+  <video width="100%" controls>
+    <source src="https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+</div>
 <!-- docs-only:end -->
 
 ## Features
