@@ -1,6 +1,6 @@
 [project]
 name = "interactem-operators"
-version = "0.0.1"
+version = "0.1.0"
 description = ""
 authors = [{name = "Sam Welborn", email = "swelborn@lbl.gov"}]
 readme = "README.md"

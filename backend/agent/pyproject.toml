@@ -1,6 +1,6 @@
 [project]
 name = "interactem-agent"
-version = "0.0.1"
+version = "0.1.0"
 description = "Agent for interactem"
 readme = "README.md"
 authors = [
