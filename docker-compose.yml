@@ -274,7 +274,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${FIRST_SUPERUSER_PASSWORD?Variable not set}
     volumes:
       - grafana_data:/var/lib/grafana
       - ./backend/metrics/monitoring-conf/grafana/provisioning:/etc/grafana/provisioning:ro
