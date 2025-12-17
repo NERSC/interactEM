@@ -1,4 +1,4 @@
-name: Bump version
+name: Bump version PR
 
 on:
   workflow_dispatch:
@@ -14,26 +14,75 @@ on:
         - patch
 
 jobs:
-  build:
+  bump_and_pr:
     permissions:
-      id-token: write
-      pull-requests: read
       contents: write
+      pull-requests: write
     runs-on: ubuntu-slim
     steps:
       - name: Checkout the code
         uses: actions/checkout@v4
 
-      - name: Bump version
-        id: bump
-        uses: callowayproject/bump-my-version@master
-        env:
-          BUMPVERSION_TAG: "true"
-        with:
-          args: ${{ inputs.bump-type }}
-          github-token: ${{ secrets.VERSION_BUMP }}
+      - name: Configure git user
+        run: |
+          git config --global user.email "ci-version-bot@users.noreply.github.com"
+          git config --global user.name "CI Version Bot"
 
-      - name: Check
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.12'
+
+      - name: Calculate and bump version
+        id: bump
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          previous_version=$(uvx bump-my-version@latest show current_version)
+
+          if uvx bump-my-version@latest bump ${{ inputs.bump-type }}; then
+            bumped=true
+            echo "Successfully bumped version."
+          else
+            bumped=false
+            echo "No version bump performed (command failed or no changes needed)."
+          fi
+          
+          after_bump_version=$(uvx bump-my-version@latest show current_version)
+
+          {
+            echo "previous-version=${previous_version}"
+            echo "bumped=${bumped}"
+            echo "new-version=${after_bump_version}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Install Poetry
+        if: steps.bump.outputs.bumped == 'true'
+        run: uv tool install poetry@latest
+
+      - name: Refresh lockfiles
+        if: steps.bump.outputs.bumped == 'true'
+        run: scripts/update-locks.sh
+
+      - name: Record bumped version
         if: steps.bump.outputs.bumped == 'true'
         run: |
-          echo "Version was bumped from ${{ steps.bump.outputs.previous-version }} to ${{ steps.bump.outputs.current-version }}!"
+          echo "Version bumped from ${{ steps.bump.outputs.previous-version }} to ${{ steps.bump.outputs.new-version }}."
+
+      - name: Create Pull Request for version bump
+        if: steps.bump.outputs.bumped == 'true'
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.VERSION_BUMP }}
+          commit-message: 'chore(release): bump version to ${{ steps.bump.outputs.new-version }}'
+          title: 'Release: prepare v${{ steps.bump.outputs.new-version }}'
+          body: |
+            ## Automated version bump
+
+            This PR updates the project version from `${{ steps.bump.outputs.previous-version }}` to `${{ steps.bump.outputs.new-version }}`.
+
+            Merge this PR to create the official release tag.
+          branch: 'release/bump-${{ steps.bump.outputs.new-version }}'
+          base: main
+          delete-branch: true

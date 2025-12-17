@@ -1,6 +1,6 @@
 [project]
 name = "interactem"
-version = "0.1.0"
+version = "0.0.1"
 description = "interactem"
 readme = "README.md"
 authors = [
@@ -61,31 +61,8 @@ message = "Bump version: {current_version} -> {new_version}"
 tag_message = "Bump version: {current_version} -> {new_version}"
 
 [[tool.bumpversion.files]]
-filename = "pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "backend/core/pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "backend/app/pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "backend/agent/pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "backend/orchestrator/pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "backend/launcher/pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "backend/operators/pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "backend/metrics/pyproject.toml"
-
-[[tool.bumpversion.files]]
-filename = "backend/sfapi_models/pyproject.toml"
+glob = "**/pyproject.toml"
+glob_exclude = ["operators/**"]
 
 [tool.pytest.ini_options]
 markers = [
