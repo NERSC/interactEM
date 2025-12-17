@@ -220,6 +220,7 @@ services:
       - SFAPI_KEY_PATH=/key.pem
       - NATS_SERVER_URL=nats://nats1:4222
       - NATS_STREAM_STORAGE_TYPE=file
+      - AGENT_PROJECT_DIR=/path/to/interactEM/backend/agent/on/pm
     volumes:
       - "./conf/nats-conf/out_jwt/backend.creds:/backend.creds"
       - "${HOME}/.superfacility/key.pem:/key.pem"

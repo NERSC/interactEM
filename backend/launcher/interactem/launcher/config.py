@@ -1,4 +1,3 @@
-import shlex
 from pathlib import Path
 
 from pydantic import AnyWebsocketUrl, NatsDsn, model_validator
@@ -9,7 +8,7 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     NATS_SERVER_URL: AnyWebsocketUrl | NatsDsn = NatsDsn("nats://localhost:4222")
     SFAPI_KEY_PATH: Path = Path("/secrets/sfapi.pem")
-    CONDA_ENV: Path | str
+    AGENT_PROJECT_DIR: Path
     ENV_FILE_PATH: Path
     ENV_FILE_DIR: Path | None = None
     SFAPI_ACCOUNT: str
@@ -25,13 +24,6 @@ class Settings(BaseSettings):
     @model_validator(mode="after")
     def env_file_parent(self) -> "Settings":
         self.ENV_FILE_DIR = self.ENV_FILE_PATH.parent
-        return self
-
-    @model_validator(mode="after")
-    def quote_conda_env(self) -> "Settings":
-        if isinstance(self.CONDA_ENV, Path):
-            self.CONDA_ENV = str(self.CONDA_ENV)
-        self.CONDA_ENV = shlex.quote(self.CONDA_ENV)
         return self
 
 
