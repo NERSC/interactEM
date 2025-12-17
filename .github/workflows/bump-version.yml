@@ -28,23 +28,38 @@ jobs:
           git config --global user.email "ci-version-bot@users.noreply.github.com"
           git config --global user.name "CI Version Bot"
 
-      - name: Calculate and bump version
-        id: bump
-        uses: callowayproject/bump-my-version@master
-        with:
-          args: ${{ inputs.bump-type }}
-
       - name: Set up uv
-        if: steps.bump.outputs.bumped == 'true'
         uses: astral-sh/setup-uv@v7
         with:
-          python-version: '3.11'
+          python-version: '3.12'
+
+      - name: Calculate and bump version
+        id: bump
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          previous_version=$(uvx bump-my-version@latest show current_version)
+
+          if uvx bump-my-version@latest bump ${{ inputs.bump-type }}; then
+            bumped=true
+          else
+            bumped=false
+          fi
+
+          current_version=$(uvx bump-my-version@latest show current_version)
+
+          {
+            echo "previous-version=${previous_version}"
+            echo "bumped=${bumped}"
+            echo "current-version=${current_version}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Install Poetry
         if: steps.bump.outputs.bumped == 'true'
         run: uv tool install poetry@latest
 
-      - name: Refresh uv lockfile
+      - name: Refresh lockfiles
         if: steps.bump.outputs.bumped == 'true'
         run: scripts/update-locks.sh
 
