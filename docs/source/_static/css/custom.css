@@ -42,3 +42,11 @@ article h6,
 .rst-content h6 {
     font-size: 0.9rem !important;
 }
+
+.readme-only {
+    display: none;
+}
+
+.video-wrapper {
+    margin: 1rem 0;
+}

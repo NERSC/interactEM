@@ -1,10 +1,11 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
-  - repo: https://github.com/charliermarsh/ruff-pre-commit
-    rev: v0.5.0
+  - repo: local
     hooks:
-    -   id: ruff
-        args:
-        - --fix 
-        - --config=pyproject.toml
+      - id: sync-readmes
+        name: sync-readmes
+        entry: uv run --project docs/ docs/scripts/sync_readmes.py
+        language: system
+        pass_filenames: false
+        files: ^(docs/|README.md|operators/README\.md|backend/agent/README\.md)
