@@ -34,6 +34,20 @@ jobs:
         with:
           args: ${{ inputs.bump-type }}
 
+      - name: Set up uv
+        if: steps.bump.outputs.bumped == 'true'
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install Poetry
+        if: steps.bump.outputs.bumped == 'true'
+        run: uv tool install poetry@latest
+
+      - name: Refresh uv lockfile
+        if: steps.bump.outputs.bumped == 'true'
+        run: scripts/update-locks.sh
+
       - name: Record bumped version
         if: steps.bump.outputs.bumped == 'true'
         run: |
