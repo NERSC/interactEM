@@ -62,6 +62,7 @@ tag_message = "Bump version: {current_version} -> {new_version}"
 
 [[tool.bumpversion.files]]
 glob = "**/pyproject.toml"
+glob_exclude = ["operators/**"]
 
 [tool.pytest.ini_options]
 markers = [
