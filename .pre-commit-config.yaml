@@ -8,3 +8,12 @@ repos:
         args:
         - --fix 
         - --config=pyproject.toml
+
+  - repo: local
+    hooks:
+      - id: sync-readmes
+        name: sync-readmes
+        entry: uv run --project docs/ docs/scripts/sync_readmes.py
+        language: system
+        pass_filenames: false
+        files: ^(docs/|README.md|operators/README\.md|backend/agent/README\.md)
