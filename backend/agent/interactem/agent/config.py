@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     LOCAL: bool = False
     DOCKER_COMPATIBILITY_MODE: bool = False
     PODMAN_SERVICE_URI: str | None = None
+    PODMAN_BINARY_PATH: Path | None = None
     NATS_SERVER_URL: AnyWebsocketUrl | NatsDsn = NatsDsn("nats://localhost:4222")
     NATS_SERVER_URL_IN_CONTAINER: AnyWebsocketUrl | NatsDsn = NatsDsn(
         "nats://nats1:4222"
@@ -86,6 +87,17 @@ class Settings(BaseSettings):
         self.LOG_DIR = self.LOG_DIR / str(self.ID)
         self.LOG_DIR.mkdir(parents=True, exist_ok=True)
         self.VECTOR_CONFIG_PATH = self.generate_vector_config()
+        return self
+
+    @model_validator(mode="after")
+    def check_podman_binary_full_path(self) -> "Settings":
+        if not self.PODMAN_BINARY_PATH:
+            return self
+
+        if not self.PODMAN_BINARY_PATH.is_absolute():
+            raise ValueError(
+                "PODMAN_BINARY must be an absolute path, if it is supplied at all."
+            )
         return self
 
     @property
