@@ -4,8 +4,9 @@ from typing import Any
 
 from pydantic import BaseModel, model_validator
 from sfapi_client._models import StatusValue
-from sfapi_client.compute import Machine
 
+class Machine(str, Enum):
+    perlmutter = "perlmutter"
 
 class StatusRequest(BaseModel):
     machine: Machine

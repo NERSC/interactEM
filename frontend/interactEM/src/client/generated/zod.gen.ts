@@ -3,7 +3,7 @@
 import { z } from "zod"
 
 export const zAgentCreateEvent = z.object({
-  machine: z.enum(["dtn01", "dtns", "perlmutter"]),
+  machine: z.enum(["perlmutter"]),
   duration: z.string(),
   compute_type: z.enum(["gpu", "cpu"]),
   num_nodes: z.number().int(),
@@ -205,6 +205,8 @@ export const zHttpValidationError = z.object({
     )
     .optional(),
 })
+
+export const zMachine = z.enum(["perlmutter"])
 
 export const zMessage = z.object({
   message: z.string(),
@@ -644,8 +646,6 @@ export const zPipelinesPublic = z.object({
 })
 
 export const zPortType = z.enum(["input", "output"])
-
-export const zPublicHost = z.enum(["dtn01", "dtns", "perlmutter"])
 
 export const zToken = z.object({
   access_token: z.string(),
