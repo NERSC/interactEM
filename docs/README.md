@@ -2,15 +2,6 @@
 
 This directory contains the documentation for interactEM, built with Sphinx and the Furo theme.
 
-## Setup
-
-Install dependencies:
-
-```bash
-cd docs
-poetry install
-```
-
 ## Building the Documentation
 
 Build the HTML documentation:
