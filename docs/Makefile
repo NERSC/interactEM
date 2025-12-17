@@ -16,6 +16,9 @@ sync-readmes:
 build: sync-readmes
 	$(UV) run sphinx-build -n -b html source _build/html
 
+sync-check:
+	$(UV) run scripts/sync_readmes.py --check
+
 clean:
 	rm -rf _build
 
