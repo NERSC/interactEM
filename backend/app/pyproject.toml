@@ -1,6 +1,6 @@
 [project]
 name = "interactem-app"
-version = "0.0.1"
+version = "0.1.0"
 description = ""
 authors = [{name = "Admin", email = "admin@example.com"}]
 requires-python = ">=3.10"
