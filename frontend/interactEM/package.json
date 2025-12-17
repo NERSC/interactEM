@@ -35,6 +35,7 @@
     "@hookform/resolvers": "^5.2.2",
     "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.6",
+    "@mui/x-date-pickers": "^8.22.0",
     "@nats-io/jetstream": "^3.0.0-37",
     "@nats-io/kv": "^3.0.0-31",
     "@nats-io/nats-core": "^3.0.0-50",
