@@ -15,6 +15,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           token: ${{ secrets.VERSION_BUMP }}
+          fetch-tags: true
 
       - name: Set up Python
         uses: actions/setup-python@v5
