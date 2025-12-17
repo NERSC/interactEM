@@ -6,10 +6,7 @@
 
 ## Demo video
 
-<div class="readme-only">
 <https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08>
-</div>
-
 
 
 ## Features

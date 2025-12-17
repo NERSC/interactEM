@@ -26,12 +26,16 @@ DOCS_ONLY = re.compile(
     r"<!--\s*docs-only:start\s*-->.*?<!--\s*docs-only:end\s*-->",
     flags=re.IGNORECASE | re.DOTALL,
 )
+README_ONLY_DIV = re.compile(
+    r"<div\s+class=[\"']readme-only[\"']>\s*(.*?)\s*</div>\n?",
+    flags=re.IGNORECASE | re.DOTALL,
+)
 LINK = re.compile(r"(\[[^\]]+\])\(([^)]+)\)")
 
 
-def _strip_blocks(text: str) -> str:
-    """Remove docs-only sections."""
-    return DOCS_ONLY.sub("", text)
+def _strip_div_tags(text: str) -> str:
+    """Remove readme-only div tags but keep content for README version."""
+    return README_ONLY_DIV.sub(r"\1", text)
 
 
 def _rewrite_links(text: str, source_path: Path) -> str:
@@ -61,7 +65,8 @@ def _rewrite_links(text: str, source_path: Path) -> str:
 
 def render_readme(source_path: Path) -> str:
     content = source_path.read_text(encoding="utf-8")
-    content = _strip_blocks(content)
+    content = DOCS_ONLY.sub("", content)  # Remove docs-only sections
+    content = _strip_div_tags(content)     # Strip div tags but keep content
     content = _rewrite_links(content, source_path)
     content = content.strip() + "\n"
 
