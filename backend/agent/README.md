@@ -1,34 +1,37 @@
-# InteractEM - Agent
+<!-- Generated from docs/source/launch-agent.md using docs/scripts/sync_readmes.py. Do not edit directly. -->
 
-The agent is core component in the InteractEM system for running operator containers, and coordinating their lifecycle and  via NATS messaging.
+# Launch an agent
+
+The agent is the process that starts operator containers, coordinates their lifecycle, and talks to the platform over NATS. You need at least one running agent before operators can launch.
 
 ## Prerequisites
 
-Some python environment manager (e.g., [`poetry`](https://python-poetry.org/docs/) or [`uv`](https://github.com/astral-sh/uv)).
+Have a Python environment manager available (e.g., [`poetry`](https://python-poetry.org/docs/) or [`uv`](https://github.com/astral-sh/uv)).
 
-## Configuration
+## Configure the environment
 
-**Set up Environment Variables**  
+You should already have run `make setup` in the repository root to create a base `.env`. Then:
 
-You should have already run `make setup` in the root directory. Then go to agent directory:
-
-```sh
+```bash
 cd backend/agent
 ```
 
-- Update the `.env` file for the agent. You can for example set the agent's name by changing `AGENT_NAME`:
+- Copy `.env.example` if you have not already, and update values as needed.
+- Set the agent's display name in `AGENT_NAME`:
 
-```sh
-AGENT_NAME=SecretAgentMan # change to how you want it to display in the frontend
+```bash
+AGENT_NAME=SecretAgentMan  # change to how you want it to display in the frontend
 ```
 
-If you have specific tags to match an operator on, run the following:
+- If you want to target specific resources, set tags:
 
-```sh
+```bash
 AGENT_TAGS='["ncem-4dcamera","gpu"]'
 ```
 
 ## Install and run
+
+Install dependencies with your preferred tool:
 
 ```bash
 poetry install
@@ -40,9 +43,7 @@ or
 uv sync
 ```
 
-## Run Agent
-
-Activate your virtual environment, then the following inside the directory where the `.env` is:
+Then activate your virtual environment and start the agent from the directory containing your `.env`:
 
 ```bash
 cd backend/agent

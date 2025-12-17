@@ -1,16 +1,16 @@
-# Operators
+<!-- Generated from docs/source/authoring-operators.md using docs/scripts/sync_readmes.py. Do not edit directly. -->
 
-## What is an Operator?
+# Authoring Operators
 
-Operators are pieces of code that will perform some action on data coming from other operators. They are the bits of code that can be chained together to build a data pipeline.
+Operators are pieces of code that perform work on data coming from other operators. You chain them together to build a data pipeline.
 
 ## Getting operators into podman storage
 
-Premade operators are currently located in the [`operators/`](/operators) directory. To run an operator pipeline, `podman` has to know about it. Can be done using [bake](#docker-bake--podman-pull) or [podman build](#podman-build).
+Premade operators live under [`operators/`](/operators). Podman needs to know about them before a pipeline can run.
 
 ### docker bake + podman pull
 
-We can use use `docker bake` and `podman pull` for operators in the [bake hcl file](/operators/docker-bake.hcl).
+We can use `docker bake` and `podman pull` for operators defined in [`docker-bake.hcl`](/operators/docker-bake.hcl).
 
 ```bash
 cd interactEM
@@ -29,71 +29,63 @@ For faster iteration during development, you can omit the `--build-base` flag by
 ./operators/bake.sh --push-local --pull-local --target center-of-mass-partial
 ```
 
-If you [make](#creating-an-operator) an operator, then you can add it to the `hcl` file and it will be a part of this build process. This doesn't happen automatically, you will have to manually edit that file - look at the format and use your judgment (or ask an agent).
+If you [create an operator](#creating-an-operator), you can add it to the HCL file so it becomes part of this build process. This does not happen automatically—update the file manually when you are ready.
 
 ### `podman build`
 
 If you create an operator using the instructions below, you can also use a regular `podman build`.
 
-For example, if we have an operator with the name `my-operator` in the `my-operator/` directory you can build it like this:
+For example, if you have an operator named `my-operator` in the `my-operator/` directory:
 
 ```bash
 cd my-operator
 # tag should match what is found in the "image" field in your operator.json
-podman build -t ghcr.io/nersc/interactem/my-operator:latest .  
+podman build -t ghcr.io/nersc/interactem/my-operator:latest .
 ```
 
 ## Creating an operator
 
-At the very least, three files are required to make an operator:
+At minimum, each operator needs three files:
 
-1. [run.py](#runpy)
-1. [Containerfile](#containerfile)
-1. [Specification](#specification)
+1. [`run.py`](#runpy)
+2. [`Containerfile`](#containerfile)
+3. [`operator.json`](#specification)
 
-As a part of our `cli` tool, we have some templates that can get you started. Using `uv`:
+The CLI ships with templates to get you started:
 
 ```bash
 uv sync
 uv run interactem operator new
 ```
 
-or `poetry`:
+or with `poetry`:
 
 ```bash
 poetry install
 poetry run interactem operator new
 ```
 
-Or if you are feeling dangerous:
+Or, if you prefer pip:
 
 ```bash
-pip install . 
+pip install .
 interactem operator new
 ```
 
-This will generate the files you need under whatever directory you specify. The default for the output directory output is `operators/`, so if you run the commands above from the git root, it will appear in the [operators directory (interactEM/operators/)](/operators). You can then refresh the operators in the frontend, and it will be updated with your new operator.
-
-```{note}
-Operators will be updated **ONLY** in the operators panel during a refresh. Your existing pipelines will **NOT** be updated. One should manually replace the operators in existing pipelines with the refreshed operator.
-```
-
-You can build the operators as discussed [above](#getting-operators-into-podman-storage).
+> **Note:** Operators refresh only in the operators panel during a UI refresh. Existing pipelines are not updated automatically—replace operators manually if needed.
 
 ### run.py
 
-We need to define the code that will operate on incoming messages. The incoming messages will come in as [BytesMessages](/backend/core/interactem/core/models/messages.py), which contain data, metadata, and tracking information.
+Implement the operator logic in `run.py`. Incoming messages are [`BytesMessages`](/backend/core/interactem/core/models/messages.py) that carry data, metadata, and tracking information. Before building, you can quickly check importability with:
 
-Here is an example of the [`run.py`](/operators/center-of-mass-partial/run.py) file for the partial center of mass operator. You can see that the parameters (defined in the [spec](#specification), see below).
-
-Prior to building the operator, one can quickly check if `run.py` will be importable by python by running `python -m py_compile run.py`.
+```bash
+python -m py_compile run.py
+```
 
 ### Containerfile
 
-We need to use the operator [base image](/docker/Dockerfile.operator) the parent image for our [`Containerfile`](/operators/center-of-mass-partial/Containerfile). In this case, we are using the [`distiller-streaming`](/operators/distiller-streaming/Containerfile) image as the base, as it contains a lot of utilities for processing 4D Camera frames.
+Use the operator [base image](/docker/Dockerfile.operator) as the parent image for your `Containerfile`. For example, the [`distiller-streaming`](/operators/distiller-streaming/Containerfile) image includes utilities for processing 4D Camera frames, so other operators can build FROM it.
 
 ### Specification
 
-Operators specifications need to be defined in a `json` file. The specification can be found in [spec.py](/backend/core/interactem/core/models/spec.py).
-
-Here's an example of an [`operator.json`](/operators/center-of-mass-partial/operator.json) for the partial center of mass operator.
+Operator specifications live in `operator.json`. The schema is defined in [`spec.py`](/backend/core/interactem/core/models/spec.py), and an example is provided in [`operators/center-of-mass-partial/operator.json`](/operators/center-of-mass-partial/operator.json).
