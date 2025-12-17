@@ -131,7 +131,7 @@ def py4dstem_parallax(
     rotation_angle = diffraction_rotation_angle * np.pi / 180  # convert to radians
     crop_probes = int(parameters.get("crop_probes", 0))
     running_average = bool(parameters.get("running_average", True))
-    
+
     if crop_probes == 0:
         logger.info(f"Scan {scan_number}: No cropping of probes applied.")
         dense_data = accumulator[:, :-1, :, :].to_dense()  ## remove the flyback column
