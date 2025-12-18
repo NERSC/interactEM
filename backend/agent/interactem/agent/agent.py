@@ -546,6 +546,11 @@ class Agent:
 
             logger.info(f"Starting {len(operator_ids)} operators...")
 
+            images_to_pull = {
+                self.pipeline.operators[op_id].image for op_id in operator_ids
+            }
+            await self._prefetch_images(client, images_to_pull)
+
             # Start all operators concurrently within a nested task group
             async with anyio.create_task_group() as start_tg:
                 for op_id in operator_ids:
@@ -561,6 +566,19 @@ class Agent:
             logger.info(f"All {len(operator_ids)} operators started")
 
         await self._set_status(AgentStatus.DEPLOYMENT_RUNNING, "Operators started")
+
+    async def _prefetch_images(
+        self, client: PodmanClient, images: set[str]
+    ) -> None:
+        if not images:
+            return
+
+        logger.info(f"Ensuring availability of {len(images)} images before launch")
+        for image in images:
+            if cfg.ALWAYS_PULL_IMAGES:
+                await pull_image(client, image)
+                continue
+            await ensure_image_present(client, image)
 
     async def _start_and_track_operator(
         self, operator: RuntimeOperator, client: PodmanClient
@@ -629,9 +647,6 @@ class Agent:
         await publish_pipeline_to_operators(self.broker, self.pipeline, operator.id)
         logger.debug(f"Published pipeline for operator {operator.id}")
         logger.debug(f"Pipeline: {self.pipeline.to_runtime().model_dump_json()}")
-
-        if cfg.ALWAYS_PULL_IMAGES:
-            await pull_image(client, operator.image)
 
         container = await create_container(
             self.id, client, operator, self._current_deployment.deployment_id
