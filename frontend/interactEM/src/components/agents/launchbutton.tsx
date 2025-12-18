@@ -156,9 +156,7 @@ export const LaunchAgentButton = () => {
                       format="HH:mm:ss"
                       ampm={false}
                       value={
-                        value
-                          ? parse(value, "HH:mm:ss", new Date())
-                          : null
+                        value ? parse(value, "HH:mm:ss", new Date()) : null
                       }
                       onChange={(newValue) => {
                         onChange(newValue ? format(newValue, "HH:mm:ss") : "")
