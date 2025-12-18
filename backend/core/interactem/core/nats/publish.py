@@ -141,12 +141,13 @@ async def publish_pipeline_to_operators(
     broker: NatsBroker,
     pipeline: PipelineGraph,
     operator_id: RuntimeOperatorID,
+    timeout: float | None = None,
 ):
     await broker.publish(
         subject=f"{SUBJECT_OPERATORS_DEPLOYMENTS}.{operator_id}",
         message=pipeline.to_runtime().model_dump_json(),
         stream=STREAM_DEPLOYMENTS,
-        timeout=NATS_TIMEOUT_DEFAULT,
+        timeout=timeout or NATS_TIMEOUT_DEFAULT,
     )
 
 def create_agent_mount_publisher(

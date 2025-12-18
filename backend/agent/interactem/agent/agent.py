@@ -12,11 +12,13 @@ import stamina
 from anyio import to_thread
 from faststream.nats import NatsBroker
 from faststream.nats.publisher.usecase import LogicPublisher
+from nats import errors as nats_errors
 from podman.domain.containers import Container
 from stamina.instrumentation import set_on_retry_hooks
 
 from interactem.core.constants import (
     INTERACTEM_IMAGE_REGISTRY,
+    NATS_TIMEOUT_DEFAULT,
     OPERATOR_ID_ENV_VAR,
     VECTOR_IMAGE,
 )
@@ -624,10 +626,23 @@ class Agent:
         if cfg.log_mount:
             operator.add_internal_mount(cfg.log_mount)
 
-        # Publish pipeline to JetStream
-        await publish_pipeline_to_operators(self.broker, self.pipeline, operator.id)
-        logger.debug(f"Published pipeline for operator {operator.id}")
-        logger.debug(f"Pipeline: {self.pipeline.to_runtime().model_dump_json()}")
+        publish_timeout = NATS_TIMEOUT_DEFAULT * 3
+        for attempt in stamina.retry_context(
+            on=nats_errors.TimeoutError, attempts=3
+        ):
+            with attempt:
+                # Publish pipeline to JetStream
+                await publish_pipeline_to_operators(
+                    self.broker,
+                    self.pipeline,
+                    operator.id,
+                    timeout=publish_timeout,
+                )
+                logger.debug(f"Published pipeline for operator {operator.id}")
+                logger.debug(
+                    f"Pipeline: {self.pipeline.to_runtime().model_dump_json()}"
+                )
+                break
 
         if cfg.ALWAYS_PULL_IMAGES:
             pull_image(client, operator.image)
