@@ -1,61 +1,57 @@
-name: Release Tagging on Merge
+name: Tag Release
 
 on:
   push:
     branches:
       - main
+      - fix-release-workflow
 
 jobs:
   tag_release:
     permissions:
       contents: write
+    # if: startsWith(github.event.head_commit.message, 'chore(release):') || startsWith(github.event.head_commit.message, 'Release:')
     runs-on: ubuntu-slim
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           token: ${{ secrets.VERSION_BUMP }}
+          fetch-depth: 0 # needed because fetch-tags doesn't work as expected... 
+          # open issue gh for 4 years... https://github.com/actions/checkout/issues/1471
           fetch-tags: true
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Determine version from pyproject.toml
-        id: get_version
-        run: |
-          python - <<'PY'
-          import os
-          import pathlib
-          import tomllib
-
-          pyproject = pathlib.Path("pyproject.toml")
-          data = tomllib.loads(pyproject.read_text(encoding="utf-8"))
-          version = data.get("project", {}).get("version")
-          if not version:
-              raise SystemExit("Version not found in pyproject.toml")
-
-          print(f"Detected version: {version}")
-          with open(os.environ["GITHUB_ENV"], "a", encoding="utf-8") as env:
-              env.write(f"NEW_VERSION={version}\n")
-          PY
 
       - name: Configure git user
         run: |
           git config --global user.email "ci-version-bot@users.noreply.github.com"
           git config --global user.name "CI Version Bot"
 
+      - name: Check existing git tags
+        run: | 
+          git tag -l
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          python-version: '3.12'
+
+      - name: Get current version
+        id: version
+        shell: bash
+        run: |
+          current_version=$(uvx bump-my-version@latest show current_version)
+          echo "tag=v${current_version}" >> "$GITHUB_OUTPUT"
+
       - name: Create and push annotated tag
         env:
-          NEW_VERSION: ${{ env.NEW_VERSION }}
+          TAG_NAME: ${{ steps.version.outputs.tag }}
         run: |
-          TAG_NAME="v${NEW_VERSION}"
-
           if git rev-parse "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Tag $TAG_NAME already exists on the remote. No new tag will be created."
-            exit 0
+            echo "Tag $TAG_NAME already exists. Skipping."
+            echo "created=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Creating tag: $TAG_NAME"
+            git tag -a "$TAG_NAME" -m "Release $TAG_NAME"
+            git push origin "$TAG_NAME"
+            echo "created=true" >> "$GITHUB_OUTPUT"
           fi
-
-          git tag -a "$TAG_NAME" -m "Official Release $TAG_NAME"
-          git push origin "$TAG_NAME"
