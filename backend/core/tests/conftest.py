@@ -27,6 +27,7 @@ class PipelineBuilder:
         num_inputs: int = 1,
         num_outputs: int = 1,
         spec_id: Optional[UUID] = None,
+        parallelism: Optional[int] = None,
         **kwargs,
     ) -> CanonicalOperator:
         """Add an operator with its ports to the pipeline."""
@@ -44,6 +45,7 @@ class PipelineBuilder:
             parallel_config=ParallelConfig(type=ParallelType.EMBARRASSING)
             if parallel
             else None,
+            parallelism=parallelism,
         )
 
         # Create input ports
