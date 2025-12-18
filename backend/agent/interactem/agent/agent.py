@@ -574,11 +574,28 @@ class Agent:
             return
 
         logger.info(f"Ensuring availability of {len(images)} images before launch")
+        failures: list[str] = []
         for image in images:
-            if cfg.ALWAYS_PULL_IMAGES:
-                await pull_image(client, image)
-                continue
-            await ensure_image_present(client, image)
+            try:
+                if cfg.ALWAYS_PULL_IMAGES:
+                    await pull_image(client, image)
+                else:
+                    await ensure_image_present(client, image)
+            except Exception as e:
+                _msg = f"Failed to prepare image {image}: {e}"
+                logger.error(_msg)
+                failures.append(_msg)
+
+        if failures:
+            summary = (
+                f"Image prefetch failed for {len(failures)} image(s): "
+                + "; ".join(failures)
+            )
+            self.agent_val.add_error(summary)
+            await self._set_status(AgentStatus.DEPLOYMENT_ERROR, summary)
+            if getattr(self, "error_publisher", None):
+                await self.error_publisher.publish(summary)
+            raise RuntimeError(summary)
 
     async def _start_and_track_operator(
         self, operator: RuntimeOperator, client: PodmanClient
