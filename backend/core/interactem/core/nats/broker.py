@@ -1,5 +1,7 @@
+import asyncio
 import logging
-from collections.abc import Sequence
+from collections.abc import Callable, Coroutine, Sequence
+from typing import Any
 
 from faststream import BaseMiddleware
 from faststream.nats import NatsBroker, NatsPublishCommand
@@ -10,10 +12,36 @@ from .config import NatsMode, get_nats_config
 
 logger = get_logger()
 
+
+def _log_callback_error(task: asyncio.Task, name: str) -> None:
+    try:
+        task.result()
+    except asyncio.CancelledError:
+        return
+    except Exception:
+        logger.exception("NATS %s callback failed", name)
+
+
+def _schedule_callback(
+    callback: Callable[[], Coroutine[Any, Any, None]] | None, name: str
+) -> None:
+    if not callback:
+        return
+    try:
+        task = asyncio.create_task(callback())
+    except Exception:
+        logger.exception("Failed to schedule NATS %s callback", name)
+        return
+    task.add_done_callback(lambda task: _log_callback_error(task, name))
+
+
 def get_nats_broker(
     servers: list[str],
     name: str,
     middlewares: Sequence[BaseMiddleware[NatsPublishCommand]] = (),
+    on_disconnect: Callable[[], Coroutine[Any, Any, None]] | None = None,
+    on_reconnect: Callable[[], Coroutine[Any, Any, None]] | None = None,
+    on_closed: Callable[[], Coroutine[Any, Any, None]] | None = None,
 ) -> NatsBroker:
     nats_cfg = get_nats_config()
     options_map = {
@@ -28,12 +56,15 @@ def get_nats_broker(
 
     async def disconnected_cb():
         logger.info("NATS disconnected.")
+        _schedule_callback(on_disconnect, "disconnect")
 
     async def reconnected_cb():
         logger.info("NATS reconnected.")
+        _schedule_callback(on_reconnect, "reconnect")
 
     async def closed_cb():
         logger.info("NATS connection closed.")
+        _schedule_callback(on_closed, "closed")
 
     return NatsBroker(
         servers=servers,
