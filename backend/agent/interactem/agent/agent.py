@@ -524,6 +524,14 @@ class Agent:
 
         logger.info("Agent shut down successfully.")
 
+    async def on_nats_reconnect(self) -> None:
+        """Refresh NATS/JetStream handles after a reconnect."""
+        logger.info("NATS reconnected; refreshing agent NATS handles")
+        self.nc = self.broker.config.connection_state.connection
+        self.js = self.broker.config.connection_state.stream
+        if self.agent_kv is not None:
+            await self.agent_kv.refresh_connection(self.nc, self.js)
+
     async def start_operators(self):
         if not self.pipeline:
             logger.info("No pipeline configuration found...")

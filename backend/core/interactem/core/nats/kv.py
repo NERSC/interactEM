@@ -290,6 +290,15 @@ class KeyValueLoop(Generic[V]):
         if self._bucket:
             await self.delete_keys()
 
+    async def refresh_connection(self, nc: NATSClient, js: JetStreamContext) -> None:
+        """Refresh the NATS connection context without clearing existing keys."""
+        logger.info("Refreshing KV connection for bucket %s", self._bucket_type.value)
+        self._nc = nc
+        self._js = js
+        self._bucket = None
+        if self._running:
+            await self._attempt_reconnect()
+
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=0.5, min=0.5, max=2),

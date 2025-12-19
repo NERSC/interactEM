@@ -19,7 +19,19 @@ from .agent import Agent, cfg
 
 logger = get_logger()
 AGENT_ID = cfg.ID
-broker = get_nats_broker(servers=[str(cfg.NATS_SERVER_URL)], name=f"agent-{AGENT_ID}")
+agent_ref: Agent | None = None
+
+
+async def _handle_reconnect() -> None:
+    if agent_ref:
+        await agent_ref.on_nats_reconnect()
+
+
+broker = get_nats_broker(
+    servers=[str(cfg.NATS_SERVER_URL)],
+    name=f"agent-{AGENT_ID}",
+    on_reconnect=_handle_reconnect,
+)
 app = FastStream(broker, logger=logger)
 
 error_pub = create_error_publisher(
@@ -34,12 +46,16 @@ async def after_startup(context: ContextRepo):
     agent.error_publisher = error_pub
     agent.error_publisher.timeout = NATS_TIMEOUT_DEFAULT
     context.set_global("agent", agent)
+    global agent_ref
+    agent_ref = agent
     await agent.run()
 
 
 @app.on_shutdown
 async def on_shutdown(agent: Agent = Context()):
     await agent.shutdown()
+    global agent_ref
+    agent_ref = None
 
 
 PROGRESS_UPDATE_INTERVAL = 1 # sec
