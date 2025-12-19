@@ -1,8 +1,6 @@
 from dataclasses import replace
 from uuid import UUID
 
-from faststream.nats.broker import NatsBroker
-from faststream.nats.subscriber.usecases import PullStreamSubscriber
 from nats.errors import Error as GenericNatsError
 from nats.js import JetStreamContext
 from nats.js.api import (
@@ -29,11 +27,7 @@ from interactem.core.constants import (
 )
 from interactem.core.logger import get_logger
 from interactem.core.models.canonical import CanonicalOperatorID
-from interactem.core.models.runtime import (
-    RuntimeOperatorID,
-    RuntimeOperatorParameter,
-)
-from interactem.core.models.spec import ParameterSpecType
+from interactem.core.models.runtime import RuntimeOperatorID
 
 logger = get_logger()
 
@@ -92,27 +86,21 @@ async def create_agent_consumer(
     return psub
 
 
-def create_agent_mount_consumer(
-    broker: NatsBroker,
+async def create_agent_mount_consumer(
+    js: JetStreamContext,
     agent_id: UUID,
     canonical_operator_id: CanonicalOperatorID,
-    parameter: RuntimeOperatorParameter,
-) -> PullStreamSubscriber:
-    if parameter.type != ParameterSpecType.MOUNT:
-        raise ValueError(
-            f"Parameter {parameter.name} of type {parameter.type} is not a mount type."
-        )
-    subject = f"{SUBJECT_OPERATORS_PARAMETERS_UPDATE}.{canonical_operator_id}.{parameter.name}"
+    parameter_name: str,
+) -> JetStreamContext.PullSubscription:
+    subject = (
+        f"{SUBJECT_OPERATORS_PARAMETERS_UPDATE}.{canonical_operator_id}.{parameter_name}"
+    )
     cfg = replace(
         PIPELINE_UPDATE_CONSUMER_CONFIG,
-        description=f"agent-{agent_id}-{canonical_operator_id}-{parameter.name}",
+        description=f"agent-{agent_id}-{canonical_operator_id}-{parameter_name}",
     )
-    return broker.subscriber(
-        stream=STREAM_PARAMETERS,
-        subject=subject,
-        config=cfg,
-        pull_sub=True,
-    )
+    psub = await create_pull_sub(js, STREAM_PARAMETERS, subject, cfg)
+    return psub
 
 
 async def create_operator_parameter_consumer(

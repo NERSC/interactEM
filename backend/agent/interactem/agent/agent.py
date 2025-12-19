@@ -684,16 +684,11 @@ class Agent:
             [parameter], RuntimeParameterCollectionType.MOUNT
         )
 
-        sub = create_agent_mount_consumer(
-            self.broker, self.id, operator.canonical_id, parameter
-        )
-
         pub = create_agent_mount_publisher(
             self.broker,
             operator.canonical_id,
             parameter.name,
         )
-
         await pub.start()
 
         # Publish the current (default) mount value when the task starts so
@@ -707,7 +702,26 @@ class Agent:
                 name=f"ack-{operator.id}-{parameter.name}-initial",
             )
 
-        async def handle_parameter_update(update: RuntimeOperatorParameterUpdate):
+        psub: JetStreamContext.PullSubscription | None = None
+
+        async def create_consumer():
+            nonlocal psub
+            psub = await create_agent_mount_consumer(
+                self.js, self.id, operator.canonical_id, parameter.name
+            )
+            return psub
+
+        await create_consumer()
+        assert psub is not None
+
+        async def handle_parameter_update(msg: NATSMsg, _js):
+            try:
+                update = RuntimeOperatorParameterUpdate.model_validate_json(msg.data)
+            except ValidationError as e:
+                logger.error(f"Invalid mount parameter update: {e}")
+                await msg.term()
+                return
+
             logger.info(f"Received mount parameter message: {update}")
 
             new_val = update.value
@@ -717,10 +731,12 @@ class Agent:
             except (ValueError, KeyError) as e:
                 logger.error(f"Invalid mount parameter value: {e}")
                 await self.error_publisher.publish(str(e))
+                await msg.term()
                 return
 
             if not value_changed:
                 logger.info(f"Mount {parameter.name} unchanged, skipping restart")
+                await msg.ack()
                 return
 
             # Update the operator's parameter
@@ -731,6 +747,7 @@ class Agent:
             except MountDoesntExistError as e:
                 logger.exception(e)
                 await self.error_publisher.publish(str(e))
+                await msg.term()
                 return
 
             logger.info(
@@ -750,22 +767,27 @@ class Agent:
                     name=f"ack-{operator.id}-{parameter.name}",
                 )
 
-        # Add handler to the subscriber
-        sub(handle_parameter_update)
-
-        await sub.start()
-        logger.info(
-            f"Subscribed to parameter updates for {operator.canonical_id}.{parameter.name}"
-        )
+            await msg.ack()
 
         try:
-            while not self._shutdown_event.is_set():
-                await anyio.sleep(1)
+            logger.info(
+                "Subscribed to parameter updates for %s.%s",
+                operator.canonical_id,
+                parameter.name,
+            )
+            await consume_messages(
+                psub,
+                handle_parameter_update,
+                self.js,
+                num_msgs=1,
+                create_consumer=create_consumer,
+            )
         except anyio.get_cancelled_exc_class():
             logger.info(f"Parameter task for {operator.id}.{parameter.name} cancelled.")
             raise
         finally:
-            await sub.stop()
+            if psub is not None:
+                await psub.unsubscribe()
             logger.info(
                 f"Closed parameter subscription for {operator.id}.{parameter.name}."
             )
