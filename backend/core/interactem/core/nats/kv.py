@@ -48,9 +48,12 @@ bucket_map: dict[
 
 ERRORS_THAT_REQUIRE_RECONNECT = (
     nats.errors.StaleConnectionError,
-    nats.errors.UnexpectedEOF,
     nats.errors.ConnectionClosedError,
     nats.errors.TimeoutError,
+    nats.js.errors.ServiceUnavailableError,
+    nats.js.errors.ServerError,
+    nats.errors.NoRespondersError,
+    nats.js.errors.NoStreamResponseError,
 )
 
 ATTEMPTS_BEFORE_GIVING_UP = 10
