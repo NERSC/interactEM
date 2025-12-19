@@ -30,6 +30,9 @@ export const useInfiniteDeployments = (options?: {
     initialPageParam: 0,
     refetchInterval: 5000,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      if (!lastPage || !lastPage.data) {
+        return undefined
+      }
       const currentCount = lastPage.data.length
       if (currentCount < DEFAULT_LIMIT) {
         return undefined
