@@ -61,6 +61,7 @@ services:
       - "./conf/nats-conf/nats1.conf:/etc/nats/nats.conf"
       - "./conf/nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
       - "./conf/nats-conf/websocket.conf:/etc/nats/websocket.conf"
+      - nats_data1:/nats/storage
     depends_on:
       nats-config-generator:
         condition: service_completed_successfully
@@ -73,6 +74,7 @@ services:
       - "./conf/nats-conf/nats2.conf:/etc/nats/nats.conf"
       - "./conf/nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
       - "./conf/nats-conf/websocket.conf:/etc/nats/websocket.conf"
+      - nats_data2:/nats/storage
     depends_on:
       nats-config-generator:
         condition: service_completed_successfully
@@ -87,6 +89,7 @@ services:
       - "./conf/nats-conf/nats3.conf:/etc/nats/nats.conf"
       - "./conf/nats-conf/out_jwt/auth.conf:/etc/nats/auth.conf"
       - "./conf/nats-conf/websocket.conf:/etc/nats/websocket.conf"
+      - nats_data3:/nats/storage
     depends_on:
       nats-config-generator:
         condition: service_completed_successfully
@@ -401,3 +404,6 @@ volumes:
   prometheus_data:
   grafana_data:
   vector_data:
+  nats_data1:
+  nats_data2:
+  nats_data3:
