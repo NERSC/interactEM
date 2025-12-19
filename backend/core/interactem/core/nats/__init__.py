@@ -194,7 +194,7 @@ async def consume_messages(
         except nats.errors.TimeoutError:
             await asyncio.sleep(0.1)
             continue
-        except nats.errors.Error as e:
+        except (nats.errors.Error, APIError) as e:
             # If we can't fetch messages for a nats error, try to reinitialize the consumer
             if create_consumer:
                 logger.warning(
