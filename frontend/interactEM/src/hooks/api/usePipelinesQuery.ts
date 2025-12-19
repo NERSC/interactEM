@@ -15,6 +15,9 @@ export const useInfinitePipelines = () => {
     }),
     initialPageParam: 0,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      if (!lastPage || !lastPage.data) {
+        return undefined
+      }
       const currentCount = lastPage.data.length
       if (currentCount < DEFAULT_LIMIT) {
         return undefined
@@ -37,6 +40,9 @@ export const useInfinitePipelineRevisions = (pipelineId: string | null) => {
     initialPageParam: 0,
     enabled: !!pipelineId,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
+      if (!lastPage || !Array.isArray(lastPage)) {
+        return undefined
+      }
       const currentCount = lastPage.length
       if (currentCount < DEFAULT_LIMIT) {
         return undefined
