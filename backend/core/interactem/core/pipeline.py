@@ -239,7 +239,9 @@ class Pipeline(nx.DiGraph):
             operator.parallel_config is not None
             and operator.parallel_config.type != ParallelType.NONE
         )
-        expansion_factor = factor if should_expand else 1
+        expansion_factor = 1
+        if should_expand:
+            expansion_factor = operator.parallelism or factor
         return RuntimeOperator.replicate_from_canonical(operator, expansion_factor)
 
     def _expand_ports(
