@@ -102,6 +102,7 @@ OPERATOR_CREDS_MOUNT = PodmanMount(
 
 
 PODMAN_MAX_POOL_SIZE = 100
+IMAGE_PULL_LOCK = anyio.Lock()
 
 
 class ContainerTracker:
@@ -275,7 +276,7 @@ class Agent:
         with PodmanClient(
             base_url=self._podman_service_uri, max_pool_size=PODMAN_MAX_POOL_SIZE
         ) as client:
-            pull_image(client, VECTOR_IMAGE)
+            await pull_image(client, VECTOR_IMAGE)
 
             log_config = {
                 "Type": "k8s-file",
@@ -545,6 +546,11 @@ class Agent:
 
             logger.info(f"Starting {len(operator_ids)} operators...")
 
+            images_to_pull = {
+                self.pipeline.operators[op_id].image for op_id in operator_ids
+            }
+            await self._prefetch_images(client, images_to_pull)
+
             # Start all operators concurrently within a nested task group
             async with anyio.create_task_group() as start_tg:
                 for op_id in operator_ids:
@@ -560,6 +566,36 @@ class Agent:
             logger.info(f"All {len(operator_ids)} operators started")
 
         await self._set_status(AgentStatus.DEPLOYMENT_RUNNING, "Operators started")
+
+    async def _prefetch_images(
+        self, client: PodmanClient, images: set[str]
+    ) -> None:
+        if not images:
+            return
+
+        logger.info(f"Ensuring availability of {len(images)} images before launch")
+        failures: list[str] = []
+        for image in images:
+            try:
+                if cfg.ALWAYS_PULL_IMAGES:
+                    await pull_image(client, image)
+                else:
+                    await ensure_image_present(client, image)
+            except Exception as e:
+                _msg = f"Failed to prepare image {image}: {e}"
+                logger.error(_msg)
+                failures.append(_msg)
+
+        if failures:
+            summary = (
+                f"Image prefetch failed for {len(failures)} image(s): "
+                + "; ".join(failures)
+            )
+            self.agent_val.add_error(summary)
+            await self._set_status(AgentStatus.DEPLOYMENT_ERROR, summary)
+            if getattr(self, "error_publisher", None):
+                await self.error_publisher.publish(summary)
+            raise RuntimeError(summary)
 
     async def _start_and_track_operator(
         self, operator: RuntimeOperator, client: PodmanClient
@@ -628,9 +664,6 @@ class Agent:
         await publish_pipeline_to_operators(self.broker, self.pipeline, operator.id)
         logger.debug(f"Published pipeline for operator {operator.id}")
         logger.debug(f"Pipeline: {self.pipeline.to_runtime().model_dump_json()}")
-
-        if cfg.ALWAYS_PULL_IMAGES:
-            pull_image(client, operator.image)
 
         container = await create_container(
             self.id, client, operator, self._current_deployment.deployment_id
@@ -820,20 +853,30 @@ def is_name_conflict_error(exc: Exception) -> bool:
         return False
 
 
-def pull_image(client: PodmanClient, image: str) -> None:
+async def pull_image(client: PodmanClient, image: str) -> None:
     if not image.startswith(INTERACTEM_IMAGE_REGISTRY) and image != VECTOR_IMAGE:
         _msg = f"Image {image} is not from the interactem registry ({INTERACTEM_IMAGE_REGISTRY})."
         logger.error(_msg)
         raise RuntimeError(_msg)
 
+    async with IMAGE_PULL_LOCK:
+        try:
+            logger.info(f"Pulling image {image}...")
+            await to_thread.run_sync(client.images.pull, image)
+            logger.info(f"Successfully pulled image {image}")
+        except Exception as e:
+            error_msg = f"Failed to pull image {image}: {e}"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg) from e
+
+
+async def ensure_image_present(client: PodmanClient, image: str) -> None:
     try:
-        logger.info(f"Pulling image {image}...")
-        client.images.pull(image)
-        logger.info(f"Successfully pulled image {image}")
-    except Exception as e:
-        error_msg = f"Failed to pull image {image}: {e}"
-        logger.error(error_msg)
-        raise RuntimeError(error_msg) from e
+        await to_thread.run_sync(client.images.get, image)
+        logger.debug(f"Image {image} is already available")
+    except podman.errors.exceptions.ImageNotFound:
+        logger.info(f"Image {image} not found locally, attempting to pull...")
+        await pull_image(client, image)
 
 
 async def create_container(
@@ -851,13 +894,7 @@ async def create_container(
         "Config": {"path": f"{cfg.LOG_DIR}/{deployment_id}/op-{operator.id}.log"},
     }
 
-    # Try to pull the image first if it doesn't exist
-    try:
-        client.images.get(operator.image)
-        logger.debug(f"Image {operator.image} is already available")
-    except podman.errors.exceptions.ImageNotFound:
-        logger.info(f"Image {operator.image} not found locally, attempting to pull...")
-        pull_image(client, operator.image)
+    await ensure_image_present(client, operator.image)
 
     for attempt in stamina.retry_context(on=is_name_conflict_error):
         # Expand users
