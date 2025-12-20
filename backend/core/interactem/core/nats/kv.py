@@ -182,7 +182,7 @@ class KeyValueLoop(Generic[V]):
             logger.exception(f"Error updating key {key_str}: {e}")
             raise
 
-    async def update_now(self) -> None:
+    async def _update_now(self) -> None:
         """Immediate update of all of our values."""
         if not self._running:
             logger.warning("Cannot update now: KeyValueLoop is not running")
@@ -194,6 +194,42 @@ class KeyValueLoop(Generic[V]):
         except Exception as e:
             logger.exception(f"Error during immediate update: {e}")
             raise
+
+    async def _run_with_timeout(
+        self,
+        action: str,
+        op: Callable[[], Awaitable[None]],
+        timeout: float | None,
+    ) -> bool:
+        if timeout is None:
+            await op()
+            return False
+
+        with anyio.move_on_after(timeout) as scope:
+            try:
+                await op()
+            except Exception as e:
+                logger.warning("KV %s failed: %s", action, e)
+        timed_out = scope.cancel_called
+        if timed_out:
+            logger.warning("KV %s timed out after %.1fs", action, timeout)
+        return timed_out
+
+    async def update_now(
+        self,
+        timeout: float | None = None,
+        *,
+        action: str = "update now",
+    ) -> bool:
+        return await self._run_with_timeout(action, self._update_now, timeout)
+
+    async def stop(
+        self,
+        timeout: float | None = None,
+        *,
+        action: str = "stop",
+    ) -> bool:
+        return await self._run_with_timeout(action, self._stop, timeout)
 
     @retry(
         stop=stop_after_attempt(ATTEMPTS_BEFORE_GIVING_UP),
@@ -266,7 +302,7 @@ class KeyValueLoop(Generic[V]):
             logger.exception(f"Error deleting key {key_str}: {e}")
             raise
 
-    async def stop(self) -> None:
+    async def _stop(self) -> None:
         self._running = False
 
         if self._main_task:
