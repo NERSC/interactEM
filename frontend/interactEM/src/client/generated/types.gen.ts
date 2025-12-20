@@ -37,6 +37,7 @@ export type CanonicalOperator = {
   triggers?: Array<OperatorSpecTrigger> | null
   spec_id: string
   node_type?: NodeType
+  parallelism?: number | null
 }
 
 export type CanonicalPipelineData = {
