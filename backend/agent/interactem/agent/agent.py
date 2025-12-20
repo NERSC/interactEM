@@ -12,11 +12,15 @@ import stamina
 from anyio import to_thread
 from faststream.nats import NatsBroker
 from faststream.nats.publisher.usecase import LogicPublisher
+from nats.aio.msg import Msg as NATSMsg
+from nats.js import JetStreamContext
 from podman.domain.containers import Container
+from pydantic import ValidationError
 from stamina.instrumentation import set_on_retry_hooks
 
 from interactem.core.constants import (
     INTERACTEM_IMAGE_REGISTRY,
+    NATS_TIMEOUT_DEFAULT,
     OPERATOR_ID_ENV_VAR,
     VECTOR_IMAGE,
 )
@@ -44,9 +48,8 @@ from interactem.core.models.runtime import (
 )
 from interactem.core.models.spec import ParameterSpecType
 from interactem.core.models.uri import URI, CommBackend, URILocation
-from interactem.core.nats.consumers import (
-    create_agent_mount_consumer,
-)
+from interactem.core.nats import consume_messages
+from interactem.core.nats.consumers import create_agent_mount_consumer
 from interactem.core.nats.kv import InteractemBucket, KeyValueLoop
 from interactem.core.nats.publish import (
     create_agent_mount_publisher,
@@ -103,6 +106,7 @@ OPERATOR_CREDS_MOUNT = PodmanMount(
 
 PODMAN_MAX_POOL_SIZE = 100
 IMAGE_PULL_LOCK = anyio.Lock()
+KV_SHUTDOWN_TIMEOUT = 1.0
 
 
 class ContainerTracker:
@@ -167,7 +171,7 @@ class Agent:
             status=AgentStatus.INITIALIZING,
             networks=cfg.AGENT_NETWORKS,
         )
-        self.agent_kv: KeyValueLoop[AgentVal]
+        self.agent_kv: KeyValueLoop[AgentVal] | None = None
         self.container_trackers: dict[RuntimeOperatorID, ContainerTracker] = {}
         # suppress monitor during container cleanup
         self._suppress_monitor = False
@@ -483,11 +487,18 @@ class Agent:
         self.agent_val.operator_assignments = self._my_operator_ids
         self.agent_val.uptime = time.time() - self._start_time
 
+    def _resolve_kv_timeout(self, update_timeout: float | None) -> float | None:
+        if update_timeout is not None:
+            return update_timeout
+        if self._shutdown_event.is_set():
+            return KV_SHUTDOWN_TIMEOUT
+        return None
+
     async def shutdown(self):
         logger.info("Shutting down agent...")
         # Set main shutdown event for deployment and monitor tasks
-        await self._set_status(AgentStatus.SHUTTING_DOWN)
         self._shutdown_event.set()
+        await self._set_status(AgentStatus.SHUTTING_DOWN)
 
         # Cancel current deployment if running
         async with self._deployment_lock:
@@ -518,11 +529,25 @@ class Agent:
         # Now stop the KV loop after other components are shut down
         # This allows final updates to be published
         if self.agent_kv:
-            await self.agent_kv.update_now()
+            await self.agent_kv.update_now(
+                NATS_TIMEOUT_DEFAULT,
+                action="final status update",
+            )
             self._kv_shutdown_event.set()
-            await self.agent_kv.stop()
+            await self.agent_kv.stop(
+                NATS_TIMEOUT_DEFAULT,
+                action="loop shutdown",
+            )
 
         logger.info("Agent shut down successfully.")
+
+    async def on_nats_reconnect(self) -> None:
+        """Refresh NATS/JetStream handles after a reconnect."""
+        logger.info("NATS reconnected; refreshing agent NATS handles")
+        self.nc = self.broker.config.connection_state.connection
+        self.js = self.broker.config.connection_state.stream
+        if self.agent_kv is not None:
+            await self.agent_kv.refresh_connection(self.nc, self.js)
 
     async def start_operators(self):
         if not self.pipeline:
@@ -684,16 +709,11 @@ class Agent:
             [parameter], RuntimeParameterCollectionType.MOUNT
         )
 
-        sub = create_agent_mount_consumer(
-            self.broker, self.id, operator.canonical_id, parameter
-        )
-
         pub = create_agent_mount_publisher(
             self.broker,
             operator.canonical_id,
             parameter.name,
         )
-
         await pub.start()
 
         # Publish the current (default) mount value when the task starts so
@@ -707,7 +727,26 @@ class Agent:
                 name=f"ack-{operator.id}-{parameter.name}-initial",
             )
 
-        async def handle_parameter_update(update: RuntimeOperatorParameterUpdate):
+        psub: JetStreamContext.PullSubscription | None = None
+
+        async def create_consumer():
+            nonlocal psub
+            psub = await create_agent_mount_consumer(
+                self.js, self.id, operator.canonical_id, parameter.name
+            )
+            return psub
+
+        await create_consumer()
+        assert psub is not None
+
+        async def handle_parameter_update(msg: NATSMsg, _js):
+            try:
+                update = RuntimeOperatorParameterUpdate.model_validate_json(msg.data)
+            except ValidationError as e:
+                logger.error(f"Invalid mount parameter update: {e}")
+                await msg.term()
+                return
+
             logger.info(f"Received mount parameter message: {update}")
 
             new_val = update.value
@@ -717,10 +756,12 @@ class Agent:
             except (ValueError, KeyError) as e:
                 logger.error(f"Invalid mount parameter value: {e}")
                 await self.error_publisher.publish(str(e))
+                await msg.term()
                 return
 
             if not value_changed:
                 logger.info(f"Mount {parameter.name} unchanged, skipping restart")
+                await msg.ack()
                 return
 
             # Update the operator's parameter
@@ -731,6 +772,7 @@ class Agent:
             except MountDoesntExistError as e:
                 logger.exception(e)
                 await self.error_publisher.publish(str(e))
+                await msg.term()
                 return
 
             logger.info(
@@ -750,22 +792,27 @@ class Agent:
                     name=f"ack-{operator.id}-{parameter.name}",
                 )
 
-        # Add handler to the subscriber
-        sub(handle_parameter_update)
-
-        await sub.start()
-        logger.info(
-            f"Subscribed to parameter updates for {operator.canonical_id}.{parameter.name}"
-        )
+            await msg.ack()
 
         try:
-            while not self._shutdown_event.is_set():
-                await anyio.sleep(1)
+            logger.info(
+                "Subscribed to parameter updates for %s.%s",
+                operator.canonical_id,
+                parameter.name,
+            )
+            await consume_messages(
+                psub,
+                handle_parameter_update,
+                self.js,
+                num_msgs=1,
+                create_consumer=create_consumer,
+            )
         except anyio.get_cancelled_exc_class():
             logger.info(f"Parameter task for {operator.id}.{parameter.name} cancelled.")
             raise
         finally:
-            await sub.stop()
+            if psub is not None:
+                await psub.unsubscribe()
             logger.info(
                 f"Closed parameter subscription for {operator.id}.{parameter.name}."
             )
@@ -829,14 +876,22 @@ class Agent:
             self.container_trackers[operator.id].container = new_container
 
     async def _set_status(
-        self, status: AgentStatus, message: str | None = None, update_now: bool = True
+        self,
+        status: AgentStatus,
+        message: str | None = None,
+        update_now: bool = True,
+        update_timeout: float | None = None,
     ) -> None:
         """Update agent status and optionally message, then sync to KV store."""
         self.agent_val.status = status
         if message is not None:
             self.agent_val.status_message = message
         if update_now and self.agent_kv:
-            await self.agent_kv.update_now()
+            timeout = self._resolve_kv_timeout(update_timeout)
+            await self.agent_kv.update_now(
+                timeout,
+                action="status update",
+            )
 
 
 class NameConflictError(podman.errors.exceptions.APIError):

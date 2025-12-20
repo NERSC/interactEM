@@ -396,7 +396,7 @@ pydantic = ["pydantic (>=1.7.4,!=1.8,!=1.8.1,<3.0.0)"]
 
 [[package]]
 name = "faststream"
-version = "0.6.3"
+version = "0.6.4"
 description = "FastStream: the simplest way to work with a messaging queues"
 optional = false
 python-versions = ">=3.10"
@@ -411,20 +411,20 @@ nats-py = {version = ">=2.12.0,<=3.0.0", optional = true}
 typing-extensions = ">=4.12.0"
 
 [package.extras]
-cli = ["typer (>=0.9,!=0.12,<=0.19.2)", "watchfiles (>=0.15.0,<1.2.0)"]
+cli = ["typer (>=0.9,!=0.12,<=0.20.0)", "watchfiles (>=0.15.0,<1.2.0)"]
 confluent = ["confluent-kafka (>=2,!=2.8.1,<3) ; python_version < \"3.13\"", "confluent-kafka (>=2.6,!=2.8.1,<3) ; python_version >= \"3.13\""]
 kafka = ["aiokafka (>=0.9,<0.13)"]
 nats = ["nats-py (>=2.12.0,<=3.0.0)"]
 otel = ["opentelemetry-sdk (>=1.24.0,<2.0.0)"]
 prometheus = ["prometheus-client (>=0.20.0,<0.30.0)"]
 rabbit = ["aio-pika (>=9,<10)"]
-redis = ["redis (>=5.0.0,<7.0.0)"]
+redis = ["redis (>=5.0.0,<8.0.0)"]
 
 [package.source]
 type = "git"
-url = "https://github.com/fil1n/faststream.git"
-reference = "8c14951daec416f22469deaed805ff5db27e3b44"
-resolved_reference = "8c14951daec416f22469deaed805ff5db27e3b44"
+url = "https://github.com/ag2ai/faststream.git"
+reference = "27be1a1c46547828c6f24c99ce120fd3186e5fe9"
+resolved_reference = "27be1a1c46547828c6f24c99ce120fd3186e5fe9"
 
 [[package]]
 name = "frozenlist"
@@ -658,8 +658,8 @@ develop = true
 
 [package.dependencies]
 anyio = ">=4.11.0,<5"
-faststream = {git = "https://github.com/fil1n/faststream.git", rev = "8c14951daec416f22469deaed805ff5db27e3b44", extras = ["nats"]}
-nats-py = ">=2.11.0,<3"
+faststream = {git = "https://github.com/ag2ai/faststream.git", rev = "27be1a1c46547828c6f24c99ce120fd3186e5fe9", extras = ["nats"]}
+nats-py = {git = "https://github.com/swelborn/nats.py.git", rev = "f20302c2f87479c9d65f4935e88acb74999d2e05", subdirectory = "nats"}
 networkx = ">=3.3,<3.5"
 nkeys = ">=0.2.1,<0.3"
 pydantic = ">=2.12.3,<3"
@@ -980,14 +980,20 @@ description = "NATS client for Python"
 optional = false
 python-versions = ">=3.7"
 groups = ["main"]
-files = [
-    {file = "nats_py-2.12.0.tar.gz", hash = "sha256:2981ca4b63b8266c855573fa7871b1be741f1889fd429ee657e5ffc0971a38a1"},
-]
+files = []
+develop = false
 
 [package.extras]
 aiohttp = ["aiohttp"]
 fast-parse = ["fast-mail-parser"]
 nkeys = ["nkeys"]
+
+[package.source]
+type = "git"
+url = "https://github.com/swelborn/nats.py.git"
+reference = "f20302c2f87479c9d65f4935e88acb74999d2e05"
+resolved_reference = "f20302c2f87479c9d65f4935e88acb74999d2e05"
+subdirectory = "nats"
 
 [[package]]
 name = "networkx"

@@ -11,18 +11,19 @@ requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2.12.3,<3",
     "networkx>=3.3,<3.5",
-    "nats-py>=2.11.0,<3",
+    "nats-py @ git+https://github.com/swelborn/nats.py.git@f20302c2f87479c9d65f4935e88acb74999d2e05#subdirectory=nats",
     "nkeys>=0.2.1,<0.3",
     "tenacity>=9.0.0,<10",
     "pydantic-settings>=2.10.1,<3",
-    "faststream[nats] @ git+https://github.com/fil1n/faststream.git@8c14951daec416f22469deaed805ff5db27e3b44",
+    # https://github.com/ag2ai/faststream/pull/2720 see this issue for details on why we're doing this
+    "faststream[nats] @ git+https://github.com/ag2ai/faststream.git@27be1a1c46547828c6f24c99ce120fd3186e5fe9",
     "anyio>=4.11.0,<5",
 ]
 
 [dependency-groups]
 dev = [
     "pytest>=9.0.1,<10",
-    "pydantic-to-typescript>=2.0.0,<3",
+    "pydantic-to-typescript>=2.0.0,<3", 
 ]
 
 [tool.poetry]

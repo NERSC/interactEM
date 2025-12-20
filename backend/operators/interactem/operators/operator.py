@@ -85,8 +85,8 @@ BACKEND_TO_MESSENGER: dict[CommBackend, type[BaseMessenger]] = {
 OPERATOR_ID = UUID(os.getenv(OPERATOR_ID_ENV_VAR))
 assert OPERATOR_ID, "Operator ID not set in environment variables"
 
-OPERATOR_STATUS_UPDATE_INTERVAL = 5.0  # seconds
-OPERATOR_METRICS_UPDATE_INTERVAL = 5.0  # seconds
+OPERATOR_STATUS_UPDATE_INTERVAL = 1.0  # seconds
+OPERATOR_METRICS_UPDATE_INTERVAL = 1.0  # seconds
 
 
 dependencies_funcs: list[Callable[[], Generator[None, None, None]]] = []

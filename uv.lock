@@ -581,8 +581,8 @@ standard-no-fastapi-cloud-cli = [
 
 [[package]]
 name = "faststream"
-version = "0.6.3"
-source = { git = "https://github.com/fil1n/faststream.git?rev=8c14951daec416f22469deaed805ff5db27e3b44#8c14951daec416f22469deaed805ff5db27e3b44" }
+version = "0.6.4"
+source = { git = "https://github.com/ag2ai/faststream.git?rev=27be1a1c46547828c6f24c99ce120fd3186e5fe9#27be1a1c46547828c6f24c99ce120fd3186e5fe9" }
 dependencies = [
     { name = "anyio" },
     { name = "fast-depends", extra = ["pydantic"] },
@@ -1007,8 +1007,8 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = ">=4.11.0,<5" },
-    { name = "faststream", extras = ["nats"], git = "https://github.com/fil1n/faststream.git?rev=8c14951daec416f22469deaed805ff5db27e3b44" },
-    { name = "nats-py", specifier = ">=2.11.0,<3" },
+    { name = "faststream", extras = ["nats"], git = "https://github.com/ag2ai/faststream.git?rev=27be1a1c46547828c6f24c99ce120fd3186e5fe9" },
+    { name = "nats-py", git = "https://github.com/swelborn/nats.py.git?subdirectory=nats&rev=f20302c2f87479c9d65f4935e88acb74999d2e05" },
     { name = "networkx", specifier = ">=3.3,<3.5" },
     { name = "nkeys", specifier = ">=0.2.1,<0.3" },
     { name = "pydantic", specifier = ">=2.12.3,<3" },
@@ -1388,8 +1388,7 @@ wheels = [
 [[package]]
 name = "nats-py"
 version = "2.12.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/71/c5/2564d917503fe8d68fe630c74bf6b678fbc15c01b58f2565894761010f57/nats_py-2.12.0.tar.gz", hash = "sha256:2981ca4b63b8266c855573fa7871b1be741f1889fd429ee657e5ffc0971a38a1", size = 119821, upload-time = "2025-10-31T05:27:31.247Z" }
+source = { git = "https://github.com/swelborn/nats.py.git?subdirectory=nats&rev=f20302c2f87479c9d65f4935e88acb74999d2e05#f20302c2f87479c9d65f4935e88acb74999d2e05" }
 
 [[package]]
 name = "netifaces2"
