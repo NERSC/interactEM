@@ -62,6 +62,10 @@ def get_logger(
         console_handler = logging.StreamHandler(sys.stderr if log_file else sys.stdout)
         console_handler.setFormatter(formatter)
         root_logger.addHandler(console_handler)
+
+        # Suppress noisy third-party warnings
+        logging.getLogger("nats.js.kv").setLevel(logging.ERROR)
+
         _logging_configured = True
 
     # Add file handler if requested

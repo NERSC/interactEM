@@ -67,7 +67,7 @@ async def metrics_watch(js: JetStreamContext, update_interval: int):
                 record_collection_error(
                     ErrorType(error_type=ErrorTypeEnum.NO_PIPELINES)
                 )
-                logger.info("No pipelines found...")
+                logger.debug("No pipelines found...")
                 await asyncio.sleep(update_interval)
                 continue
 
