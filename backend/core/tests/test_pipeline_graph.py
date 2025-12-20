@@ -140,6 +140,10 @@ def get_non_parallel_operator(canonical: CanonicalPipeline) -> CanonicalOperator
     raise ValueError("No non-parallel operator found")
 
 
+def get_parallel_factor(parallel_op: CanonicalOperator) -> int:
+    return parallel_op.parallelism or cfg.PARALLEL_EXPANSION_FACTOR
+
+
 class TestPipelineExpansion:
     """Test pipeline expansion from canonical to runtime models."""
 
@@ -169,6 +173,16 @@ class TestPipelineExpansion:
         assert len(parallel_instances) == parallel_factor
         assert sorted(inst.parallel_index for inst in parallel_instances) == list(range(parallel_factor))
 
+    def test_operator_parallelism_override(self, canonical: CanonicalPipeline):
+        parallel_op = get_parallel_operator(canonical)
+        override_factor = get_parallel_factor(parallel_op) + 2
+        parallel_op.parallelism = override_factor
+
+        runtime_pipeline = Pipeline.from_pipeline(canonical, uuid4(), parallel_factor=1)
+
+        parallel_instances = runtime_pipeline.get_parallel_group(parallel_op.id)
+        assert len(parallel_instances) == override_factor
+
 
 class TestPipelineSerialization:
     """Test pipeline serialization and conversion."""
@@ -184,7 +198,9 @@ class TestPipelineSerialization:
     def test_to_canonical_deduplication(self, canonical: CanonicalPipeline, pipeline_graph: Pipeline):
         """Test conversion back to canonical deduplicates parallel instances."""
         # Runtime should have expanded operators/ports
-        expected_runtime_ops = len(canonical.operators) - 1 + cfg.PARALLEL_EXPANSION_FACTOR
+        parallel_ops = canonical.get_parallel_operators()
+        expected_parallel_ops = sum(get_parallel_factor(op) for op in parallel_ops)
+        expected_runtime_ops = len(canonical.operators) - len(parallel_ops) + expected_parallel_ops
         assert len(pipeline_graph.operators) == expected_runtime_ops
 
         # Canonical should be deduplicated back to original
@@ -214,10 +230,11 @@ class TestGraphOperations:
         """Test getting parallel groups for both parallel and non-parallel operators."""
         parallel_op = get_parallel_operator(canonical)
         non_parallel_op = get_non_parallel_operator(canonical)
+        expected_parallel = get_parallel_factor(parallel_op)
 
         # Test parallel operator group
         parallel_group = pipeline_graph.get_parallel_group(parallel_op.id)
-        assert len(parallel_group) == cfg.PARALLEL_EXPANSION_FACTOR
+        assert len(parallel_group) == expected_parallel
 
         # Test non-parallel operator group
         non_parallel_group = pipeline_graph.get_parallel_group(non_parallel_op.id)

@@ -99,6 +99,7 @@ export interface RuntimeOperator {
   triggers?: OperatorSpecTrigger[] | null
   spec_id: string
   node_type?: NodeType
+  parallelism?: number | null
   canonical_id: string
   parallel_index?: number
   env?: {

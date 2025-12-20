@@ -157,6 +157,7 @@ export const zCanonicalOperator = z.object({
     .optional(),
   spec_id: z.string().uuid(),
   node_type: z.enum(["operator", "port"]).optional(),
+  parallelism: z.union([z.number().int().gte(1).lte(128), z.null()]).optional(),
 })
 
 export const zCanonicalPipelineData = z.object({

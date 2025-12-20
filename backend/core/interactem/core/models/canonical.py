@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from interactem.core.models.base import IdType, NodeType, PortType
 from interactem.core.models.spec import (
@@ -37,7 +37,6 @@ class CanonicalInput(CanonicalPort):
 class CanonicalOutput(CanonicalPort):
     port_type: PortType = PortType.output
 
-
 class CanonicalOperator(OperatorSpec):
     id: CanonicalOperatorID  # UID generated at DnD time in frontend
     spec_id: OperatorSpecID  # The operator spec ID this operator is based on
@@ -46,6 +45,9 @@ class CanonicalOperator(OperatorSpec):
     inputs: list[CanonicalPortID] = []
     outputs: list[CanonicalPortID] = []
     tags: list[OperatorSpecTag] = []
+    # amount of copies to be made of this operator. We used 128 as maximum
+    # that could be changed, but we don't want to have user misuse this...
+    parallelism: int | None = Field(default=None, ge=1, le=128)
 
 
 class CanonicalEdge(BaseModel):

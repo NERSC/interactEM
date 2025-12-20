@@ -1428,6 +1428,13 @@
           "node_type": {
             "$ref": "#/components/schemas/NodeType",
             "default": "operator"
+          },
+          "parallelism": {
+            "anyOf": [
+              { "type": "integer", "maximum": 128.0, "minimum": 1.0 },
+              { "type": "null" }
+            ],
+            "title": "Parallelism"
           }
         },
         "type": "object",

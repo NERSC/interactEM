@@ -19,6 +19,7 @@ import type { OperatorSpecTrigger } from "../../types/triggers"
 
 import type { OperatorNodeType } from "../../types/nodes"
 import OperatorLogsDialog from "../logs/operatordialog"
+import ParallelismButton from "./parallelismbutton"
 import ParametersButton from "./parametersbutton"
 import TriggersButton from "./triggersbutton"
 
@@ -102,6 +103,10 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
             disabled={triggersDisabled}
             nodeRef={nodeRef}
           />
+        )}
+
+        {viewMode === ViewMode.Composer && (
+          <ParallelismButton operatorID={id} nodeRef={nodeRef} />
         )}
 
         {parameters && parameters.length > 0 && (

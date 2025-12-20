@@ -46,6 +46,7 @@ export const fromPipelineJSON = (
         parameters: operatorJSON.parameters,
         tags: operatorJSON.tags,
         parallel_config: operatorJSON.parallel_config,
+        parallelism: operatorJSON.parallelism,
         spec_id: operatorJSON.spec_id,
         triggers: operatorJSON.triggers,
         node_type: NodeType.operator,
@@ -144,6 +145,7 @@ export const toJSON = (nodes: OperatorNodeTypes[], edges: Edge[]) => {
       parameters: parameters,
       tags: tags,
       parallel_config: data.parallel_config,
+      parallelism: data.parallelism,
       triggers: triggers,
     }
     operatorsJSON.push(op)

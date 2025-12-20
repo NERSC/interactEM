@@ -59,6 +59,24 @@ class TestMessageReplicationScenarios:
         target_counts = pipeline.count_replicated_outputs(op_a_runtime.id)
         assert len(target_counts) == 3  # 3 different canonical operators targeted
 
+    def test_parallelism_override_per_operator(self) -> None:
+        """Parallel operators should respect explicitly configured replica counts."""
+        builder = PipelineBuilder()
+        requested_parallelism = 5
+        source = builder.add_operator(
+            "Parallel Source", parallel=True, num_outputs=1, parallelism=requested_parallelism
+        )
+        sink = builder.add_operator("Sink", parallel=False, num_inputs=1, num_outputs=0)
+
+        builder.connect(source, sink)
+
+        pipeline = Pipeline.from_pipeline(
+            builder.build(), runtime_pipeline_id=uuid.uuid4(), parallel_factor=2
+        )
+
+        source_instances = pipeline.get_parallel_group(source.id)
+        assert len(source_instances) == requested_parallelism
+
     def test_input_port_targeting_consistency(self) -> None:
         """Test that input ports have consistent targeting with their connected output ports."""
         # Build complex pipeline
