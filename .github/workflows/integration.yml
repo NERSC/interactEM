@@ -56,7 +56,6 @@ jobs:
       - name: Install frontend dependencies
         working-directory: frontend/interactEM
         run: |
-          npm ci
           npx playwright install --with-deps
 
       - name: Start docker compose
