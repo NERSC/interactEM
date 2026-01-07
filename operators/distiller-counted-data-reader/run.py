@@ -3,7 +3,7 @@ from typing import Any
 
 import stempy.io
 from distiller_streaming.emitter import BatchEmitter
-from stempy.contrib import get_scan_path, FileSuffix
+from stempy.contrib import FileSuffix, get_scan_path
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
