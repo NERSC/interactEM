@@ -3,7 +3,7 @@ from typing import Any
 
 import stempy.io
 from distiller_streaming.emitter import BatchEmitter
-from stempy.contrib import get_scan_path
+from stempy.contrib import get_scan_path, FileSuffix
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
@@ -14,6 +14,7 @@ logger = get_logger()
 # --- Operator State ---
 source_dataset_path: pathlib.Path = pathlib.Path()
 active_emitter: BatchEmitter | None = None
+scan_id: int | None = None
 current_scan_number: int = 1
 current_scan_id: int | None = None
 cached_sparse_array: tuple[int, Any] | None = None
@@ -33,6 +34,7 @@ def reader(
     global current_scan_id, cached_sparse_array
 
     scan_id = parameters.get("scan_id", None)
+    file_suffix = parameters.get("file_suffix", "")
     batch_size_mb = parameters.get("batch_size_mb", 1.0)
     cache_last_file = parameters.get("cache_last_file", False)
 
@@ -42,6 +44,13 @@ def reader(
     if not cache_last_file:
         cached_sparse_array = None
 
+    if not file_suffix:
+        file_suffix = FileSuffix.STANDARD
+    elif file_suffix != "CENTERED":
+        raise ValueError("Parameter 'file_suffix' is not valid. Use empty or 'CENTERED'.")
+    elif file_suffix == "CENTERED":
+        file_suffix = FileSuffix.CENTERED
+    
     if scan_id != current_scan_id:
         current_scan_id = scan_id
         current_scan_number = 1
@@ -49,7 +58,7 @@ def reader(
         cached_sparse_array = None
         logger.info(f"New scan_id received: {scan_id}. Resetting scan number to 1.")
 
-    source_dataset_path, scan_num, scan_id = get_scan_path(data_dir, scan_id=scan_id, version=1)
+    source_dataset_path, scan_num, scan_id = get_scan_path(data_dir, scan_id=scan_id, version=1, file_suffix=file_suffix)
 
     # Load Dataset and create emitter if necessary
     if active_emitter is None:
