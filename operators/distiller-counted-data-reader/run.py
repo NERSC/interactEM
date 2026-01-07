@@ -34,7 +34,7 @@ def reader(
     global current_scan_id, cached_sparse_array
 
     scan_id = parameters.get("scan_id", None)
-    file_suffix = parameters.get("file_suffix", "")
+    file_suffix = parameters.get("file_suffix", "STANDARD")
     batch_size_mb = parameters.get("batch_size_mb", 1.0)
     cache_last_file = parameters.get("cache_last_file", False)
 
@@ -45,11 +45,14 @@ def reader(
         cached_sparse_array = None
 
     if not file_suffix:
-        file_suffix = FileSuffix.STANDARD
-    elif file_suffix != "CENTERED":
-        raise ValueError("Parameter 'file_suffix' is not valid. Use empty or 'CENTERED'.")
+        raise ValueError("Parameter 'file_suffix' is not set.")
+
+    if file_suffix == "STANDARD":
+        file_suffix_enum = FileSuffix.STANDARD
     elif file_suffix == "CENTERED":
-        file_suffix = FileSuffix.CENTERED
+        file_suffix_enum = FileSuffix.CENTERED
+    else:
+        raise ValueError(f"Invalid file_suffix: {file_suffix}")
 
     if scan_id != current_scan_id:
         current_scan_id = scan_id
@@ -58,7 +61,7 @@ def reader(
         cached_sparse_array = None
         logger.info(f"New scan_id received: {scan_id}. Resetting scan number to 1.")
 
-    source_dataset_path, scan_num, scan_id = get_scan_path(data_dir, scan_id=scan_id, version=1, file_suffix=file_suffix)
+    source_dataset_path, scan_num, scan_id = get_scan_path(data_dir, scan_id=scan_id, version=1, file_suffix=file_suffix_enum)
 
     # Load Dataset and create emitter if necessary
     if active_emitter is None:
@@ -82,7 +85,7 @@ def reader(
             )
 
             if cache_last_file:
-                cached_sparse_array = (scan_id, loaded_sparse_array)
+                cached_sparse_array = (scan_id, loaded_sparse_array) # type: ignore
 
             active_emitter = BatchEmitter(
                 sparse_array=loaded_sparse_array,
