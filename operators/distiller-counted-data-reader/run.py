@@ -50,7 +50,7 @@ def reader(
         raise ValueError("Parameter 'file_suffix' is not valid. Use empty or 'CENTERED'.")
     elif file_suffix == "CENTERED":
         file_suffix = FileSuffix.CENTERED
-    
+
     if scan_id != current_scan_id:
         current_scan_id = scan_id
         current_scan_number = 1
