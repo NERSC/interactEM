@@ -2,8 +2,8 @@ import pathlib
 from typing import Any
 
 import stempy.io
-from stempy.contrib import get_scan_path
 from distiller_streaming.emitter import BatchEmitter
+from stempy.contrib import get_scan_path
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
