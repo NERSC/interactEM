@@ -28,6 +28,22 @@
       "description": "The Distiller Scan ID of the dataset to be read",
       "required": true
     },
+        {
+      "name": "file_suffix",
+      "label": "File suffix",
+      "type": "str",
+      "default": "",
+      "description": "The file suffix type (STANDARD or CENTERED).",
+      "required": true
+    },
+    {
+      "name": "batch_size_mb",
+      "label": "Batch size (MB)",
+      "type": "float",
+      "default": 1.0,
+      "description": "The size of each emitted batch in megabytes.",
+      "required": false
+    },
     {
       "name": "cache_last_file",
       "label": "Cache last file",
@@ -35,15 +51,8 @@
       "default": false,
       "description": "Cache the last loaded file to avoid re-reading between triggers.",
       "required": false
-    },
-    {
-      "name": "file_suffix",
-      "label": "File suffix",
-      "type": "str",
-      "default": "",
-      "description": "The file suffix type (empty or CENTERED",
-      "required": true
     }
+
   ],
   "triggers": [
     {
