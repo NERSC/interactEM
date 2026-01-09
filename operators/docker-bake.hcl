@@ -38,7 +38,8 @@ group "operators" {
     "dpc",
     "bin-sparse-partial",
     "quantem-direct-ptycho",
-    "read-tem-data"
+    "read-tem-data",
+    "quantem-streaming-parallax"
   ]
 }
 
@@ -313,6 +314,13 @@ target "quantem-direct-ptycho" {
   context = "operators/quantem-direct-ptycho"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/quantem-direct-ptycho"]
+}
+
+target "quantem-streaming-parallax" {
+  inherits = ["common", "distiller-streaming-context", "output"]
+  context = "operators/quantem-streaming-parallax"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/quantem-streaming-parallax"]
 }
 
 target "read-tem-data" {
