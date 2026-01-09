@@ -2,31 +2,47 @@
   "id": "5527c101-304b-47d0-8814-488455847ba6",
   "image": "ghcr.io/nersc/interactem/distiller-counted-data-reader:latest",
   "label": "Counted Data Reader",
-  "description": "Reads frames from the distiller pipeline, and sends out frames of data.",
+  "description": "Reads a file of sparse data and sends out batched frames of data.",
   "outputs": [
     {
       "name": "counted_data",
       "label": "Counted Data",
       "type": "sparse_frame",
-      "description": "Sparse frame of counted data"
+      "description": "Sparse frames of counted data"
     }
   ],
   "parameters": [
     {
-      "name": "raw_data_dir",
-      "label": "Raw data directory",
+      "name": "counted_data_dir",
+      "label": "Counted data directory",
       "type": "mount",
-      "default": "~/ncem_raw_data",
-      "description": "This is where the raw data files (*.data) are located",
+      "default": "/global/cfs/cdirs/ncemhub/distiller/counted/",
+      "description": "The path to the sparse H5 data files",
       "required": true
     },
     {
-      "name": "filename",
-      "label": "Filename",
-      "type": "str",
-      "default": "test_file.h5",
-      "description": "The file to be processed",
+      "name": "scan_id",
+      "label": "Scan ID",
+      "type": "int",
+      "default": "10000",
+      "description": "The Distiller Scan ID of the dataset to be read",
       "required": true
+    },
+    {
+      "name": "file_suffix",
+      "label": "File suffix",
+      "type": "str",
+      "default": "STANDARD",
+      "description": "The file suffix type (STANDARD or CENTERED).",
+      "required": true
+    },
+    {
+      "name": "batch_size_mb",
+      "label": "Batch size (MB)",
+      "type": "float",
+      "default": 1.0,
+      "description": "The size of each emitted batch in megabytes.",
+      "required": false
     },
     {
       "name": "cache_last_file",
@@ -36,6 +52,7 @@
       "description": "Cache the last loaded file to avoid re-reading between triggers.",
       "required": false
     }
+
   ],
   "triggers": [
     {
