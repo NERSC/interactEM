@@ -59,7 +59,7 @@ accumulators: OrderedDict[int, FrameAccumulatorFull] = OrderedDict()
 
 
 @operator
-def py4dstem_parallax(
+def quantem_direct_ptycho(
     inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> BytesMessage | None:
     """
