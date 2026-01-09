@@ -1,0 +1,11 @@
+FROM distiller-streaming
+
+# make sure to pull quantem repo for updates
+COPY ./quantem /quantem
+
+# Install additional dependencies
+WORKDIR /quantem/
+RUN pip install --no-cache-dir -e .
+
+# Copy the operator script
+COPY ./run.py /app/run.py
