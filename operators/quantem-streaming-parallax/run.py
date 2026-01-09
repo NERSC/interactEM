@@ -3,6 +3,8 @@ from typing import Any
 
 import numpy as np
 import quantem as em
+import torch
+import gc
 from quantem.core.utils.diffractive_imaging_utils import fit_probe_circle
 from distiller_streaming.accumulator import FrameAccumulator
 from distiller_streaming.models import BatchedFrames
@@ -22,6 +24,7 @@ def _detect_quantem_device() -> str:
     try:
         import torch  # quantem depends on torch
     except Exception:
+        logger.info("torch not available, defaulting to CPU for quantem")
         return "cpu"
 
     if torch.cuda.is_available():
@@ -31,7 +34,7 @@ def _detect_quantem_device() -> str:
 
 
 QUANTEM_DEVICE = _detect_quantem_device()
-logger.info(f"quantem-direct-ptycho using device={QUANTEM_DEVICE}")
+logger.info(f"quantem-streaming-parallax using device={QUANTEM_DEVICE}")
 
 
 class FrameAccumulatorFull(FrameAccumulator):
@@ -149,9 +152,6 @@ def streaming_parallax(
     scan_gpts = dataset.shape[:2]
     gpts = dataset.shape[-2:]
 
-    scan_sampling = dataset.sampling[:2]
-    angular_sampling = dataset.sampling[-2:]
-
     dataset.get_dp_mean()
     probe_qy0, probe_qx0, probe_R = fit_probe_circle(dataset.dp_mean.array, show=False)
     logger.debug(f"fit probe circle: {probe_qy0}, {probe_qx0}, {probe_R}")
@@ -170,15 +170,18 @@ def streaming_parallax(
     )  ## convert to be Anggstrom for quantem. distiller will give nanometers.
     dataset.sampling[1] = probe_step_size * 10
     dataset.units[0:2] = ["A", "A"]
+    reciprocal_sampling = dataset.sampling[-2:]
+    scan_sampling = dataset.sampling[:2]
+    
     logger.info(f"Scan {scan_number}: Start streaming parallax")
     try:
-        stream_prlx = em.diffractive_imaging.StreamingParallax(
+        stream_prlx = em.diffractive_imaging.StreamingParallax.from_parameters(
                             gpts,
                             scan_gpts,
                             scan_sampling,
-                            wavelength,
+                            energy,
                             bf_mask,
-                            angular_sampling=angular_sampling,
+                            reciprocal_sampling=reciprocal_sampling,
                             aberration_coefs={"C10":-defocus},
                             rotation_angle=rotation_angle,
                             upsampling_factor=1,
