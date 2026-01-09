@@ -28,11 +28,11 @@
       "description": "The Distiller Scan ID of the dataset to be read",
       "required": true
     },
-        {
+    {
       "name": "file_suffix",
       "label": "File suffix",
       "type": "str",
-      "default": "",
+      "default": "STANDARD",
       "description": "The file suffix type (STANDARD or CENTERED).",
       "required": true
     },
