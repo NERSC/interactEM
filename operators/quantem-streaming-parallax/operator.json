@@ -62,7 +62,7 @@
     },
     {  
       "name": "initial_defocus",
-      "label": "Initial STEM defocus for optimization routine",
+      "label": "STEM defocus",
       "type": "float",
       "default": "0.0",
       "description": "The STEM defocus in nm.",
@@ -70,7 +70,7 @@
     },
     {  
       "name": "diffraction_rotation_angle",
-      "label": "Initial diffraction pattern rotation angle for optimization routine",
+      "label": "Diffraction pattern rotation angle",
       "type": "float",
       "default": "0.0",
       "description": "The rotation angle in degrees.",
@@ -82,14 +82,6 @@
       "type": "int",
       "default": "0",
       "description": "The number of probe positions to crop.",
-      "required": false
-    },
-    {  
-      "name": "running_average",
-      "label": "Use the running average for reconstruction",
-      "type": "bool",
-      "default": "true",
-      "description": "Togle running_average input to quantem.",
       "required": false
     }
   ],

@@ -117,8 +117,6 @@ def streaming_parallax(
     )
     logger.info(f"Accumulator finished: {accumulator.finished}")
 
-    logger.info(f"Scan {scan_number}: Calculating parallax.")
-
     # Calculation parameters
     probe_semiangle = float(parameters.get("probe_semiangle", 25.0))
     energy = int(parameters.get("accelerating_voltage", 300e3))
@@ -141,8 +139,9 @@ def streaming_parallax(
         dense_data = accumulator[crop_probes:-crop_probes, crop_probes:-crop_probes-1, :, :].to_dense()  ## crop the edges if needed and remove the flyback column
     
     #energy = 300e3
-    #defocus = 1.5e4
-    #rotation_angle = np.deg2rad(-15)
+    #defocus = 1.5e4 # george's test data
+    #rotation_angle = np.deg2rad(-15) # george's test data
+    # from direct: Fitted parameters: {'C10': -177.91290283203125, 'C12': 82.96137237548828, 'phi12': -0.8568375706672668, 'rotation_angle': 1.1868464946746826}
     upsampling_factor = 1
 
     dataset = em.datastructures.Dataset4dstem.from_array(array=dense_data)
@@ -152,6 +151,7 @@ def streaming_parallax(
     scan_gpts = dataset.shape[:2]
     gpts = dataset.shape[-2:]
 
+    # Determine probe parameters from average diffraction pattern
     dataset.get_dp_mean()
     probe_qy0, probe_qx0, probe_R = fit_probe_circle(dataset.dp_mean.array, show=False)
     logger.debug(f"fit probe circle: {probe_qy0}, {probe_qx0}, {probe_R}")
@@ -160,14 +160,10 @@ def streaming_parallax(
             dataset.dp_mean.array > dataset.dp_mean.array.max() * 0.5
         )
     )
-
     dataset.sampling[2] = probe_semiangle / probe_R
     dataset.sampling[3] = probe_semiangle / probe_R
     dataset.units[2:] = ["mrad", "mrad"]
-
-    dataset.sampling[0] = (
-        probe_step_size * 10
-    )  ## convert to be Anggstrom for quantem. distiller will give nanometers.
+    dataset.sampling[0] = (probe_step_size * 10)  ## convert to be Angstrom for quantem. Distiller will give nanometers.
     dataset.sampling[1] = probe_step_size * 10
     dataset.units[0:2] = ["A", "A"]
     reciprocal_sampling = dataset.sampling[-2:]
@@ -176,17 +172,17 @@ def streaming_parallax(
     logger.info(f"Scan {scan_number}: Start streaming parallax")
     try:
         stream_prlx = em.diffractive_imaging.StreamingParallax.from_parameters(
-                            gpts,
-                            scan_gpts,
-                            scan_sampling,
-                            energy,
-                            bf_mask,
-                            reciprocal_sampling=reciprocal_sampling,
+                            gpts=gpts,
+                            scan_gpts=scan_gpts,
+                            scan_sampling=scan_sampling,
+                            energy=energy,
+                            bf_mask=bf_mask,
+                            angular_sampling=reciprocal_sampling,
                             aberration_coefs={"C10":-defocus},
                             rotation_angle=rotation_angle,
                             upsampling_factor=1,
-                            enable_phase_flipping=True
-                        ).preprocess(
+                            enable_phase_flipping=True,
+                            device='cpu'
                         )
         logger.info(f"Scan {scan_number}: Calculate parallax")
         streamed_data = torch.as_tensor(dataset.array.reshape((-1,)+gpts))
@@ -197,17 +193,18 @@ def streaming_parallax(
         stream_prlx.reconstruct(
             psi,
             psi_flipped,
-            streamed_data[:2000],
-            r_up[:2000],
+            streamed_data[:],
+            r_up[:],
         )
 
         # Process and return result
         logger.info(f"Scan {scan_number}: Reconstruction done")
-        output_bytes = psi.tobytes()
+        psi_np = psi.numpy() # convert to a numpy array for output
+        output_bytes = psi_np.tobytes()
         output_meta = {
             "scan_number": scan_number,
-            "shape": psi.shape,
-            "dtype": str(psi.dtype),
+            "shape": psi_np.shape,
+            "dtype": str(psi_np.dtype),
             "source_operator": "quantem-streaming-parallax",
         }
     except Exception as e:
