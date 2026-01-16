@@ -362,12 +362,16 @@ pydantic = [
 
 [[package]]
 name = "faststream"
-version = "0.6.4"
-source = { git = "https://github.com/ag2ai/faststream.git?rev=27be1a1c46547828c6f24c99ce120fd3186e5fe9#27be1a1c46547828c6f24c99ce120fd3186e5fe9" }
+version = "0.6.5"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "fast-depends", extra = ["pydantic"] },
     { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/52/55/fc2a34405ac63aaf973a33884c5f77f87564bbb9a4343c1d103cbf8c87f5/faststream-0.6.5.tar.gz", hash = "sha256:ddef9e85631edf1aba87e81c8886067bd94ee752f41a09f1d1cd6f75f7e4fade", size = 302206, upload-time = "2025-12-29T16:44:04.85Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/e2/1c/f60c0b15a8bce42ed7256d2eca6ea713bac259d6684ff392a907f95ca345/faststream-0.6.5-py3-none-any.whl", hash = "sha256:714b13b84cdbe2bdcf0b2b8a5e2b04648cb7683784a5297d445adfee9f2b4f7e", size = 507108, upload-time = "2025-12-29T16:44:03.297Z" },
 ]
 
 [package.optional-dependencies]
@@ -582,7 +586,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "anyio", specifier = ">=4.11.0,<5" },
-    { name = "faststream", extras = ["nats"], git = "https://github.com/ag2ai/faststream.git?rev=27be1a1c46547828c6f24c99ce120fd3186e5fe9" },
+    { name = "faststream", extras = ["nats"], specifier = ">=0.6.5,<0.7" },
     { name = "nats-py", git = "https://github.com/swelborn/nats.py.git?subdirectory=nats&rev=f20302c2f87479c9d65f4935e88acb74999d2e05" },
     { name = "networkx", specifier = ">=3.3,<3.5" },
     { name = "nkeys", specifier = ">=0.2.1,<0.3" },
