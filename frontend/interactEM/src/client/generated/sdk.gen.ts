@@ -2,109 +2,110 @@
 
 import {
   type Client,
-  type Options as ClientOptions,
+  type Options as Options2,
   type TDataShape,
   urlSearchParamsBodySerializer,
-} from "@hey-api/client-axios"
-import { client as _heyApiClient } from "./client.gen"
+} from "./client"
+import { client } from "./client.gen"
 import type {
   AgentsLaunchAgentData,
-  AgentsLaunchAgentError,
+  AgentsLaunchAgentErrors,
+  AgentsLaunchAgentResponses,
   DeploymentsCreateOperatorEventData,
-  DeploymentsCreateOperatorEventError,
-  DeploymentsCreateOperatorEventResponse,
+  DeploymentsCreateOperatorEventErrors,
+  DeploymentsCreateOperatorEventResponses,
   DeploymentsCreatePipelineDeploymentData,
-  DeploymentsCreatePipelineDeploymentError,
-  DeploymentsCreatePipelineDeploymentResponse,
+  DeploymentsCreatePipelineDeploymentErrors,
+  DeploymentsCreatePipelineDeploymentResponses,
   DeploymentsListPipelineDeploymentsData,
-  DeploymentsListPipelineDeploymentsError,
-  DeploymentsListPipelineDeploymentsResponse,
+  DeploymentsListPipelineDeploymentsErrors,
+  DeploymentsListPipelineDeploymentsResponses,
   DeploymentsReadPipelineDeploymentData,
-  DeploymentsReadPipelineDeploymentError,
-  DeploymentsReadPipelineDeploymentResponse,
+  DeploymentsReadPipelineDeploymentErrors,
+  DeploymentsReadPipelineDeploymentResponses,
   DeploymentsUpdatePipelineDeploymentData,
-  DeploymentsUpdatePipelineDeploymentError,
-  DeploymentsUpdatePipelineDeploymentResponse,
+  DeploymentsUpdatePipelineDeploymentErrors,
+  DeploymentsUpdatePipelineDeploymentResponses,
   LoginLoginAccessTokenData,
-  LoginLoginAccessTokenError,
-  LoginLoginAccessTokenResponse,
+  LoginLoginAccessTokenErrors,
+  LoginLoginAccessTokenResponses,
   LoginLoginWithExternalTokenData,
-  LoginLoginWithExternalTokenResponse,
+  LoginLoginWithExternalTokenResponses,
   LoginTestTokenData,
-  LoginTestTokenResponse,
+  LoginTestTokenResponses,
   OperatorsReadOperatorsData,
-  OperatorsReadOperatorsError,
-  OperatorsReadOperatorsResponse,
+  OperatorsReadOperatorsErrors,
+  OperatorsReadOperatorsResponses,
   PipelinesAddPipelineRevisionData,
-  PipelinesAddPipelineRevisionError,
-  PipelinesAddPipelineRevisionResponse,
+  PipelinesAddPipelineRevisionErrors,
+  PipelinesAddPipelineRevisionResponses,
   PipelinesCreatePipelineData,
-  PipelinesCreatePipelineError,
-  PipelinesCreatePipelineResponse,
+  PipelinesCreatePipelineErrors,
+  PipelinesCreatePipelineResponses,
   PipelinesDeletePipelineData,
-  PipelinesDeletePipelineError,
-  PipelinesDeletePipelineResponse,
+  PipelinesDeletePipelineErrors,
+  PipelinesDeletePipelineResponses,
   PipelinesDuplicatePipelineData,
-  PipelinesDuplicatePipelineError,
-  PipelinesDuplicatePipelineResponse,
+  PipelinesDuplicatePipelineErrors,
+  PipelinesDuplicatePipelineResponses,
   PipelinesListPipelineDeploymentsData,
-  PipelinesListPipelineDeploymentsError,
-  PipelinesListPipelineDeploymentsResponse,
+  PipelinesListPipelineDeploymentsErrors,
+  PipelinesListPipelineDeploymentsResponses,
   PipelinesListPipelineRevisionDeploymentsData,
-  PipelinesListPipelineRevisionDeploymentsError,
-  PipelinesListPipelineRevisionDeploymentsResponse,
+  PipelinesListPipelineRevisionDeploymentsErrors,
+  PipelinesListPipelineRevisionDeploymentsResponses,
   PipelinesListPipelineRevisionsData,
-  PipelinesListPipelineRevisionsError,
-  PipelinesListPipelineRevisionsResponse,
+  PipelinesListPipelineRevisionsErrors,
+  PipelinesListPipelineRevisionsResponses,
   PipelinesReadPipelineData,
-  PipelinesReadPipelineError,
-  PipelinesReadPipelineResponse,
+  PipelinesReadPipelineErrors,
+  PipelinesReadPipelineResponses,
   PipelinesReadPipelineRevisionData,
-  PipelinesReadPipelineRevisionError,
-  PipelinesReadPipelineRevisionResponse,
+  PipelinesReadPipelineRevisionErrors,
+  PipelinesReadPipelineRevisionResponses,
   PipelinesReadPipelinesData,
-  PipelinesReadPipelinesError,
-  PipelinesReadPipelinesResponse,
+  PipelinesReadPipelinesErrors,
+  PipelinesReadPipelinesResponses,
   PipelinesUpdatePipelineData,
-  PipelinesUpdatePipelineError,
-  PipelinesUpdatePipelineResponse,
+  PipelinesUpdatePipelineErrors,
+  PipelinesUpdatePipelineResponses,
   PipelinesUpdatePipelineRevisionData,
-  PipelinesUpdatePipelineRevisionError,
+  PipelinesUpdatePipelineRevisionErrors,
   PipelinesUpdatePipelineRevisionPositionsData,
-  PipelinesUpdatePipelineRevisionPositionsError,
-  PipelinesUpdatePipelineRevisionPositionsResponse,
-  PipelinesUpdatePipelineRevisionResponse,
+  PipelinesUpdatePipelineRevisionPositionsErrors,
+  PipelinesUpdatePipelineRevisionPositionsResponses,
+  PipelinesUpdatePipelineRevisionResponses,
   UsersCreateUserData,
-  UsersCreateUserError,
-  UsersCreateUserResponse,
+  UsersCreateUserErrors,
+  UsersCreateUserResponses,
   UsersDeleteUserData,
-  UsersDeleteUserError,
+  UsersDeleteUserErrors,
   UsersDeleteUserMeData,
-  UsersDeleteUserMeResponse,
-  UsersDeleteUserResponse,
+  UsersDeleteUserMeResponses,
+  UsersDeleteUserResponses,
   UsersReadUserByIdData,
-  UsersReadUserByIdError,
-  UsersReadUserByIdResponse,
+  UsersReadUserByIdErrors,
+  UsersReadUserByIdResponses,
   UsersReadUserMeData,
-  UsersReadUserMeResponse,
+  UsersReadUserMeResponses,
   UsersReadUsersData,
-  UsersReadUsersError,
-  UsersReadUsersResponse,
+  UsersReadUsersErrors,
+  UsersReadUsersResponses,
   UsersUpdatePasswordMeData,
-  UsersUpdatePasswordMeError,
-  UsersUpdatePasswordMeResponse,
+  UsersUpdatePasswordMeErrors,
+  UsersUpdatePasswordMeResponses,
   UsersUpdateUserData,
-  UsersUpdateUserError,
+  UsersUpdateUserErrors,
   UsersUpdateUserMeData,
-  UsersUpdateUserMeError,
-  UsersUpdateUserMeResponse,
-  UsersUpdateUserResponse,
+  UsersUpdateUserMeErrors,
+  UsersUpdateUserMeResponses,
+  UsersUpdateUserResponses,
 } from "./types.gen"
 
 export type Options<
   TData extends TDataShape = TDataShape,
   ThrowOnError extends boolean = boolean,
-> = ClientOptions<TData, ThrowOnError> & {
+> = Options2<TData, ThrowOnError> & {
   /**
    * You can provide a client instance returned by `createClient()` instead of
    * individual options. This might be also useful if you want to implement a
@@ -120,634 +121,540 @@ export type Options<
 
 /**
  * Login Access Token
+ *
  * OAuth2 compatible token login, get an access token for future requests
  */
 export const loginLoginAccessToken = <ThrowOnError extends boolean = false>(
   options: Options<LoginLoginAccessTokenData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    LoginLoginAccessTokenResponse,
-    LoginLoginAccessTokenError,
+) =>
+  (options.client ?? client).post<
+    LoginLoginAccessTokenResponses,
+    LoginLoginAccessTokenErrors,
     ThrowOnError
   >({
     ...urlSearchParamsBodySerializer,
+    responseType: "json",
     url: "/api/v1/login/access-token",
     ...options,
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Login With External Token
+ *
  * Login with an external token (e.g., distiller)
  */
 export const loginLoginWithExternalToken = <
   ThrowOnError extends boolean = false,
 >(
   options?: Options<LoginLoginWithExternalTokenData, ThrowOnError>,
-) => {
-  return (options?.client ?? _heyApiClient).post<
-    LoginLoginWithExternalTokenResponse,
+) =>
+  (options?.client ?? client).post<
+    LoginLoginWithExternalTokenResponses,
     unknown,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/login/external-token",
     ...options,
   })
-}
 
 /**
  * Test Token
+ *
  * Test access token
  */
 export const loginTestToken = <ThrowOnError extends boolean = false>(
   options?: Options<LoginTestTokenData, ThrowOnError>,
-) => {
-  return (options?.client ?? _heyApiClient).post<
-    LoginTestTokenResponse,
+) =>
+  (options?.client ?? client).post<
+    LoginTestTokenResponses,
     unknown,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/login/test-token",
     ...options,
   })
-}
 
 /**
  * Read Users
+ *
  * Retrieve users.
  */
 export const usersReadUsers = <ThrowOnError extends boolean = false>(
   options?: Options<UsersReadUsersData, ThrowOnError>,
-) => {
-  return (options?.client ?? _heyApiClient).get<
-    UsersReadUsersResponse,
-    UsersReadUsersError,
+) =>
+  (options?.client ?? client).get<
+    UsersReadUsersResponses,
+    UsersReadUsersErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/",
     ...options,
   })
-}
 
 /**
  * Create User
+ *
  * Create new user.
  */
 export const usersCreateUser = <ThrowOnError extends boolean = false>(
   options: Options<UsersCreateUserData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    UsersCreateUserResponse,
-    UsersCreateUserError,
+) =>
+  (options.client ?? client).post<
+    UsersCreateUserResponses,
+    UsersCreateUserErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Delete User Me
+ *
  * Delete own user.
  */
 export const usersDeleteUserMe = <ThrowOnError extends boolean = false>(
   options?: Options<UsersDeleteUserMeData, ThrowOnError>,
-) => {
-  return (options?.client ?? _heyApiClient).delete<
-    UsersDeleteUserMeResponse,
+) =>
+  (options?.client ?? client).delete<
+    UsersDeleteUserMeResponses,
     unknown,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/me",
     ...options,
   })
-}
 
 /**
  * Read User Me
+ *
  * Get current user.
  */
 export const usersReadUserMe = <ThrowOnError extends boolean = false>(
   options?: Options<UsersReadUserMeData, ThrowOnError>,
-) => {
-  return (options?.client ?? _heyApiClient).get<
-    UsersReadUserMeResponse,
+) =>
+  (options?.client ?? client).get<
+    UsersReadUserMeResponses,
     unknown,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/me",
     ...options,
   })
-}
 
 /**
  * Update User Me
+ *
  * Update own user.
  */
 export const usersUpdateUserMe = <ThrowOnError extends boolean = false>(
   options: Options<UsersUpdateUserMeData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).patch<
-    UsersUpdateUserMeResponse,
-    UsersUpdateUserMeError,
+) =>
+  (options.client ?? client).patch<
+    UsersUpdateUserMeResponses,
+    UsersUpdateUserMeErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/me",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Update Password Me
+ *
  * Update own password.
  */
 export const usersUpdatePasswordMe = <ThrowOnError extends boolean = false>(
   options: Options<UsersUpdatePasswordMeData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).patch<
-    UsersUpdatePasswordMeResponse,
-    UsersUpdatePasswordMeError,
+) =>
+  (options.client ?? client).patch<
+    UsersUpdatePasswordMeResponses,
+    UsersUpdatePasswordMeErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/me/password",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Delete User
+ *
  * Delete a user.
  */
 export const usersDeleteUser = <ThrowOnError extends boolean = false>(
   options: Options<UsersDeleteUserData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).delete<
-    UsersDeleteUserResponse,
-    UsersDeleteUserError,
+) =>
+  (options.client ?? client).delete<
+    UsersDeleteUserResponses,
+    UsersDeleteUserErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/{user_id}",
     ...options,
   })
-}
 
 /**
  * Read User By Id
+ *
  * Get a specific user by id.
  */
 export const usersReadUserById = <ThrowOnError extends boolean = false>(
   options: Options<UsersReadUserByIdData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).get<
-    UsersReadUserByIdResponse,
-    UsersReadUserByIdError,
+) =>
+  (options.client ?? client).get<
+    UsersReadUserByIdResponses,
+    UsersReadUserByIdErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/{user_id}",
     ...options,
   })
-}
 
 /**
  * Update User
+ *
  * Update a user.
  */
 export const usersUpdateUser = <ThrowOnError extends boolean = false>(
   options: Options<UsersUpdateUserData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).patch<
-    UsersUpdateUserResponse,
-    UsersUpdateUserError,
+) =>
+  (options.client ?? client).patch<
+    UsersUpdateUserResponses,
+    UsersUpdateUserErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/users/{user_id}",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Read Pipelines
+ *
  * Retrieve pipelines, ordered by last updated. Includes pipeline name.
  */
 export const pipelinesReadPipelines = <ThrowOnError extends boolean = false>(
   options?: Options<PipelinesReadPipelinesData, ThrowOnError>,
-) => {
-  return (options?.client ?? _heyApiClient).get<
-    PipelinesReadPipelinesResponse,
-    PipelinesReadPipelinesError,
+) =>
+  (options?.client ?? client).get<
+    PipelinesReadPipelinesResponses,
+    PipelinesReadPipelinesErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/",
     ...options,
   })
-}
 
 /**
  * Create Pipeline
+ *
  * Create new pipeline.
  */
 export const pipelinesCreatePipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesCreatePipelineData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    PipelinesCreatePipelineResponse,
-    PipelinesCreatePipelineError,
+) =>
+  (options.client ?? client).post<
+    PipelinesCreatePipelineResponses,
+    PipelinesCreatePipelineErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Delete Pipeline
+ *
  * Delete an pipeline.
  */
 export const pipelinesDeletePipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesDeletePipelineData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).delete<
-    PipelinesDeletePipelineResponse,
-    PipelinesDeletePipelineError,
+) =>
+  (options.client ?? client).delete<
+    PipelinesDeletePipelineResponses,
+    PipelinesDeletePipelineErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}",
     ...options,
   })
-}
 
 /**
  * Read Pipeline
+ *
  * Get pipeline by ID.
  */
 export const pipelinesReadPipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesReadPipelineData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).get<
-    PipelinesReadPipelineResponse,
-    PipelinesReadPipelineError,
+) =>
+  (options.client ?? client).get<
+    PipelinesReadPipelineResponses,
+    PipelinesReadPipelineErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}",
     ...options,
   })
-}
 
 /**
  * Update Pipeline
+ *
  * Update a pipeline's name.
  */
 export const pipelinesUpdatePipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesUpdatePipelineData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).patch<
-    PipelinesUpdatePipelineResponse,
-    PipelinesUpdatePipelineError,
+) =>
+  (options.client ?? client).patch<
+    PipelinesUpdatePipelineResponses,
+    PipelinesUpdatePipelineErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * List Pipeline Revisions
+ *
  * List revisions for a pipeline (paginated).
  */
 export const pipelinesListPipelineRevisions = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesListPipelineRevisionsData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).get<
-    PipelinesListPipelineRevisionsResponse,
-    PipelinesListPipelineRevisionsError,
+) =>
+  (options.client ?? client).get<
+    PipelinesListPipelineRevisionsResponses,
+    PipelinesListPipelineRevisionsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}/revisions",
     ...options,
   })
-}
 
 /**
  * Add Pipeline Revision
+ *
  * Add a new revision to a pipeline.
  */
 export const pipelinesAddPipelineRevision = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesAddPipelineRevisionData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    PipelinesAddPipelineRevisionResponse,
-    PipelinesAddPipelineRevisionError,
+) =>
+  (options.client ?? client).post<
+    PipelinesAddPipelineRevisionResponses,
+    PipelinesAddPipelineRevisionErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}/revisions",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Read Pipeline Revision
+ *
  * Get specific revision data for a pipeline.
  */
 export const pipelinesReadPipelineRevision = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesReadPipelineRevisionData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).get<
-    PipelinesReadPipelineRevisionResponse,
-    PipelinesReadPipelineRevisionError,
+) =>
+  (options.client ?? client).get<
+    PipelinesReadPipelineRevisionResponses,
+    PipelinesReadPipelineRevisionErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}/revisions/{revision_id}",
     ...options,
   })
-}
 
 /**
  * Update Pipeline Revision
+ *
  * Update a specific pipeline revision.
  */
 export const pipelinesUpdatePipelineRevision = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesUpdatePipelineRevisionData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).patch<
-    PipelinesUpdatePipelineRevisionResponse,
-    PipelinesUpdatePipelineRevisionError,
+) =>
+  (options.client ?? client).patch<
+    PipelinesUpdatePipelineRevisionResponses,
+    PipelinesUpdatePipelineRevisionErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}/revisions/{revision_id}",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Update Pipeline Revision Positions
+ *
  * Update operator positions for a specific pipeline revision.
  */
 export const pipelinesUpdatePipelineRevisionPositions = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesUpdatePipelineRevisionPositionsData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).patch<
-    PipelinesUpdatePipelineRevisionPositionsResponse,
-    PipelinesUpdatePipelineRevisionPositionsError,
+) =>
+  (options.client ?? client).patch<
+    PipelinesUpdatePipelineRevisionPositionsResponses,
+    PipelinesUpdatePipelineRevisionPositionsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}/revisions/{revision_id}/positions",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Duplicate Pipeline
+ *
  * Duplicate a pipeline with all its revisions.
  */
 export const pipelinesDuplicatePipeline = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesDuplicatePipelineData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    PipelinesDuplicatePipelineResponse,
-    PipelinesDuplicatePipelineError,
+) =>
+  (options.client ?? client).post<
+    PipelinesDuplicatePipelineResponses,
+    PipelinesDuplicatePipelineErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}/duplicate",
     ...options,
   })
-}
 
 /**
  * List Pipeline Deployments
+ *
  * List deployments for a pipeline.
  */
 export const pipelinesListPipelineDeployments = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesListPipelineDeploymentsData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).get<
-    PipelinesListPipelineDeploymentsResponse,
-    PipelinesListPipelineDeploymentsError,
+) =>
+  (options.client ?? client).get<
+    PipelinesListPipelineDeploymentsResponses,
+    PipelinesListPipelineDeploymentsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}/deployments",
     ...options,
   })
-}
 
 /**
  * List Pipeline Revision Deployments
+ *
  * List all deployments for a specific pipeline revision.
  */
 export const pipelinesListPipelineRevisionDeployments = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesListPipelineRevisionDeploymentsData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).get<
-    PipelinesListPipelineRevisionDeploymentsResponse,
-    PipelinesListPipelineRevisionDeploymentsError,
+) =>
+  (options.client ?? client).get<
+    PipelinesListPipelineRevisionDeploymentsResponses,
+    PipelinesListPipelineRevisionDeploymentsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/pipelines/{id}/revisions/{revision_id}/deployments",
     ...options,
   })
-}
 
 /**
  * List Pipeline Deployments
+ *
  * Get all pipeline deployments accessible to the current user with pagination.
  * Optionally filter by state.
  */
@@ -755,25 +662,21 @@ export const deploymentsListPipelineDeployments = <
   ThrowOnError extends boolean = false,
 >(
   options?: Options<DeploymentsListPipelineDeploymentsData, ThrowOnError>,
-) => {
-  return (options?.client ?? _heyApiClient).get<
-    DeploymentsListPipelineDeploymentsResponse,
-    DeploymentsListPipelineDeploymentsError,
+) =>
+  (options?.client ?? client).get<
+    DeploymentsListPipelineDeploymentsResponses,
+    DeploymentsListPipelineDeploymentsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/deployments/",
     ...options,
   })
-}
 
 /**
  * Create Pipeline Deployment
+ *
  * Create a new pipeline deployment and publish initialization event.
  * State transitions are managed by the orchestrator.
  */
@@ -781,156 +684,131 @@ export const deploymentsCreatePipelineDeployment = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<DeploymentsCreatePipelineDeploymentData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    DeploymentsCreatePipelineDeploymentResponse,
-    DeploymentsCreatePipelineDeploymentError,
+) =>
+  (options.client ?? client).post<
+    DeploymentsCreatePipelineDeploymentResponses,
+    DeploymentsCreatePipelineDeploymentErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/deployments/",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Read Pipeline Deployment
+ *
  * Get pipeline deployment by ID.
  */
 export const deploymentsReadPipelineDeployment = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<DeploymentsReadPipelineDeploymentData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).get<
-    DeploymentsReadPipelineDeploymentResponse,
-    DeploymentsReadPipelineDeploymentError,
+) =>
+  (options.client ?? client).get<
+    DeploymentsReadPipelineDeploymentResponses,
+    DeploymentsReadPipelineDeploymentErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/deployments/{id}",
     ...options,
   })
-}
 
 /**
  * Update Pipeline Deployment
+ *
  * Update a pipeline deployment state and publish events for the orchestrator.
  */
 export const deploymentsUpdatePipelineDeployment = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<DeploymentsUpdatePipelineDeploymentData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).patch<
-    DeploymentsUpdatePipelineDeploymentResponse,
-    DeploymentsUpdatePipelineDeploymentError,
+) =>
+  (options.client ?? client).patch<
+    DeploymentsUpdatePipelineDeploymentResponses,
+    DeploymentsUpdatePipelineDeploymentErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/deployments/{id}",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Create Operator Event
+ *
  * Publish an operator event for the specified deployment and operator.
  */
 export const deploymentsCreateOperatorEvent = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<DeploymentsCreateOperatorEventData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    DeploymentsCreateOperatorEventResponse,
-    DeploymentsCreateOperatorEventError,
+) =>
+  (options.client ?? client).post<
+    DeploymentsCreateOperatorEventResponses,
+    DeploymentsCreateOperatorEventErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/deployments/{id}/operators/{canonical_operator_id}/events",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}
 
 /**
  * Read Operators
+ *
  * Retrieve available operators. Use refresh=true to invalidate cache and fetch fresh data.
  */
 export const operatorsReadOperators = <ThrowOnError extends boolean = false>(
   options?: Options<OperatorsReadOperatorsData, ThrowOnError>,
-) => {
-  return (options?.client ?? _heyApiClient).get<
-    OperatorsReadOperatorsResponse,
-    OperatorsReadOperatorsError,
+) =>
+  (options?.client ?? client).get<
+    OperatorsReadOperatorsResponses,
+    OperatorsReadOperatorsErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/operators/",
     ...options,
   })
-}
 
 /**
  * Launch Agent
+ *
  * Launch an agent remotely.
  */
 export const agentsLaunchAgent = <ThrowOnError extends boolean = false>(
   options: Options<AgentsLaunchAgentData, ThrowOnError>,
-) => {
-  return (options.client ?? _heyApiClient).post<
-    unknown,
-    AgentsLaunchAgentError,
+) =>
+  (options.client ?? client).post<
+    AgentsLaunchAgentResponses,
+    AgentsLaunchAgentErrors,
     ThrowOnError
   >({
-    security: [
-      {
-        scheme: "bearer",
-        type: "http",
-      },
-    ],
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
     url: "/api/v1/agents/launch",
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...options?.headers,
+      ...options.headers,
     },
   })
-}

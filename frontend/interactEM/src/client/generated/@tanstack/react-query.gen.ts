@@ -8,7 +8,8 @@ import {
   queryOptions,
 } from "@tanstack/react-query"
 import type { AxiosError } from "axios"
-import { client as _heyApiClient } from "../client.gen"
+
+import { client } from "../client.gen"
 import {
   type Options,
   agentsLaunchAgent,
@@ -57,6 +58,8 @@ import type {
   DeploymentsListPipelineDeploymentsError,
   DeploymentsListPipelineDeploymentsResponse,
   DeploymentsReadPipelineDeploymentData,
+  DeploymentsReadPipelineDeploymentError,
+  DeploymentsReadPipelineDeploymentResponse,
   DeploymentsUpdatePipelineDeploymentData,
   DeploymentsUpdatePipelineDeploymentError,
   DeploymentsUpdatePipelineDeploymentResponse,
@@ -68,6 +71,8 @@ import type {
   LoginTestTokenData,
   LoginTestTokenResponse,
   OperatorsReadOperatorsData,
+  OperatorsReadOperatorsError,
+  OperatorsReadOperatorsResponse,
   PipelinesAddPipelineRevisionData,
   PipelinesAddPipelineRevisionError,
   PipelinesAddPipelineRevisionResponse,
@@ -90,7 +95,11 @@ import type {
   PipelinesListPipelineRevisionsError,
   PipelinesListPipelineRevisionsResponse,
   PipelinesReadPipelineData,
+  PipelinesReadPipelineError,
+  PipelinesReadPipelineResponse,
   PipelinesReadPipelineRevisionData,
+  PipelinesReadPipelineRevisionError,
+  PipelinesReadPipelineRevisionResponse,
   PipelinesReadPipelinesData,
   PipelinesReadPipelinesError,
   PipelinesReadPipelinesResponse,
@@ -112,8 +121,13 @@ import type {
   UsersDeleteUserMeResponse,
   UsersDeleteUserResponse,
   UsersReadUserByIdData,
+  UsersReadUserByIdError,
+  UsersReadUserByIdResponse,
   UsersReadUserMeData,
+  UsersReadUserMeResponse,
   UsersReadUsersData,
+  UsersReadUsersError,
+  UsersReadUsersResponse,
   UsersUpdatePasswordMeData,
   UsersUpdatePasswordMeError,
   UsersUpdatePasswordMeResponse,
@@ -125,10 +139,98 @@ import type {
   UsersUpdateUserResponse,
 } from "../types.gen"
 
+/**
+ * Login Access Token
+ *
+ * OAuth2 compatible token login, get an access token for future requests
+ */
+export const loginLoginAccessTokenMutation = (
+  options?: Partial<Options<LoginLoginAccessTokenData>>,
+): UseMutationOptions<
+  LoginLoginAccessTokenResponse,
+  AxiosError<LoginLoginAccessTokenError>,
+  Options<LoginLoginAccessTokenData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    LoginLoginAccessTokenResponse,
+    AxiosError<LoginLoginAccessTokenError>,
+    Options<LoginLoginAccessTokenData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await loginLoginAccessToken({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
+}
+
+/**
+ * Login With External Token
+ *
+ * Login with an external token (e.g., distiller)
+ */
+export const loginLoginWithExternalTokenMutation = (
+  options?: Partial<Options<LoginLoginWithExternalTokenData>>,
+): UseMutationOptions<
+  LoginLoginWithExternalTokenResponse,
+  AxiosError<DefaultError>,
+  Options<LoginLoginWithExternalTokenData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    LoginLoginWithExternalTokenResponse,
+    AxiosError<DefaultError>,
+    Options<LoginLoginWithExternalTokenData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await loginLoginWithExternalToken({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
+}
+
+/**
+ * Test Token
+ *
+ * Test access token
+ */
+export const loginTestTokenMutation = (
+  options?: Partial<Options<LoginTestTokenData>>,
+): UseMutationOptions<
+  LoginTestTokenResponse,
+  AxiosError<DefaultError>,
+  Options<LoginTestTokenData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    LoginTestTokenResponse,
+    AxiosError<DefaultError>,
+    Options<LoginTestTokenData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await loginTestToken({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
+}
+
 export type QueryKey<TOptions extends Options> = [
   Pick<TOptions, "baseURL" | "body" | "headers" | "path" | "query"> & {
     _id: string
     _infinite?: boolean
+    tags?: ReadonlyArray<string>
   },
 ]
 
@@ -136,13 +238,18 @@ const createQueryKey = <TOptions extends Options>(
   id: string,
   options?: TOptions,
   infinite?: boolean,
+  tags?: ReadonlyArray<string>,
 ): [QueryKey<TOptions>[0]] => {
   const params: QueryKey<TOptions>[0] = {
     _id: id,
-    baseURL: (options?.client ?? _heyApiClient).getConfig().baseURL,
+    baseURL:
+      options?.baseURL || (options?.client ?? client).getConfig().baseURL,
   } as QueryKey<TOptions>[0]
   if (infinite) {
     params._infinite = infinite
+  }
+  if (tags) {
+    params.tags = tags
   }
   if (options?.body) {
     params.body = options.body
@@ -159,135 +266,21 @@ const createQueryKey = <TOptions extends Options>(
   return [params]
 }
 
-export const loginLoginAccessTokenQueryKey = (
-  options: Options<LoginLoginAccessTokenData>,
-) => createQueryKey("loginLoginAccessToken", options)
-
-export const loginLoginAccessTokenOptions = (
-  options: Options<LoginLoginAccessTokenData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await loginLoginAccessToken({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: loginLoginAccessTokenQueryKey(options),
-  })
-}
-
-export const loginLoginAccessTokenMutation = (
-  options?: Partial<Options<LoginLoginAccessTokenData>>,
-) => {
-  const mutationOptions: UseMutationOptions<
-    LoginLoginAccessTokenResponse,
-    AxiosError<LoginLoginAccessTokenError>,
-    Options<LoginLoginAccessTokenData>
-  > = {
-    mutationFn: async (localOptions) => {
-      const { data } = await loginLoginAccessToken({
-        ...options,
-        ...localOptions,
-        throwOnError: true,
-      })
-      return data
-    },
-  }
-  return mutationOptions
-}
-
-export const loginLoginWithExternalTokenQueryKey = (
-  options?: Options<LoginLoginWithExternalTokenData>,
-) => createQueryKey("loginLoginWithExternalToken", options)
-
-export const loginLoginWithExternalTokenOptions = (
-  options?: Options<LoginLoginWithExternalTokenData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await loginLoginWithExternalToken({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: loginLoginWithExternalTokenQueryKey(options),
-  })
-}
-
-export const loginLoginWithExternalTokenMutation = (
-  options?: Partial<Options<LoginLoginWithExternalTokenData>>,
-) => {
-  const mutationOptions: UseMutationOptions<
-    LoginLoginWithExternalTokenResponse,
-    AxiosError<DefaultError>,
-    Options<LoginLoginWithExternalTokenData>
-  > = {
-    mutationFn: async (localOptions) => {
-      const { data } = await loginLoginWithExternalToken({
-        ...options,
-        ...localOptions,
-        throwOnError: true,
-      })
-      return data
-    },
-  }
-  return mutationOptions
-}
-
-export const loginTestTokenQueryKey = (options?: Options<LoginTestTokenData>) =>
-  createQueryKey("loginTestToken", options)
-
-export const loginTestTokenOptions = (
-  options?: Options<LoginTestTokenData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await loginTestToken({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: loginTestTokenQueryKey(options),
-  })
-}
-
-export const loginTestTokenMutation = (
-  options?: Partial<Options<LoginTestTokenData>>,
-) => {
-  const mutationOptions: UseMutationOptions<
-    LoginTestTokenResponse,
-    AxiosError<DefaultError>,
-    Options<LoginTestTokenData>
-  > = {
-    mutationFn: async (localOptions) => {
-      const { data } = await loginTestToken({
-        ...options,
-        ...localOptions,
-        throwOnError: true,
-      })
-      return data
-    },
-  }
-  return mutationOptions
-}
-
 export const usersReadUsersQueryKey = (options?: Options<UsersReadUsersData>) =>
   createQueryKey("usersReadUsers", options)
 
-export const usersReadUsersOptions = (
-  options?: Options<UsersReadUsersData>,
-) => {
-  return queryOptions({
+/**
+ * Read Users
+ *
+ * Retrieve users.
+ */
+export const usersReadUsersOptions = (options?: Options<UsersReadUsersData>) =>
+  queryOptions<
+    UsersReadUsersResponse,
+    AxiosError<UsersReadUsersError>,
+    UsersReadUsersResponse,
+    ReturnType<typeof usersReadUsersQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await usersReadUsers({
         ...options,
@@ -299,41 +292,28 @@ export const usersReadUsersOptions = (
     },
     queryKey: usersReadUsersQueryKey(options),
   })
-}
 
-export const usersCreateUserQueryKey = (
-  options: Options<UsersCreateUserData>,
-) => createQueryKey("usersCreateUser", options)
-
-export const usersCreateUserOptions = (
-  options: Options<UsersCreateUserData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await usersCreateUser({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: usersCreateUserQueryKey(options),
-  })
-}
-
+/**
+ * Create User
+ *
+ * Create new user.
+ */
 export const usersCreateUserMutation = (
   options?: Partial<Options<UsersCreateUserData>>,
-) => {
+): UseMutationOptions<
+  UsersCreateUserResponse,
+  AxiosError<UsersCreateUserError>,
+  Options<UsersCreateUserData>
+> => {
   const mutationOptions: UseMutationOptions<
     UsersCreateUserResponse,
     AxiosError<UsersCreateUserError>,
     Options<UsersCreateUserData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await usersCreateUser({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -342,18 +322,27 @@ export const usersCreateUserMutation = (
   return mutationOptions
 }
 
+/**
+ * Delete User Me
+ *
+ * Delete own user.
+ */
 export const usersDeleteUserMeMutation = (
   options?: Partial<Options<UsersDeleteUserMeData>>,
-) => {
+): UseMutationOptions<
+  UsersDeleteUserMeResponse,
+  AxiosError<DefaultError>,
+  Options<UsersDeleteUserMeData>
+> => {
   const mutationOptions: UseMutationOptions<
     UsersDeleteUserMeResponse,
     AxiosError<DefaultError>,
     Options<UsersDeleteUserMeData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await usersDeleteUserMe({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -366,10 +355,20 @@ export const usersReadUserMeQueryKey = (
   options?: Options<UsersReadUserMeData>,
 ) => createQueryKey("usersReadUserMe", options)
 
+/**
+ * Read User Me
+ *
+ * Get current user.
+ */
 export const usersReadUserMeOptions = (
   options?: Options<UsersReadUserMeData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    UsersReadUserMeResponse,
+    AxiosError<DefaultError>,
+    UsersReadUserMeResponse,
+    ReturnType<typeof usersReadUserMeQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await usersReadUserMe({
         ...options,
@@ -381,20 +380,28 @@ export const usersReadUserMeOptions = (
     },
     queryKey: usersReadUserMeQueryKey(options),
   })
-}
 
+/**
+ * Update User Me
+ *
+ * Update own user.
+ */
 export const usersUpdateUserMeMutation = (
   options?: Partial<Options<UsersUpdateUserMeData>>,
-) => {
+): UseMutationOptions<
+  UsersUpdateUserMeResponse,
+  AxiosError<UsersUpdateUserMeError>,
+  Options<UsersUpdateUserMeData>
+> => {
   const mutationOptions: UseMutationOptions<
     UsersUpdateUserMeResponse,
     AxiosError<UsersUpdateUserMeError>,
     Options<UsersUpdateUserMeData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await usersUpdateUserMe({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -403,18 +410,27 @@ export const usersUpdateUserMeMutation = (
   return mutationOptions
 }
 
+/**
+ * Update Password Me
+ *
+ * Update own password.
+ */
 export const usersUpdatePasswordMeMutation = (
   options?: Partial<Options<UsersUpdatePasswordMeData>>,
-) => {
+): UseMutationOptions<
+  UsersUpdatePasswordMeResponse,
+  AxiosError<UsersUpdatePasswordMeError>,
+  Options<UsersUpdatePasswordMeData>
+> => {
   const mutationOptions: UseMutationOptions<
     UsersUpdatePasswordMeResponse,
     AxiosError<UsersUpdatePasswordMeError>,
     Options<UsersUpdatePasswordMeData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await usersUpdatePasswordMe({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -423,18 +439,27 @@ export const usersUpdatePasswordMeMutation = (
   return mutationOptions
 }
 
+/**
+ * Delete User
+ *
+ * Delete a user.
+ */
 export const usersDeleteUserMutation = (
   options?: Partial<Options<UsersDeleteUserData>>,
-) => {
+): UseMutationOptions<
+  UsersDeleteUserResponse,
+  AxiosError<UsersDeleteUserError>,
+  Options<UsersDeleteUserData>
+> => {
   const mutationOptions: UseMutationOptions<
     UsersDeleteUserResponse,
     AxiosError<UsersDeleteUserError>,
     Options<UsersDeleteUserData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await usersDeleteUser({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -447,10 +472,20 @@ export const usersReadUserByIdQueryKey = (
   options: Options<UsersReadUserByIdData>,
 ) => createQueryKey("usersReadUserById", options)
 
+/**
+ * Read User By Id
+ *
+ * Get a specific user by id.
+ */
 export const usersReadUserByIdOptions = (
   options: Options<UsersReadUserByIdData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    UsersReadUserByIdResponse,
+    AxiosError<UsersReadUserByIdError>,
+    UsersReadUserByIdResponse,
+    ReturnType<typeof usersReadUserByIdQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await usersReadUserById({
         ...options,
@@ -462,20 +497,28 @@ export const usersReadUserByIdOptions = (
     },
     queryKey: usersReadUserByIdQueryKey(options),
   })
-}
 
+/**
+ * Update User
+ *
+ * Update a user.
+ */
 export const usersUpdateUserMutation = (
   options?: Partial<Options<UsersUpdateUserData>>,
-) => {
+): UseMutationOptions<
+  UsersUpdateUserResponse,
+  AxiosError<UsersUpdateUserError>,
+  Options<UsersUpdateUserData>
+> => {
   const mutationOptions: UseMutationOptions<
     UsersUpdateUserResponse,
     AxiosError<UsersUpdateUserError>,
     Options<UsersUpdateUserData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await usersUpdateUser({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -488,10 +531,20 @@ export const pipelinesReadPipelinesQueryKey = (
   options?: Options<PipelinesReadPipelinesData>,
 ) => createQueryKey("pipelinesReadPipelines", options)
 
+/**
+ * Read Pipelines
+ *
+ * Retrieve pipelines, ordered by last updated. Includes pipeline name.
+ */
 export const pipelinesReadPipelinesOptions = (
   options?: Options<PipelinesReadPipelinesData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    PipelinesReadPipelinesResponse,
+    AxiosError<PipelinesReadPipelinesError>,
+    PipelinesReadPipelinesResponse,
+    ReturnType<typeof pipelinesReadPipelinesQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await pipelinesReadPipelines({
         ...options,
@@ -503,7 +556,6 @@ export const pipelinesReadPipelinesOptions = (
     },
     queryKey: pipelinesReadPipelinesQueryKey(options),
   })
-}
 
 const createInfiniteParams = <
   K extends Pick<QueryKey<Options>[0], "body" | "headers" | "path" | "query">,
@@ -511,7 +563,7 @@ const createInfiniteParams = <
   queryKey: QueryKey<Options>,
   page: K,
 ) => {
-  const params = queryKey[0]
+  const params = { ...queryKey[0] }
   if (page.body) {
     params.body = {
       ...(queryKey[0].body as any),
@@ -544,10 +596,15 @@ export const pipelinesReadPipelinesInfiniteQueryKey = (
 ): QueryKey<Options<PipelinesReadPipelinesData>> =>
   createQueryKey("pipelinesReadPipelines", options, true)
 
+/**
+ * Read Pipelines
+ *
+ * Retrieve pipelines, ordered by last updated. Includes pipeline name.
+ */
 export const pipelinesReadPipelinesInfiniteOptions = (
   options?: Options<PipelinesReadPipelinesData>,
-) => {
-  return infiniteQueryOptions<
+) =>
+  infiniteQueryOptions<
     PipelinesReadPipelinesResponse,
     AxiosError<PipelinesReadPipelinesError>,
     InfiniteData<PipelinesReadPipelinesResponse>,
@@ -585,41 +642,28 @@ export const pipelinesReadPipelinesInfiniteOptions = (
       queryKey: pipelinesReadPipelinesInfiniteQueryKey(options),
     },
   )
-}
 
-export const pipelinesCreatePipelineQueryKey = (
-  options: Options<PipelinesCreatePipelineData>,
-) => createQueryKey("pipelinesCreatePipeline", options)
-
-export const pipelinesCreatePipelineOptions = (
-  options: Options<PipelinesCreatePipelineData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await pipelinesCreatePipeline({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: pipelinesCreatePipelineQueryKey(options),
-  })
-}
-
+/**
+ * Create Pipeline
+ *
+ * Create new pipeline.
+ */
 export const pipelinesCreatePipelineMutation = (
   options?: Partial<Options<PipelinesCreatePipelineData>>,
-) => {
+): UseMutationOptions<
+  PipelinesCreatePipelineResponse,
+  AxiosError<PipelinesCreatePipelineError>,
+  Options<PipelinesCreatePipelineData>
+> => {
   const mutationOptions: UseMutationOptions<
     PipelinesCreatePipelineResponse,
     AxiosError<PipelinesCreatePipelineError>,
     Options<PipelinesCreatePipelineData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await pipelinesCreatePipeline({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -628,18 +672,27 @@ export const pipelinesCreatePipelineMutation = (
   return mutationOptions
 }
 
+/**
+ * Delete Pipeline
+ *
+ * Delete an pipeline.
+ */
 export const pipelinesDeletePipelineMutation = (
   options?: Partial<Options<PipelinesDeletePipelineData>>,
-) => {
+): UseMutationOptions<
+  PipelinesDeletePipelineResponse,
+  AxiosError<PipelinesDeletePipelineError>,
+  Options<PipelinesDeletePipelineData>
+> => {
   const mutationOptions: UseMutationOptions<
     PipelinesDeletePipelineResponse,
     AxiosError<PipelinesDeletePipelineError>,
     Options<PipelinesDeletePipelineData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await pipelinesDeletePipeline({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -652,10 +705,20 @@ export const pipelinesReadPipelineQueryKey = (
   options: Options<PipelinesReadPipelineData>,
 ) => createQueryKey("pipelinesReadPipeline", options)
 
+/**
+ * Read Pipeline
+ *
+ * Get pipeline by ID.
+ */
 export const pipelinesReadPipelineOptions = (
   options: Options<PipelinesReadPipelineData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    PipelinesReadPipelineResponse,
+    AxiosError<PipelinesReadPipelineError>,
+    PipelinesReadPipelineResponse,
+    ReturnType<typeof pipelinesReadPipelineQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await pipelinesReadPipeline({
         ...options,
@@ -667,20 +730,28 @@ export const pipelinesReadPipelineOptions = (
     },
     queryKey: pipelinesReadPipelineQueryKey(options),
   })
-}
 
+/**
+ * Update Pipeline
+ *
+ * Update a pipeline's name.
+ */
 export const pipelinesUpdatePipelineMutation = (
   options?: Partial<Options<PipelinesUpdatePipelineData>>,
-) => {
+): UseMutationOptions<
+  PipelinesUpdatePipelineResponse,
+  AxiosError<PipelinesUpdatePipelineError>,
+  Options<PipelinesUpdatePipelineData>
+> => {
   const mutationOptions: UseMutationOptions<
     PipelinesUpdatePipelineResponse,
     AxiosError<PipelinesUpdatePipelineError>,
     Options<PipelinesUpdatePipelineData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await pipelinesUpdatePipeline({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -693,10 +764,20 @@ export const pipelinesListPipelineRevisionsQueryKey = (
   options: Options<PipelinesListPipelineRevisionsData>,
 ) => createQueryKey("pipelinesListPipelineRevisions", options)
 
+/**
+ * List Pipeline Revisions
+ *
+ * List revisions for a pipeline (paginated).
+ */
 export const pipelinesListPipelineRevisionsOptions = (
   options: Options<PipelinesListPipelineRevisionsData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    PipelinesListPipelineRevisionsResponse,
+    AxiosError<PipelinesListPipelineRevisionsError>,
+    PipelinesListPipelineRevisionsResponse,
+    ReturnType<typeof pipelinesListPipelineRevisionsQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await pipelinesListPipelineRevisions({
         ...options,
@@ -708,17 +789,21 @@ export const pipelinesListPipelineRevisionsOptions = (
     },
     queryKey: pipelinesListPipelineRevisionsQueryKey(options),
   })
-}
 
 export const pipelinesListPipelineRevisionsInfiniteQueryKey = (
   options: Options<PipelinesListPipelineRevisionsData>,
 ): QueryKey<Options<PipelinesListPipelineRevisionsData>> =>
   createQueryKey("pipelinesListPipelineRevisions", options, true)
 
+/**
+ * List Pipeline Revisions
+ *
+ * List revisions for a pipeline (paginated).
+ */
 export const pipelinesListPipelineRevisionsInfiniteOptions = (
   options: Options<PipelinesListPipelineRevisionsData>,
-) => {
-  return infiniteQueryOptions<
+) =>
+  infiniteQueryOptions<
     PipelinesListPipelineRevisionsResponse,
     AxiosError<PipelinesListPipelineRevisionsError>,
     InfiniteData<PipelinesListPipelineRevisionsResponse>,
@@ -756,41 +841,28 @@ export const pipelinesListPipelineRevisionsInfiniteOptions = (
       queryKey: pipelinesListPipelineRevisionsInfiniteQueryKey(options),
     },
   )
-}
 
-export const pipelinesAddPipelineRevisionQueryKey = (
-  options: Options<PipelinesAddPipelineRevisionData>,
-) => createQueryKey("pipelinesAddPipelineRevision", options)
-
-export const pipelinesAddPipelineRevisionOptions = (
-  options: Options<PipelinesAddPipelineRevisionData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await pipelinesAddPipelineRevision({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: pipelinesAddPipelineRevisionQueryKey(options),
-  })
-}
-
+/**
+ * Add Pipeline Revision
+ *
+ * Add a new revision to a pipeline.
+ */
 export const pipelinesAddPipelineRevisionMutation = (
   options?: Partial<Options<PipelinesAddPipelineRevisionData>>,
-) => {
+): UseMutationOptions<
+  PipelinesAddPipelineRevisionResponse,
+  AxiosError<PipelinesAddPipelineRevisionError>,
+  Options<PipelinesAddPipelineRevisionData>
+> => {
   const mutationOptions: UseMutationOptions<
     PipelinesAddPipelineRevisionResponse,
     AxiosError<PipelinesAddPipelineRevisionError>,
     Options<PipelinesAddPipelineRevisionData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await pipelinesAddPipelineRevision({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -803,10 +875,20 @@ export const pipelinesReadPipelineRevisionQueryKey = (
   options: Options<PipelinesReadPipelineRevisionData>,
 ) => createQueryKey("pipelinesReadPipelineRevision", options)
 
+/**
+ * Read Pipeline Revision
+ *
+ * Get specific revision data for a pipeline.
+ */
 export const pipelinesReadPipelineRevisionOptions = (
   options: Options<PipelinesReadPipelineRevisionData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    PipelinesReadPipelineRevisionResponse,
+    AxiosError<PipelinesReadPipelineRevisionError>,
+    PipelinesReadPipelineRevisionResponse,
+    ReturnType<typeof pipelinesReadPipelineRevisionQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await pipelinesReadPipelineRevision({
         ...options,
@@ -818,20 +900,28 @@ export const pipelinesReadPipelineRevisionOptions = (
     },
     queryKey: pipelinesReadPipelineRevisionQueryKey(options),
   })
-}
 
+/**
+ * Update Pipeline Revision
+ *
+ * Update a specific pipeline revision.
+ */
 export const pipelinesUpdatePipelineRevisionMutation = (
   options?: Partial<Options<PipelinesUpdatePipelineRevisionData>>,
-) => {
+): UseMutationOptions<
+  PipelinesUpdatePipelineRevisionResponse,
+  AxiosError<PipelinesUpdatePipelineRevisionError>,
+  Options<PipelinesUpdatePipelineRevisionData>
+> => {
   const mutationOptions: UseMutationOptions<
     PipelinesUpdatePipelineRevisionResponse,
     AxiosError<PipelinesUpdatePipelineRevisionError>,
     Options<PipelinesUpdatePipelineRevisionData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await pipelinesUpdatePipelineRevision({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -840,18 +930,27 @@ export const pipelinesUpdatePipelineRevisionMutation = (
   return mutationOptions
 }
 
+/**
+ * Update Pipeline Revision Positions
+ *
+ * Update operator positions for a specific pipeline revision.
+ */
 export const pipelinesUpdatePipelineRevisionPositionsMutation = (
   options?: Partial<Options<PipelinesUpdatePipelineRevisionPositionsData>>,
-) => {
+): UseMutationOptions<
+  PipelinesUpdatePipelineRevisionPositionsResponse,
+  AxiosError<PipelinesUpdatePipelineRevisionPositionsError>,
+  Options<PipelinesUpdatePipelineRevisionPositionsData>
+> => {
   const mutationOptions: UseMutationOptions<
     PipelinesUpdatePipelineRevisionPositionsResponse,
     AxiosError<PipelinesUpdatePipelineRevisionPositionsError>,
     Options<PipelinesUpdatePipelineRevisionPositionsData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await pipelinesUpdatePipelineRevisionPositions({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -860,39 +959,27 @@ export const pipelinesUpdatePipelineRevisionPositionsMutation = (
   return mutationOptions
 }
 
-export const pipelinesDuplicatePipelineQueryKey = (
-  options: Options<PipelinesDuplicatePipelineData>,
-) => createQueryKey("pipelinesDuplicatePipeline", options)
-
-export const pipelinesDuplicatePipelineOptions = (
-  options: Options<PipelinesDuplicatePipelineData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await pipelinesDuplicatePipeline({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: pipelinesDuplicatePipelineQueryKey(options),
-  })
-}
-
+/**
+ * Duplicate Pipeline
+ *
+ * Duplicate a pipeline with all its revisions.
+ */
 export const pipelinesDuplicatePipelineMutation = (
   options?: Partial<Options<PipelinesDuplicatePipelineData>>,
-) => {
+): UseMutationOptions<
+  PipelinesDuplicatePipelineResponse,
+  AxiosError<PipelinesDuplicatePipelineError>,
+  Options<PipelinesDuplicatePipelineData>
+> => {
   const mutationOptions: UseMutationOptions<
     PipelinesDuplicatePipelineResponse,
     AxiosError<PipelinesDuplicatePipelineError>,
     Options<PipelinesDuplicatePipelineData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await pipelinesDuplicatePipeline({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -905,10 +992,20 @@ export const pipelinesListPipelineDeploymentsQueryKey = (
   options: Options<PipelinesListPipelineDeploymentsData>,
 ) => createQueryKey("pipelinesListPipelineDeployments", options)
 
+/**
+ * List Pipeline Deployments
+ *
+ * List deployments for a pipeline.
+ */
 export const pipelinesListPipelineDeploymentsOptions = (
   options: Options<PipelinesListPipelineDeploymentsData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    PipelinesListPipelineDeploymentsResponse,
+    AxiosError<PipelinesListPipelineDeploymentsError>,
+    PipelinesListPipelineDeploymentsResponse,
+    ReturnType<typeof pipelinesListPipelineDeploymentsQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await pipelinesListPipelineDeployments({
         ...options,
@@ -920,17 +1017,21 @@ export const pipelinesListPipelineDeploymentsOptions = (
     },
     queryKey: pipelinesListPipelineDeploymentsQueryKey(options),
   })
-}
 
 export const pipelinesListPipelineDeploymentsInfiniteQueryKey = (
   options: Options<PipelinesListPipelineDeploymentsData>,
 ): QueryKey<Options<PipelinesListPipelineDeploymentsData>> =>
   createQueryKey("pipelinesListPipelineDeployments", options, true)
 
+/**
+ * List Pipeline Deployments
+ *
+ * List deployments for a pipeline.
+ */
 export const pipelinesListPipelineDeploymentsInfiniteOptions = (
   options: Options<PipelinesListPipelineDeploymentsData>,
-) => {
-  return infiniteQueryOptions<
+) =>
+  infiniteQueryOptions<
     PipelinesListPipelineDeploymentsResponse,
     AxiosError<PipelinesListPipelineDeploymentsError>,
     InfiniteData<PipelinesListPipelineDeploymentsResponse>,
@@ -968,16 +1069,25 @@ export const pipelinesListPipelineDeploymentsInfiniteOptions = (
       queryKey: pipelinesListPipelineDeploymentsInfiniteQueryKey(options),
     },
   )
-}
 
 export const pipelinesListPipelineRevisionDeploymentsQueryKey = (
   options: Options<PipelinesListPipelineRevisionDeploymentsData>,
 ) => createQueryKey("pipelinesListPipelineRevisionDeployments", options)
 
+/**
+ * List Pipeline Revision Deployments
+ *
+ * List all deployments for a specific pipeline revision.
+ */
 export const pipelinesListPipelineRevisionDeploymentsOptions = (
   options: Options<PipelinesListPipelineRevisionDeploymentsData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    PipelinesListPipelineRevisionDeploymentsResponse,
+    AxiosError<PipelinesListPipelineRevisionDeploymentsError>,
+    PipelinesListPipelineRevisionDeploymentsResponse,
+    ReturnType<typeof pipelinesListPipelineRevisionDeploymentsQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await pipelinesListPipelineRevisionDeployments({
         ...options,
@@ -989,17 +1099,21 @@ export const pipelinesListPipelineRevisionDeploymentsOptions = (
     },
     queryKey: pipelinesListPipelineRevisionDeploymentsQueryKey(options),
   })
-}
 
 export const pipelinesListPipelineRevisionDeploymentsInfiniteQueryKey = (
   options: Options<PipelinesListPipelineRevisionDeploymentsData>,
 ): QueryKey<Options<PipelinesListPipelineRevisionDeploymentsData>> =>
   createQueryKey("pipelinesListPipelineRevisionDeployments", options, true)
 
+/**
+ * List Pipeline Revision Deployments
+ *
+ * List all deployments for a specific pipeline revision.
+ */
 export const pipelinesListPipelineRevisionDeploymentsInfiniteOptions = (
   options: Options<PipelinesListPipelineRevisionDeploymentsData>,
-) => {
-  return infiniteQueryOptions<
+) =>
+  infiniteQueryOptions<
     PipelinesListPipelineRevisionDeploymentsResponse,
     AxiosError<PipelinesListPipelineRevisionDeploymentsError>,
     InfiniteData<PipelinesListPipelineRevisionDeploymentsResponse>,
@@ -1038,16 +1152,26 @@ export const pipelinesListPipelineRevisionDeploymentsInfiniteOptions = (
         pipelinesListPipelineRevisionDeploymentsInfiniteQueryKey(options),
     },
   )
-}
 
 export const deploymentsListPipelineDeploymentsQueryKey = (
   options?: Options<DeploymentsListPipelineDeploymentsData>,
 ) => createQueryKey("deploymentsListPipelineDeployments", options)
 
+/**
+ * List Pipeline Deployments
+ *
+ * Get all pipeline deployments accessible to the current user with pagination.
+ * Optionally filter by state.
+ */
 export const deploymentsListPipelineDeploymentsOptions = (
   options?: Options<DeploymentsListPipelineDeploymentsData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    DeploymentsListPipelineDeploymentsResponse,
+    AxiosError<DeploymentsListPipelineDeploymentsError>,
+    DeploymentsListPipelineDeploymentsResponse,
+    ReturnType<typeof deploymentsListPipelineDeploymentsQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await deploymentsListPipelineDeployments({
         ...options,
@@ -1059,17 +1183,22 @@ export const deploymentsListPipelineDeploymentsOptions = (
     },
     queryKey: deploymentsListPipelineDeploymentsQueryKey(options),
   })
-}
 
 export const deploymentsListPipelineDeploymentsInfiniteQueryKey = (
   options?: Options<DeploymentsListPipelineDeploymentsData>,
 ): QueryKey<Options<DeploymentsListPipelineDeploymentsData>> =>
   createQueryKey("deploymentsListPipelineDeployments", options, true)
 
+/**
+ * List Pipeline Deployments
+ *
+ * Get all pipeline deployments accessible to the current user with pagination.
+ * Optionally filter by state.
+ */
 export const deploymentsListPipelineDeploymentsInfiniteOptions = (
   options?: Options<DeploymentsListPipelineDeploymentsData>,
-) => {
-  return infiniteQueryOptions<
+) =>
+  infiniteQueryOptions<
     DeploymentsListPipelineDeploymentsResponse,
     AxiosError<DeploymentsListPipelineDeploymentsError>,
     InfiniteData<DeploymentsListPipelineDeploymentsResponse>,
@@ -1107,41 +1236,29 @@ export const deploymentsListPipelineDeploymentsInfiniteOptions = (
       queryKey: deploymentsListPipelineDeploymentsInfiniteQueryKey(options),
     },
   )
-}
 
-export const deploymentsCreatePipelineDeploymentQueryKey = (
-  options: Options<DeploymentsCreatePipelineDeploymentData>,
-) => createQueryKey("deploymentsCreatePipelineDeployment", options)
-
-export const deploymentsCreatePipelineDeploymentOptions = (
-  options: Options<DeploymentsCreatePipelineDeploymentData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await deploymentsCreatePipelineDeployment({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: deploymentsCreatePipelineDeploymentQueryKey(options),
-  })
-}
-
+/**
+ * Create Pipeline Deployment
+ *
+ * Create a new pipeline deployment and publish initialization event.
+ * State transitions are managed by the orchestrator.
+ */
 export const deploymentsCreatePipelineDeploymentMutation = (
   options?: Partial<Options<DeploymentsCreatePipelineDeploymentData>>,
-) => {
+): UseMutationOptions<
+  DeploymentsCreatePipelineDeploymentResponse,
+  AxiosError<DeploymentsCreatePipelineDeploymentError>,
+  Options<DeploymentsCreatePipelineDeploymentData>
+> => {
   const mutationOptions: UseMutationOptions<
     DeploymentsCreatePipelineDeploymentResponse,
     AxiosError<DeploymentsCreatePipelineDeploymentError>,
     Options<DeploymentsCreatePipelineDeploymentData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await deploymentsCreatePipelineDeployment({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -1154,10 +1271,20 @@ export const deploymentsReadPipelineDeploymentQueryKey = (
   options: Options<DeploymentsReadPipelineDeploymentData>,
 ) => createQueryKey("deploymentsReadPipelineDeployment", options)
 
+/**
+ * Read Pipeline Deployment
+ *
+ * Get pipeline deployment by ID.
+ */
 export const deploymentsReadPipelineDeploymentOptions = (
   options: Options<DeploymentsReadPipelineDeploymentData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    DeploymentsReadPipelineDeploymentResponse,
+    AxiosError<DeploymentsReadPipelineDeploymentError>,
+    DeploymentsReadPipelineDeploymentResponse,
+    ReturnType<typeof deploymentsReadPipelineDeploymentQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await deploymentsReadPipelineDeployment({
         ...options,
@@ -1169,20 +1296,28 @@ export const deploymentsReadPipelineDeploymentOptions = (
     },
     queryKey: deploymentsReadPipelineDeploymentQueryKey(options),
   })
-}
 
+/**
+ * Update Pipeline Deployment
+ *
+ * Update a pipeline deployment state and publish events for the orchestrator.
+ */
 export const deploymentsUpdatePipelineDeploymentMutation = (
   options?: Partial<Options<DeploymentsUpdatePipelineDeploymentData>>,
-) => {
+): UseMutationOptions<
+  DeploymentsUpdatePipelineDeploymentResponse,
+  AxiosError<DeploymentsUpdatePipelineDeploymentError>,
+  Options<DeploymentsUpdatePipelineDeploymentData>
+> => {
   const mutationOptions: UseMutationOptions<
     DeploymentsUpdatePipelineDeploymentResponse,
     AxiosError<DeploymentsUpdatePipelineDeploymentError>,
     Options<DeploymentsUpdatePipelineDeploymentData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await deploymentsUpdatePipelineDeployment({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -1191,39 +1326,27 @@ export const deploymentsUpdatePipelineDeploymentMutation = (
   return mutationOptions
 }
 
-export const deploymentsCreateOperatorEventQueryKey = (
-  options: Options<DeploymentsCreateOperatorEventData>,
-) => createQueryKey("deploymentsCreateOperatorEvent", options)
-
-export const deploymentsCreateOperatorEventOptions = (
-  options: Options<DeploymentsCreateOperatorEventData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await deploymentsCreateOperatorEvent({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: deploymentsCreateOperatorEventQueryKey(options),
-  })
-}
-
+/**
+ * Create Operator Event
+ *
+ * Publish an operator event for the specified deployment and operator.
+ */
 export const deploymentsCreateOperatorEventMutation = (
   options?: Partial<Options<DeploymentsCreateOperatorEventData>>,
-) => {
+): UseMutationOptions<
+  DeploymentsCreateOperatorEventResponse,
+  AxiosError<DeploymentsCreateOperatorEventError>,
+  Options<DeploymentsCreateOperatorEventData>
+> => {
   const mutationOptions: UseMutationOptions<
     DeploymentsCreateOperatorEventResponse,
     AxiosError<DeploymentsCreateOperatorEventError>,
     Options<DeploymentsCreateOperatorEventData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await deploymentsCreateOperatorEvent({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
@@ -1236,10 +1359,20 @@ export const operatorsReadOperatorsQueryKey = (
   options?: Options<OperatorsReadOperatorsData>,
 ) => createQueryKey("operatorsReadOperators", options)
 
+/**
+ * Read Operators
+ *
+ * Retrieve available operators. Use refresh=true to invalidate cache and fetch fresh data.
+ */
 export const operatorsReadOperatorsOptions = (
   options?: Options<OperatorsReadOperatorsData>,
-) => {
-  return queryOptions({
+) =>
+  queryOptions<
+    OperatorsReadOperatorsResponse,
+    AxiosError<OperatorsReadOperatorsError>,
+    OperatorsReadOperatorsResponse,
+    ReturnType<typeof operatorsReadOperatorsQueryKey>
+  >({
     queryFn: async ({ queryKey, signal }) => {
       const { data } = await operatorsReadOperators({
         ...options,
@@ -1251,41 +1384,28 @@ export const operatorsReadOperatorsOptions = (
     },
     queryKey: operatorsReadOperatorsQueryKey(options),
   })
-}
 
-export const agentsLaunchAgentQueryKey = (
-  options: Options<AgentsLaunchAgentData>,
-) => createQueryKey("agentsLaunchAgent", options)
-
-export const agentsLaunchAgentOptions = (
-  options: Options<AgentsLaunchAgentData>,
-) => {
-  return queryOptions({
-    queryFn: async ({ queryKey, signal }) => {
-      const { data } = await agentsLaunchAgent({
-        ...options,
-        ...queryKey[0],
-        signal,
-        throwOnError: true,
-      })
-      return data
-    },
-    queryKey: agentsLaunchAgentQueryKey(options),
-  })
-}
-
+/**
+ * Launch Agent
+ *
+ * Launch an agent remotely.
+ */
 export const agentsLaunchAgentMutation = (
   options?: Partial<Options<AgentsLaunchAgentData>>,
-) => {
+): UseMutationOptions<
+  unknown,
+  AxiosError<AgentsLaunchAgentError>,
+  Options<AgentsLaunchAgentData>
+> => {
   const mutationOptions: UseMutationOptions<
     unknown,
     AxiosError<AgentsLaunchAgentError>,
     Options<AgentsLaunchAgentData>
   > = {
-    mutationFn: async (localOptions) => {
+    mutationFn: async (fnOptions) => {
       const { data } = await agentsLaunchAgent({
         ...options,
-        ...localOptions,
+        ...fnOptions,
         throwOnError: true,
       })
       return data
