@@ -297,14 +297,43 @@ def create_pipeline(
     """
     Create new pipeline.
     """
+    try:
+        CanonicalPipelineData(**pipeline_in.data)
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid pipeline data: {str(e)}")
+
     pipeline = Pipeline.model_validate(
         pipeline_in, update={"owner_id": current_user.id}
     )
     session.add(pipeline)
-    session.commit()
-    session.refresh(pipeline)
-    pipeline = PipelinePublic.model_validate(pipeline)
-    return pipeline
+    session.flush()
+    if pipeline.id is None:
+        session.rollback()
+        raise HTTPException(status_code=500, detail="Failed to create pipeline.")
+    pipeline_id = pipeline.id
+
+    revision = PipelineRevision(
+        pipeline_id=pipeline_id,
+        revision_id=0,
+        data=pipeline_in.data,
+    )
+    session.add(revision)
+
+    try:
+        CanonicalPipeline(id=pipeline_id, revision_id=0, **revision.data)
+    except ValidationError as e:
+        session.rollback()
+        raise HTTPException(status_code=400, detail=f"Invalid pipeline data: {str(e)}")
+
+    try:
+        session.commit()
+        session.refresh(pipeline)
+    except Exception as e:
+        session.rollback()
+        logger.error(f"Error creating pipeline: {e}")
+        raise HTTPException(status_code=500, detail="Failed to create pipeline.")
+
+    return PipelinePublic.model_validate(pipeline)
 
 
 @router.delete("/{id}")
