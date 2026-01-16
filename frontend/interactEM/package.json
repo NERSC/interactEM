@@ -37,7 +37,7 @@
     "@mui/x-date-pickers": "^8.22.1",
     "@nats-io/jetstream": "^3.0.0-37",
     "@nats-io/kv": "^3.0.0-31",
-    "@nats-io/nats-core": "^3.0.0-50",
+    "@nats-io/nats-core": "^3.3.0",
     "@radix-ui/react-icons": "^1.3.0",
     "@xyflow/react": "^12.10.0",
     "axios": "^1.13.2",
