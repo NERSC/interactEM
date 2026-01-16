@@ -6,10 +6,10 @@ GIT_ROOT_DIR=$(git rev-parse --show-toplevel)
 FAILED_DIR=""
 
 # Error handler
-trap 'error_handler' ERR
+trap 'error_handler ${LINENO:-"unknown"}' ERR
 
 error_handler() {
-    local line_num=$1
+    local line_num=${1:-"unknown"}
     echo "❌ Error in $FAILED_DIR at line $line_num" >&2
     exit 1
 }
