@@ -9,6 +9,7 @@ import {
 import { useCallback, useRef, useState } from "react"
 import { useActivePipeline } from "../../hooks/api/useActivePipeline"
 import { usePipelineStore } from "../../stores"
+import { NatsStatusIndicator } from "../natsstatus"
 import { DeletePipelineButton } from "./deletebutton"
 import { HudListButton } from "./hudlistbutton"
 import { LaunchPipelineButton } from "./launchbutton"
@@ -126,8 +127,12 @@ export const HudComposer: React.FC = () => {
           onClick={handleTogglePipelineDrawer}
         />
 
-        {/* Pipeline content */}
-        {pipelineDisplayContent()}
+        <Box sx={{ display: "flex", alignItems: "center", flex: 1 }}>
+          {/* Pipeline content */}
+          {pipelineDisplayContent()}
+        </Box>
+
+        <NatsStatusIndicator />
       </Box>
 
       {/* Pipeline List Drawer */}
