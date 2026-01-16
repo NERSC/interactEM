@@ -44,6 +44,11 @@ class ImageDisplay(AsyncOperator):
         except Exception as exc:  # noqa: BLE001
             logger.warning(f"Failed to purge image stream for '{subject}': {exc}")
 
+    async def initialize_operator(self):
+        info = await super().initialize_operator()
+        await self._purge_image_stream()
+        return info
+
     async def kernel(
         self, inputs: BytesMessage | None, parameters: dict[str, Any]
     ) -> None:
@@ -59,11 +64,6 @@ class ImageDisplay(AsyncOperator):
 
         # Publish the image to the frontend
         await self._publish_image(image_data)
-
-    async def shutdown(self):
-        await self._purge_image_stream()
-        await super().shutdown()
-
 
 async def async_main():
     op = ImageDisplay()
