@@ -28,7 +28,7 @@ interface OperatorToolbarProps {
   image: string
   parameters?: OperatorSpecParameter[] | null
   triggers?: OperatorSpecTrigger[] | null
-  nodeRef: React.RefObject<HTMLDivElement>
+  nodeRef: React.RefObject<HTMLDivElement | null>
 }
 
 const OperatorToolbar: React.FC<OperatorToolbarProps> = ({

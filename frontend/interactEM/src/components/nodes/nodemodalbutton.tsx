@@ -3,7 +3,7 @@ import type React from "react"
 import { AnchoredOperatorModal, useNodeAnchoredModal } from "./nodemodal"
 
 interface NodeModalButtonProps {
-  nodeRef: React.RefObject<HTMLDivElement>
+  nodeRef: React.RefObject<HTMLDivElement | null>
   icon: React.ReactNode
   label: string
   title: string | null

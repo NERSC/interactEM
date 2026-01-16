@@ -8,7 +8,7 @@ import ParameterUpdater from "./parameterupdater"
 const ParametersButton: React.FC<{
   operatorID: string
   parameters: OperatorSpecParameter[]
-  nodeRef: React.RefObject<HTMLDivElement>
+  nodeRef: React.RefObject<HTMLDivElement | null>
 }> = ({ operatorID, parameters, nodeRef }) => {
   return (
     <NodeModalButton

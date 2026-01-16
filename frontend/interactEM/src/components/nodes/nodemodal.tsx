@@ -3,7 +3,7 @@ import type React from "react"
 import { useCallback, useState } from "react"
 
 type UseNodeAnchoredModalArgs = {
-  nodeRef: React.RefObject<HTMLDivElement>
+  nodeRef: React.RefObject<HTMLDivElement | null>
   offsetY?: number
 }
 
