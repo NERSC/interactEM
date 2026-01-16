@@ -1,8 +1,8 @@
 import type { Consumer, ConsumerConfig } from "@nats-io/jetstream"
 import { JetStreamError } from "@nats-io/jetstream"
-import { DrainingConnectionError } from "@nats-io/nats-core/internal"
 import { useEffect, useRef, useState } from "react"
 import { useNats } from "../../contexts/nats"
+import { isConnectionError } from "./natsErrors"
 
 interface UseConsumerOptions {
   stream: string
@@ -13,22 +13,24 @@ export const useConsumer = ({
   stream,
   config,
 }: UseConsumerOptions): Consumer | null => {
-  const { jetStreamClient, jetStreamManager } = useNats()
+  const { jetStreamClient, jetStreamManager, isConnected } = useNats()
   const [consumer, setConsumer] = useState<Consumer | null>(null)
-  const isMounted = useRef(true)
-  // Ref to hold the current consumer instance across renders
+  const isMountedRef = useRef(true)
   const consumerRef = useRef<Consumer | null>(null)
 
   useEffect(() => {
     // Mark component as mounted when effect runs
-    isMounted.current = true
+    isMountedRef.current = true
+    // Create abort signal for this effect instance to handle race conditions
+    // when connection drops mid-create and reconnects before promise settles
+    const abortController = new AbortController()
 
     // If config is null, clear the consumer
     if (!config) {
       const consumerToDelete = consumerRef.current
       if (consumerToDelete) {
         consumerToDelete.delete().catch((error) => {
-          if (!(error instanceof DrainingConnectionError)) {
+          if (!isConnectionError(error)) {
             console.error("Error deleting consumer:", error)
           }
         })
@@ -47,8 +49,8 @@ export const useConsumer = ({
           consumerRef.current = null
         }
       } catch (error) {
-        if (error instanceof DrainingConnectionError) {
-          // quietly ignore if connection is draining
+        if (isConnectionError(error)) {
+          // dont delete if we dont have a connection
           return
         }
         if (error instanceof JetStreamError) {
@@ -62,7 +64,9 @@ export const useConsumer = ({
     }
 
     const createConsumer = async () => {
-      if (!jetStreamManager || !jetStreamClient) return
+      if (!jetStreamManager || !jetStreamClient || !isConnected) {
+        return
+      }
 
       try {
         const consumerInfo = await jetStreamManager.consumers.add(
@@ -74,7 +78,13 @@ export const useConsumer = ({
           consumerInfo.name,
         )
 
-        if (isMounted.current) {
+        // Check if this effect instance was aborted before setting state
+        if (abortController.signal.aborted) {
+          await deleteConsumer(newConsumer)
+          return
+        }
+
+        if (isMountedRef.current) {
           setConsumer(newConsumer)
           consumerRef.current = newConsumer
         } else {
@@ -82,6 +92,14 @@ export const useConsumer = ({
           await deleteConsumer(newConsumer)
         }
       } catch (error) {
+        // Check if this effect instance was aborted before handling error
+        if (abortController.signal.aborted) {
+          return
+        }
+
+        if (isConnectionError(error)) {
+          return
+        }
         console.error(`Failed to create consumer in stream "${stream}":`, error)
       }
     }
@@ -89,18 +107,19 @@ export const useConsumer = ({
     createConsumer()
 
     return () => {
-      // Mark component as unmounted
-      isMounted.current = false
+      isMountedRef.current = false
+      abortController.abort()
       const consumerToDelete = consumerRef.current
 
       if (consumerToDelete) {
-        // Delete the consumer during cleanup
         deleteConsumer(consumerToDelete).catch((error) => {
-          console.error("Error deleting consumer during cleanup:", error)
+          if (!isConnectionError(error)) {
+            console.error("Error deleting consumer during cleanup:", error)
+          }
         })
       }
     }
-  }, [jetStreamManager, jetStreamClient, stream, config])
+  }, [jetStreamManager, jetStreamClient, stream, config, isConnected])
 
   return consumer
 }

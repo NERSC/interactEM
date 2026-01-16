@@ -1,5 +1,6 @@
 import type { Consumer, ConsumerMessages, JsMsg } from "@nats-io/jetstream"
 import { useEffect, useRef } from "react"
+import { isConnectionError } from "./natsErrors"
 
 interface UseConsumeMessagesOptions {
   consumer: Consumer | null
@@ -44,6 +45,10 @@ export const useConsumeMessages = ({
           message.ack()
         }
       } catch (consumeError) {
+        // Silently ignore connection lifecycle errors
+        if (isConnectionError(consumeError)) {
+          return
+        }
         if (!aborted) {
           console.error("Error consuming messages:", consumeError)
         }
@@ -56,12 +61,8 @@ export const useConsumeMessages = ({
     // Cleanup function
     return () => {
       aborted = true
-      // Properly close the message iterator to release resources
-      messagesIterator?.close().catch((err) => {
-        // Ignore errors during cleanup (e.g., connection already closed)
-        if (!aborted) {
-          console.error("Error closing message iterator:", err)
-        }
+      messagesIterator?.close().catch(() => {
+        // Ignore all errors during cleanup - connection may already be closed
       })
     }
   }, [consumer]) // Only re-run when consumer changes
