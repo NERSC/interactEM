@@ -1,7 +1,9 @@
 import { devices, defineConfig } from '@playwright/test';
 
-const port = process.env.PLAYWRIGHT_PORT ?? '5174';
+const port = process.env.PLAYWRIGHT_PORT ?? '5173';
 const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${port}`;
+const isCI = !!process.env.CI;
+const webServerCommand = `npm run dev -- --host --port ${port}`;
 
 export default defineConfig({
   testDir: './tests',
@@ -21,10 +23,10 @@ export default defineConfig({
     trace: 'on-first-retry',
   },
   webServer: {
-    command: `npm run dev -- --host --port ${port}`,
+    command: webServerCommand,
     url: baseURL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 60_000,
+    reuseExistingServer: true,
+    timeout: isCI ? 120_000 : 60_000,
   },
   projects: [
     {
