@@ -19,7 +19,7 @@ from interactem.operators.operator import operator
 
 logger = get_logger()
 
-
+# TODO: TEST GPU on NERSC. CPU is hard coded below!!
 def _detect_quantem_device() -> str:
     try:
         import torch  # quantem depends on torch
