@@ -25,14 +25,22 @@ class FrameHeader(msgspec.Struct):
     STEM_row_in_scan: int
     modules: list[int]
     frame_shape: tuple[int, int]
-    data_size_bytes: int
+    data_size_bytes: int | None = None
     frame_number: int | None = None
 
     dtype: NumpyDtype = NumpyDtype.uint32
 
+    def __post_init__(self):
+        if self.data_size_bytes is None:
+            self.data_size_bytes = self.frame_size_bytes
+
     @property
     def np_dtype(self) -> np.dtype:
         return np.dtype(self.dtype.value)
+
+    @property
+    def frame_size_bytes(self) -> int:
+        return int(np.prod(self.frame_shape)) * self.np_dtype.itemsize
 
     @property
     def scan_shape(self) -> tuple[int, int]:
@@ -75,7 +83,7 @@ class Frame:
 class BatchedFrameHeader(msgspec.Struct):
     scan_number: int
     headers: list[FrameHeader]
-    batch_size_bytes: int
+    batch_size_bytes: int | None = None
     total_batches: int | None = None
     total_frames: int | None = None
     current_batch_index: int | None = None
@@ -92,7 +100,9 @@ class BatchedFrameHeader(msgspec.Struct):
 
         # Validate cumulative data size
         total_size = sum(h.data_size_bytes for h in self.headers)
-        if total_size != self.batch_size_bytes:
+        if self.batch_size_bytes is None:
+            self.batch_size_bytes = total_size
+        elif total_size != self.batch_size_bytes:
             raise ValueError(
                 f"Cumulative data size does not match total header size: {total_size} != {self.batch_size_bytes}"
             )
