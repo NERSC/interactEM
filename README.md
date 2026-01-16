@@ -8,7 +8,6 @@
 
 <https://github.com/user-attachments/assets/85b669af-e4c6-4fe6-9ad3-b5cce26b1a08>
 
-
 ## Features
 
 - **Interactive Web Frontend**: Create data pipelines with a React-based frontend.
@@ -44,7 +43,7 @@
     GITHUB_TOKEN=your_personal_token
     ```
 
-    You can get a personal token from your [GitHub account settings](https://github.com/settings/tokens). Use a classic token with `read:packages`.
+    You can get a personal token from your [GitHub account settings](https://github.com/settings/tokens). Use a classic token with `read:packages`. This is optional, but required if you want to pull image information from the ghcr.io/nersc/interactem registry.
 
 ### Starting services
 
@@ -52,7 +51,7 @@
 
     ```bash
     make setup
-    # then fix your GITHUB_USERNAME/TOKEN in .env
+    # (optional) fix your GITHUB_USERNAME/TOKEN in .env
     make docker-up
     make operators
     ```
