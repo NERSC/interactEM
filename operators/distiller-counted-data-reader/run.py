@@ -34,7 +34,7 @@ def reader(
     global current_scan_id, cached_sparse_array
 
     scan_id = parameters.get("scan_id", None)
-    file_suffix = FileSuffix(parameters.get("file_suffix", "STANDARD"))
+    file_suffix = FileSuffix(parameters.get("file_suffix", ""))
     batch_size_mb = parameters.get("batch_size_mb", 1.0)
     cache_last_file = parameters.get("cache_last_file", False)
 

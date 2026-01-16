@@ -32,9 +32,9 @@
       "name": "file_suffix",
       "label": "File suffix",
       "type": "str-enum",
-      "default": "STANDARD",
-      "options": ["STANDARD", "CENTERED"],
-      "description": "The file suffix type.",
+      "default": "",
+      "options": ["", "CENTERED"],
+      "description": "The file suffix type. The default is empty.",
       "required": true
     },
     {
