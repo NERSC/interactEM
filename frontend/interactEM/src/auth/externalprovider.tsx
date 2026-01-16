@@ -1,7 +1,6 @@
-import { createClient } from "@hey-api/client-axios"
 import { CircularProgress } from "@mui/material"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { client, loginLoginWithExternalToken } from "../client"
+import { client, createClient, loginLoginWithExternalToken } from "../client"
 import { AUTH_QUERY_KEYS } from "../constants/tanstack"
 import { AuthContext, type AuthProviderProps, type AuthState } from "./base"
 
@@ -63,8 +62,10 @@ export default function ExternalAuthProvider({
 
   if (isSuccess) {
     client.setConfig({
-      auth: token.access_token,
       baseURL: apiBaseUrl,
+      headers: {
+        Authorization: `Bearer ${token.access_token}`,
+      },
     })
   }
 

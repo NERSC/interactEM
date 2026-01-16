@@ -6,6 +6,14 @@
   "files": {
     "ignore": ["node_modules", "dist"]
   },
+  "overrides": [
+    {
+      "include": ["src/client/generated/**"],
+      "linter": {
+        "enabled": false
+      }
+    }
+  ],
   "linter": {
     "enabled": true,
     "rules": {
