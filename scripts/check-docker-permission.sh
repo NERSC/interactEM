@@ -4,7 +4,8 @@
 if ! docker ps > /dev/null 2>&1; then
 	echo "Error: Unable to run 'docker ps' as current user" >&2
 	echo "" >&2
-	echo "You have two options:" >&2
+	echo "Is the docker daemon running? Check that first" >&2
+	echo "Otherwise you have two options:" >&2
 	echo "1. Run docker commands with sudo (e.g., 'sudo make docker-up')" >&2
 	echo "2. Configure Docker to run without sudo by following: https://docs.docker.com/engine/install/linux-postinstall/" >&2
 	echo "" >&2
