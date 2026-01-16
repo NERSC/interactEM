@@ -70,7 +70,7 @@ const TriggerCard: React.FC<{
 const TriggersButton: React.FC<{
   operatorID: string
   triggers: OperatorSpecTrigger[]
-  nodeRef: React.RefObject<HTMLDivElement>
+  nodeRef: React.RefObject<HTMLDivElement | null>
   disabled?: boolean
 }> = ({ operatorID, triggers, nodeRef, disabled = false }) => {
   return (

@@ -11,7 +11,7 @@ import NodeModalButton from "./nodemodalbutton"
 
 interface ParallelismButtonProps {
   operatorID: string
-  nodeRef: RefObject<HTMLDivElement>
+  nodeRef: RefObject<HTMLDivElement | null>
 }
 
 const ParallelismButton: React.FC<ParallelismButtonProps> = ({
