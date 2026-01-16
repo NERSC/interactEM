@@ -11,13 +11,23 @@ interface TableNodeBaseProps extends NodeProps<TableNodeType> {
   className?: string
 }
 
-const TableNodeBase = ({ id, data, className = "" }: TableNodeBaseProps) => {
+const TableNodeBase = ({
+  id,
+  data,
+  selected,
+  className = "",
+}: TableNodeBaseProps) => {
   const nodeRef = useRef<HTMLDivElement>(null)
   const tablePayload = useTableData(id)
   const { statusClass } = useRuntimeOperatorStatusStyles(id)
 
+  const selectionClass = selected ? "operator-selected" : ""
+
   return (
-    <Box ref={nodeRef} className={`operator ${className} ${statusClass}`}>
+    <Box
+      ref={nodeRef}
+      className={`operator ${className} ${statusClass} ${selectionClass}`}
+    >
       <Handles inputs={data.inputs} outputs={data.outputs} />
       <Typography variant="subtitle2">
         {tablePayload ? "" : "Waiting for table data..."}

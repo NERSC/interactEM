@@ -11,15 +11,25 @@ interface ImageNodeBaseProps extends NodeProps<ImageNodeType> {
   className?: string
 }
 
-const ImageNodeBase = ({ id, data, className = "" }: ImageNodeBaseProps) => {
+const ImageNodeBase = ({
+  id,
+  data,
+  selected,
+  className = "",
+}: ImageNodeBaseProps) => {
   const nodeRef = useRef<HTMLDivElement>(null)
   const imageData = useImage(id)
   const { statusClass } = useRuntimeOperatorStatusStyles(id)
 
   // TODO: the data containing the positions causes a re-render of the node.
 
+  const selectionClass = selected ? "operator-selected" : ""
+
   return (
-    <div className={`operator ${className} ${statusClass}`} ref={nodeRef}>
+    <div
+      className={`operator ${className} ${statusClass} ${selectionClass}`}
+      ref={nodeRef}
+    >
       <Handles inputs={data.inputs} outputs={data.outputs} />
       <Image imageData={imageData} />
       <OperatorToolbar

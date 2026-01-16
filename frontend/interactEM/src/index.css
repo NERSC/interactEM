@@ -302,6 +302,11 @@ body,
   box-shadow: 0 0 0 2px #1976d2;
 }
 
+.operator-selected {
+  box-shadow: 0 0 0 2px #1976d2;
+  border-color: #1976d2;
+}
+
 .operator-count {
   color: #666;
   background-color: rgba(0, 0, 0, 0.05);
