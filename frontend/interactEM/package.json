@@ -50,8 +50,8 @@
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.66.0",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "zod": "^3.25.76"
   },
   "license": "LBNL BSD-3",
