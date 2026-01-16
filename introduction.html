@@ -369,7 +369,7 @@
 <span class="nv">GITHUB_TOKEN</span><span class="o">=</span>your_personal_token
 </pre></div>
 </div>
-<p>You can get a personal token from your <a class="reference external" href="https://github.com/settings/tokens">GitHub account settings</a>. Use a classic token with <code class="docutils literal notranslate"><span class="pre">read:packages</span></code>.</p>
+<p>You can get a personal token from your <a class="reference external" href="https://github.com/settings/tokens">GitHub account settings</a>. Use a classic token with <code class="docutils literal notranslate"><span class="pre">read:packages</span></code>. This is optional, but required if you want to pull image information from the ghcr.io/nersc/interactem registry.</p>
 </li>
 </ol>
 </section>
@@ -378,7 +378,7 @@
 <ol class="arabic">
 <li><p><strong>Quick start</strong></p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>make<span class="w"> </span>setup
-<span class="c1"># then fix your GITHUB_USERNAME/TOKEN in .env</span>
+<span class="c1"># (optional) then fix your GITHUB_USERNAME/TOKEN in .env</span>
 make<span class="w"> </span>docker-up
 make<span class="w"> </span>operators
 </pre></div>
