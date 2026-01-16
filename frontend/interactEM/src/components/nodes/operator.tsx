@@ -14,6 +14,7 @@ interface OperatorNodeBaseProps extends NodeProps<OperatorNodeType> {
 const OperatorNodeBase = ({
   id,
   data,
+  selected,
   className = "",
 }: OperatorNodeBaseProps) => {
   const nodeRef = useRef<HTMLDivElement>(null)
@@ -25,8 +26,13 @@ const OperatorNodeBase = ({
     statusClass = runtimeStatusClass
   }
 
+  const selectionClass = selected ? "operator-selected" : ""
+
   return (
-    <div className={`operator ${className} ${statusClass}`} ref={nodeRef}>
+    <div
+      className={`operator ${className} ${statusClass} ${selectionClass}`}
+      ref={nodeRef}
+    >
       <OperatorHeader id={id} label={data.label} />
       <Handles inputs={data.inputs} outputs={data.outputs} />
       <OperatorToolbar

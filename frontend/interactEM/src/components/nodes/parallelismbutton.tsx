@@ -123,7 +123,7 @@ const ParallelismButton: React.FC<ParallelismButtonProps> = ({
       <Stack spacing={1.5}>
         <Typography variant="body2" color="text.secondary">
           Control how many parallel copies of this operator will be launched
-          when the pipeline is deployed. 
+          when the pipeline is deployed.
         </Typography>
 
         <Typography variant="body2" color="text.secondary">
