@@ -5,6 +5,7 @@ import type { PipelineDeploymentPublic } from "../../client"
 import { useActivePipeline } from "../../hooks/api/useActivePipeline"
 import { useDeployment } from "../../hooks/api/useDeploymentsQuery"
 import { usePipelineStore } from "../../stores"
+import { NatsStatusIndicator } from "../natsstatus"
 import { DeploymentManagementPanel } from "./deploymentmanagementpanel"
 import { HudListButton } from "./hudlistbutton"
 import { HudRuntimeInfo } from "./hudruntimeinfo"
@@ -63,6 +64,8 @@ export const HudRunning: React.FC = () => {
           isLoading={loading}
           error={error}
         />
+
+        <NatsStatusIndicator />
       </Box>
 
       {/* Deployment Management Panel */}

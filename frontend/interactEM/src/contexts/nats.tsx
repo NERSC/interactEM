@@ -65,22 +65,26 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
     isConnected: false,
   })
 
-  const [natsConnection, setNatsConnection] = useState<NatsConnection | null>(
-    null,
-  )
   const { token, natsJwt, isAuthenticated } = useAuth()
   const tokenRef = useRef(token)
   const natsJwtRef = useRef(natsJwt)
+  const hasConnectedRef = useRef(false)
+  const connectionRef = useRef<NatsConnection | null>(null)
 
   useEffect(() => {
     tokenRef.current = token
   }, [token])
 
   useEffect(() => {
+    natsJwtRef.current = natsJwt
+  }, [natsJwt])
+
+  useEffect(() => {
     if (!isAuthenticated) {
       return
     }
-    async function setupNatsServices(nc: NatsConnection) {
+
+    async function setupNatsServices(nc: NatsConnection): Promise<boolean> {
       try {
         const js = jetstream(nc)
         const jsm = await jetstreamManager(nc)
@@ -93,11 +97,14 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
           keyValueManager: kvm,
           isConnected: true,
         })
+        return true
       } catch (error) {
         console.error("Failed to setup NATS services:", error)
         setState((prev) => ({ ...prev, isConnected: false }))
+        return false
       }
     }
+
     async function connect() {
       try {
         const servers = Array.isArray(natsServers) ? natsServers : [natsServers]
@@ -125,11 +132,20 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
           maxReconnectAttempts: 30,
         })
 
+        connectionRef.current = nc
         console.log("NATS connection successful")
 
-        setNatsConnection(nc)
-        await setupNatsServices(nc)
-
+        const setupOk = await setupNatsServices(nc)
+        if (!setupOk) {
+          try {
+            await nc.drain()
+          } catch (err) {
+            console.error("Error draining NATS connection:", err)
+          }
+          connectionRef.current = null
+          hasConnectedRef.current = false
+          return
+        }
         // natsConnection will cycle through the following status sequence when
         // it is disconnected:
         // 1. Error
@@ -145,11 +161,10 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
                 setState((prev) => ({ ...prev, isConnected: true }))
                 break
               case "error":
-                // TODO: handle error better, maybe with UI update
-                setState((prev) => ({
-                  ...prev,
-                  isConnected: false,
-                }))
+              case "disconnect":
+              case "staleConnection":
+              case "close":
+                setState((prev) => ({ ...prev, isConnected: false }))
                 break
             }
           }
@@ -157,18 +172,33 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
       } catch (error) {
         console.error("Failed to connect to NATS:", error)
         setState((prev) => ({ ...prev, isConnected: false }))
+        hasConnectedRef.current = false
+        const nc = connectionRef.current
+        connectionRef.current = null
+        if (nc) {
+          try {
+            await nc.drain()
+          } catch (err) {
+            console.error("Error draining NATS connection:", err)
+          }
+        }
       }
     }
 
-    if (!natsConnection) {
+    if (!hasConnectedRef.current) {
+      hasConnectedRef.current = true
       connect()
     }
+
     return () => {
-      if (natsConnection) {
+      hasConnectedRef.current = false
+      const nc = connectionRef.current
+      connectionRef.current = null
+      if (nc) {
         console.log("Draining NATS connection")
         ;(async () => {
           try {
-            await natsConnection.drain()
+            await nc.drain()
             console.log("NATS connection drained and closed")
           } catch (err) {
             console.error("Error draining NATS connection:", err)
@@ -183,7 +213,7 @@ export const NatsProvider: React.FC<NatsProviderProps> = ({
         isConnected: false,
       })
     }
-  }, [isAuthenticated, natsConnection, natsServers])
+  }, [isAuthenticated, natsServers])
 
   if (!isAuthenticated) {
     return null
