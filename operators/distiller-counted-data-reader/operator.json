@@ -31,9 +31,10 @@
     {
       "name": "file_suffix",
       "label": "File suffix",
-      "type": "str",
+      "type": "str-enum",
       "default": "STANDARD",
-      "description": "The file suffix type (STANDARD or CENTERED).",
+      "options": ["STANDARD", "CENTERED"],
+      "description": "The file suffix type.",
       "required": true
     },
     {
