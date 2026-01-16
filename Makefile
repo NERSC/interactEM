@@ -109,7 +109,7 @@ lint: ## Run backend (ruff) and frontend (biome) linters
 	cd $(FRONTEND_DIR) && npx biome check \
 	    --formatter-enabled=true \
 	    --linter-enabled=true \
-	    --organize-imports-enabled=true \
+	    --assists-enabled=true \
 	    --write \
 	    ./src
 	$(call success,Linting complete)
