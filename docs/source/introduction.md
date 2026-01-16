@@ -52,7 +52,7 @@
     GITHUB_TOKEN=your_personal_token
     ```
 
-    You can get a personal token from your [GitHub account settings](https://github.com/settings/tokens). Use a classic token with `read:packages`.
+    You can get a personal token from your [GitHub account settings](https://github.com/settings/tokens). Use a classic token with `read:packages`. This is optional, but required if you want to pull image information from the ghcr.io/nersc/interactem registry.
 
 ### Starting services
 
@@ -60,7 +60,7 @@
 
     ```bash
     make setup
-    # then fix your GITHUB_USERNAME/TOKEN in .env
+    # (optional) then fix your GITHUB_USERNAME/TOKEN in .env
     make docker-up
     make operators
     ```
