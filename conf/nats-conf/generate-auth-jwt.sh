@@ -70,6 +70,12 @@ nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $FRONTEND_USER_NAME -o
 nsc generate creds --account $APP_ACCOUNT_NAME --name $BACKEND_USER_NAME -o $OUTDIR/$BACKEND_USER_NAME.creds
 nsc generate creds --account $APP_ACCOUNT_NAME --name $OPERATOR_USER_NAME -o $OUTDIR/$OPERATOR_USER_NAME.creds
 
+# Use the bearer frontend JWT as the default sentinel so clients can omit creds.
+DEFAULT_SENTINEL_JWT=$(sed -n '2p' "$OUTDIR/$FRONTEND_USER_NAME.creds")
+sed -i.bak "1i\\
+default_sentinel: \"$DEFAULT_SENTINEL_JWT\"
+" "$OUTDIR/$AUTH_CONF_FILENAME"
+
 # copy the signing keys (not the root keys) to the output directory
 OPERATOR_FILE=${ORG_NAME}.nk
 OPERATOR_SK_FILE=${ORG_NAME}_sk.nk
@@ -133,7 +139,6 @@ echo "-------"
 echo "CALLOUT"
 echo "-------"
 nsc describe account $CALLOUT_ACCOUNT_NAME
-nsc describe user $FRONTEND_USER_NAME
 nsc describe user $CALLOUT_USER_NAME
 
 
