@@ -42,7 +42,7 @@
     "@xyflow/react": "^12.10.0",
     "axios": "^1.13.2",
     "date-fns": "^4.1.0",
-    "react-hook-form": "^7.68.0",
+    "react-hook-form": "^7.71.1",
     "react-infinite-scroll-component": "^6.1.1",
     "react-toastify": "^11.0.3",
     "react-virtuoso": "^4.18.1",
