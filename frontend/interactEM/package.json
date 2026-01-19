@@ -68,7 +68,7 @@
     "@vitejs/plugin-react": "^5.1.2",
     "path": "^0.12.7",
     "playwright": "^1.57.0",
-    "rollup-plugin-visualizer": "^5.14.0",
+    "rollup-plugin-visualizer": "^6.0.5",
     "ts-morph": "^27.0.2",
     "tsx": "^4.19.0",
     "typescript": "^5.7.3",
