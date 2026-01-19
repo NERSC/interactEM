@@ -337,7 +337,6 @@ export const zCanonicalPort = z.object({
 export const zToken = z.object({
   access_token: z.string(),
   token_type: z.string().optional().default("bearer"),
-  nats_jwt: z.string(),
 })
 
 /**

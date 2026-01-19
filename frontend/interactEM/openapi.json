@@ -2091,11 +2091,10 @@
             "type": "string",
             "title": "Token Type",
             "default": "bearer"
-          },
-          "nats_jwt": { "type": "string", "title": "Nats Jwt" }
+          }
         },
         "type": "object",
-        "required": ["access_token", "nats_jwt"],
+        "required": ["access_token"],
         "title": "Token"
       },
       "TriggerInvocationMode": {
