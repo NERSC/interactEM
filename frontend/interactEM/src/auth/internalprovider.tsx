@@ -57,7 +57,6 @@ export default function InternalAuthProvider({
 
   const value: AuthState = {
     token: loginMutation.data?.access_token ?? null,
-    natsJwt: loginMutation.data?.nats_jwt ?? null,
     isAuthenticated: loginMutation.isSuccess,
     isLoading: loginMutation.isPending,
     error: loginMutation.error ?? null,
