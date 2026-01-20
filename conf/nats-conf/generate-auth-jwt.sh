@@ -99,7 +99,11 @@ CP_DIR=$THIS_DIR/out_jwt
 cp "$OUTDIR"/*.creds "$CP_DIR"/
 cp "$OUTDIR/$AUTH_CONF_FILENAME" "$CP_DIR/$AUTH_CONF_FILENAME"
 
-cp -r $OUTDIR $CP_DIR/raw_output
+rm -rf "$CP_DIR/raw_output"
+mkdir -p "$CP_DIR/raw_output"
+cp "$OUTDIR/$AUTH_CONF_FILENAME" "$CP_DIR/raw_output/$AUTH_CONF_FILENAME"
+cp -R "$OUTDIR/data" "$CP_DIR/raw_output/data"
+cp -R "$OUTDIR/config" "$CP_DIR/raw_output/config"
 
 # Create a tarball of raw_output (BusyBox compatible)
 rm -f $CP_DIR/raw_output.tar.gz
