@@ -24,12 +24,12 @@ fi
 
 mkdir -p "$THIS_DIR/out_jwt"
 exec > >(tee -i ${THIS_DIR}/out_jwt/output.log) 2>&1
-export TMPDIR=/tmp
-export OUTDIR=$TMPDIR/DA
-export XDG_CONFIG_HOME=$OUTDIR/config
-export XDG_DATA_HOME=$OUTDIR/data
+export NSC_WORK_DIR="/tmp/interactem-nsc-auth"
+export XDG_CONFIG_HOME="${NSC_WORK_DIR}/config"
+export XDG_DATA_HOME="${NSC_WORK_DIR}/data"
 
-rm -rf $OUTDIR
+rm -rf "$NSC_WORK_DIR"
+mkdir -p "$NSC_WORK_DIR"
 
 echo "---------------------"
 echo "Setting up NATS AuthN"
@@ -85,29 +85,29 @@ nsc edit authcallout --account $CALLOUT_ACCOUNT_NAME --allowed-account $APP_ACCO
 CALLOUT_ACCOUNT_XKEY=$(nsc describe account $CALLOUT_ACCOUNT_NAME --json | jq -r '.nats.authorization.xkey')
 
 # Generate configuration file
-nsc generate config --mem-resolver --config-file $OUTDIR/$AUTH_CONF_FILENAME
+nsc generate config --mem-resolver --config-file $NSC_WORK_DIR/$AUTH_CONF_FILENAME
 
 # Generate credentials for all of the users
-nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $CALLOUT_USER_NAME -o $OUTDIR/$CALLOUT_USER_NAME.creds
-nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $FRONTEND_USER_NAME -o $OUTDIR/$FRONTEND_USER_NAME.creds
-nsc generate creds --account $APP_ACCOUNT_NAME --name $BACKEND_USER_NAME -o $OUTDIR/$BACKEND_USER_NAME.creds
-nsc generate creds --account $APP_ACCOUNT_NAME --name $OPERATOR_USER_NAME -o $OUTDIR/$OPERATOR_USER_NAME.creds
-nsc generate creds --account $SYS_ACCOUNT_NAME --name $SYS_USER_NAME -o $OUTDIR/$SYS_USER_NAME.creds
+nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $CALLOUT_USER_NAME -o $NSC_WORK_DIR/$CALLOUT_USER_NAME.creds
+nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $FRONTEND_USER_NAME -o $NSC_WORK_DIR/$FRONTEND_USER_NAME.creds
+nsc generate creds --account $APP_ACCOUNT_NAME --name $BACKEND_USER_NAME -o $NSC_WORK_DIR/$BACKEND_USER_NAME.creds
+nsc generate creds --account $APP_ACCOUNT_NAME --name $OPERATOR_USER_NAME -o $NSC_WORK_DIR/$OPERATOR_USER_NAME.creds
+nsc generate creds --account $SYS_ACCOUNT_NAME --name $SYS_USER_NAME -o $NSC_WORK_DIR/$SYS_USER_NAME.creds
 
 # Use the bearer frontend JWT as the default sentinel so clients can omit creds.
-DEFAULT_SENTINEL_JWT=$(sed -n '2p' "$OUTDIR/$FRONTEND_USER_NAME.creds")
-printf '\ndefault_sentinel: "%s"\n' "$DEFAULT_SENTINEL_JWT" >> "$OUTDIR/$AUTH_CONF_FILENAME"
+DEFAULT_SENTINEL_JWT=$(sed -n '2p' "$NSC_WORK_DIR/$FRONTEND_USER_NAME.creds")
+printf '\ndefault_sentinel: "%s"\n' "$DEFAULT_SENTINEL_JWT" >> "$NSC_WORK_DIR/$AUTH_CONF_FILENAME"
 
 mkdir -p $THIS_DIR/out_jwt
 CP_DIR=$THIS_DIR/out_jwt
-cp "$OUTDIR"/*.creds "$CP_DIR"/
-cp "$OUTDIR/$AUTH_CONF_FILENAME" "$CP_DIR/$AUTH_CONF_FILENAME"
+cp "$NSC_WORK_DIR"/*.creds "$CP_DIR"/
+cp "$NSC_WORK_DIR/$AUTH_CONF_FILENAME" "$CP_DIR/$AUTH_CONF_FILENAME"
 
 rm -rf "$CP_DIR/raw_output"
 mkdir -p "$CP_DIR/raw_output"
-cp "$OUTDIR/$AUTH_CONF_FILENAME" "$CP_DIR/raw_output/$AUTH_CONF_FILENAME"
-cp -R "$OUTDIR/data" "$CP_DIR/raw_output/data"
-cp -R "$OUTDIR/config" "$CP_DIR/raw_output/config"
+cp "$NSC_WORK_DIR/$AUTH_CONF_FILENAME" "$CP_DIR/raw_output/$AUTH_CONF_FILENAME"
+cp -R "$NSC_WORK_DIR/data" "$CP_DIR/raw_output/data"
+cp -R "$NSC_WORK_DIR/config" "$CP_DIR/raw_output/config"
 
 # Create a tarball of raw_output and base64 encode it (for kubectl/helm)
 rm -f $CP_DIR/raw_output.tar.gz
