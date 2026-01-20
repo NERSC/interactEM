@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # put the nsc artifacts where we can find them
 THIS_DIR=$(dirname $0)
@@ -22,14 +22,19 @@ if [ -f "$AUTH_CONF_PATH" ]; then
     echo "auth.conf exists without default_sentinel, regenerating"
 fi
 
+mkdir -p "$THIS_DIR/out_jwt"
 exec > >(tee -i ${THIS_DIR}/out_jwt/output.log) 2>&1
-export TMPDIR=/tmp
-export OUTDIR=$TMPDIR/DA
-export XDG_CONFIG_HOME=$OUTDIR/config
-export XDG_DATA_HOME=$OUTDIR/data
-export NKEYS_PATH=$OUTDIR/nkeys
+export NSC_WORK_DIR="/tmp/interactem-nsc-auth"
+export XDG_CONFIG_HOME="${NSC_WORK_DIR}/config"
+export XDG_DATA_HOME="${NSC_WORK_DIR}/data"
+export NKEYS_PATH="${XDG_DATA_HOME}/nats/nsc/keys"
 
-rm -rf $OUTDIR
+rm -rf "$NSC_WORK_DIR"
+mkdir -p "$NSC_WORK_DIR"
+
+echo "---------------------"
+echo "Setting up NATS AuthN"
+echo "---------------------"
 
 # add an operator
 ORG_NAME=org
@@ -37,6 +42,12 @@ nsc add operator --name $ORG_NAME --sys --generate-signing-key
 nsc edit operator --require-signing-keys
 ORG_ACCOUNT=$(nsc describe operator $ORG_NAME --json | jq .sub -r)
 ORG_ACCOUNT_SK=$(nsc describe operator $ORG_NAME --json | jq -r '.nats.signing_keys[0]')
+
+## SYS ACCOUNT
+SYS_ACCOUNT_NAME=SYS
+SYS_ACCOUNT=$(nsc describe account $SYS_ACCOUNT_NAME --json | jq .sub -r)
+SYS_ACCOUNT_SK=$(nsc describe account $SYS_ACCOUNT_NAME --json | jq -r '.nats.signing_keys[0]')
+SYS_USER_NAME=sys
 
 ## APP ACCOUNT
 APP_ACCOUNT_NAME=APP
@@ -75,64 +86,65 @@ nsc edit authcallout --account $CALLOUT_ACCOUNT_NAME --allowed-account $APP_ACCO
 CALLOUT_ACCOUNT_XKEY=$(nsc describe account $CALLOUT_ACCOUNT_NAME --json | jq -r '.nats.authorization.xkey')
 
 # Generate configuration file
-nsc generate config --mem-resolver --config-file $OUTDIR/$AUTH_CONF_FILENAME
+nsc generate config --mem-resolver --config-file $NSC_WORK_DIR/$AUTH_CONF_FILENAME
 
 # Generate credentials for all of the users
-nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $CALLOUT_USER_NAME -o $OUTDIR/$CALLOUT_USER_NAME.creds
-nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $FRONTEND_USER_NAME -o $OUTDIR/$FRONTEND_USER_NAME.creds
-nsc generate creds --account $APP_ACCOUNT_NAME --name $BACKEND_USER_NAME -o $OUTDIR/$BACKEND_USER_NAME.creds
-nsc generate creds --account $APP_ACCOUNT_NAME --name $OPERATOR_USER_NAME -o $OUTDIR/$OPERATOR_USER_NAME.creds
+nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $CALLOUT_USER_NAME -o $NSC_WORK_DIR/$CALLOUT_USER_NAME.creds
+nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $FRONTEND_USER_NAME -o $NSC_WORK_DIR/$FRONTEND_USER_NAME.creds
+nsc generate creds --account $APP_ACCOUNT_NAME --name $BACKEND_USER_NAME -o $NSC_WORK_DIR/$BACKEND_USER_NAME.creds
+nsc generate creds --account $APP_ACCOUNT_NAME --name $OPERATOR_USER_NAME -o $NSC_WORK_DIR/$OPERATOR_USER_NAME.creds
+nsc generate creds --account $SYS_ACCOUNT_NAME --name $SYS_USER_NAME -o $NSC_WORK_DIR/$SYS_USER_NAME.creds
 
 # Use the bearer frontend JWT as the default sentinel so clients can omit creds.
-DEFAULT_SENTINEL_JWT=$(sed -n '2p' "$OUTDIR/$FRONTEND_USER_NAME.creds")
-printf '\ndefault_sentinel: "%s"\n' "$DEFAULT_SENTINEL_JWT" >> "$OUTDIR/$AUTH_CONF_FILENAME"
-
-# copy the signing keys (not the root keys) to the output directory
-OPERATOR_FILE=${ORG_NAME}.nk
-OPERATOR_SK_FILE=${ORG_NAME}_sk.nk
-CALLOUT_ACCOUNT_FILE=${CALLOUT_ACCOUNT_NAME}.nk
-CALLOUT_ACCOUNT_SK_FILE=${CALLOUT_ACCOUNT_NAME}_sk.nk
-CALLOUT_ACCOUNT_XKEY_FILE=${CALLOUT_ACCOUNT_NAME}_xkey.nk
-APP_ACCOUNT_FILE=${APP_ACCOUNT_NAME}.nk
-APP_ACCOUNT_SK_FILE=${APP_ACCOUNT_NAME}_sk.nk
-NSC_KEYS_BASE="$NKEYS_PATH/keys"
-
-cp "$NSC_KEYS_BASE/O/${ORG_ACCOUNT:1:2}/${ORG_ACCOUNT}.nk" $OUTDIR/$OPERATOR_FILE
-cp "$NSC_KEYS_BASE/O/${ORG_ACCOUNT_SK:1:2}/${ORG_ACCOUNT_SK}.nk" $OUTDIR/$OPERATOR_SK_FILE
-cp "$NSC_KEYS_BASE/A/${CALLOUT_ACCOUNT:1:2}/${CALLOUT_ACCOUNT}.nk" $OUTDIR/$CALLOUT_ACCOUNT_FILE
-cp "$NSC_KEYS_BASE/A/${CALLOUT_ACCOUNT_SK:1:2}/${CALLOUT_ACCOUNT_SK}.nk" $OUTDIR/$CALLOUT_ACCOUNT_SK_FILE
-cp "$NSC_KEYS_BASE/X/${CALLOUT_ACCOUNT_XKEY:1:2}/${CALLOUT_ACCOUNT_XKEY}.nk" $OUTDIR/$CALLOUT_ACCOUNT_XKEY_FILE
-cp "$NSC_KEYS_BASE/A/${APP_ACCOUNT:1:2}/${APP_ACCOUNT}.nk" $OUTDIR/$APP_ACCOUNT_FILE
-cp "$NSC_KEYS_BASE/A/${APP_ACCOUNT_SK:1:2}/${APP_ACCOUNT_SK}.nk" $OUTDIR/$APP_ACCOUNT_SK_FILE
+DEFAULT_SENTINEL_JWT=$(sed -n '2p' "$NSC_WORK_DIR/$FRONTEND_USER_NAME.creds")
+printf '\ndefault_sentinel: "%s"\n' "$DEFAULT_SENTINEL_JWT" >> "$NSC_WORK_DIR/$AUTH_CONF_FILENAME"
 
 mkdir -p $THIS_DIR/out_jwt
 CP_DIR=$THIS_DIR/out_jwt
-cp $OUTDIR/$OPERATOR_FILE $CP_DIR/$OPERATOR_FILE
-cp $OUTDIR/$OPERATOR_SK_FILE $CP_DIR/$OPERATOR_SK_FILE
-cp $OUTDIR/$CALLOUT_ACCOUNT_FILE $CP_DIR/$CALLOUT_ACCOUNT_FILE
-cp $OUTDIR/$CALLOUT_ACCOUNT_SK_FILE $CP_DIR/$CALLOUT_ACCOUNT_SK_FILE
-cp $OUTDIR/$APP_ACCOUNT_FILE $CP_DIR/$APP_ACCOUNT_FILE
-cp $OUTDIR/$CALLOUT_USER_NAME.creds $CP_DIR/$CALLOUT_USER_NAME.creds
-cp $OUTDIR/$FRONTEND_USER_NAME.creds $CP_DIR/$FRONTEND_USER_NAME.creds
-cp $OUTDIR/$BACKEND_USER_NAME.creds $CP_DIR/$BACKEND_USER_NAME.creds
-cp $OUTDIR/$OPERATOR_USER_NAME.creds $CP_DIR/$OPERATOR_USER_NAME.creds
-cp $OUTDIR/$AUTH_CONF_FILENAME $CP_DIR/$AUTH_CONF_FILENAME
-cp $OUTDIR/$CALLOUT_ACCOUNT_XKEY_FILE $CP_DIR/$CALLOUT_ACCOUNT_XKEY_FILE
-cp $OUTDIR/$APP_ACCOUNT_SK_FILE $CP_DIR/$APP_ACCOUNT_SK_FILE
+cp "$NSC_WORK_DIR"/*.creds "$CP_DIR"/
+cp "$NSC_WORK_DIR/$AUTH_CONF_FILENAME" "$CP_DIR/$AUTH_CONF_FILENAME"
 
-cp -r $OUTDIR $CP_DIR/raw_output
+NSC_KEYS_BASE="$XDG_DATA_HOME/nats/nsc/keys/keys"
+cp "$NSC_KEYS_BASE/A/${APP_ACCOUNT:1:2}/${APP_ACCOUNT}.nk" "$CP_DIR/APP.nk"
+cp "$NSC_KEYS_BASE/A/${APP_ACCOUNT_SK:1:2}/${APP_ACCOUNT_SK}.nk" "$CP_DIR/APP_sk.nk"
+cp "$NSC_KEYS_BASE/A/${CALLOUT_ACCOUNT:1:2}/${CALLOUT_ACCOUNT}.nk" "$CP_DIR/CALLOUT.nk"
+cp "$NSC_KEYS_BASE/A/${CALLOUT_ACCOUNT_SK:1:2}/${CALLOUT_ACCOUNT_SK}.nk" "$CP_DIR/CALLOUT_sk.nk"
+cp "$NSC_KEYS_BASE/X/${CALLOUT_ACCOUNT_XKEY:1:2}/${CALLOUT_ACCOUNT_XKEY}.nk" "$CP_DIR/CALLOUT_xkey.nk"
 
-# Create a tarball of raw_output (BusyBox compatible)
+rm -rf "$CP_DIR/raw_output"
+mkdir -p "$CP_DIR/raw_output"
+cp "$NSC_WORK_DIR/$AUTH_CONF_FILENAME" "$CP_DIR/raw_output/$AUTH_CONF_FILENAME"
+cp -R "$NSC_WORK_DIR/data" "$CP_DIR/raw_output/data"
+cp -R "$NSC_WORK_DIR/config" "$CP_DIR/raw_output/config"
+
+# Create a tarball of raw_output and base64 encode it (for kubectl/helm)
 rm -f $CP_DIR/raw_output.tar.gz
 tar -czf $CP_DIR/raw_output.tar.gz -C $CP_DIR/raw_output .
-base64 $CP_DIR/raw_output.tar.gz > $CP_DIR/raw_output.tar.gz.b64
+if base64 --help 2>&1 | grep -q -- "-w"; then
+    base64 -w 0 "$CP_DIR/raw_output.tar.gz" > "$CP_DIR/raw_output.tar.gz.b64"
+else
+    base64 -i "$CP_DIR/raw_output.tar.gz" -o "$CP_DIR/raw_output.tar.gz.b64"
+fi
 
 # Printout all the information
+echo -e "\n\n\n\n"
+echo "---------------"
+echo "Raw output tree"
+echo "---------------"
+tree "$CP_DIR/raw_output"
+
 echo -e "\n\n\n\n"
 echo "--------"
 echo "OPERATOR"
 echo "--------"
 nsc describe operator $ORG_NAME
+
+# SYS account
+echo -e "\n\n\n\n"
+echo "---"
+echo "SYS"
+echo "---"
+nsc describe account $SYS_ACCOUNT_NAME
 
 # APP account + its users
 echo -e "\n\n\n\n"
