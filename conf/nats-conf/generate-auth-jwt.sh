@@ -140,7 +140,7 @@ cp -r $OUTDIR $CP_DIR/raw_output
 # Create a tarball of raw_output (BusyBox compatible)
 rm -f $CP_DIR/raw_output.tar.gz
 tar -czf $CP_DIR/raw_output.tar.gz -C $CP_DIR/raw_output .
-base64 $CP_DIR/raw_output.tar.gz > $CP_DIR/raw_output.tar.gz.b64
+base64 -i $CP_DIR/raw_output.tar.gz -o $CP_DIR/raw_output.tar.gz.b64
 
 # Printout all the information
 echo -e "\n\n\n\n"
