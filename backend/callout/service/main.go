@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/aricart/callout.go"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/joho/godotenv"
@@ -21,6 +20,7 @@ import (
 	nslogger "github.com/nats-io/nats-server/v2/logger"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nkeys"
+	"github.com/synadia-io/callout.go"
 )
 
 type Config struct {

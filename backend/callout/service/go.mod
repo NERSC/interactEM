@@ -3,14 +3,14 @@ module distiller-callout
 go 1.24.0
 
 require (
-	github.com/aricart/callout.go v0.2.0
 	github.com/go-playground/validator/v10 v10.25.0
 	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/joho/godotenv v1.5.1
 	github.com/nats-io/jwt/v2 v2.7.3
 	github.com/nats-io/nats-server/v2 v2.11.1
-	github.com/nats-io/nats.go v1.39.1
+	github.com/nats-io/nats.go v1.40.1
 	github.com/nats-io/nkeys v0.4.10
+	github.com/synadia-io/callout.go v0.2.1
 )
 
 require (
