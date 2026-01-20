@@ -178,14 +178,15 @@ jobs:
 
       - name: Export digests
         if: github.event_name != 'pull_request'
+        env:
+          METADATA: ${{ steps.bake.outputs.metadata }}
+          SERVICES: ${{ needs.prepare.outputs.services }}
         run: |
           mkdir -p /tmp/digests
-          METADATA='${{ steps.bake.outputs.metadata }}'
-          SERVICES='${{ needs.prepare.outputs.services }}'
 
           # Iterate through each service and extract its digest
-          for service in $(echo "$SERVICES" | jq -r '.[]'); do
-            digest=$(echo "$METADATA" | jq -r ".\"${service}\"[\"containerimage.digest\"]")
+          for service in $(printf '%s' "$SERVICES" | jq -r '.[]'); do
+            digest=$(printf '%s' "$METADATA" | jq -r ".\"${service}\"[\"containerimage.digest\"]")
             if [ -n "$digest" ] && [ "$digest" != "null" ]; then
               mkdir -p "/tmp/digests/${service}"
               touch "/tmp/digests/${service}/${digest#sha256:}"
