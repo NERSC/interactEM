@@ -31,6 +31,10 @@ export XDG_DATA_HOME=$OUTDIR/data
 
 rm -rf $OUTDIR
 
+echo "---------------------"
+echo "Setting up NATS AuthN"
+echo "---------------------"
+
 # add an operator
 ORG_NAME=org
 nsc add operator --name $ORG_NAME --sys --generate-signing-key
@@ -111,6 +115,12 @@ tar -czf $CP_DIR/raw_output.tar.gz -C $CP_DIR/raw_output .
 base64 -i $CP_DIR/raw_output.tar.gz -o $CP_DIR/raw_output.tar.gz.b64
 
 # Printout all the information
+echo -e "\n\n\n\n"
+echo "---------------"
+echo "Raw output tree"
+echo "---------------"
+tree "$CP_DIR/raw_output"
+
 echo -e "\n\n\n\n"
 echo "--------"
 echo "OPERATOR"
