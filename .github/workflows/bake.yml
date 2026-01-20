@@ -5,6 +5,8 @@ on:
   push:
     branches: [ main ]
     tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ main ]
   workflow_dispatch:
 
 concurrency:
@@ -177,16 +179,21 @@ jobs:
           CACHE_PLATFORM: ${{ matrix.platform }}
 
       - name: Export digests
-        if: github.event_name != 'pull_request'
-        env:
-          METADATA: ${{ steps.bake.outputs.metadata }}
-          SERVICES: ${{ needs.prepare.outputs.services }}
+        # if: github.event_name != 'pull_request'
         run: |
           mkdir -p /tmp/digests
+          metadata_file=$(mktemp)
+          services_file=$(mktemp)
+          cat > "$metadata_file" <<'EOF'
+          ${{ steps.bake.outputs.metadata }}
+          EOF
+          cat > "$services_file" <<'EOF'
+          ${{ needs.prepare.outputs.services }}
+          EOF
 
           # Iterate through each service and extract its digest
-          for service in $(printf '%s' "$SERVICES" | jq -r '.[]'); do
-            digest=$(printf '%s' "$METADATA" | jq -r ".\"${service}\"[\"containerimage.digest\"]")
+          for service in $(jq -r '.[]' "$services_file"); do
+            digest=$(jq -r ".\"${service}\"[\"containerimage.digest\"]" "$metadata_file")
             if [ -n "$digest" ] && [ "$digest" != "null" ]; then
               mkdir -p "/tmp/digests/${service}"
               touch "/tmp/digests/${service}/${digest#sha256:}"

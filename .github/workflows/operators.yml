@@ -140,16 +140,21 @@ jobs:
           TAG: ${{ needs.prepare.outputs.version }}
 
       - name: Export digests
-        if: github.event_name != 'pull_request'
-        env:
-          METADATA: ${{ steps.bake.outputs.metadata }}
-          OPERATORS: ${{ needs.prepare.outputs.operators }}
+        # if: github.event_name != 'pull_request'
         run: |
           mkdir -p /tmp/digests
+          metadata_file=$(mktemp)
+          operators_file=$(mktemp)
+          cat > "$metadata_file" <<'EOF'
+          ${{ steps.bake.outputs.metadata }}
+          EOF
+          cat > "$operators_file" <<'EOF'
+          ${{ needs.prepare.outputs.operators }}
+          EOF
 
           # Iterate through each operator and extract its digest
-          for operator in $(printf '%s' "$OPERATORS" | jq -r '.[]'); do
-            digest=$(printf '%s' "$METADATA" | jq -r ".\"${operator}\"[\"containerimage.digest\"]")
+          for operator in $(jq -r '.[]' "$operators_file"); do
+            digest=$(jq -r ".\"${operator}\"[\"containerimage.digest\"]" "$metadata_file")
             if [ -n "$digest" ] && [ "$digest" != "null" ]; then
               # Create a file for each operator with its digest
               mkdir -p "/tmp/digests/${operator}"
