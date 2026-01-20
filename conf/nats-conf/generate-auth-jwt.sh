@@ -109,7 +109,7 @@ cp "$OUTDIR/$AUTH_CONF_FILENAME" "$CP_DIR/raw_output/$AUTH_CONF_FILENAME"
 cp -R "$OUTDIR/data" "$CP_DIR/raw_output/data"
 cp -R "$OUTDIR/config" "$CP_DIR/raw_output/config"
 
-# Create a tarball of raw_output (BusyBox compatible)
+# Create a tarball of raw_output and base64 encode it (for kubectl/helm)
 rm -f $CP_DIR/raw_output.tar.gz
 tar -czf $CP_DIR/raw_output.tar.gz -C $CP_DIR/raw_output .
 base64 -i $CP_DIR/raw_output.tar.gz -o $CP_DIR/raw_output.tar.gz.b64
