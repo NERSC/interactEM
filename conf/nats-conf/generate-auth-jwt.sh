@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # put the nsc artifacts where we can find them
 THIS_DIR=$(dirname $0)
