@@ -9,6 +9,14 @@ type NatsStatus = {
   tooltip: string
 }
 
+export const NATS_STATUS_TOOLTIPS = {
+  disconnected: "NATS is not connected",
+  draining: "NATS connection is draining",
+  closed: "NATS connection is closed",
+  connected: "NATS connection is active",
+  connecting: "NATS connection is establishing",
+} as const
+
 const getNatsStatus = (
   connection: NatsConnection | null,
   isConnected: boolean,
@@ -17,7 +25,7 @@ const getNatsStatus = (
     return {
       color: "error",
       label: "Disconnected",
-      tooltip: "NATS is not connected",
+      tooltip: NATS_STATUS_TOOLTIPS.disconnected,
     }
   }
 
@@ -25,7 +33,7 @@ const getNatsStatus = (
     return {
       color: "warning",
       label: "Draining",
-      tooltip: "NATS connection is draining",
+      tooltip: NATS_STATUS_TOOLTIPS.draining,
     }
   }
 
@@ -33,7 +41,7 @@ const getNatsStatus = (
     return {
       color: "error",
       label: "Closed",
-      tooltip: "NATS connection is closed",
+      tooltip: NATS_STATUS_TOOLTIPS.closed,
     }
   }
 
@@ -41,14 +49,14 @@ const getNatsStatus = (
     return {
       color: "success",
       label: "Connected",
-      tooltip: "NATS connection is active",
+      tooltip: NATS_STATUS_TOOLTIPS.connected,
     }
   }
 
   return {
     color: "warning",
     label: "Connecting",
-    tooltip: "NATS connection is establishing",
+    tooltip: NATS_STATUS_TOOLTIPS.connecting,
   }
 }
 
