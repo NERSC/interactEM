@@ -22,6 +22,7 @@ if [ -f "$AUTH_CONF_PATH" ]; then
     echo "auth.conf exists without default_sentinel, regenerating"
 fi
 
+mkdir -p "$THIS_DIR/out_jwt"
 exec > >(tee -i ${THIS_DIR}/out_jwt/output.log) 2>&1
 export TMPDIR=/tmp
 export OUTDIR=$TMPDIR/DA
