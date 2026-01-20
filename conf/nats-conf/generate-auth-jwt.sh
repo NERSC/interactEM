@@ -27,6 +27,7 @@ exec > >(tee -i ${THIS_DIR}/out_jwt/output.log) 2>&1
 export NSC_WORK_DIR="/tmp/interactem-nsc-auth"
 export XDG_CONFIG_HOME="${NSC_WORK_DIR}/config"
 export XDG_DATA_HOME="${NSC_WORK_DIR}/data"
+export NKEYS_PATH="${XDG_DATA_HOME}/nats/nsc/keys"
 
 rm -rf "$NSC_WORK_DIR"
 mkdir -p "$NSC_WORK_DIR"
