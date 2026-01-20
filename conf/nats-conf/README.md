@@ -45,10 +45,10 @@ sequenceDiagram
 The script generates the following artifacts to `./out_jwt`:
 
 - `auth.conf`: configuration generated after all accounts are added, imported in nats cluster configuration files
-- `APP.nk`: ___APP___ `account` private NKEY. Used to extract public NKEY and assign it to users (IssuerAccount).
+- `APP.pub`: ___APP___ `account` public NKEY. Used to assign users to the APP account (IssuerAccount).
 - `APP_sk.nk`: ___APP___ `account` signing private NKEY. Used to sign users in auth callout.
-- `CALLOUT.nk`: ___CALLOUT___ `account` private NKEY. Used to sign auth callout responses.
-- `CALLOUT_sk.nk`: ___CALLOUT___ `account` signing private NKEY. Currently doesn't do anything
+- `CALLOUT.pub`: ___CALLOUT___ `account` public NKEY. Used as the auth callout response issuer.
+- `CALLOUT_sk.nk`: ___CALLOUT___ `account` signing private NKEY. Used to sign auth callout responses.
 - `CALLOUT_xkey.nk`: ___CALLOUT___ `account` encryption NKEY
 - `backend.creds`: backend `user` credentials used by backend services (FastAPI, orchestrator, agents)
 - `callout.creds`: callout `user` credentials used by callout service
