@@ -196,23 +196,23 @@ func main() {
 }
 
 func VerifyTokenLocally(token string, secretKeys []string, algorithm string) (*jwt.Token, error) {
-    var lastErr error
-    
-    for _, secretKey := range secretKeys {
-        parsedToken, err := jwt.Parse(token, func(pToken *jwt.Token) (interface{}, error) {
-            if pToken.Method.Alg() != algorithm {
-                return nil, fmt.Errorf("unexpected signing method: %v", pToken.Header["alg"])
-            }
-            return []byte(secretKey), nil
-        })
+	var lastErr error
 
-        if err == nil && parsedToken.Valid {
-            return parsedToken, nil
-        }
-        lastErr = err
-    }
+	for _, secretKey := range secretKeys {
+		parsedToken, err := jwt.Parse(token, func(pToken *jwt.Token) (interface{}, error) {
+			if pToken.Method.Alg() != algorithm {
+				return nil, fmt.Errorf("unexpected signing method: %v", pToken.Header["alg"])
+			}
+			return []byte(secretKey), nil
+		})
 
-    return nil, fmt.Errorf("failed to verify token with any key: %v", lastErr)
+		if err == nil && parsedToken.Valid {
+			return parsedToken, nil
+		}
+		lastErr = err
+	}
+
+	return nil, fmt.Errorf("failed to verify token with any key: %v", lastErr)
 }
 
 func VerifyToken(token string, verificationUrl string) error {
