@@ -797,10 +797,6 @@ export type Token = {
    * Token Type
    */
   token_type?: string
-  /**
-   * Nats Jwt
-   */
-  nats_jwt: string
 }
 
 /**

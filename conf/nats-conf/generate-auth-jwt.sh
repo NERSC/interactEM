@@ -2,10 +2,24 @@
 
 # put the nsc artifacts where we can find them
 THIS_DIR=$(dirname $0)
+AUTH_CONF_FILENAME=auth.conf
+AUTH_CONF_PATH="${THIS_DIR}/out_jwt/${AUTH_CONF_FILENAME}"
+FRONTEND_CREDS_PATH="${THIS_DIR}/out_jwt/frontend.creds"
 
-if [ -f "${THIS_DIR}/out_jwt/auth.conf" ]; then
-    echo "NATS configuration already exists, skipping generation"
-    exit 0
+if [ -f "$AUTH_CONF_PATH" ]; then
+    if grep -q "^default_sentinel:" "$AUTH_CONF_PATH"; then
+        echo "NATS configuration already exists with default_sentinel, skipping generation"
+        exit 0
+    fi
+    if [ -f "$FRONTEND_CREDS_PATH" ]; then
+        DEFAULT_SENTINEL_JWT=$(sed -n '2p' "$FRONTEND_CREDS_PATH")
+        if [ -n "$DEFAULT_SENTINEL_JWT" ]; then
+            printf '\ndefault_sentinel: "%s"\n' "$DEFAULT_SENTINEL_JWT" >> "$AUTH_CONF_PATH"
+            echo "Added default_sentinel to existing auth.conf"
+            exit 0
+        fi
+    fi
+    echo "auth.conf exists without default_sentinel, regenerating"
 fi
 
 exec > >(tee -i ${THIS_DIR}/out_jwt/output.log) 2>&1
@@ -61,7 +75,6 @@ nsc edit authcallout --account $CALLOUT_ACCOUNT_NAME --allowed-account $APP_ACCO
 CALLOUT_ACCOUNT_XKEY=$(nsc describe account $CALLOUT_ACCOUNT_NAME --json | jq -r '.nats.authorization.xkey')
 
 # Generate configuration file
-AUTH_CONF_FILENAME=auth.conf
 nsc generate config --mem-resolver --config-file $OUTDIR/$AUTH_CONF_FILENAME
 
 # Generate credentials for all of the users
@@ -69,6 +82,10 @@ nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $CALLOUT_USER_NAME -o 
 nsc generate creds --account $CALLOUT_ACCOUNT_NAME --name $FRONTEND_USER_NAME -o $OUTDIR/$FRONTEND_USER_NAME.creds
 nsc generate creds --account $APP_ACCOUNT_NAME --name $BACKEND_USER_NAME -o $OUTDIR/$BACKEND_USER_NAME.creds
 nsc generate creds --account $APP_ACCOUNT_NAME --name $OPERATOR_USER_NAME -o $OUTDIR/$OPERATOR_USER_NAME.creds
+
+# Use the bearer frontend JWT as the default sentinel so clients can omit creds.
+DEFAULT_SENTINEL_JWT=$(sed -n '2p' "$OUTDIR/$FRONTEND_USER_NAME.creds")
+printf '\ndefault_sentinel: "%s"\n' "$DEFAULT_SENTINEL_JWT" >> "$OUTDIR/$AUTH_CONF_FILENAME"
 
 # copy the signing keys (not the root keys) to the output directory
 OPERATOR_FILE=${ORG_NAME}.nk
@@ -133,7 +150,6 @@ echo "-------"
 echo "CALLOUT"
 echo "-------"
 nsc describe account $CALLOUT_ACCOUNT_NAME
-nsc describe user $FRONTEND_USER_NAME
 nsc describe user $CALLOUT_USER_NAME
 
 

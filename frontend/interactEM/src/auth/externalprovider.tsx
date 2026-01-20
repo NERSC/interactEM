@@ -71,7 +71,6 @@ export default function ExternalAuthProvider({
 
   const value: AuthState = {
     token: token?.access_token ?? null,
-    natsJwt: token?.nats_jwt ?? null,
     isAuthenticated: isSuccess,
     isLoading,
     error: error ? error : null,

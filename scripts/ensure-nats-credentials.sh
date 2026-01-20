@@ -15,7 +15,6 @@ CREDS_DIR="$GIT_ROOT/conf/nats-conf/out_jwt"
 # Credential files that are bind-mounted in docker-compose
 credential_files=(
     "backend.creds"
-    "frontend.creds"
     "operator.creds"
     "callout.creds"
 )
