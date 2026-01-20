@@ -21,7 +21,7 @@
     "noFallthroughCasesInSwitch": true,
     // Recommended setting (not in strict, but should be)
     "noUncheckedIndexedAccess": true,
-    "types": ["node"]
+    "types": ["node", "@playwright/test"]
   },
   "include": ["src", "tests", "playwright.config.ts"],
   "references": [{ "path": "./tsconfig.node.json" }]

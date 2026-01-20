@@ -1,4 +1,4 @@
-import { expect, test as base, type Page } from "@playwright/test"
+import { expect, test as base, type Page, type TestType } from "@playwright/test"
 
 const username = process.env.FIRST_SUPERUSER_USERNAME
 const password = process.env.FIRST_SUPERUSER_PASSWORD
@@ -23,7 +23,7 @@ type Fixtures = {
   authPage: Page
 }
 
-export const test = base.extend<Fixtures>({
+export const test: TestType<Fixtures, {}> = base.extend<Fixtures>({
   authPage: async ({ page }, use) => {
     await login(page)
     await use(page)
