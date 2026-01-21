@@ -118,15 +118,6 @@
       "required": false
     },
     {
-      "name": "file_suffix",
-      "label": "File suffix",
-      "type": "str-enum",
-      "default": "",
-      "options": ["", "CENTERED"],
-      "description": "The file suffix type. The default is empty.",
-      "required": true
-    },
-    {
       "name": "use_optimization",
       "label": "Use optimization routine with initial parameters",
       "type": "bool",
