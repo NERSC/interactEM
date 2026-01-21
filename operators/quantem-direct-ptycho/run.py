@@ -120,18 +120,35 @@ def py4dstem_parallax(
     # Calculation parameters
     probe_semiangle = float(parameters.get("probe_semiangle", 25.0))
     energy = int(parameters.get("accelerating_voltage", 300e3))
-    probe_step_size = float(
-        parameters.get("probe_step_size", 0.1)
-    )  # test data set: 0.14383155 nm
-    initial_defocus_nm = float(parameters.get("initial_defocus", 0))  # in nanometers
-    initial_defocus_A = initial_defocus_nm * 10  # convert to Angstroms
-    diffraction_rotation_angle = float(
-        parameters.get("diffraction_rotation_angle", 0)
-    )  # in degrees
-    rotation_angle = diffraction_rotation_angle * np.pi / 180  # convert to radians
+    probe_step_size = float(parameters.get("probe_step_size", 0.1)    )  # test data set: 0.14383155 nm
     crop_probes = int(parameters.get("crop_probes", 0))
-    running_average = bool(parameters.get("running_average", True))
+    upsampling_factor = int(parameters.get("upsampling_factor", 2))
+    
+    # Parameters for optimize_hyperparameters function
+    initial_defocus_nm = parameters.get("initial_defocus", None)  # in nanometers, can be None
+    if initial_defocus_nm is not None:
+        initial_defocus_nm = float(initial_defocus_nm)
+        initial_defocus_A = initial_defocus_nm * 10  # convert to Angstroms
+    else:
+        initial_defocus_A = None
 
+    diffraction_rotation_angle = parameters.get("diffraction_rotation_angle", None)  # in degrees, can be None
+    if diffraction_rotation_angle is not None:
+        diffraction_rotation_angle = float(diffraction_rotation_angle)
+        rotation_angle = diffraction_rotation_angle * np.pi / 180  # convert to radians
+    else:
+        rotation_angle = None
+    
+    defocus_search_range_nm = parameters.get("defocus_search_range", [-50, 50])  # in nanometers
+    defocus_search_range_A = [defocus_search_range_nm[0] * 10, defocus_search_range_nm[1] * 10]  # convert to Angstroms
+    
+    maximum_C12_magnitude_nm = float(parameters.get("maximum_C12_magnitude", 10))  # in nanometers
+    maximum_C12_magnitude_A = maximum_C12_magnitude_nm * 10  # convert to Angstroms
+    
+    deconvolution_kernel = parameters.get("deconvolution_kernel", "parallax")
+    
+    # Determine whether to use optimization or manual settings
+    use_optimization = bool(parameters.get("use_optimization", True))
     if crop_probes == 0:
         logger.info(f"Scan {scan_number}: No cropping of probes applied.")
         dense_data = accumulator[:, :-1, :, :].to_dense()  ## remove the flyback column

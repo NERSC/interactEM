@@ -85,11 +85,53 @@
       "required": false
     },
     {  
-      "name": "running_average",
-      "label": "Use the running average for reconstruction",
+      "name": "upsampling_factor",
+      "label": "Upsampling factor for final image.",
+      "type": "int",
+      "default": "2",
+      "description": "The upsampling factor for the final reconstruction.",
+      "required": false
+    },
+    {  
+      "name": "defocus_search_range_nm",
+      "label": "Defocus search range in nanometers",
+      "type": "float",
+      "default": "50.0",
+      "description": "The defocus search range in nanometers.",
+      "required": false
+    },
+    {  
+      "name": "maximum_C12_magnitude_nm",
+      "label": "Maximum C12 magnitude in nanometers",
+      "type": "int",
+      "default": "2",
+      "description": "The maximum C12 magnitude in nanometers.",
+      "required": false
+    },
+    {  
+      "name": "deconvolution_kernel",
+      "label": "Deconvolution kernel",
+      "type": "str-enum",
+      "default": "parallax",
+      "options": ["parallax", "ssb", "icom"],
+      "description": "The deconvolution kernel.",
+      "required": false
+    },
+    {
+      "name": "file_suffix",
+      "label": "File suffix",
+      "type": "str-enum",
+      "default": "",
+      "options": ["", "CENTERED"],
+      "description": "The file suffix type. The default is empty.",
+      "required": true
+    },
+    {
+      "name": "use_optimization",
+      "label": "Use optimization routine with initial parameters",
       "type": "bool",
-      "default": "true",
-      "description": "Togle running_average input to quantem.",
+      "default": true,
+      "description": "Use the optimization routine with initial parameters.",
       "required": false
     }
   ],
