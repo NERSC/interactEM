@@ -8,6 +8,7 @@ from distiller_streaming.accumulator import FrameAccumulator
 from distiller_streaming.models import BatchedFrames
 from quantem.core.utils.diffractive_imaging_utils import fit_probe_circle
 from quantem.diffractive_imaging.direct_ptychography import DirectPtychography
+from quantem.diffractive_imaging.direct_ptychography import OptimizationParameter
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import (
