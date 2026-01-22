@@ -93,7 +93,10 @@ def log_hook(details: stamina.instrumentation.RetryDetails) -> None:
 
 set_on_retry_hooks([log_hook])
 
-GLOBAL_ENV = {k: str(v) for k, v in cfg.model_dump().items()}
+GLOBAL_ENV = {
+    k: str(v) for k, v in cfg.model_dump(exclude={"OPERATOR_EXTRA_ENV"}).items()
+}
+GLOBAL_ENV.update(cfg.OPERATOR_EXTRA_ENV)
 GLOBAL_ENV["NATS_SERVER_URL"] = GLOBAL_ENV["NATS_SERVER_URL_IN_CONTAINER"]
 
 OPERATOR_CREDS_TARGET = "/operator.creds"
