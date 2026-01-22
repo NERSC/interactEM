@@ -1,0 +1,18 @@
+{
+  "id": "157ef7b0-1a41-4035-bbd1-616bb1c43be6",
+  "label": "Adds information about a scan to the Disitller metadata",
+  "description": "Adds information about a scan to the Disitller metadata",
+  "image": "ghcr.io/nersc/interactem/update-distiller-metadata:latest",
+  "inputs": [
+    {
+      "name": "quantem_result",
+      "label": "Quantem Result",
+      "description": "Quantem Result input",
+      "type": "bytes"
+    }
+  ],
+  "parameters": [],
+  "parallel_config": {
+    "type": "none"
+  }
+}
