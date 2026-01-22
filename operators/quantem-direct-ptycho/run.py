@@ -216,6 +216,7 @@ def quantem_direct_ptycho(
                 aberration_coefs=opt_aberration_coefs,
                 rotation_angle=opt_rotation_angle,
                 deconvolution_kernel=deconvolution_kernel,
+                n_trials=5, # TODO increase this later
             )
         else:
             logger.info(f"Scan {scan_number}: Using manual hyperparameter settings")
@@ -240,7 +241,6 @@ def quantem_direct_ptycho(
                                     'rotation_angle': direct_ptycho.rotation_angle,
                                     },
         }
-        logger.info(f"Scan {scan_number} C12 metadata: {output_meta['C12']} {output_meta['phi12']}")
     except Exception as e:
         zeros_out = np.zeros(accumulator.scan_shape, dtype=np.uint8)
         logger.exception(
