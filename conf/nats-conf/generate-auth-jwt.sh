@@ -117,14 +117,8 @@ cp "$NSC_WORK_DIR/$AUTH_CONF_FILENAME" "$CP_DIR/raw_output/$AUTH_CONF_FILENAME"
 cp -R "$NSC_WORK_DIR/data" "$CP_DIR/raw_output/data"
 cp -R "$NSC_WORK_DIR/config" "$CP_DIR/raw_output/config"
 
-# Create a tarball of raw_output and base64 encode it (for kubectl/helm)
-rm -f $CP_DIR/raw_output.tar.gz
-tar -czf $CP_DIR/raw_output.tar.gz -C $CP_DIR/raw_output .
-if base64 --help 2>&1 | grep -q -- "-w"; then
-    base64 -w 0 "$CP_DIR/raw_output.tar.gz" > "$CP_DIR/raw_output.tar.gz.b64"
-else
-    base64 -i "$CP_DIR/raw_output.tar.gz" -o "$CP_DIR/raw_output.tar.gz.b64"
-fi
+mkdir -p "$CP_DIR/raw_output/keys"
+nsc export keys --all --dir "$CP_DIR/raw_output/keys" --include-jwts
 
 # Printout all the information
 echo -e "\n\n\n\n"
