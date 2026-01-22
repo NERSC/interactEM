@@ -16,14 +16,15 @@ def update_distiller_metadata(
         logger.warning("No input provided to the update_distiller_metadata operator.")
         return None
 
-    # Extract parameters
-
     # TODO: Implement operator logic here
     logger.info("update_distiller_metadata operator running...")
 
-    # Process input data
-    # data = inputs.data
+    # Process input metadata
+    metadata = inputs.header.meta
 
-    # TODO: Process and return result
+    C12_magnitude = metadata["C12"]
+    C12_angle = metadata["phi12"]
+
+    logger.info("Metadata: {C12_magnitude}, {C12_angle}")
 
     return None
