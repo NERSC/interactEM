@@ -1,5 +1,5 @@
 FROM interactem-operator
 
-RUN poetry add pandas
+RUN poetry add "pandas<3.0.0"
 
 COPY ./run.py /app/run.py
