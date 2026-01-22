@@ -234,11 +234,13 @@ def quantem_direct_ptycho(
             "shape": initial_parallax.obj.shape,
             "dtype": str(initial_parallax.obj.dtype),
             "source_operator": "quantem-direct-ptycho",
-            "direct_ptycho_params": {'C12_magnitude': direct_ptycho.hyperparameter_state.optimized_aberrations['C12'],
-                                    'defocus': -direct_ptycho.aberration_coefs['C10'],
+            "direct_ptycho_params": {'C12': direct_ptycho.hyperparameter_state.optimized_aberrations['C12'],
+                                     'phi12': direct_ptycho.hyperparameter_state.optimized_aberrations['phi12'],
+                                    'C10': -direct_ptycho.aberration_coefs['C10'],
                                     'rotation_angle': direct_ptycho.rotation_angle,
                                     },
         }
+        logger.info(f"Scan {scan_number} C12 metadata: {output_meta['C12']} {output_meta['phi12']}")
     except Exception as e:
         zeros_out = np.zeros(accumulator.scan_shape, dtype=np.uint8)
         logger.exception(
