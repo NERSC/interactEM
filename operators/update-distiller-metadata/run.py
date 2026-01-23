@@ -1,16 +1,15 @@
-import os
-from typing import Any, Optional
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Any
+
 import requests
+from pydantic import AnyHttpUrl, BaseModel
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from requests.exceptions import HTTPError, RequestException
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
 from interactem.operators.operator import operator
-
-from pydantic import AnyHttpUrl, BaseModel, Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
-from requests.exceptions import HTTPError, RequestException
 
 
 class Settings(BaseSettings):
@@ -68,12 +67,12 @@ class Scan(BaseModel):
     """
 
     id: int  # distiller id
-    scan_id: Optional[int]  # scan id from 4d camera
+    scan_id: int | None  # scan id from 4d camera
     locations: list[Location]
     created: datetime
-    image_path: Optional[str] = None
-    notes: Optional[str]
-    metadata: Optional[dict[str, Any]]  # = Field(alias="metadata_")
+    image_path: str | None = None
+    notes: str | None
+    metadata: dict[str, Any] | None  # = Field(alias="metadata_")
 
 
 def get_scan_by_id(distiller_scan_id: int):
@@ -112,9 +111,9 @@ def get_scans(
     skip: int = 0,
     limit: int = 100,
     scan_id: int = -1,
-    start: Optional[datetime] = None,
-    end: Optional[datetime] = None,
-    job_id: Optional[int] = None,
+    start: datetime | None = None,
+    end: datetime | None = None,
+    job_id: int | None = None,
 ) -> list[Scan]:
     """
     Fetch a list of scans with various filter options.
@@ -200,15 +199,16 @@ def add_metadata(distiller_scan_id: int, metadata: dict[str, Any]):
         )
         response.raise_for_status()
         json_data = response.json()
-        print(json_data)
+        # print(json_data)
         return Scan(**json_data)
     except HTTPError as http_err:
         raise HTTPError(f"HTTP error occurred: {http_err}")
     except RequestException as req_err:
         raise RequestException(f"Request exception occurred: {req_err}")
 
-global settings
+
 logger = get_logger()
+global settings
 settings = Settings()
 
 @operator
