@@ -3,7 +3,7 @@ import {
   pipelinesReadPipelineOptions,
   pipelinesReadPipelineRevisionOptions,
 } from "../../client/generated/@tanstack/react-query.gen"
-import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
+import { usePipelineStore, useViewModeStore, ViewMode } from "../../stores"
 import { useDeployment } from "./useDeploymentsQuery"
 
 function useComposerPipeline() {

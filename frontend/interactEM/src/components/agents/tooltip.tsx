@@ -11,7 +11,10 @@ interface AgentTooltipProps {
 const InfoItem = ({
   label,
   value,
-}: { label: string; value: React.ReactNode }) => (
+}: {
+  label: string
+  value: React.ReactNode
+}) => (
   <Typography variant="body2" fontWeight="medium">
     {label}:{" "}
     <Typography component="span" variant="body2">

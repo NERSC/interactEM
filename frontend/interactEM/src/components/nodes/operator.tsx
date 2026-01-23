@@ -1,7 +1,7 @@
 import type { NodeProps } from "@xyflow/react"
 import { useRef } from "react"
 import { useRuntimeOperatorStatusStyles } from "../../hooks/nats/useOperatorStatus"
-import { ViewMode, useViewModeStore } from "../../stores"
+import { useViewModeStore, ViewMode } from "../../stores"
 import type { OperatorNodeType } from "../../types/nodes"
 import Handles from "./handles"
 import OperatorHeader from "./header"

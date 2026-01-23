@@ -6,7 +6,7 @@ import {
   RUNNING_STATE,
   useInfinitePipelineDeployments,
 } from "../../hooks/api/useDeploymentsQuery"
-import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
+import { usePipelineStore, useViewModeStore, ViewMode } from "../../stores"
 
 export const ViewSwitcher: React.FC = () => {
   const theme = useTheme()

@@ -8,16 +8,15 @@ import type React from "react"
 import { useState } from "react"
 import { toast } from "react-toastify"
 import {
+  deploymentsCreateOperatorEventMutation,
   type OperatorSpecParameter,
   type OperatorSpecTag,
-  deploymentsCreateOperatorEventMutation,
 } from "../../client"
 import { useOperatorStatusContext } from "../../contexts/nats/operatorstatus"
-import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
+import { usePipelineStore, useViewModeStore, ViewMode } from "../../stores"
 import { OperatorStatus } from "../../types/gen"
-import type { OperatorSpecTrigger } from "../../types/triggers"
-
 import type { OperatorNodeType } from "../../types/nodes"
+import type { OperatorSpecTrigger } from "../../types/triggers"
 import OperatorLogsDialog from "../logs/operatordialog"
 import ParallelismButton from "./parallelismbutton"
 import ParametersButton from "./parametersbutton"

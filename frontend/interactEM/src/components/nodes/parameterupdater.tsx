@@ -6,7 +6,7 @@ import { useSavePipelineRevision } from "../../hooks/api/useSavePipelineRevision
 import { useOperatorInSelectedPipeline } from "../../hooks/nats/useOperatorStatus"
 import { useParameterUpdate } from "../../hooks/nats/useParameterUpdate"
 import { useParameterAck } from "../../hooks/nats/useParameterValue"
-import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
+import { usePipelineStore, useViewModeStore, ViewMode } from "../../stores"
 import type { OperatorNodeType } from "../../types/nodes"
 import {
   getParameterInputSchema,

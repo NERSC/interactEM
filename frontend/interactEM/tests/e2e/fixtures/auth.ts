@@ -1,4 +1,9 @@
-import { expect, test as base, type Page, type TestType } from "@playwright/test"
+import {
+  test as base,
+  expect,
+  type Page,
+  type TestType,
+} from "@playwright/test"
 
 const username = process.env.FIRST_SUPERUSER_USERNAME
 const password = process.env.FIRST_SUPERUSER_PASSWORD

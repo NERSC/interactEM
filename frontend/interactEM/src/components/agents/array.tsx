@@ -1,6 +1,6 @@
 import Paper from "@mui/material/Paper"
-import Typography from "@mui/material/Typography"
 import { styled } from "@mui/material/styles"
+import Typography from "@mui/material/Typography"
 import type { AgentVal } from "../../types/gen"
 import AgentChip from "./chip"
 import { LaunchAgentButton } from "./launchbutton"

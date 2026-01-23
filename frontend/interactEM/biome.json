@@ -2,7 +2,14 @@
   "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
   "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "files": {
-    "includes": ["**", "!**/node_modules", "!**/dist", "!**/dist_app", "!**/playwright-report", "!**/bundle-visualization"]
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/dist_app",
+      "!**/playwright-report",
+      "!**/bundle-visualization"
+    ]
   },
   "overrides": [
     {

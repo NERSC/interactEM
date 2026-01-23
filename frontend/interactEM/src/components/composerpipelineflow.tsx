@@ -1,5 +1,8 @@
 import { DownloadIcon } from "@radix-ui/react-icons"
 import {
+  addEdge,
+  applyEdgeChanges,
+  applyNodeChanges,
   ControlButton,
   Controls,
   type EdgeChange,
@@ -11,9 +14,6 @@ import {
   type OnNodesDelete,
   Position,
   ReactFlow,
-  addEdge,
-  applyEdgeChanges,
-  applyNodeChanges,
   useReactFlow,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"
@@ -30,8 +30,8 @@ import { usePipelineGraph } from "../hooks/usePipelineGraph"
 import { usePositionTracking } from "../hooks/usePositionTracking"
 import { usePipelineStore } from "../stores"
 import {
-  type OperatorNodeTypes,
   displayNodeTypeFromLabel,
+  type OperatorNodeTypes,
 } from "../types/nodes"
 import { toJSON } from "../utils/pipeline"
 import ImageNode from "./nodes/image"

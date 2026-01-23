@@ -3,15 +3,14 @@
 import {
   type DefaultError,
   type InfiniteData,
-  type UseMutationOptions,
   infiniteQueryOptions,
   queryOptions,
+  type UseMutationOptions,
 } from "@tanstack/react-query"
 import type { AxiosError } from "axios"
 
 import { client } from "../client.gen"
 import {
-  type Options,
   agentsLaunchAgent,
   deploymentsCreateOperatorEvent,
   deploymentsCreatePipelineDeployment,
@@ -21,6 +20,7 @@ import {
   loginLoginAccessToken,
   loginLoginWithExternalToken,
   loginTestToken,
+  type Options,
   operatorsReadOperators,
   pipelinesAddPipelineRevision,
   pipelinesCreatePipeline,

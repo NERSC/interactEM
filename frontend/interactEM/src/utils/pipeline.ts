@@ -6,8 +6,8 @@ import { ViewMode } from "../stores"
 import { NodeType, PortType } from "../types/gen"
 import {
   DisplayNodeType,
-  type OperatorNodeTypes,
   displayNodeTypeFromImage,
+  type OperatorNodeTypes,
 } from "../types/nodes"
 import type { PipelineJSON } from "../types/pipeline"
 

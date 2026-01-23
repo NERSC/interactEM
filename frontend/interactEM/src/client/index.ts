@@ -1,15 +1,16 @@
 export * from "./generated"
 export * from "./generated/@tanstack/react-query.gen"
-export * from "./generated/client.gen"
 export { createClient } from "./generated/client"
+export * from "./generated/client.gen"
+
 import { z } from "zod"
 import {
   zAgentCreateEvent as zAgentCreateEventTmp,
   zPipelineCreate as zPipelineCreateTmp,
   zPipelinePublic as zPipelinePublicTmp,
   zPipelineRevisionCreate as zPipelineRevisionCreateTmp,
-  zPipelineUpdate as zPipelineUpdateTmp,
   zPipelinesPublic as zPipelinesPublicTmp,
+  zPipelineUpdate as zPipelineUpdateTmp,
 } from "./generated/zod.gen"
 
 export const zAgentCreateEvent = zAgentCreateEventTmp.extend({

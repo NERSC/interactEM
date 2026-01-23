@@ -11,8 +11,8 @@ import {
 } from "../../constants/nats"
 import { useNats } from "../../contexts/nats"
 import {
-  RuntimeOperatorParameterUpdateSchema,
   getParameterNativeValue,
+  RuntimeOperatorParameterUpdateSchema,
 } from "../../types/params"
 
 // TODO: for now, we are sending an update to all operators with the same
