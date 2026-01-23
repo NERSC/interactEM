@@ -201,8 +201,10 @@ def update_distiller_metadata(
         return
 
     # Extract C12 magnitude and angle from metadata if available
-    C12_magnitude = inputs.header.meta.get("C12", None)
-    C12_angle = inputs.header.meta.get("phi12", None)
+    direct_ptycho_params = inputs.header.meta.get("direct_ptycho_params", None)
+    if direct_ptycho_params is not None:
+        C12_magnitude = direct_ptycho_params.get("C12", None)
+        C12_angle = direct_ptycho_params.get("phi12", None)
 
     if C12_magnitude is not None and C12_angle is not None:
         logger.info(f"C12: {C12_magnitude} {C12_angle}")
