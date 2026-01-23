@@ -207,17 +207,16 @@ def add_metadata(distiller_scan_id: int, metadata: dict[str, Any]):
     except RequestException as req_err:
         raise RequestException(f"Request exception occurred: {req_err}")
 
-
+global settings
 logger = get_logger()
-logger.info(f"ENV: {os.getenv('DISTILLER_API_URL')}")
-# settings = Settings()
+settings = Settings()
 
 @operator
 def update_distiller_metadata(
     inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> BytesMessage | None:
     """Adds information about a scan to the Disitller metadata"""
-
+    global settings
     if not inputs:
         logger.warning("No input provided to the update_distiller_metadata operator.")
         return None
