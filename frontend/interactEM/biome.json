@@ -28,13 +28,6 @@
         "noUnusedImports": {
           "level": "error"
         }
-      },
-      "suspicious": {
-        "noExplicitAny": "off",
-        "noArrayIndexKey": "off"
-      },
-      "style": {
-        "noNonNullAssertion": "off"
       }
     }
   },
