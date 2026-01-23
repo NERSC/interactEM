@@ -65,7 +65,7 @@ services: check-docker-permission ## Build Docker images for all services
 	@echo "Building Docker images..."
 	$(DOCKER_DIR)/bake.sh
 
-docker-up: services ## Start all services with docker-compose
+docker-up: ## Start all services with docker-compose
 	@USER_ID=$(shell id -u) GROUP_ID=$(shell id -g) docker compose up --force-recreate --remove-orphans --build -d
 	$(call success,Services started)
 	$(SCRIPTS_DIR)/setup-container-host.sh
