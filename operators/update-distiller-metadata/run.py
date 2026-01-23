@@ -235,7 +235,6 @@ def update_distiller_metadata(
             logger.info(f"Updating metadata for Distiller scan ID: {distiller_scan_id}")
 
             # Prepare metadata payload
-            if "phi12" in inputs.header.meta and "C12" in inputs.header.meta:
             metadata_payload = {
                 "C12_magnitude": C12_magnitude if "C12_magnitude" in locals() else None,
                 "C12_angle": C12_angle if "C12_angle" in locals() else None,
