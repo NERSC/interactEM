@@ -275,6 +275,7 @@ def quantem_direct_ptycho(
     finally:
         if QUANTEM_DEVICE == "gpu":
             try:
+                import torch
                 del direct_ptycho
                 torch.cuda.empty_cache()
                 gc.collect()
