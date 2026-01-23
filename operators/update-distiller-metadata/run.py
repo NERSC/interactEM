@@ -201,51 +201,49 @@ def update_distiller_metadata(
         return
 
     # Extract C12 magnitude and angle from metadata if available
-    if "C12" in inputs.header.meta:
-        C12_magnitude = inputs.header.meta["C12"]
-        logger.info(f"C12 Magnitude: {C12_magnitude}")
-    else:
-        logger.info("C12 Magnitude not found in metadata.")
-    if "phi12" in inputs.header.meta:
-        C12_angle = inputs.header.meta["phi12"]
-        logger.info(f"C12 Angle: {C12_angle}")
-    else:
-        logger.info("C12 Angle not found in metadata.")
+    C12_magnitude = inputs.header.meta.get("C12", None)
+    C12_angle = inputs.header.meta.get("phi12", None)
 
-    # Add metadata to Distiller via its API
-    # We can only use the detector scan_number to identify the scan in Distiller
-    logger.info("Querying Distiller for matching scan...")
-    scans = get_scans(limit=3)
-    logger.info(f"Retrieved {len(scans)} scans from Distiller.")
-    scan_ids = []
-    if scans:
-        for scan in scans:
-            print(f"Scan ID: {scan.scan_id}")
-            if scan.scan_id == scan_number:
-                logger.info(f"Found matching Distiller scan ID: {scan.id}")
-                # save this scan_id
-                scan_ids.append(scan.id)
-            else:
-                logger.info(
-                    f"No matching scan found for detector scan number: {scan_number}"
-                )
+    if C12_magnitude is not None and C12_angle is not None:
+        logger.info(f"C12: {C12_magnitude} {C12_angle}")
+        # Add metadata to Distiller via its API
+        # We can only use the detector scan_number to identify the scan in Distiller
+        logger.info("Querying Distiller for matching scan...")
+        scans = get_scans(limit=3)
+        logger.info(f"Retrieved {len(scans)} scans from Distiller.")
+        scan_ids = []
+        if scans:
+            for scan in scans:
+                print(f"Scan ID: {scan.scan_id}")
+                if scan.scan_id == scan_number:
+                    logger.info(f"Found matching Distiller scan ID: {scan.id}")
+                    # save this scan_id
+                    scan_ids.append(scan.id)
+                else:
+                    logger.info(
+                        f"No matching scan found for detector scan number: {scan_number}"
+                    )
+        else:
+            logger.info("No scans found in Distiller.")
+
+        if len(scan_ids) > 1:
+            logger.warning(
+                f"Multiple Distiller scans found for detector scan number: {scan_number}. Not updating metadata."
+            )
+        elif len(scan_ids) == 1:
+            distiller_scan_id = scan_ids[0]
+            logger.info(f"Updating metadata for Distiller scan ID: {distiller_scan_id}")
+
+            # Prepare metadata payload
+            if "phi12" in inputs.header.meta and "C12" in inputs.header.meta:
+            metadata_payload = {
+                "C12_magnitude": C12_magnitude if "C12_magnitude" in locals() else None,
+                "C12_angle": C12_angle if "C12_angle" in locals() else None,
+            }
+            updated_scan = add_metadata(distiller_scan_id, metadata_payload)
+            logger.info(f"Updated Distiller scan metadata: {updated_scan.metadata}")
     else:
-        logger.info("No scans found in Distiller.")
-
-    if len(scan_ids) > 1:
-        logger.warning(
-            f"Multiple Distiller scans found for detector scan number: {scan_number}. Not updating metadata."
-        )
-    elif len(scan_ids) == 1:
-        distiller_scan_id = scan_ids[0]
-        logger.info(f"Updating metadata for Distiller scan ID: {distiller_scan_id}")
-
-        # Prepare metadata payload
-        metadata_payload = {
-            "C12_magnitude": C12_magnitude if "C12_magnitude" in locals() else None,
-            "C12_angle": C12_angle if "C12_angle" in locals() else None,
-        }
-        updated_scan = add_metadata(distiller_scan_id, metadata_payload)
-        logger.info(f"Updated Distiller scan metadata: {updated_scan.metadata}")
+        logger.info("C12 Magnitude or phi12 not found in metadata.")
+        return
 
     return None
