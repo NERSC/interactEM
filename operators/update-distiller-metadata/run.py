@@ -75,38 +75,6 @@ class Scan(BaseModel):
     metadata: dict[str, Any] | None  # = Field(alias="metadata_")
 
 
-def get_scan_by_id(distiller_scan_id: int):
-    """Get information about a data set in Distiller based
-    on the Distiller ID number
-
-    Parameters
-    ----------
-    distiller_scan_id : int
-        The Disitller scan id. This is a unique ID attached to each data set in the database.
-
-    Returns
-    -------
-    : Scan
-        Returns a Scan class with information like the
-    """
-    headers = {
-        settings.DISTILLER_API_KEY_NAME: settings.DISTILLER_API_KEY,
-        "Content-Type": "application/json",
-    }
-
-    url = f"{settings.DISTILLER_API_URL}/scans/{distiller_scan_id}"
-
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        json_data = response.json()
-        return Scan(**json_data)
-    except HTTPError as http_err:
-        raise HTTPError(f"HTTP error occurred: {http_err}")
-    except RequestException as req_err:
-        raise RequestException(f"Request exception occurred: {req_err}")
-
-
 def get_scans(
     skip: int = 0,
     limit: int = 100,
