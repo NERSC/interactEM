@@ -259,19 +259,12 @@ def quantem_direct_ptycho(
                                     'rotation_angle': direct_ptycho.rotation_angle,
                                     },
         }
+        header = MessageHeader(subject=MessageSubject.BYTES, meta=output_meta)
+        return BytesMessage(header=header, data=output_bytes)
     except Exception as e:
-        zeros_out = np.zeros(accumulator.scan_shape, dtype=np.uint8)
         logger.exception(
             f"Direct ptychography reconstruction failed for scan {scan_number}: {e}"
         )
-        output_bytes = zeros_out.tobytes()
-        output_meta = {
-            "scan_number": scan_number,
-            "accumulated_messages": accumulator.num_batches_added,
-            "shape": zeros_out.shape,
-            "dtype": str(zeros_out.dtype),
-            "source_operator": "quantem-direct-ptycho-failed",
-        }
     finally:
         if QUANTEM_DEVICE == "gpu":
             try:
@@ -281,5 +274,3 @@ def quantem_direct_ptycho(
                 gc.collect()
             except Exception:
                 logger.exception("Failed to clean up DirectPtychography resources.")
-    header = MessageHeader(subject=MessageSubject.BYTES, meta=output_meta)
-    return BytesMessage(header=header, data=output_bytes)
