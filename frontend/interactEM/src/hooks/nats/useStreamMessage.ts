@@ -50,7 +50,7 @@ export function useStreamMessage<T>({
           try {
             const jsonData = m.json<any>()
             transformedData = transform(jsonData, m)
-          } catch (parseError) {
+          } catch (_parseError) {
             // If JSON parsing fails, still give transform a chance with original message
             transformedData = transform(null, m)
           }

@@ -8,7 +8,8 @@
       "!**/dist",
       "!**/dist_app",
       "!**/playwright-report",
-      "!**/bundle-visualization"
+      "!**/bundle-visualization",
+      "!**/bundle-visualization.html"
     ]
   },
   "overrides": [

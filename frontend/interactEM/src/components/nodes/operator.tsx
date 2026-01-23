@@ -19,12 +19,8 @@ const OperatorNodeBase = ({
 }: OperatorNodeBaseProps) => {
   const nodeRef = useRef<HTMLDivElement>(null)
   const { viewMode } = useViewModeStore()
-  let statusClass = ""
-  if (viewMode === ViewMode.Runtime) {
-    const { statusClass: runtimeStatusClass } =
-      useRuntimeOperatorStatusStyles(id)
-    statusClass = runtimeStatusClass
-  }
+  const { statusClass: runtimeStatusClass } = useRuntimeOperatorStatusStyles(id)
+  const statusClass = viewMode === ViewMode.Runtime ? runtimeStatusClass : ""
 
   const selectionClass = selected ? "operator-selected" : ""
 

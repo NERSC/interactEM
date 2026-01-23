@@ -3,9 +3,8 @@ import { useEffect, useRef } from "react"
 import InfiniteScroll from "react-infinite-scroll-component"
 import type { PipelineDeploymentPublic } from "../../client"
 import {
-  useInfiniteActiveDeployments,
+  ACTIVE_DEPLOYMENT_STATES,
   useInfiniteDeployments,
-  useInfinitePipelineDeployments,
 } from "../../hooks/api/useDeploymentsQuery"
 import { DeploymentItem } from "./deploymentitem"
 
@@ -29,13 +28,11 @@ export const DeploymentsList: React.FC<DeploymentsListProps> = ({
   const scrollableTargetId = `${variant}-deployments-list-scroll-target`
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Only call the query we actually need based on variant
-  const query =
-    variant === "pipeline"
-      ? useInfinitePipelineDeployments(pipelineId ?? null)
-      : variant === "active"
-        ? useInfiniteActiveDeployments()
-        : useInfiniteDeployments()
+  const query = useInfiniteDeployments({
+    pipelineId: variant === "pipeline" ? (pipelineId ?? null) : undefined,
+    states: variant === "active" ? ACTIVE_DEPLOYMENT_STATES : undefined,
+    enabled: variant !== "pipeline" || !!pipelineId,
+  })
 
   const {
     data: deploymentsData,

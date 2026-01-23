@@ -55,7 +55,10 @@ body,
   border: 2px solid #1a192b;
   border-radius: 5px;
   display: flex;
+  width: 100%;
+  box-sizing: border-box;
   font-size: 24px;
+  font-family: inherit;
   justify-content: center;
   color: #333;
   cursor: grab;
@@ -168,19 +171,19 @@ body,
 }
 
 .operator-status-initializing {
-  border: 2px solid #ff9800 !important;
+  border: 2px solid #ff9800;
 }
 
 .operator-status-shutting-down {
-  border: 2px solid #d12626 !important;
+  border: 2px solid #d12626;
 }
 
 .operator-status-running {
-  border: 2px solid #4caf50 !important;
+  border: 2px solid #4caf50;
 }
 
 .operator-status-offline {
-  border: 1.5px solid #000000 !important;
+  border: 1.5px solid #000000;
 }
 
 .parameter-item {
@@ -282,6 +285,12 @@ body,
   border: 1px solid #ccc;
   background: rgba(249, 249, 249, 0.8);
   border-radius: 8px;
+  appearance: none;
+  padding: 0;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: default;
 }
 
 .agent-header-compact {

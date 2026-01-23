@@ -28,7 +28,10 @@ type Fixtures = {
   authPage: Page
 }
 
-export const test: TestType<Fixtures, {}> = base.extend<Fixtures>({
+export const test: TestType<
+  Fixtures,
+  Record<keyof any, never>
+> = base.extend<Fixtures>({
   authPage: async ({ page }, use) => {
     await login(page)
     await use(page)

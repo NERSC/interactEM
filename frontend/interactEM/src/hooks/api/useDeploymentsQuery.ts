@@ -16,8 +16,9 @@ export const RUNNING_STATE: PipelineDeploymentState = "running"
 export const useInfiniteDeployments = (options?: {
   states?: PipelineDeploymentState[]
   pipelineId?: string | null
+  enabled?: boolean
 }) => {
-  const { pipelineId, states } = options || {}
+  const { pipelineId, states, enabled = true } = options || {}
 
   const allDeploymentsQuery = useInfiniteQuery({
     ...deploymentsListPipelineDeploymentsInfiniteOptions({
@@ -28,6 +29,7 @@ export const useInfiniteDeployments = (options?: {
       },
     }),
     initialPageParam: 0,
+    enabled,
     refetchInterval: 5000,
     getNextPageParam: (lastPage, _allPages, lastPageParam) => {
       if (!lastPage || !lastPage.data) {
@@ -47,17 +49,20 @@ export const useInfiniteDeployments = (options?: {
 export const useInfinitePipelineDeployments = (
   pipelineId: string | null,
   states?: PipelineDeploymentState[],
+  enabled = true,
 ) => {
   return useInfiniteDeployments({
     pipelineId,
     ...(states && { states }),
+    enabled,
   })
 }
 
 // New hook specifically for active deployments
-export const useInfiniteActiveDeployments = () => {
+export const useInfiniteActiveDeployments = (enabled = true) => {
   return useInfiniteDeployments({
     states: ACTIVE_DEPLOYMENT_STATES,
+    enabled,
   })
 }
 

@@ -1,7 +1,7 @@
 import { Typography } from "@mui/material"
 import type { NodeProps } from "@xyflow/react"
 import { NodeResizer, useReactFlow } from "@xyflow/react"
-import { useCallback } from "react"
+import { type KeyboardEvent, useCallback } from "react"
 import { AgentStatus } from "../../types/gen"
 import { type AgentNodeType, DisplayNodeType } from "../../types/nodes"
 import AgentTooltip from "../agents/tooltip"
@@ -86,10 +86,25 @@ const AgentNode = ({ data, id, selected }: NodeProps<AgentNodeType>) => {
     )
   }, [id, getNodes, setNodes, hasOperators])
 
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLButtonElement>) => {
+      if (!hasOperators) return
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault()
+        handleDoubleClick()
+      }
+    },
+    [handleDoubleClick, hasOperators],
+  )
+
   return (
-    <div
+    <button
+      type="button"
       className={`agent-node ${selected ? "agent-node-selected" : ""} ${hasOperators ? "has-operators" : ""}`}
       onDoubleClick={handleDoubleClick}
+      onKeyDown={handleKeyDown}
+      aria-disabled={!hasOperators}
+      tabIndex={hasOperators ? 0 : -1}
     >
       <NodeResizer isVisible={selected} minWidth={100} minHeight={30} />
       <div className="agent-header-compact">
@@ -106,7 +121,7 @@ const AgentNode = ({ data, id, selected }: NodeProps<AgentNodeType>) => {
           </Typography>
         )}
       </div>
-    </div>
+    </button>
   )
 }
 
