@@ -214,7 +214,7 @@ def quantem_direct_ptycho(
             opt_aberration_coefs = {}
             if initial_defocus_A is None:
                 opt_aberration_coefs["C10"] = OptimizationParameter(
-                    defocus_search_range_A[0], defocus_search_range_A[1]
+                    defocus_search_range_A, defocus_search_range_A
                 )
             else:
                 opt_aberration_coefs["C10"] = -initial_defocus_A
