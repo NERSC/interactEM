@@ -15,5 +15,7 @@
 #SBATCH --exclusive
 
 export HDF5_USE_FILE_LOCKING=FALSE
+export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache-${SLURM_JOB_ID:-$$}"
+mkdir -p "$UV_CACHE_DIR"
 cd /path/to/.env
 srun --nodes=2 --ntasks-per-node=1 uv run --project /path/to/interactEM/backend/agent interactem-agent
