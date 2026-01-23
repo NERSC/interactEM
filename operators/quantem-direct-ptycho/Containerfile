@@ -1,7 +1,9 @@
 FROM distiller-streaming
 
-# Install additional dependencies
-RUN pip install --no-cache-dir quantem
+# Install dev quantem package
+RUN apt-get update && apt-get install -y git && \
+    pip install git+https://github.com/electronmicroscopy/quantem.git@a3f463e82e94ac2d9e42d3a48b76200f73187b67 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Copy the operator script
 COPY ./run.py /app/run.py

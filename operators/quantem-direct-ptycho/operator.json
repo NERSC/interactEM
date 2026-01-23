@@ -62,7 +62,7 @@
     },
     {  
       "name": "initial_defocus",
-      "label": "Initial STEM defocus for optimization routine",
+      "label": "STEM defocus",
       "type": "float",
       "default": "0.0",
       "description": "The STEM defocus in nm.",
@@ -70,26 +70,59 @@
     },
     {  
       "name": "diffraction_rotation_angle",
-      "label": "Initial diffraction pattern rotation angle for optimization routine",
+      "label": "Diffraction pattern rotation angle",
       "type": "float",
       "default": "0.0",
-      "description": "The rotation angle in degrees.",
+      "description": "The rotation of the diffraction pattern on the detector in degrees.",
       "required": false
     },
     {  
       "name": "crop_probes",
-      "label": "Crop the scan area by this number of probe positions on each side",
+      "label": "Crop probes on each side",
       "type": "int",
       "default": "0",
-      "description": "The number of probe positions to crop.",
+      "description": "Crop the scan area by this number of probe positions on each side",
       "required": false
     },
     {  
-      "name": "running_average",
-      "label": "Use the running average for reconstruction",
+      "name": "upsampling_factor",
+      "label": "Upsampling factor for final image.",
+      "type": "int",
+      "default": "2",
+      "description": "The upsampling factor for the final reconstruction.",
+      "required": false
+    },
+    {  
+      "name": "defocus_search_range_nm",
+      "label": "Defocus search range",
+      "type": "float",
+      "default": "50.0",
+      "description": "The defocus search range in nanometers. Unused if defocus is input.",
+      "required": false
+    },
+    {  
+      "name": "maximum_C12_magnitude_nm",
+      "label": "Maximum C12 magnitude",
+      "type": "int",
+      "default": "2",
+      "description": "The maximum C12 magnitude in nanometers.",
+      "required": false
+    },
+    {  
+      "name": "deconvolution_kernel",
+      "label": "Deconvolution kernel",
+      "type": "str-enum",
+      "default": "parallax",
+      "options": ["parallax", "ssb", "icom"],
+      "description": "The deconvolution kernel.",
+      "required": false
+    },
+    {
+      "name": "use_optimization",
+      "label": "Use optimization routine",
       "type": "bool",
-      "default": "true",
-      "description": "Togle running_average input to quantem.",
+      "default": true,
+      "description": "Use the optimization routine with initial parameters.",
       "required": false
     }
   ],
