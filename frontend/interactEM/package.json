@@ -20,7 +20,7 @@
     "build:lib": "tsc && vite build --config vite.config.ts",
     "build:app": "tsc && vite build --config vite.config.app.ts",
     "build": "npm run build:lib && npm run build:app",
-    "lint": "biome check --unsafe --assists-enabled=true --no-errors-on-unmatched --files-ignore-unknown=true ./",
+    "lint": "npx biome check --write .",
     "preview": "vite preview",
     "generate-client": "openapi-ts",
     "deduplicate-enums": "tsx scripts/deduplicate-enums.ts src/types/gen.ts",

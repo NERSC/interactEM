@@ -1,14 +1,12 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
+  "assist": { "actions": { "source": { "organizeImports": "on" } } },
   "files": {
-    "ignore": ["node_modules", "dist"]
+    "includes": ["**", "!**/node_modules", "!**/dist", "!**/dist_app", "!**/playwright-report", "!**/bundle-visualization"]
   },
   "overrides": [
     {
-      "include": ["src/client/generated/**"],
+      "includes": ["**/src/client/generated/**"],
       "linter": {
         "enabled": false
       }
