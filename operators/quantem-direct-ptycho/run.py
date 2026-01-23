@@ -234,7 +234,8 @@ def quantem_direct_ptycho(
                 aberration_coefs=opt_aberration_coefs,
                 rotation_angle=opt_rotation_angle,
                 deconvolution_kernel=deconvolution_kernel,
-                n_trials=5,  # TODO increase this later
+                n_trials=50,
+                max_batch_size=10,
             )
         else:
             logger.info(f"Scan {scan_number}: Using manual hyperparameter settings")
@@ -242,7 +243,7 @@ def quantem_direct_ptycho(
         initial_parallax = direct_ptycho.reconstruct(
             deconvolution_kernel=deconvolution_kernel,
             upsampling_factor=upsampling_factor,
-            max_batch_size=32, # this used to be 10. Lets try 32
+            max_batch_size=10,
         )
 
         # Process and return result
