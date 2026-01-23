@@ -38,7 +38,8 @@ group "operators" {
     "dpc",
     "bin-sparse-partial",
     "quantem-direct-ptycho",
-    "read-tem-data"
+    "read-tem-data",
+    "update-distiller-metadata"
   ]
 }
 
@@ -320,4 +321,11 @@ target "read-tem-data" {
   context = "operators/read-tem-data"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/read-tem-data"]
+}
+
+target "update-distiller-metadata" {
+  inherits = ["common", "operator-context", "output"]
+  context = "operators/update-distiller-metadata"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/update-distiller-metadata"]
 }
