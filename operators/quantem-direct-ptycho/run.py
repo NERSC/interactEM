@@ -265,7 +265,6 @@ def quantem_direct_ptycho(
         logger.exception(
             f"Direct ptychography reconstruction failed for scan {scan_number}: {e}"
         )
-        return
     finally:
         if QUANTEM_DEVICE == "gpu":
             try:
