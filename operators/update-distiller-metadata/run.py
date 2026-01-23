@@ -214,7 +214,6 @@ def update_distiller_metadata(
         scan_ids = []
         if scans:
             for scan in scans:
-                print(f"Scan ID: {scan.scan_id}")
                 if scan.scan_id == scan_number:
                     logger.info(f"Found matching Distiller scan ID: {scan.id}")
                     # save this scan_id
@@ -236,8 +235,8 @@ def update_distiller_metadata(
 
             # Prepare metadata payload
             metadata_payload = {
-                "C12_magnitude": C12_magnitude if "C12_magnitude" in locals() else None,
-                "C12_angle": C12_angle if "C12_angle" in locals() else None,
+                "C12_magnitude": C12_magnitude,
+                "C12_angle": C12_angle,
             }
             updated_scan = add_metadata(distiller_scan_id, metadata_payload)
             logger.info(f"Updated Distiller scan metadata: {updated_scan.metadata}")
