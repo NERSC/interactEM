@@ -11,9 +11,9 @@ type DnDContextType<T> = [
   React.Dispatch<React.SetStateAction<T | null>> | null,
 ]
 
-export const DnDContext = createContext<
-  [any | null, React.Dispatch<React.SetStateAction<any | null>> | null]
->([null, null])
+type DnDContextValue = DnDContextType<unknown>
+
+export const DnDContext = createContext<DnDContextValue>([null, null])
 
 interface DnDProviderProps {
   children: ReactNode
@@ -25,7 +25,7 @@ export const DnDProvider: FC<{ children: ReactNode }> = <T,>({
   const [value, setValue] = useState<T | null>(null)
 
   return (
-    <DnDContext.Provider value={[value, setValue] as DnDContextType<T>}>
+    <DnDContext.Provider value={[value, setValue] as DnDContextValue}>
       {children}
     </DnDContext.Provider>
   )

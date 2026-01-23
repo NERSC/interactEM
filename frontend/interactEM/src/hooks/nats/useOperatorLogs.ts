@@ -1,4 +1,9 @@
-import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
+import {
+  AckPolicy,
+  DeliverPolicy,
+  type JsMsg,
+  ReplayPolicy,
+} from "@nats-io/jetstream"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import {
   OPERATORS,
@@ -73,7 +78,7 @@ export function useOperatorLogs({
     }
   }, [consumer])
 
-  const handleMessage = useCallback((msg: any) => {
+  const handleMessage = useCallback((msg: JsMsg) => {
     try {
       setLogs((prevLogs) => [...prevLogs, msg.json() as OperatorLog])
     } catch (error) {

@@ -146,8 +146,8 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
                 <div>
                   Tags:
                   <ul style={{ margin: "5px 0", paddingLeft: "20px" }}>
-                    {nodeTags.map((tag: OperatorSpecTag, index: number) => (
-                      <li key={index}>
+                    {nodeTags.map((tag: OperatorSpecTag) => (
+                      <li key={`${tag.value}-${tag.description ?? ""}`}>
                         {tag.value}
                         {tag.description && (
                           <div>

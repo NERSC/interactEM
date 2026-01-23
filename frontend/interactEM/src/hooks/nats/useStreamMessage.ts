@@ -9,7 +9,7 @@ interface UseStreamMessageOptions<T> {
   subject: string
   deliverPolicy?: DeliverPolicy
   initialValue?: T | null
-  transform?: (data: any, originalMessage: JsMsg) => T | null
+  transform?: (data: unknown, originalMessage: JsMsg) => T | null
   enabled?: boolean
 }
 
@@ -48,7 +48,7 @@ export function useStreamMessage<T>({
         if (transform) {
           // Pass both parsed data and original message to transform function
           try {
-            const jsonData = m.json<any>()
+            const jsonData = m.json<unknown>()
             transformedData = transform(jsonData, m)
           } catch (_parseError) {
             // If JSON parsing fails, still give transform a chance with original message

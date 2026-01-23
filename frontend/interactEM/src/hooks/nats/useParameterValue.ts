@@ -21,7 +21,7 @@ export const useParameterAck = (
       subject,
       initialValue: null,
       enabled: isInRunningPipeline,
-      transform: (unvalidated: any) => {
+      transform: (unvalidated: unknown) => {
         try {
           // Validate
           const data = RuntimeOperatorParameterAckSchema.parse(unvalidated)

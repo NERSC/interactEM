@@ -28,11 +28,12 @@ export const ViewSwitcher: React.FC = () => {
       )
 
       if (runningDeployments.length > 0) {
-        // Sort by created_at descending to get the most recent
-        const mostRecent = runningDeployments.sort(
-          (a, b) =>
-            new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-        )[0]!
+        const mostRecent = runningDeployments.reduce((latest, deployment) =>
+          new Date(deployment.created_at).getTime() >
+          new Date(latest.created_at).getTime()
+            ? deployment
+            : latest,
+        )
         setSelectedRuntimePipelineId(mostRecent.id)
       }
     }

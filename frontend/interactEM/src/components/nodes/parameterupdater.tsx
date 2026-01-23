@@ -117,9 +117,7 @@ const ParameterUpdater: React.FC<{
             name={parameter.name}
             label={parameter.label}
             value={inputValue}
-            options={
-              parameter.type === "str-enum" ? (parameter as any).options : []
-            }
+            options={parameter.type === "str-enum" ? parameter.options : []}
             disabled={isReadOnly}
             error={error ?? null}
             onChange={handleValueChange}
