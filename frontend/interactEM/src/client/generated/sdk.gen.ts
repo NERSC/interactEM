@@ -11,6 +11,9 @@ import type {
   AgentsLaunchAgentData,
   AgentsLaunchAgentErrors,
   AgentsLaunchAgentResponses,
+  AgentsShutdownAgentData,
+  AgentsShutdownAgentErrors,
+  AgentsShutdownAgentResponses,
   DeploymentsCreateOperatorEventData,
   DeploymentsCreateOperatorEventErrors,
   DeploymentsCreateOperatorEventResponses,
@@ -811,4 +814,23 @@ export const agentsLaunchAgent = <ThrowOnError extends boolean = false>(
       "Content-Type": "application/json",
       ...options.headers,
     },
+  })
+
+/**
+ * Shutdown Agent
+ *
+ * Request an agent shutdown.
+ */
+export const agentsShutdownAgent = <ThrowOnError extends boolean = false>(
+  options: Options<AgentsShutdownAgentData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    AgentsShutdownAgentResponses,
+    AgentsShutdownAgentErrors,
+    ThrowOnError
+  >({
+    responseType: "json",
+    security: [{ scheme: "bearer", type: "http" }],
+    url: "/api/v1/agents/{agent_id}/shutdown",
+    ...options,
   })

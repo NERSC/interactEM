@@ -12,6 +12,7 @@ import type { AxiosError } from "axios"
 import { client } from "../client.gen"
 import {
   agentsLaunchAgent,
+  agentsShutdownAgent,
   deploymentsCreateOperatorEvent,
   deploymentsCreatePipelineDeployment,
   deploymentsListPipelineDeployments,
@@ -48,6 +49,8 @@ import {
 import type {
   AgentsLaunchAgentData,
   AgentsLaunchAgentError,
+  AgentsShutdownAgentData,
+  AgentsShutdownAgentError,
   DeploymentsCreateOperatorEventData,
   DeploymentsCreateOperatorEventError,
   DeploymentsCreateOperatorEventResponse,
@@ -1404,6 +1407,35 @@ export const agentsLaunchAgentMutation = (
   > = {
     mutationFn: async (fnOptions) => {
       const { data } = await agentsLaunchAgent({
+        ...options,
+        ...fnOptions,
+        throwOnError: true,
+      })
+      return data
+    },
+  }
+  return mutationOptions
+}
+
+/**
+ * Shutdown Agent
+ *
+ * Request an agent shutdown.
+ */
+export const agentsShutdownAgentMutation = (
+  options?: Partial<Options<AgentsShutdownAgentData>>,
+): UseMutationOptions<
+  unknown,
+  AxiosError<AgentsShutdownAgentError>,
+  Options<AgentsShutdownAgentData>
+> => {
+  const mutationOptions: UseMutationOptions<
+    unknown,
+    AxiosError<AgentsShutdownAgentError>,
+    Options<AgentsShutdownAgentData>
+  > = {
+    mutationFn: async (fnOptions) => {
+      const { data } = await agentsShutdownAgent({
         ...options,
         ...fnOptions,
         throwOnError: true,

@@ -1950,3 +1950,32 @@ export type AgentsLaunchAgentResponses = {
    */
   200: unknown
 }
+
+export type AgentsShutdownAgentData = {
+  body?: never
+  path: {
+    /**
+     * Agent Id
+     */
+    agent_id: string
+  }
+  query?: never
+  url: "/api/v1/agents/{agent_id}/shutdown"
+}
+
+export type AgentsShutdownAgentErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError
+}
+
+export type AgentsShutdownAgentError =
+  AgentsShutdownAgentErrors[keyof AgentsShutdownAgentErrors]
+
+export type AgentsShutdownAgentResponses = {
+  /**
+   * Successful Response
+   */
+  200: unknown
+}

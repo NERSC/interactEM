@@ -1299,6 +1299,41 @@
         },
         "security": [{ "OAuth2PasswordBearer": [] }]
       }
+    },
+    "/api/v1/agents/{agent_id}/shutdown": {
+      "post": {
+        "tags": ["agents"],
+        "summary": "Shutdown Agent",
+        "description": "Request an agent shutdown.",
+        "operationId": "agents-shutdown_agent",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "agent_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Agent Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": { "application/json": { "schema": {} } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {

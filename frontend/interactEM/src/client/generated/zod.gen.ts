@@ -949,3 +949,11 @@ export const zAgentsLaunchAgentData = z.object({
   path: z.never().optional(),
   query: z.never().optional(),
 })
+
+export const zAgentsShutdownAgentData = z.object({
+  body: z.never().optional(),
+  path: z.object({
+    agent_id: z.string().uuid(),
+  }),
+  query: z.never().optional(),
+})
