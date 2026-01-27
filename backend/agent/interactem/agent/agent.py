@@ -239,8 +239,11 @@ class Agent:
             with PodmanClient(
                 base_url=self._podman_service_uri, max_pool_size=PODMAN_MAX_POOL_SIZE
             ) as client:
-                containers = client.containers.list(
-                    filters={"label": f"agent.id={self.id}"}
+                containers = await to_thread.run_sync(
+                    functools.partial(
+                        client.containers.list,
+                        filters={"label": f"agent.id={self.id}"},
+                    )
                 )
                 # Exclude vector container from cleanup
                 operator_containers = [
@@ -289,20 +292,23 @@ class Agent:
                 "Type": "k8s-file",
                 "Config": {"path": f"{cfg.LOG_DIR}/vector.log"},
             }
-            container = client.containers.create(
-                image=VECTOR_IMAGE,
-                environment=GLOBAL_ENV,
-                name=f"vector-{self.id}",
-                detach=True,
-                stdout=True,
-                stderr=True,
-                log_config=log_config,
-                network_mode="host",
-                remove=True,
-                labels={"agent.id": str(self.id), "container.type": "vector"},
-                mounts=[mount.model_dump() for mount in cfg.vector_mounts],
+            container = await to_thread.run_sync(
+                functools.partial(
+                    client.containers.create,
+                    image=VECTOR_IMAGE,
+                    environment=GLOBAL_ENV,
+                    name=f"vector-{self.id}",
+                    detach=True,
+                    stdout=True,
+                    stderr=True,
+                    log_config=log_config,
+                    network_mode="host",
+                    remove=True,
+                    labels={"agent.id": str(self.id), "container.type": "vector"},
+                    mounts=[mount.model_dump() for mount in cfg.vector_mounts],
+                )
             )
-            container.start()
+            await to_thread.run_sync(container.start)
             return container
 
     async def receive_cancellation(self, event: AgentDeploymentStopEvent):
@@ -698,7 +704,7 @@ class Agent:
         )
         if not container:
             raise RuntimeError(f"Failed to create container for operator {operator.id}")
-        container.start()
+        await to_thread.run_sync(container.start)
 
         return operator, container
 
@@ -834,7 +840,7 @@ class Agent:
                     tracker.unmark()
                     continue
                 try:
-                    tracker.container.reload()
+                    await to_thread.run_sync(tracker.container.reload)
                     if tracker.container.status == "running":
                         continue
                     if tracker.num_restarts >= ContainerTracker.MAX_RESTARTS:
@@ -875,7 +881,7 @@ class Agent:
             new_container = await create_container(
                 self.id, client, operator, self._current_deployment.deployment_id
             )
-            new_container.start()
+            await to_thread.run_sync(new_container.start)
             self.container_trackers[operator.id].container = new_container
 
     async def _set_status(
@@ -965,20 +971,23 @@ async def create_container(
             if not cfg.LOCAL and operator.requires_gpus:
                 create_kwargs["gpu"] = True
 
-            return client.containers.create(
-                image=operator.image,
-                environment=operator.env,
-                name=op_name,
-                command=operator.command,
-                detach=True,
-                stdout=True,
-                stderr=True,
-                log_config=log_config,
-                network_mode=network_mode,
-                remove=True,
-                labels={"agent.id": str(agent_id)},
-                mounts=[mount.model_dump() for mount in operator.all_mounts],
-                **create_kwargs,
+            return await to_thread.run_sync(
+                functools.partial(
+                    client.containers.create,
+                    image=operator.image,
+                    environment=operator.env,
+                    name=op_name,
+                    command=operator.command,
+                    detach=True,
+                    stdout=True,
+                    stderr=True,
+                    log_config=log_config,
+                    network_mode=network_mode,
+                    remove=True,
+                    labels={"agent.id": str(agent_id)},
+                    mounts=[mount.model_dump() for mount in operator.all_mounts],
+                    **create_kwargs,
+                )
             )
 
     raise RuntimeError(
@@ -991,7 +1000,7 @@ async def stop_and_remove_container(container: Container) -> None:
         pass
 
     try:
-        container.reload()
+        await to_thread.run_sync(container.reload)
     except podman.errors.exceptions.NotFound:
         logger.warning(f"Container {container.name} not found during reload")
         return
@@ -1002,7 +1011,7 @@ async def stop_and_remove_container(container: Container) -> None:
             await to_thread.run_sync(container.stop)
             for attempt in stamina.retry_context(on=ContainerStillRunning):
                 with attempt:
-                    container.reload()
+                    await to_thread.run_sync(container.reload)
                     if container.status == "running":
                         raise ContainerStillRunning(
                             f"Container {container.name} is still running"
@@ -1020,6 +1029,8 @@ async def handle_name_conflict(client: PodmanClient, container_name: str) -> Non
         f"Container name conflict detected for {container_name}. "
         f"Attempting to remove the conflicting container."
     )
-    conflicting_container = client.containers.get(container_name)
+    conflicting_container = await to_thread.run_sync(
+        functools.partial(client.containers.get, container_name)
+    )
     await stop_and_remove_container(conflicting_container)
     logger.info(f"Conflicting container {conflicting_container.id} removed. ")
