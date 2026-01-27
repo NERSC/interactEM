@@ -1,10 +1,10 @@
 import { Box, Typography } from "@mui/material"
 import {
+  applyNodeChanges,
   Controls,
   type NodeChange,
   type OnNodesChange,
   ReactFlow,
-  applyNodeChanges,
   useReactFlow,
 } from "@xyflow/react"
 import "@xyflow/react/dist/style.css"

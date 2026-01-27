@@ -3,14 +3,15 @@ import {
   pipelinesReadPipelineOptions,
   pipelinesReadPipelineRevisionOptions,
 } from "../../client/generated/@tanstack/react-query.gen"
-import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
+import { usePipelineStore, useViewModeStore, ViewMode } from "../../stores"
 import { useDeployment } from "./useDeploymentsQuery"
 
 function useComposerPipeline() {
   const { currentPipelineId, currentRevisionId } = usePipelineStore()
+  const pipelineId = currentPipelineId ?? ""
 
   const pipelineQuery = useQuery({
-    ...pipelinesReadPipelineOptions({ path: { id: currentPipelineId! } }),
+    ...pipelinesReadPipelineOptions({ path: { id: pipelineId } }),
     enabled: !!currentPipelineId,
   })
 
@@ -18,10 +19,11 @@ function useComposerPipeline() {
     currentRevisionId != null
       ? currentRevisionId
       : (pipelineQuery.data?.current_revision_id ?? null)
+  const revisionIdValue = revisionId ?? 0
 
   const revisionQuery = useQuery({
     ...pipelinesReadPipelineRevisionOptions({
-      path: { id: currentPipelineId!, revision_id: revisionId! },
+      path: { id: pipelineId, revision_id: revisionIdValue },
     }),
     enabled: !!currentPipelineId && revisionId != null,
   })
@@ -42,18 +44,19 @@ function useRuntimePipeline() {
     selectedRuntimePipelineId,
   )
 
-  const canonicalId = deployment?.pipeline_id
+  const canonicalId = deployment?.pipeline_id ?? ""
   const revisionId = deployment?.revision_id
+  const revisionIdValue = revisionId ?? 0
 
   // Fetch canonical pipeline data based on deployment
   const pipelineQuery = useQuery({
-    ...pipelinesReadPipelineOptions({ path: { id: canonicalId! } }),
+    ...pipelinesReadPipelineOptions({ path: { id: canonicalId } }),
     enabled: !!canonicalId && !deploymentLoading,
   })
 
   const revisionQuery = useQuery({
     ...pipelinesReadPipelineRevisionOptions({
-      path: { id: canonicalId!, revision_id: revisionId! },
+      path: { id: canonicalId, revision_id: revisionIdValue },
     }),
     enabled: !!canonicalId && revisionId != null && !deploymentLoading,
   })

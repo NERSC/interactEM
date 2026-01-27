@@ -1,3 +1,4 @@
+import type { SxProps, Theme } from "@mui/material"
 import {
   Box,
   FormControl,
@@ -10,7 +11,6 @@ import {
   TextField,
   Typography,
 } from "@mui/material"
-import type { SxProps, Theme } from "@mui/material"
 import type React from "react"
 import type { OperatorSpecParameter } from "../../client"
 import type { ParameterSpecType } from "../../types/gen"

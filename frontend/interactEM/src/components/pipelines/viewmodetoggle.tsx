@@ -1,7 +1,7 @@
 import { Edit, PlayArrow } from "@mui/icons-material"
 import { IconButton, Tooltip } from "@mui/material"
 import type React from "react"
-import { ViewMode, useViewModeStore } from "../../stores"
+import { useViewModeStore, ViewMode } from "../../stores"
 
 export const ViewModeToggle: React.FC = () => {
   const { viewMode, setViewMode } = useViewModeStore()

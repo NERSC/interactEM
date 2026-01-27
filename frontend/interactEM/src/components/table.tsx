@@ -60,6 +60,8 @@ const renderTable = (tableName: string, data: TableRowData[]) => {
     )
   }
   const headers = Object.keys(firstRow)
+  const getRowKey = (row: TableRowData) =>
+    headers.map((header) => String(row?.[header] ?? "")).join("|")
 
   return (
     <Box key={tableName} mb={2}>
@@ -78,11 +80,14 @@ const renderTable = (tableName: string, data: TableRowData[]) => {
             </TableRow>
           </TableHead>
           <TableBody>
-            {data.map((row, index) => (
-              <TableRow key={index} sx={tableRowStyle}>
+            {data.map((row) => (
+              <TableRow
+                key={`${tableName}-${getRowKey(row)}`}
+                sx={tableRowStyle}
+              >
                 {headers.map((header) => (
                   <TableCell
-                    key={`${index}-${header}`}
+                    key={`${header}`}
                     component="th"
                     scope="row"
                     sx={tableCellStyle}

@@ -17,7 +17,7 @@ export interface OperatorMenuItemDragData {
 const OperatorMenuItem: React.FC<OperatorMenuItemProps> = ({ operator }) => {
   const [_, setValue] = useDnD<OperatorMenuItemDragData>()
 
-  const handleOnDragStart = (event: DragEvent<HTMLDivElement>) => {
+  const handleOnDragStart = (event: DragEvent<HTMLButtonElement>) => {
     if (setValue !== null) {
       const rect = event.currentTarget.getBoundingClientRect()
       setValue({
@@ -30,14 +30,15 @@ const OperatorMenuItem: React.FC<OperatorMenuItemProps> = ({ operator }) => {
   }
 
   return (
-    <div
+    <button
+      type="button"
       className="operator-menu-item"
       onDragStart={(event) => handleOnDragStart(event)}
       key={operator.id}
       draggable
     >
       {operator.label}
-    </div>
+    </button>
   )
 }
 

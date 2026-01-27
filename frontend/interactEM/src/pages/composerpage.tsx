@@ -6,7 +6,7 @@ import { PipelineHud } from "../components/pipelines/hud"
 import { ViewSwitcher } from "../components/pipelines/viewswitcher"
 import RunningPipelineFlow from "../components/runningpipelineflow"
 import { useActivePipeline } from "../hooks/api/useActivePipeline"
-import { ViewMode, useViewModeStore } from "../stores"
+import { useViewModeStore, ViewMode } from "../stores"
 
 export default function ComposerPage() {
   const { pipeline, revision, runtimePipelineId } = useActivePipeline()

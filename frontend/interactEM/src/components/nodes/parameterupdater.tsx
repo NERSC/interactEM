@@ -6,7 +6,7 @@ import { useSavePipelineRevision } from "../../hooks/api/useSavePipelineRevision
 import { useOperatorInSelectedPipeline } from "../../hooks/nats/useOperatorStatus"
 import { useParameterUpdate } from "../../hooks/nats/useParameterUpdate"
 import { useParameterAck } from "../../hooks/nats/useParameterValue"
-import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
+import { usePipelineStore, useViewModeStore, ViewMode } from "../../stores"
 import type { OperatorNodeType } from "../../types/nodes"
 import {
   getParameterInputSchema,
@@ -117,9 +117,7 @@ const ParameterUpdater: React.FC<{
             name={parameter.name}
             label={parameter.label}
             value={inputValue}
-            options={
-              parameter.type === "str-enum" ? (parameter as any).options : []
-            }
+            options={parameter.type === "str-enum" ? parameter.options : []}
             disabled={isReadOnly}
             error={error ?? null}
             onChange={handleValueChange}

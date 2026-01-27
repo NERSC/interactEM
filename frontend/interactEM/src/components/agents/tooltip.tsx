@@ -11,7 +11,10 @@ interface AgentTooltipProps {
 const InfoItem = ({
   label,
   value,
-}: { label: string; value: React.ReactNode }) => (
+}: {
+  label: string
+  value: React.ReactNode
+}) => (
   <Typography variant="body2" fontWeight="medium">
     {label}:{" "}
     <Typography component="span" variant="body2">
@@ -50,9 +53,9 @@ const AgentTooltip = ({ data: unvalidated }: AgentTooltipProps) => {
             Recent Errors:
           </Typography>
           <List dense disablePadding sx={{ mt: 0.5 }}>
-            {data.error_messages.map((error, index) => (
+            {data.error_messages.map((error) => (
               <ListItem
-                key={index}
+                key={`${error.timestamp}-${error.message}`}
                 sx={{
                   py: 0.25,
                   flexDirection: "column",

@@ -1,4 +1,9 @@
-import { AckPolicy, DeliverPolicy, ReplayPolicy } from "@nats-io/jetstream"
+import {
+  AckPolicy,
+  DeliverPolicy,
+  type JsMsg,
+  ReplayPolicy,
+} from "@nats-io/jetstream"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { STREAM_LOGS, SUBJECT_AGENTS_LOGS } from "../../constants/nats"
 import type { AgentLog } from "../../types/gen"
@@ -36,7 +41,7 @@ export function useAgentLogs({ id }: UseLogsOptions) {
     }
   }, [consumer])
 
-  const handleMessage = useCallback((msg: any) => {
+  const handleMessage = useCallback((msg: JsMsg) => {
     try {
       const data = msg.json() as AgentLog
       setLogs((prevLogs) => {

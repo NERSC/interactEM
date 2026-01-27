@@ -8,7 +8,7 @@ import {
   Tabs,
   Typography,
 } from "@mui/material"
-import React, { useState, useMemo } from "react"
+import React, { useMemo, useState } from "react"
 import { useOperatorLogs } from "../../hooks/nats/useOperatorLogs"
 import type { OperatorLog } from "../../types/gen"
 import LogsList from "./list"

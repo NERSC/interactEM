@@ -104,14 +104,13 @@ gen: ## Generate client, models, and type definitions (gen-client + pydantic-to-
 
 lint: ## Run backend (ruff) and frontend (biome) linters
 	@echo "Running ruff linter..."
-	. .venv/bin/activate && poetry run ruff check .
+	@if command -v ruff >/dev/null 2>&1; then \
+		ruff check .; \
+	else \
+		echo "Warning: 'ruff' not found in PATH; skipping backend lint." >&2; \
+	fi
 	@echo "Running biome linter..."
-	cd $(FRONTEND_DIR) && npx biome check \
-	    --formatter-enabled=true \
-	    --linter-enabled=true \
-	    --assists-enabled=true \
-	    --write \
-	    ./src
+	cd $(FRONTEND_DIR) && npm run lint
 	$(call success,Linting complete)
 
 ## Set up local Docker registry for operator builds

@@ -1,4 +1,4 @@
-import { Badge, Tooltip } from "@mui/material"
+import { Badge, type BadgeProps, Tooltip } from "@mui/material"
 import type { AgentStatus } from "../types/gen"
 import { getAgentStatusColor } from "../utils/statusColor"
 
@@ -9,8 +9,9 @@ type StatusDotProps = {
 
 export const StatusDot = ({ status, tooltipContent }: StatusDotProps) => {
   const color = getAgentStatusColor(status)
+  const badgeColor: BadgeProps["color"] = color
 
-  const badgeElement = <Badge variant="dot" color={color as any} />
+  const badgeElement = <Badge variant="dot" color={badgeColor} />
 
   if (tooltipContent) {
     return (

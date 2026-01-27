@@ -79,31 +79,29 @@ export const HudComposer: React.FC = () => {
     const displayName = pipeline.name || pipeline.id.substring(0, 8)
 
     return (
-      <>
-        <Stack direction="row" alignItems="center" sx={{ gap: 0.5, flex: 1 }}>
-          <Typography
-            variant="subtitle1"
-            fontWeight="medium"
-            noWrap
-            sx={{ display: "flex", alignItems: "center" }}
-          >
-            {displayName}
-          </Typography>
-          <RevisionButton
-            ref={revisionButtonRef}
-            revisionId={currentRevisionId}
-            onClick={isMutating ? undefined : handleToggleRevisionPopover}
-          />
-          <DeletePipelineButton
-            pipelineId={pipeline.id}
-            pipelineName={displayName}
-            disabled={isMutating && !isDeleting}
-            onDeleteStarted={() => setIsDeleting(true)}
-            onDeleteFinished={() => setIsDeleting(false)}
-          />
-          <LaunchPipelineButton disabled={isMutating} />
-        </Stack>
-      </>
+      <Stack direction="row" alignItems="center" sx={{ gap: 0.5, flex: 1 }}>
+        <Typography
+          variant="subtitle1"
+          fontWeight="medium"
+          noWrap
+          sx={{ display: "flex", alignItems: "center" }}
+        >
+          {displayName}
+        </Typography>
+        <RevisionButton
+          ref={revisionButtonRef}
+          revisionId={currentRevisionId}
+          onClick={isMutating ? undefined : handleToggleRevisionPopover}
+        />
+        <DeletePipelineButton
+          pipelineId={pipeline.id}
+          pipelineName={displayName}
+          disabled={isMutating && !isDeleting}
+          onDeleteStarted={() => setIsDeleting(true)}
+          onDeleteFinished={() => setIsDeleting(false)}
+        />
+        <LaunchPipelineButton disabled={isMutating} />
+      </Stack>
     )
   }
 

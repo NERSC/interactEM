@@ -8,16 +8,15 @@ import type React from "react"
 import { useState } from "react"
 import { toast } from "react-toastify"
 import {
+  deploymentsCreateOperatorEventMutation,
   type OperatorSpecParameter,
   type OperatorSpecTag,
-  deploymentsCreateOperatorEventMutation,
 } from "../../client"
 import { useOperatorStatusContext } from "../../contexts/nats/operatorstatus"
-import { ViewMode, usePipelineStore, useViewModeStore } from "../../stores"
+import { usePipelineStore, useViewModeStore, ViewMode } from "../../stores"
 import { OperatorStatus } from "../../types/gen"
-import type { OperatorSpecTrigger } from "../../types/triggers"
-
 import type { OperatorNodeType } from "../../types/nodes"
+import type { OperatorSpecTrigger } from "../../types/triggers"
 import OperatorLogsDialog from "../logs/operatordialog"
 import ParallelismButton from "./parallelismbutton"
 import ParametersButton from "./parametersbutton"
@@ -147,8 +146,8 @@ const OperatorToolbar: React.FC<OperatorToolbarProps> = ({
                 <div>
                   Tags:
                   <ul style={{ margin: "5px 0", paddingLeft: "20px" }}>
-                    {nodeTags.map((tag: OperatorSpecTag, index: number) => (
-                      <li key={index}>
+                    {nodeTags.map((tag: OperatorSpecTag) => (
+                      <li key={`${tag.value}-${tag.description ?? ""}`}>
                         {tag.value}
                         {tag.description && (
                           <div>

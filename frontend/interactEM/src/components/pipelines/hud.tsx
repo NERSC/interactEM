@@ -1,5 +1,5 @@
 import type React from "react"
-import { ViewMode, useViewModeStore } from "../../stores"
+import { useViewModeStore, ViewMode } from "../../stores"
 import { HudComposer } from "./hudcomposer"
 import { HudRunning } from "./hudrunning"
 
