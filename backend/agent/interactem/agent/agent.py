@@ -347,6 +347,13 @@ class Agent:
     async def restart_canonical_operator(self, event: AgentOperatorRestartEvent):
         """Restart all operators matching the canonical ID for the current deployment."""
 
+        if self._shutdown_event.is_set():
+            logger.info(
+                "Ignoring restart request for %s because agent is shutting down",
+                event.canonical_operator_id,
+            )
+            return
+
         if self._current_deployment is None or self.pipeline is None:
             logger.warning(
                 "Restart requested for %s but no deployment is active",
@@ -403,6 +410,12 @@ class Agent:
         This method creates and runs a deployment within a DeploymentContext context.
         The deployment will continue running until explicitly cancelled via receive_cancellation.
         """
+        if self._shutdown_event.is_set():
+            logger.info(
+                "Ignoring deployment assignment %s because agent is shutting down",
+                event.assignment.pipeline.id,
+            )
+            return
         assignment = event.assignment
         deployment_id = assignment.pipeline.id
 
@@ -503,11 +516,18 @@ class Agent:
             return KV_SHUTDOWN_TIMEOUT
         return None
 
+    async def request_shutdown(self) -> None:
+        if self._shutdown_event.is_set():
+            return
+        self._shutdown_event.set()
+        await self._set_status(AgentStatus.SHUTTING_DOWN)
+
     async def shutdown(self):
         logger.info("Shutting down agent...")
         # Set main shutdown event for deployment and monitor tasks
-        self._shutdown_event.set()
-        await self._set_status(AgentStatus.SHUTTING_DOWN)
+        if not self._shutdown_event.is_set():
+            self._shutdown_event.set()
+            await self._set_status(AgentStatus.SHUTTING_DOWN)
 
         # Cancel current deployment if running
         async with self._deployment_lock:

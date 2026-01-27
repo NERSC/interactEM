@@ -4,7 +4,12 @@ import anyio
 from faststream import Context, ContextRepo, Depends, FastStream
 from faststream.nats import NatsMessage
 
-from interactem.core.constants import NATS_TIMEOUT_DEFAULT, SUBJECT_AGENTS_DEPLOYMENTS
+from interactem.core.constants import (
+    NATS_TIMEOUT_DEFAULT,
+    SUBJECT_AGENTS_CONTROL,
+    SUBJECT_AGENTS_DEPLOYMENTS,
+)
+from interactem.core.events.agents import AgentControlEvent, AgentControlEventType
 from interactem.core.events.deployments import (
     AgentDeploymentEvent,
     AgentDeploymentEventType,
@@ -13,7 +18,7 @@ from interactem.core.logger import get_logger
 from interactem.core.nats.broker import get_nats_broker
 from interactem.core.nats.consumers import AGENT_CONSUMER_CONFIG
 from interactem.core.nats.publish import create_error_publisher
-from interactem.core.nats.streams import DEPLOYMENTS_JSTREAM
+from interactem.core.nats.streams import CONTROL_JSTREAM, DEPLOYMENTS_JSTREAM
 
 from .agent import Agent, cfg
 
@@ -99,3 +104,23 @@ async def agent_deployment_event_handler(
         AgentDeploymentEventType.RESTART_OPERATOR: agent.restart_canonical_operator,
     }
     await HANDLERS[event.root.type](event.root)
+
+
+@broker.subscriber(
+    stream=CONTROL_JSTREAM,
+    subject=f"{SUBJECT_AGENTS_CONTROL}.{AGENT_ID}",
+    config=agent_consumer_config,
+    pull_sub=True,
+    dependencies=[progress_dep],
+)
+async def agent_ctrl_event_handler(event: AgentControlEvent, agent: Agent = Context()):
+    logger.info("Received control event %s for agent %s", event.root.type, AGENT_ID)
+
+    async def handle_shutdown(_: AgentControlEvent):
+        await agent.request_shutdown()
+        app.exit()
+
+    HANDLERS = {
+        AgentControlEventType.SHUTDOWN: handle_shutdown,
+    }
+    await HANDLERS[event.root.type](event)
