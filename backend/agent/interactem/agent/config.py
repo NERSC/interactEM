@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     VECTOR_AGGREGATOR_ADDR: str | None = None
     LOG_DIR: Path = Path("~/.interactem/logs").expanduser().resolve()
     VECTOR_CONFIG_PATH: Path | None = None
-    OPERATOR_EXTRA_ENV: dict[str, str] = Field(default_factory=dict)
+    OPERATOR_EXTRA_ENV: dict[str, str] = Field(default_factory=dict, exclude=True)
 
     @model_validator(mode="after")
     def ensure_operator_creds_file(self) -> "Settings":
