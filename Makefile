@@ -105,7 +105,7 @@ gen: ## Generate client, models, and type definitions (gen-client + pydantic-to-
 lint: ## Run backend (ruff) and frontend (biome) linters
 	@echo "Running ruff linter..."
 	@if command -v ruff >/dev/null 2>&1; then \
-		ruff check .; \
+		ruff check . --fix; \
 	else \
 		echo "Warning: 'ruff' not found in PATH; skipping backend lint." >&2; \
 	fi
