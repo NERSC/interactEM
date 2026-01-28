@@ -5,6 +5,7 @@ from nats.js.api import RetentionPolicy, StreamConfig
 
 from interactem.core.constants import (
     MAX_LOGS_PER_SUBJECT,
+    STREAM_CONTROL,
     STREAM_DEPLOYMENTS,
     STREAM_IMAGES,
     STREAM_LOGS,
@@ -13,6 +14,7 @@ from interactem.core.constants import (
     STREAM_PARAMETERS,
     STREAM_SFAPI,
     STREAM_TABLES,
+    SUBJECT_CONTROL_ALL,
     SUBJECT_DEPLOYMENTS_ALL,
     SUBJECT_IMAGES_ALL,
     SUBJECT_LOGS_ALL,
@@ -78,6 +80,23 @@ NOTIFICATIONS_JSTREAM = JStream(
     name=STREAM_NOTIFICATIONS,
     description="A stream for notifications.",
     subjects=[SUBJECT_NOTIFICATIONS_ALL],
+    retention=RetentionPolicy.INTEREST,
+    storage=_storage,
+    declare=False,
+)
+
+CONTROL_STREAM_CONFIG = StreamConfig(
+    name=STREAM_CONTROL,
+    description="A stream for control events.",
+    subjects=[SUBJECT_CONTROL_ALL],
+    retention=RetentionPolicy.INTEREST,
+    storage=_storage,
+)
+
+CONTROL_JSTREAM = JStream(
+    name=STREAM_CONTROL,
+    description="A stream for control events.",
+    subjects=[SUBJECT_CONTROL_ALL],
     retention=RetentionPolicy.INTEREST,
     storage=_storage,
     declare=False,

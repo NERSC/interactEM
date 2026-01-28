@@ -13,11 +13,14 @@ from interactem.core.constants import (
     NATS_TIMEOUT_DEFAULT,
     SFAPI_GROUP_NAME,
     SFAPI_STATUS_ENDPOINT,
+    STREAM_CONTROL,
     STREAM_DEPLOYMENTS,
     STREAM_SFAPI,
+    SUBJECT_AGENTS_CONTROL,
     SUBJECT_PIPELINES_DEPLOYMENTS,
     SUBJECT_SFAPI_JOBS,
 )
+from interactem.core.events.agents import AgentShutdownEvent
 from interactem.core.events.deployments import (
     DeploymentRunEvent,
     DeploymentStopEvent,
@@ -116,6 +119,14 @@ async def publish_pipeline_deployment_event(
         event,
     )
 
+
+async def publish_agent_shutdown_event(event: AgentShutdownEvent) -> None:
+    """Publish agent shutdown event to the control subject."""
+    await publish_jetstream_event(
+        STREAM_CONTROL,
+        f"{SUBJECT_AGENTS_CONTROL}.{event.agent_id}",
+        event,
+    )
 
 
 async def request_machine_status(payload: StatusRequest) -> NatsMessage:

@@ -2,6 +2,7 @@
 
 export {
   agentsLaunchAgent,
+  agentsShutdownAgent,
   deploymentsCreateOperatorEvent,
   deploymentsCreatePipelineDeployment,
   deploymentsListPipelineDeployments,
@@ -41,6 +42,10 @@ export type {
   AgentsLaunchAgentError,
   AgentsLaunchAgentErrors,
   AgentsLaunchAgentResponses,
+  AgentsShutdownAgentData,
+  AgentsShutdownAgentError,
+  AgentsShutdownAgentErrors,
+  AgentsShutdownAgentResponses,
   BodyLoginLoginAccessToken,
   CanonicalEdge,
   CanonicalOperator,

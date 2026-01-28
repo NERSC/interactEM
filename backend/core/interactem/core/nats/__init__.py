@@ -40,6 +40,7 @@ from .config import get_nats_config, NatsMode
 from .storage import cfg as storage_cfg
 from .streams import (
     SFAPI_STREAM_CONFIG,
+    CONTROL_STREAM_CONFIG,
     DEPLOYMENTS_STREAM_CONFIG,
     IMAGES_STREAM_CONFIG,
     NOTIFICATIONS_STREAM_CONFIG,
@@ -275,6 +276,10 @@ async def create_all_streams(js: JetStreamContext) -> list[StreamInfo]:
     create_task_with_ref(
         tasks,
         create_or_update_stream(NOTIFICATIONS_STREAM_CONFIG, js),
+    )
+    create_task_with_ref(
+        tasks,
+        create_or_update_stream(CONTROL_STREAM_CONFIG, js),
     )
     create_task_with_ref(
         tasks,
