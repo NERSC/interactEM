@@ -352,6 +352,13 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync
 </pre></div>
 </div>
+<p>If an agent is running at NERSC, we will use <code class="docutils literal notranslate"><span class="pre">podman-hpc</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># note this will link the current user account&#39;s python (normally stored in ~/.local/share/uv/python)</span>
+<span class="c1"># if we need to share across accounts, you can set the `UV_PYTHON_INSTALL_DIR` env var to a shared location </span>
+<span class="c1"># prior to running the command below</span>
+uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>hpc
+</pre></div>
+</div>
 <p>Then activate your virtual environment and start the agent from the directory containing your <code class="docutils literal notranslate"><span class="pre">.env</span></code>:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>backend/agent
 interactem-agent
