@@ -43,6 +43,15 @@ or
 uv sync
 ```
 
+If an agent is running at NERSC, we will use `podman-hpc`:
+
+```bash
+# note this will link the current user account's python (normally stored in ~/.local/share/uv/python)
+# if we need to share across accounts, you can set the `UV_PYTHON_INSTALL_DIR` env var to a shared location 
+# prior to running the command below
+uv sync --extra hpc
+```
+
 Then activate your virtual environment and start the agent from the directory containing your `.env`:
 
 ```bash
