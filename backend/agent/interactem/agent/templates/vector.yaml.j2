@@ -1,4 +1,4 @@
-VECTOR_CONFIG_TEMPLATE = """sources:
+sources:
   operator_logs:
     type: file
     include:
@@ -34,7 +34,7 @@ transforms:
 
       # Extract deployment_id and operator_id from the file path
       # Format: {{ logs_dir }}/<deployment_id>/op-<operator_id>.log
-      file_match = parse_regex!(string!(.file), r'/(?P<deployment_id>[^/]+)/op-(?P<operator_id>[^.]+)\\.log$')
+      file_match = parse_regex!(string!(.file), r'/(?P<deployment_id>[^/]+)/op-(?P<operator_id>[^.]+)\.log$')
       .deployment_id = file_match.deployment_id
       .operator_id = file_match.operator_id
 {% endraw %}
@@ -93,7 +93,7 @@ transforms:
       .log_type = "agent"
 
       # Strip ANSI color codes from the message
-      .log = replace(string!(.message), r'\\x1b\\[[0-9;]*m', "")
+      .log = replace(string!(.message), r'\x1b\[[0-9;]*m', "")
 
       # Parse the Python logging format: ISO8601_TIMESTAMP - module.name - LEVEL - message
       # Example: 2025-10-08T13:02:06.547Z - module.name - INFO - message
@@ -204,4 +204,3 @@ sinks:
       strategy: credentials_file
       credentials_file:
         path: "{{ nats_creds_path }}"
-"""

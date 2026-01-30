@@ -1,4 +1,5 @@
 import uuid
+from importlib import resources
 from pathlib import Path
 
 import netifaces
@@ -14,11 +15,12 @@ from interactem.core.models.containers import (
 )
 from interactem.core.nats.config import NatsMode, get_nats_config
 
-from ._vector_template import VECTOR_CONFIG_TEMPLATE
-
 logger = get_logger()
 VECTOR_NATS_CREDS_TARGET = "/nats.creds"
 
+
+def _load_vector_template() -> str:
+    return resources.files(__package__).joinpath("templates/vector.yaml.j2").read_text(encoding="utf-8")
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
@@ -167,7 +169,7 @@ class Settings(BaseSettings):
             raise RuntimeError(
                 f"Log directory {self.LOG_DIR} does not exist. Should not happen."
             )
-        templ: Template = Template(VECTOR_CONFIG_TEMPLATE)
+        templ: Template = Template(_load_vector_template())
         vector_yaml = templ.render(
             logs_dir=LOGS_DIR_IN_CONTAINER,
             agent_id=self.ID,
@@ -183,4 +185,3 @@ class Settings(BaseSettings):
 
 
 cfg = Settings()  # pyright: ignore[reportCallIssue]
-
