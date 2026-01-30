@@ -317,10 +317,10 @@
         <article role="main" id="furo-main-content">
           <section id="launch-an-agent">
 <h1>Launch an agent<a class="headerlink" href="#launch-an-agent" title="Link to this heading">#</a></h1>
-<p>The agent is the process that starts operator containers, coordinates their lifecycle, and talks to the platform over NATS. You need at least one running agent before operators can launch.</p>
+<p>The agent is the process that starts operator containers, coordinates their lifecycle, and talks to the rest of the platform over NATS. You need at least one running agent before operators can launch.</p>
 <section id="prerequisites">
 <h2>Prerequisites<a class="headerlink" href="#prerequisites" title="Link to this heading">#</a></h2>
-<p>Have a Python environment manager available (e.g., <a class="reference external" href="https://python-poetry.org/docs/"><code class="docutils literal notranslate"><span class="pre">poetry</span></code></a> or <a class="reference external" href="https://github.com/astral-sh/uv"><code class="docutils literal notranslate"><span class="pre">uv</span></code></a>).</p>
+<p>Have a Python environment manager available (e.g., <a class="reference external" href="https://github.com/astral-sh/uv"><code class="docutils literal notranslate"><span class="pre">uv</span></code></a>).</p>
 </section>
 <section id="configure-the-environment">
 <h2>Configure the environment<a class="headerlink" href="#configure-the-environment" title="Link to this heading">#</a></h2>
@@ -336,9 +336,9 @@
 </pre></div>
 </div>
 <ul class="simple">
-<li><p>If you want to target specific resources, set tags:</p></li>
+<li><p>If you want to run operators with specific tags on this agent, set your tags:</p></li>
 </ul>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">AGENT_TAGS</span><span class="o">=</span><span class="s1">&#39;[&quot;ncem-4dcamera&quot;,&quot;gpu&quot;]&#39;</span>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">AGENT_TAGS</span><span class="o">=</span><span class="s1">&#39;[&quot;ncem-4dcamera&quot;]&#39;</span>
 </pre></div>
 </div>
 </section>
@@ -352,11 +352,8 @@
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync
 </pre></div>
 </div>
-<p>If an agent is running at NERSC, we will use <code class="docutils literal notranslate"><span class="pre">podman-hpc</span></code>:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># note this will link the current user account&#39;s python (normally stored in ~/.local/share/uv/python)</span>
-<span class="c1"># if we need to share across accounts, you can set the `UV_PYTHON_INSTALL_DIR` env var to a shared location </span>
-<span class="c1"># prior to running the command below</span>
-uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>hpc
+<p>If an agent is running at NERSC, we will use <code class="docutils literal notranslate"><span class="pre">podman-hpc</span></code>. If using <code class="docutils literal notranslate"><span class="pre">uv</span></code>, it will attempt to use the python binary from the user account that ran this command first, which is normally stored in <code class="docutils literal notranslate"><span class="pre">~/.local/share/uv/python</span></code>. If you are sharing this agent between users, you can set the <code class="docutils literal notranslate"><span class="pre">UV_PYTHON_INSTALL_DIR</span></code> env var to a shared location.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>hpc
 </pre></div>
 </div>
 <p>Then activate your virtual environment and start the agent from the directory containing your <code class="docutils literal notranslate"><span class="pre">.env</span></code>:</p>
@@ -369,6 +366,38 @@ interactem-agent
 uv<span class="w"> </span>run<span class="w"> </span>interactem-agent
 </pre></div>
 </div>
+</section>
+<section id="connecting-an-agent-to-a-different-nats-cluster">
+<h2>Connecting an agent to a different NATS cluster<a class="headerlink" href="#connecting-an-agent-to-a-different-nats-cluster" title="Link to this heading">#</a></h2>
+<p>To connect into a different NATS cluster, we have to set the <code class="docutils literal notranslate"><span class="pre">.env</span></code> variables:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">NATS_SERVER_URL</span><span class="o">=</span>nats://the.url.to.nats<span class="w"> </span><span class="c1"># could also be ws/wss (websocket/secure websocket)</span>
+<span class="nv">NATS_SERVER_URL_IN_CONTAINER</span><span class="o">=</span>nats://the.url.to.nats<span class="w"> </span><span class="c1"># same as above</span>
+<span class="nv">NATS_CREDS_FILE</span><span class="o">=</span>/path/to/backend.creds
+<span class="nv">OPERATOR_CREDS_FILE</span><span class="o">=</span>/path/to/operator.creds
+<span class="nv">AGENT_NETWORKS</span><span class="o">=</span><span class="s1">&#39;[&quot;your-network-name&quot;]&#39;</span><span class="w"> </span><span class="c1"># need to be changed </span>
+<span class="nv">ZMQ_BIND_INTERFACE</span><span class="o">=</span><span class="s2">&quot;eth0&quot;</span><span class="w"> </span><span class="c1"># interface you are planning to transmit data from on this agent. </span>
+</pre></div>
+</div>
+</section>
+<section id="connecting-agents-and-their-resources">
+<h2>Connecting agents and their resources<a class="headerlink" href="#connecting-agents-and-their-resources" title="Link to this heading">#</a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">AGENT_TAGS</span></code> and <code class="docutils literal notranslate"><span class="pre">AGENT_NETWORKS</span></code> matter for how the pipeline will be deployed.</p>
+<p>Say you have Data Reader Operator and you want to always run it next to your microscope. You must do the following:</p>
+<ol class="arabic">
+<li><p>On your local agent, set `AGENT_TAGS=’[“a-unique-tag-name”]’.</p></li>
+<li><p>On your operator that you want to always run on the agent’s machine, set the tag in the operator spec:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="nt">&quot;tags&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">    </span><span class="nt">&quot;value&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;a-unique-tag-name&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nt">&quot;description&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;Required to run on agents with the tag a-unique-tag-name.&quot;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">]</span>
+</pre></div>
+</div>
+</li>
+<li><p>Then, let’s say this pipeline involves a processing step that is very heavy and needs gpus. Tag that operator with <code class="docutils literal notranslate"><span class="pre">gpu</span></code>, and it will be sent to an agent that also has the tag <code class="docutils literal notranslate"><span class="pre">gpu</span></code>.</p></li>
+<li><p>If the connection between these operators crosses a <code class="docutils literal notranslate"><span class="pre">AGENT_NETWORKS</span></code> boundary ONE TIME, it may not cross that boundary again. This is because we only allow OUTBOUND connections from Operator inputs, and thereby INBOUND connections to operator outputs. This is a bit of a quirk, and could be fixed by other means in the future.</p></li>
+</ol>
 </section>
 </section>
 
@@ -431,6 +460,8 @@ uv<span class="w"> </span>run<span class="w"> </span>interactem-agent
 <li><a class="reference internal" href="#prerequisites">Prerequisites</a></li>
 <li><a class="reference internal" href="#configure-the-environment">Configure the environment</a></li>
 <li><a class="reference internal" href="#install-and-run">Install and run</a></li>
+<li><a class="reference internal" href="#connecting-an-agent-to-a-different-nats-cluster">Connecting an agent to a different NATS cluster</a></li>
+<li><a class="reference internal" href="#connecting-agents-and-their-resources">Connecting agents and their resources</a></li>
 </ul>
 </li>
 </ul>
