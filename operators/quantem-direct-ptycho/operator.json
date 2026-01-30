@@ -20,22 +20,6 @@
     }
   ],
   "parameters": [
-    {
-      "name": "calculation_frequency",
-      "label": "Calculation Frequency",
-      "type": "int",
-      "default": "100",
-      "description": "Number of frames to accumulate before recalculating the center and emitting a BF image.",
-      "required": true
-    },
-    {
-      "name": "max_concurrent_scans",
-      "label": "Max Concurrent Scans",
-      "type": "int",
-      "default": "1",
-      "description": "Maximum number of scans to keep in memory simultaneously. Oldest scans are evicted when this limit is exceeded.",
-      "required": false
-    },
    {  
       "name": "accelerating_voltage",
       "label": "Accelerating voltage",

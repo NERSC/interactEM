@@ -80,7 +80,7 @@ def quantem_direct_ptycho(
     scan_number = batch.header.scan_number
 
     # --- 2. Get or Create FrameAccumulator ---
-    max_concurrent_scans = int(parameters.get("max_concurrent_scans", 1))
+    max_concurrent_scans = 1  # TODO: remove this
 
     if scan_number not in accumulators:
         # Check if we need to evict old accumulators before creating new one
@@ -126,14 +126,20 @@ def quantem_direct_ptycho(
     upsampling_factor = parameters.get("upsampling_factor", 2)
 
     # Parameters for optimize_hyperparameters function
-    initial_defocus_nm = parameters.get(
-        "initial_defocus", None
-    )  # in nanometers, can be None
+    initial_defocus_nm = parameters.get("initial_defocus", 0)  # in nanometers
     if initial_defocus_nm is not None:
         initial_defocus_nm = initial_defocus_nm
         initial_defocus_A = initial_defocus_nm * 10  # convert to Angstroms
     else:
         initial_defocus_A = None
+
+    defocus_search_range_nm = parameters.get(
+        "defocus_search_range", 50
+    )  # in nanometers
+    defocus_search_range_A = defocus_search_range_nm * 10  # convert to Angstroms
+
+    if defocus_search_range_nm == 0:
+        defocus_search_range_A = None
 
     diffraction_rotation_angle = parameters.get(
         "diffraction_rotation_angle", None
@@ -143,11 +149,6 @@ def quantem_direct_ptycho(
         rotation_angle = diffraction_rotation_angle * np.pi / 180  # convert to radians
     else:
         rotation_angle = None
-
-    defocus_search_range_nm = parameters.get(
-        "defocus_search_range", 50
-    )  # in nanometers
-    defocus_search_range_A = defocus_search_range_nm * 10  # convert to Angstroms
 
     maximum_C12_magnitude_nm = parameters.get(
         "maximum_C12_magnitude", 10
@@ -181,7 +182,7 @@ def quantem_direct_ptycho(
 
     dset.sampling[0] = (
         probe_step_size * 10
-    )  ## convert to be Anggstrom for quantem. distiller will give nanometers.
+    )  ## convert to be Angstrom for quantem. distiller will give nanometers.
     dset.sampling[1] = probe_step_size * 10
     dset.units[0:2] = ["A", "A"]
 
