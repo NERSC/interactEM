@@ -114,11 +114,6 @@ def quantem_direct_ptycho(
         return None
 
     # --- 5. Perform Calculation ---
-    logger.info(
-        f"Scan {scan_number}: Triggering calculation after {accumulator.num_batches_added} messages."
-    )
-    logger.info(f"Accumulator finished: {accumulator.finished}")
-
     logger.info(f"Scan {scan_number}: Calculating ptycho images.")
 
     # Calculation parameters
@@ -234,7 +229,7 @@ def quantem_direct_ptycho(
                 aberration_coefs=opt_aberration_coefs,
                 rotation_angle=opt_rotation_angle,
                 deconvolution_kernel=deconvolution_kernel,
-                n_trials=50,
+                n_trials=25,
                 max_batch_size=10,
             )
         else:
