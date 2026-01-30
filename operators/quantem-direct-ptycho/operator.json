@@ -63,9 +63,17 @@
     {  
       "name": "initial_defocus",
       "label": "STEM defocus",
-      "type": "float",
-      "default": "0.0",
+      "type": "int",
+      "default": "0",
       "description": "The STEM defocus in nm.",
+      "required": false
+    },
+    {  
+      "name": "defocus_search_range_nm",
+      "label": "Defocus search range",
+      "type": "int",
+      "default": "50",
+      "description": "The defocus search range in nanometers. Set to zero to disable defocus optimization.",
       "required": false
     },
     {  
@@ -90,14 +98,6 @@
       "type": "int",
       "default": "2",
       "description": "The upsampling factor for the final reconstruction.",
-      "required": false
-    },
-    {  
-      "name": "defocus_search_range_nm",
-      "label": "Defocus search range",
-      "type": "float",
-      "default": "50.0",
-      "description": "The defocus search range in nanometers. Unused if defocus is input.",
       "required": false
     },
     {  
