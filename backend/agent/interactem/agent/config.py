@@ -25,8 +25,7 @@ def _load_vector_template() -> str:
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
     ID: uuid.UUID = Field(default_factory=uuid.uuid4)
-    LOCAL: bool = False
-    DOCKER_COMPATIBILITY_MODE: bool = False
+    USE_NORMAL_PODMAN: bool = False
     PODMAN_SERVICE_URI: str | None = None
     PODMAN_BINARY_PATH: Path | None = None
     NATS_SERVER_URL: AnyWebsocketUrl | NatsDsn = NatsDsn("nats://localhost:4222")
