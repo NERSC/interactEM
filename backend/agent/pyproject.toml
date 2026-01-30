@@ -34,6 +34,10 @@ interactem-core = { path = "../core", editable = true }
 
 [tool.poetry]
 packages = [{ include = "interactem" }]
+include = ["interactem/agent/templates/*.j2"]
+
+[tool.uv.build-backend]
+source-include = ["interactem/agent/templates/*.j2"]
 
 [tool.poetry.dependencies]
 interactem-core = {path = "../core", develop = true}

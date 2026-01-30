@@ -278,7 +278,11 @@ class Agent:
         await self.agent_kv.start()
         # Start the container monitor task at the agent level
         self._monitor_task = asyncio.create_task(self.monitor_containers())
-        self._vector_container = await self._start_vector_container()
+        self._vector_container = None
+        if cfg.vector_enabled:
+            self._vector_container = await self._start_vector_container()
+        else:
+            logger.info("Vector logging disabled; skipping vector container startup.")
 
     async def _start_vector_container(self) -> Container:
         logger.info("Starting Vector container for log aggregation...")
