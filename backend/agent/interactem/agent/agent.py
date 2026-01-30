@@ -72,7 +72,7 @@ else:
     PODMAN_SERVICE_URI = None
 
 # Use configuration, as we always expect to install podman-hpc-client
-if cfg.LOCAL:
+if cfg.USE_NORMAL_PODMAN:
     PODMAN_COMMAND = "podman"
     from podman import PodmanClient
 else:
@@ -992,7 +992,7 @@ async def create_container(
                 await handle_name_conflict(client, op_name)
 
             create_kwargs: dict[str, object] = {}
-            if not cfg.LOCAL and operator.requires_gpus:
+            if not cfg.USE_NORMAL_PODMAN and operator.requires_gpus:
                 create_kwargs["gpu"] = True
 
             return await to_thread.run_sync(
