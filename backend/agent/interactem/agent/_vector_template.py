@@ -119,13 +119,89 @@ transforms:
       del(.message)
 {% endraw %}
 
-sinks:
-  vector_aggregator:
-    type: vector
+  clean_logs:
+    type: remap
     inputs:
       - parse_operator_logs
       - parse_vector_logs
       - parse_agent_logs
-    address: {{ vector_addr }}
-    version: '2'
+    source: |
+{% raw %}
+      # Remove fields we don't want to forward to NATS
+      if .log_type == "agent" {
+        del(.file)
+        del(.source_type)
+      }
+      if .log_type == "operator" {
+        del(.file)
+        del(.source_type)
+        del(.stream)
+      }
+      .
+{% endraw %}
+
+  route_by_type:
+    type: route
+    inputs:
+      - clean_logs
+    route:
+      vector_logs: '.log_type == "vector"'
+      agent_logs: '.log_type == "agent"'
+      operator_logs: '.log_type == "operator"'
+
+sinks:
+  console:
+    type: console
+    inputs:
+      - route_by_type.vector_logs
+      - route_by_type.agent_logs
+      - route_by_type.operator_logs
+    target: stdout
+    encoding:
+      codec: json
+
+  nats_vector:
+    type: nats
+    inputs:
+      - route_by_type.vector_logs
+    url: "{{ nats_url }}"
+{% raw %}
+    subject: "log.vector.{{ agent_id }}"
+    encoding:
+      codec: json
+{% endraw %}
+    auth:
+      strategy: credentials_file
+      credentials_file:
+        path: "{{ nats_creds_path }}"
+
+  nats_agents:
+    type: nats
+    inputs:
+      - route_by_type.agent_logs
+    url: "{{ nats_url }}"
+{% raw %}
+    subject: "log.agent.{{ agent_id }}"
+    encoding:
+      codec: json
+{% endraw %}
+    auth:
+      strategy: credentials_file
+      credentials_file:
+        path: "{{ nats_creds_path }}"
+
+  nats_operators:
+    type: nats
+    inputs:
+      - route_by_type.operator_logs
+    url: "{{ nats_url }}"
+{% raw %}
+    subject: "log.depl.{{ deployment_id }}.op.{{ operator_id }}"
+    encoding:
+      codec: json
+{% endraw %}
+    auth:
+      strategy: credentials_file
+      credentials_file:
+        path: "{{ nats_creds_path }}"
 """

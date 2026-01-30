@@ -12,10 +12,12 @@ from interactem.core.models.containers import (
     PodmanMount,
     PodmanMountType,
 )
+from interactem.core.nats.config import NatsMode, get_nats_config
 
 from ._vector_template import VECTOR_CONFIG_TEMPLATE
 
 logger = get_logger()
+VECTOR_NATS_CREDS_TARGET = "/nats.creds"
 
 
 class Settings(BaseSettings):
@@ -43,7 +45,7 @@ class Settings(BaseSettings):
     ALWAYS_PULL_IMAGES: bool = False
 
     # Vector configuration
-    VECTOR_AGGREGATOR_ADDR: str | None = None
+    VECTOR_ENABLED: bool = True
     LOG_DIR: Path = Path("~/.interactem/logs").expanduser().resolve()
     VECTOR_CONFIG_PATH: Path | None = None
     OPERATOR_EXTRA_ENV: dict[str, str] = Field(default_factory=dict, exclude=True)
@@ -125,15 +127,40 @@ class Settings(BaseSettings):
             target="/etc/vector/vector.yaml",
         )
         log_mount = self.log_mount
+        mounts = [config_mount]
         if log_mount:
-            return [config_mount, log_mount]
-        return [config_mount]
+            mounts.append(log_mount)
+        creds_mount = self.vector_creds_mount
+        if creds_mount:
+            mounts.append(creds_mount)
+        return mounts
+
+    @property
+    def vector_creds_mount(self) -> PodmanMount | None:
+        creds_path = self.nats_creds_file
+        if not creds_path:
+            return None
+        return PodmanMount(
+            type=PodmanMountType.bind,
+            source=str(creds_path),
+            target=VECTOR_NATS_CREDS_TARGET,
+        )
+
+    @property
+    def nats_creds_file(self) -> Path | None:
+        try:
+            nats_cfg = get_nats_config()
+        except ValueError:
+            return None
+        if nats_cfg.NATS_SECURITY_MODE != NatsMode.CREDS:
+            return None
+        return nats_cfg.NATS_CREDS_FILE
 
     def generate_vector_config(self) -> Path | None:
         """Generates a vector config file and returns path to it"""
 
-        if not self.VECTOR_AGGREGATOR_ADDR:
-            logger.warning("VECTOR_AGGREGATOR_ADDR not set, skipping log aggregation.")
+        if not self.VECTOR_ENABLED:
+            logger.warning("VECTOR_ENABLED is false, skipping log aggregation.")
             return None
 
         if not self.LOG_DIR.exists():
@@ -144,7 +171,8 @@ class Settings(BaseSettings):
         vector_yaml = templ.render(
             logs_dir=LOGS_DIR_IN_CONTAINER,
             agent_id=self.ID,
-            vector_addr=self.VECTOR_AGGREGATOR_ADDR,
+            nats_url=str(self.NATS_SERVER_URL_IN_CONTAINER),
+            nats_creds_path=VECTOR_NATS_CREDS_TARGET,
         )
         output_path = self.LOG_DIR / "vector.yaml"
         with open(output_path, "w") as f:
