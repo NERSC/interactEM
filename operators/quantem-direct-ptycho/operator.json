@@ -59,7 +59,7 @@
       "default": true,
       "description": "Use the optimization routine to optimize the defocus.",
       "required": false
-    }
+    },
     {  
       "name": "defocus_search_range_nm",
       "label": "Defocus search range",
