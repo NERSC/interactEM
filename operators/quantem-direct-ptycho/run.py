@@ -146,7 +146,7 @@ def quantem_direct_ptycho(
     diffraction_rotation_angle_deg = parameters.get("diffraction_rotation_angle", 0)
     rotation_angle = diffraction_rotation_angle_deg * np.pi / 180  # convert to radians
 
-    optimize_angle = bool(parameters.get("optimize_angle", False))
+    optimize_angle = bool(parameters.get("optimize_rotation_angle", False))
 
     optimize_C12 = bool(parameters.get("optimize_C12", False))
     if optimize_C12:
@@ -179,7 +179,7 @@ def quantem_direct_ptycho(
     dset.sampling[3] = probe_semiangle / probe_R
     dset.units[2:] = ["mrad", "mrad"]
 
-    dset.sampling[0:2] = probe_step_size_A * 10
+    dset.sampling[0:2] = probe_step_size_A
     dset.units[0:2] = ["A", "A"]
 
     logger.info(f"Scan {scan_number}: Start direct ptycho")

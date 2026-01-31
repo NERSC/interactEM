@@ -61,7 +61,7 @@
       "required": false
     },
     {  
-      "name": "defocus_search_range_nm",
+      "name": "defocus_search_range",
       "label": "Defocus search range",
       "type": "int",
       "default": "50",
@@ -85,7 +85,7 @@
       "required": false
     },
     {  
-      "name": "maximum_C12_magnitude_nm",
+      "name": "maximum_C12_magnitude",
       "label": "Maximum C12 magnitude",
       "type": "int",
       "default": "2",
