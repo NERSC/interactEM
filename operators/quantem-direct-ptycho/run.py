@@ -117,49 +117,47 @@ def quantem_direct_ptycho(
     logger.info(f"Scan {scan_number}: Calculating ptycho images.")
 
     # Calculation parameters
-    probe_semiangle = parameters.get("probe_semiangle", 25.0)
     energy = parameters.get("accelerating_voltage", 300e3)
-    probe_step_size = parameters.get(
-        "probe_step_size", 0.1
-    )  # test data set: 0.14383155 nm
-    crop_probes = parameters.get("crop_probes", 0)
+    probe_semiangle = parameters.get("probe_semiangle", 25.0)
+    # test data set: 0.14383155 nm probe step size
+    probe_step_size_nm = parameters.get("probe_step_size", 0.1)
+    probe_step_size_A = probe_step_size_nm * 10
     upsampling_factor = parameters.get("upsampling_factor", 2)
 
-    # Parameters for optimize_hyperparameters function
-    initial_defocus_nm = parameters.get("initial_defocus", 0)  # in nanometers
-    if initial_defocus_nm is not None:
-        initial_defocus_nm = initial_defocus_nm
-        initial_defocus_A = initial_defocus_nm * 10  # convert to Angstroms
+    optimize_defocus = bool(parameters.get("optimize_defocus", True))
+    if optimize_defocus:
+        defocus_search_max_nm = parameters.get("defocus_search_range", 50)
+        defocus_search_max_A = defocus_search_max_nm * 10  # convert to Angstroms
     else:
-        initial_defocus_A = None
+        defocus_search_max_A = 0
 
-    defocus_search_range_nm = parameters.get(
-        "defocus_search_range", 50
-    )  # in nanometers
-    defocus_search_range_A = defocus_search_range_nm * 10  # convert to Angstroms
+    initial_defocus_nm = parameters.get("initial_defocus", 0)
+    initial_defocus_A = initial_defocus_nm * 10
 
-    if defocus_search_range_nm == 0:
-        defocus_search_range_A = None
-
-    diffraction_rotation_angle = parameters.get(
-        "diffraction_rotation_angle", None
-    )  # in degrees, can be None
-    if diffraction_rotation_angle is not None:
-        diffraction_rotation_angle = diffraction_rotation_angle
-        rotation_angle = diffraction_rotation_angle * np.pi / 180  # convert to radians
+    # Only search in one direction from initial guess
+    if initial_defocus_A > 0:
+        defocus_search_range_A = (0, defocus_search_max_A)
+    elif initial_defocus_A < 0:
+        defocus_search_range_A = (-defocus_search_max_A, 0)
     else:
-        rotation_angle = None
+        defocus_search_range_A = (-defocus_search_max_A, defocus_search_max_A)
 
-    maximum_C12_magnitude_nm = parameters.get(
-        "maximum_C12_magnitude", 10
-    )  # in nanometers
-    maximum_C12_magnitude_A = maximum_C12_magnitude_nm * 10  # convert to Angstroms
+    # in degrees
+    diffraction_rotation_angle_deg = parameters.get("diffraction_rotation_angle", 0)
+    rotation_angle = diffraction_rotation_angle_deg * np.pi / 180  # convert to radians
+
+    optimize_angle = bool(parameters.get("optimize_angle", False))
+
+    optimize_C12 = bool(parameters.get("optimize_C12", False))
+    if optimize_C12:
+        maximum_C12_magnitude_nm = parameters.get("maximum_C12_magnitude", 10)
+        maximum_C12_magnitude_A = maximum_C12_magnitude_nm * 10  # convert to Angstroms
+    else:
+        maximum_C12_magnitude_A = None
 
     deconvolution_kernel = parameters.get("deconvolution_kernel", "parallax")
 
-    # Determine whether to use optimization or manual settings
-    use_optimization = bool(parameters.get("use_optimization", True))
-
+    crop_probes = parameters.get("crop_probes", 0)
     if crop_probes == 0:
         logger.info(f"Scan {scan_number}: No cropping of probes applied.")
         dense_data = accumulator[:, :-1, :, :].to_dense()  ## remove the flyback column
@@ -169,6 +167,7 @@ def quantem_direct_ptycho(
             crop_probes:-crop_probes, crop_probes : -crop_probes - 1, :, :
         ].to_dense()  ## crop the edges if needed and remove the flyback column
 
+    # Convert SparseArray to Dataset4dstem
     dset = em.datastructures.Dataset4dstem.from_array(array=dense_data)
     logger.debug(f"dense shape = {dense_data.shape}")
 
@@ -180,10 +179,7 @@ def quantem_direct_ptycho(
     dset.sampling[3] = probe_semiangle / probe_R
     dset.units[2:] = ["mrad", "mrad"]
 
-    dset.sampling[0] = (
-        probe_step_size * 10
-    )  ## convert to be Angstrom for quantem. distiller will give nanometers.
-    dset.sampling[1] = probe_step_size * 10
+    dset.sampling[0:2] = probe_step_size_A * 10
     dset.units[0:2] = ["A", "A"]
 
     logger.info(f"Scan {scan_number}: Start direct ptycho")
@@ -203,25 +199,28 @@ def quantem_direct_ptycho(
             rotation_angle=rotation_angle,  # need radians
         )
 
-        if use_optimization:
+        if optimize_C12 or optimize_angle or optimize_defocus:
             logger.info(f"Scan {scan_number}: Optimizing hyperparameters")
 
             # Build optimization aberration coefficients
             opt_aberration_coefs = {}
-            if initial_defocus_A is None:
+
+            if optimize_defocus:
                 opt_aberration_coefs["C10"] = OptimizationParameter(
-                    defocus_search_range_A, defocus_search_range_A
+                    defocus_search_range_A[0], defocus_search_range_A[1]
                 )
             else:
                 opt_aberration_coefs["C10"] = -initial_defocus_A
 
-            opt_aberration_coefs["C12"] = OptimizationParameter(
-                0, maximum_C12_magnitude_A
-            )
-            opt_aberration_coefs["phi12"] = OptimizationParameter(-np.pi / 2, np.pi / 2)
+            if optimize_C12:
+                opt_aberration_coefs["C12"] = OptimizationParameter(
+                    0, maximum_C12_magnitude_A
+                )
+                opt_aberration_coefs["phi12"] = OptimizationParameter(
+                    -np.pi / 2, np.pi / 2
+                )
 
-            # Build rotation angle optimization
-            if rotation_angle is None:
+            if optimize_angle:
                 opt_rotation_angle = OptimizationParameter(0, np.pi)
             else:
                 opt_rotation_angle = rotation_angle

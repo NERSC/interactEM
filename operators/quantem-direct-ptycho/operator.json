@@ -52,6 +52,14 @@
       "description": "The STEM defocus in nm.",
       "required": false
     },
+    {
+      "name": "optimize_defocus",
+      "label": "Optimize the defocus",
+      "type": "bool",
+      "default": true,
+      "description": "Use the optimization routine to optimize the defocus.",
+      "required": false
+    }
     {  
       "name": "defocus_search_range_nm",
       "label": "Defocus search range",
@@ -66,6 +74,30 @@
       "type": "float",
       "default": "0.0",
       "description": "The rotation of the diffraction pattern on the detector in degrees.",
+      "required": false
+    },
+    {
+      "name": "optimize_rotation_angle",
+      "label": "Optimize the rotation angle",
+      "type": "bool",
+      "default": false,
+      "description": "Use the optimization routine to optimize the rotation angle.",
+      "required": false
+    },
+    {  
+      "name": "maximum_C12_magnitude_nm",
+      "label": "Maximum C12 magnitude",
+      "type": "int",
+      "default": "2",
+      "description": "The maximum C12 magnitude in nanometers.",
+      "required": false
+    },
+    {
+      "name": "optimize_C12",
+      "label": "Optimize the C12",
+      "type": "bool",
+      "default": true,
+      "description": "Use the optimization routine to optimize the C12.",
       "required": false
     },
     {  
@@ -85,28 +117,12 @@
       "required": false
     },
     {  
-      "name": "maximum_C12_magnitude_nm",
-      "label": "Maximum C12 magnitude",
-      "type": "int",
-      "default": "2",
-      "description": "The maximum C12 magnitude in nanometers.",
-      "required": false
-    },
-    {  
       "name": "deconvolution_kernel",
       "label": "Deconvolution kernel",
       "type": "str-enum",
       "default": "parallax",
       "options": ["parallax", "ssb", "icom"],
       "description": "The deconvolution kernel.",
-      "required": false
-    },
-    {
-      "name": "use_optimization",
-      "label": "Use optimization routine",
-      "type": "bool",
-      "default": true,
-      "description": "Use the optimization routine with initial parameters.",
       "required": false
     }
   ],
