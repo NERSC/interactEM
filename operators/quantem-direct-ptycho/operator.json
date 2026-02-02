@@ -45,29 +45,21 @@
       "required": false
     },
     {  
-      "name": "initial_defocus",
-      "label": "STEM defocus",
+      "name": "defocus_search_range_min",
+      "label": "Defocus search range minimum",
       "type": "int",
       "default": "0",
-      "description": "The STEM defocus in nm.",
+      "description": "The defocus search range minimum in nanometers.",
       "required": false
     },
     {
-      "name": "optimize_defocus",
-      "label": "Optimize the defocus",
-      "type": "bool",
-      "default": true,
-      "description": "Use the optimization routine to optimize the defocus.",
-      "required": false
-    },
-    {  
-      "name": "defocus_search_range",
-      "label": "Defocus search range",
+      "name": "defocus_search_range_max",
+      "label": "Defocus search range maximum",
       "type": "int",
-      "default": "50",
-      "description": "The defocus search range in nanometers. Set to zero to disable defocus optimization.",
+      "default": "30",
+      "description": "The defocus search range maximum in nanometers.",
       "required": false
-    },
+    }
     {  
       "name": "diffraction_rotation_angle",
       "label": "Diffraction pattern rotation angle",
@@ -76,28 +68,12 @@
       "description": "The rotation of the diffraction pattern on the detector in degrees.",
       "required": false
     },
-    {
-      "name": "optimize_rotation_angle",
-      "label": "Optimize the rotation angle",
-      "type": "bool",
-      "default": false,
-      "description": "Use the optimization routine to optimize the rotation angle.",
-      "required": false
-    },
     {  
       "name": "maximum_C12_magnitude",
       "label": "Maximum C12 magnitude",
       "type": "int",
-      "default": "2",
+      "default": "10",
       "description": "The maximum C12 magnitude in nanometers.",
-      "required": false
-    },
-    {
-      "name": "optimize_C12",
-      "label": "Optimize the C12",
-      "type": "bool",
-      "default": true,
-      "description": "Use the optimization routine to optimize the C12.",
       "required": false
     },
     {  
@@ -114,6 +90,14 @@
       "type": "int",
       "default": "2",
       "description": "The upsampling factor for the final reconstruction.",
+      "required": false
+    },
+    {  
+      "name": "n_trials",
+      "label": "Number of trials for hyperparameter optimization",
+      "type": "int",
+      "default": "25",
+      "description": "The number of trials for hyperparameter optimization.",
       "required": false
     },
     {  
