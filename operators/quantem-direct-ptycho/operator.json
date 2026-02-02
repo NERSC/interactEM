@@ -1,6 +1,6 @@
 {
   "id": "17460a60-01ac-4144-aa32-126bd62667aa",
-  "label": "quantem direct ptycho",
+  "label": "quantem direct ptycho 2",
   "description": "Use quantem to calculate direct ptychography reconstructions from counted data.",
   "image": "ghcr.io/nersc/interactem/quantem-direct-ptycho:latest",
   "inputs": [
@@ -59,7 +59,7 @@
       "default": "30",
       "description": "The defocus search range maximum in nanometers.",
       "required": false
-    }
+    },
     {  
       "name": "diffraction_rotation_angle",
       "label": "Diffraction pattern rotation angle",
@@ -107,7 +107,7 @@
       "default": "10",
       "description": "The maximum batch size for processing frames. Reduce if you run out of GPU memory.",
       "required": false
-    }
+    },
     {  
       "name": "deconvolution_kernel",
       "label": "Deconvolution kernel",
