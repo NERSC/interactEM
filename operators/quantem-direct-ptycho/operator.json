@@ -1,6 +1,6 @@
 {
   "id": "17460a60-01ac-4144-aa32-126bd62667aa",
-  "label": "quantem direct ptycho 2",
+  "label": "quantem direct ptycho",
   "description": "Use quantem to calculate direct ptychography reconstructions from counted data.",
   "image": "ghcr.io/nersc/interactem/quantem-direct-ptycho:latest",
   "inputs": [
