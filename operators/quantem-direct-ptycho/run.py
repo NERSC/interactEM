@@ -228,7 +228,7 @@ def quantem_direct_ptycho(
             direct_ptycho.optimize_hyperparameters(
                 aberration_coefs=opt_aberration_coefs,
                 rotation_angle=opt_rotation_angle,
-                deconvolution_kernel=deconvolution_kernel,
+                deconvolution_kernel="parallax",
                 n_trials=25,
                 max_batch_size=10,
             )
