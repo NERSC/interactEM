@@ -20,22 +20,6 @@
     }
   ],
   "parameters": [
-    {
-      "name": "calculation_frequency",
-      "label": "Calculation Frequency",
-      "type": "int",
-      "default": "100",
-      "description": "Number of frames to accumulate before recalculating the center and emitting a BF image.",
-      "required": true
-    },
-    {
-      "name": "max_concurrent_scans",
-      "label": "Max Concurrent Scans",
-      "type": "int",
-      "default": "1",
-      "description": "Maximum number of scans to keep in memory simultaneously. Oldest scans are evicted when this limit is exceeded.",
-      "required": false
-    },
    {  
       "name": "accelerating_voltage",
       "label": "Accelerating voltage",
@@ -61,11 +45,19 @@
       "required": false
     },
     {  
-      "name": "initial_defocus",
-      "label": "STEM defocus",
-      "type": "float",
-      "default": "0.0",
-      "description": "The STEM defocus in nm.",
+      "name": "defocus_search_range_min",
+      "label": "Defocus search range minimum",
+      "type": "int",
+      "default": "0",
+      "description": "The defocus search range minimum in nanometers.",
+      "required": false
+    },
+    {
+      "name": "defocus_search_range_max",
+      "label": "Defocus search range maximum",
+      "type": "int",
+      "default": "30",
+      "description": "The defocus search range maximum in nanometers.",
       "required": false
     },
     {  
@@ -74,6 +66,14 @@
       "type": "float",
       "default": "0.0",
       "description": "The rotation of the diffraction pattern on the detector in degrees.",
+      "required": false
+    },
+    {  
+      "name": "maximum_C12_magnitude",
+      "label": "Maximum C12 magnitude",
+      "type": "int",
+      "default": "10",
+      "description": "The maximum C12 magnitude in nanometers.",
       "required": false
     },
     {  
@@ -93,19 +93,19 @@
       "required": false
     },
     {  
-      "name": "defocus_search_range_nm",
-      "label": "Defocus search range",
-      "type": "float",
-      "default": "50.0",
-      "description": "The defocus search range in nanometers. Unused if defocus is input.",
+      "name": "n_trials",
+      "label": "Number of trials for hyperparameter optimization",
+      "type": "int",
+      "default": "25",
+      "description": "The number of trials for hyperparameter optimization.",
       "required": false
     },
-    {  
-      "name": "maximum_C12_magnitude_nm",
-      "label": "Maximum C12 magnitude",
+    {
+      "name": "max_batch_size",
+      "label": "Maximum batch size",
       "type": "int",
-      "default": "2",
-      "description": "The maximum C12 magnitude in nanometers.",
+      "default": "10",
+      "description": "The maximum batch size for processing frames. Reduce if you run out of GPU memory.",
       "required": false
     },
     {  
@@ -115,14 +115,6 @@
       "default": "parallax",
       "options": ["parallax", "ssb", "icom"],
       "description": "The deconvolution kernel.",
-      "required": false
-    },
-    {
-      "name": "use_optimization",
-      "label": "Use optimization routine",
-      "type": "bool",
-      "default": true,
-      "description": "Use the optimization routine with initial parameters.",
       "required": false
     }
   ],
