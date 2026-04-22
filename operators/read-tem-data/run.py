@@ -15,7 +15,7 @@ logger = get_logger()
 data_dir = Path(f"{DATA_DIRECTORY}/raw_data_dir")
 
 @operator
-def read_data_pae(
+def read_data_ncempy(
     inputs: BytesMessage | None, parameters: dict[str, Any]
 ) -> BytesMessage | None:
     """This reads data from disk and sends it on."""
@@ -23,17 +23,16 @@ def read_data_pae(
     # This operator does not require inputs
 
     # Extract parameters
-    directory = parameters.get("directory", "/test_data")
+    directory = parameters.get("raw_data_dir", "/test_data")
     file = parameters.get("file", "test.emd")
-    # mount_dir = parameters.get("mount_dir", "~")
 
-    # TODO: Implement operator logic here
+    # Read data from disk
     logger.info("read_tem_data operator running...")
 
-    logger.info(f'directory: {directory}')
-    logger.info(f'mount directory: {data_dir}')
-    logger.info(f'file: {file}')
-    # file_path = Path(directory) / Path(file)
+    logger.info(f"parameter directory: {directory}")
+    logger.info(f"internal mount directory: {data_dir}")
+    logger.info(f"file name: {file}")
+
     file_path = data_dir / Path(file)
     try:
         dd = ncempy.read(file_path)
@@ -44,7 +43,7 @@ def read_data_pae(
         logger.info('Problem loading file. Using zeros array.')
     time.sleep(3.0)
 
-    # TODO: Process and return result
+    # Process and return result
     data_bytes = data.tobytes()
     header = MessageHeader(subject=MessageSubject.BYTES, meta={'shape': data.shape, 'dtype': str(data.dtype)})
     return BytesMessage(header=header, data=data_bytes)
