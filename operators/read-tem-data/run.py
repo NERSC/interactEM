@@ -38,12 +38,15 @@ def read_data_ncempy(
         dd = ncempy.read(file_path)
         data = dd['data']
         logger.info(f'file data shape: {data.shape}')
-    except Exception:
-        data = np.zeros((100, 100), dtype=np.uint8)
-        logger.info('Problem loading file. Using zeros array.')
+    except Exception as e:
+        logger.info(f"Problem loading file. Error: {e}")
+        return None
+
+    # Send the data every 3 seonds
+    # TODO: Use trigger instead of time.sleep to control when data is sent
     time.sleep(3.0)
 
-    # Process and return result
+    # Process and return result if the data was loaded successfully
     data_bytes = data.tobytes()
     header = MessageHeader(subject=MessageSubject.BYTES, meta={'shape': data.shape, 'dtype': str(data.dtype)})
     return BytesMessage(header=header, data=data_bytes)
