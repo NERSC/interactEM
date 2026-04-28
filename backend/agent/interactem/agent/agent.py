@@ -110,6 +110,8 @@ OPERATOR_CREDS_MOUNT = PodmanMount(
 PODMAN_MAX_POOL_SIZE = 100
 IMAGE_PULL_LOCK = anyio.Lock()
 KV_SHUTDOWN_TIMEOUT = 1.0
+PODMAN_HPC_SQUASHFS_MAGIC = b"hsqs"
+PODMAN_HPC_RECOVERY_ATTEMPTS = 2
 
 
 class ContainerTracker:
@@ -931,6 +933,10 @@ class NameConflictError(podman.errors.exceptions.APIError):
     pass
 
 
+class PodmanHpcImageMigrationError(RuntimeError):
+    pass
+
+
 def is_name_conflict_error(exc: Exception) -> bool:
     if isinstance(exc, podman.errors.exceptions.APIError):
         error_message = str(exc)
@@ -941,6 +947,176 @@ def is_name_conflict_error(exc: Exception) -> bool:
         return False
 
 
+def using_podman_hpc() -> bool:
+    return os.path.basename(PODMAN_COMMAND) == "podman-hpc"
+
+
+def podman_hpc_migration_error_types() -> tuple[type[BaseException], ...]:
+    error_types: list[type[BaseException]] = [PodmanHpcImageMigrationError]
+    try:
+        from podman_hpc.migrate2scratch import MigrationError
+
+        error_types.append(MigrationError)
+    except (ImportError, AttributeError):
+        pass
+    try:
+        from podman_hpc_client.images import PodmanHpcMigrationError
+
+        error_types.append(PodmanHpcMigrationError)
+    except (ImportError, AttributeError):
+        pass
+
+    return tuple(error_types)
+
+
+def is_recoverable_podman_hpc_pull_error(exc: Exception) -> bool:
+    return using_podman_hpc() and isinstance(
+        exc, podman_hpc_migration_error_types()
+    )
+
+
+def is_recoverable_podman_hpc_get_error(exc: Exception) -> bool:
+    return using_podman_hpc() and isinstance(
+        exc,
+        (
+            PodmanHpcImageMigrationError,
+            podman.errors.exceptions.APIError,
+        ),
+    )
+
+
+def verify_podman_hpc_image_migration(image: str) -> None:
+    if not using_podman_hpc():
+        return
+
+    from podman_hpc.migrate2scratch import MigrateUtils
+    from podman_hpc.siteconfig import SiteConfig
+
+    migrate_utils = MigrateUtils(conf=SiteConfig())
+    if not migrate_utils.migrate_image(image):
+        raise PodmanHpcImageMigrationError(
+            f"podman-hpc migration returned False for {image}"
+        )
+
+    img_info, _ = migrate_utils.dst.get_img_info(image)
+    if not img_info:
+        raise PodmanHpcImageMigrationError(
+            f"podman-hpc destination image record missing for {image}"
+        )
+
+    top_layer = img_info["layer"]
+    link = migrate_utils.dst.read_link_file(top_layer).strip()
+    squash_file = migrate_utils.dst.get_squash_filename(link)
+    if not os.path.exists(squash_file):
+        raise PodmanHpcImageMigrationError(
+            f"missing podman-hpc squash file for {image}: {squash_file}"
+        )
+
+    with open(squash_file, "rb") as f:
+        magic = f.read(4)
+
+    if magic != PODMAN_HPC_SQUASHFS_MAGIC:
+        raise PodmanHpcImageMigrationError(
+            f"invalid podman-hpc squash file for {image}: {squash_file}"
+        )
+
+
+def remove_podman_hpc_squashed_image(image: str) -> None:
+    if not using_podman_hpc():
+        return
+
+    from podman_hpc.migrate2scratch import MigrateUtils
+    from podman_hpc.siteconfig import SiteConfig
+
+    migrate_utils = MigrateUtils(conf=SiteConfig())
+    migrate_utils.remove_image(image)
+
+
+async def remove_image(
+    client: PodmanClient,
+    image: str,
+    *,
+    force: bool = True,
+) -> bool:
+    try:
+        remove = functools.partial(client.images.remove, image, force=force)
+        await to_thread.run_sync(remove)
+
+        return True
+    except (
+        podman.errors.exceptions.ImageNotFound,
+        podman.errors.exceptions.NotFound,
+    ):
+        return False
+
+
+async def cleanup_podman_hpc_image(
+    client: PodmanClient, image: str, reason: Exception
+) -> None:
+    logger.warning(
+        "Attempting podman-hpc image recovery for %s after store error: %s",
+        image,
+        reason,
+    )
+
+    if using_podman_hpc():
+        try:
+            await to_thread.run_sync(remove_podman_hpc_squashed_image, image)
+        except Exception as exc:
+            logger.warning(
+                "Failed to remove podman-hpc squashed image %s before retry: %s",
+                image,
+                exc,
+            )
+
+    try:
+        removed = await remove_image(client, image, force=True)
+    except Exception as exc:
+        logger.warning(
+            "Failed to remove local image %s before retry; pulling anyway: %s",
+            image,
+            exc,
+        )
+    else:
+        if removed:
+            logger.info("Removed local image %s before retry", image)
+        else:
+            logger.info("Local image %s was already absent before retry", image)
+
+
+async def _pull_image_with_recovery(client: PodmanClient, image: str) -> None:
+    try:
+        for attempt in stamina.retry_context(
+            on=is_recoverable_podman_hpc_pull_error,
+            attempts=PODMAN_HPC_RECOVERY_ATTEMPTS,
+        ):
+            with attempt:
+                retry_msg = (
+                    "" if attempt.num == 1 else f" (recovery attempt {attempt.num})"
+                )
+                logger.info(f"Pulling image {image}{retry_msg}...")
+                try:
+                    await to_thread.run_sync(client.images.pull, image)
+                    await to_thread.run_sync(verify_podman_hpc_image_migration, image)
+                except Exception as exc:
+                    if (
+                        attempt.num < PODMAN_HPC_RECOVERY_ATTEMPTS
+                        and is_recoverable_podman_hpc_pull_error(exc)
+                    ):
+                        await cleanup_podman_hpc_image(client, image, exc)
+                    raise
+                logger.info(f"Successfully pulled image {image}")
+                return
+    except Exception as exc:
+        error_msg = f"Failed to pull image {image}: {exc}"
+        logger.error(error_msg)
+        raise RuntimeError(error_msg) from exc
+
+    error_msg = f"Failed to pull image {image}: retry attempts exhausted"
+    logger.error(error_msg)
+    raise RuntimeError(error_msg)
+
+
 async def pull_image(client: PodmanClient, image: str) -> None:
     if not image.startswith(INTERACTEM_IMAGE_REGISTRY) and image != VECTOR_IMAGE:
         _msg = f"Image {image} is not from the interactem registry ({INTERACTEM_IMAGE_REGISTRY})."
@@ -948,23 +1124,23 @@ async def pull_image(client: PodmanClient, image: str) -> None:
         raise RuntimeError(_msg)
 
     async with IMAGE_PULL_LOCK:
-        try:
-            logger.info(f"Pulling image {image}...")
-            await to_thread.run_sync(client.images.pull, image)
-            logger.info(f"Successfully pulled image {image}")
-        except Exception as e:
-            error_msg = f"Failed to pull image {image}: {e}"
-            logger.error(error_msg)
-            raise RuntimeError(error_msg) from e
+        await _pull_image_with_recovery(client, image)
 
 
 async def ensure_image_present(client: PodmanClient, image: str) -> None:
     try:
         await to_thread.run_sync(client.images.get, image)
+        await to_thread.run_sync(verify_podman_hpc_image_migration, image)
         logger.debug(f"Image {image} is already available")
     except podman.errors.exceptions.ImageNotFound:
         logger.info(f"Image {image} not found locally, attempting to pull...")
         await pull_image(client, image)
+    except Exception as e:
+        if not is_recoverable_podman_hpc_get_error(e):
+            raise
+        async with IMAGE_PULL_LOCK:
+            await cleanup_podman_hpc_image(client, image, e)
+            await _pull_image_with_recovery(client, image)
 
 
 async def create_container(
