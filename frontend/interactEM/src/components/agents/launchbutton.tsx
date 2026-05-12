@@ -36,16 +36,21 @@ export const LaunchAgentButton = () => {
   const {
     control,
     handleSubmit,
+    watch,
     formState: { errors },
   } = useForm<AgentCreateEvent>({
     resolver: zodResolver(zAgentCreateEvent),
+    shouldUnregister: true,
     defaultValues: {
       machine: "perlmutter",
       compute_type: "cpu",
       duration: "01:00:00",
       num_nodes: 1,
+      gpus_per_node: 4,
     },
   })
+  const computeType = watch("compute_type")
+
   const onSubmit: SubmitHandler<AgentCreateEvent> = useCallback(
     async (formData: AgentCreateEvent) => {
       try {
@@ -144,6 +149,37 @@ export const LaunchAgentButton = () => {
                   )}
                 />
               </FormControl>
+
+              {computeType === "gpu" && (
+                <FormControl fullWidth sx={{ marginBottom: "1rem" }}>
+                  <Controller
+                    name="gpus_per_node"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        label="GPUs per Node"
+                        variant="outlined"
+                        type="number"
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        value={field.value ?? ""}
+                        fullWidth
+                        error={!!errors.gpus_per_node}
+                        helperText={
+                          errors.gpus_per_node
+                            ? "This should be a positive integer."
+                            : ""
+                        }
+                        slotProps={{
+                          htmlInput: {
+                            min: 1,
+                          },
+                        }}
+                      />
+                    )}
+                  />
+                </FormControl>
+              )}
 
               <FormControl fullWidth sx={{ marginBottom: "1rem" }}>
                 <Controller

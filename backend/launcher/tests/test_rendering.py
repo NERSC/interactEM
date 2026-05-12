@@ -40,3 +40,28 @@ async def test_submit_rendering(expected_script: str):
     )
 
     assert script == expected_script
+
+
+@pytest.mark.asyncio
+async def test_submit_rendering_uses_configured_gpus_per_node():
+    job_req = JobSubmitEvent(
+        machine=Machine.perlmutter,
+        account="test_account",
+        qos="normal",
+        constraint="gpu",
+        walltime=timedelta(hours=1, minutes=30),
+        reservation=None,
+        num_nodes=2,
+        gpus_per_node=2,
+    )
+
+    jinja_env = Environment(
+        loader=PackageLoader("interactem.launcher"), enable_async=True
+    )
+    template = jinja_env.get_template(LAUNCH_AGENT_TEMPLATE)
+
+    script = await template.render_async(
+        job=job_req.model_dump(), settings=cfg.model_dump()
+    )
+
+    assert "--gpus-per-node=2" in script

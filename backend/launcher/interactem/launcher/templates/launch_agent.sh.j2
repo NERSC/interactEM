@@ -4,4 +4,10 @@ export HDF5_USE_FILE_LOCKING=FALSE
 export UV_CACHE_DIR="${TMPDIR:-/tmp}/uv-cache-${SLURM_JOB_ID:-$$}"
 mkdir -p "$UV_CACHE_DIR"
 cd {{settings.ENV_FILE_DIR}}
-srun --nodes={{job.num_nodes}} --ntasks-per-node=1 uv run --project {{settings.AGENT_PROJECT_DIR}} interactem-agent
+srun \
+    --nodes={{ job.num_nodes }} \
+    --ntasks-per-node=1 \
+    {%- if job.constraint == "gpu" %}
+    --gpus-per-node={{ job.gpus_per_node }} \
+    {%- endif %}
+    uv run --project {{ settings.AGENT_PROJECT_DIR }} interactem-agent
