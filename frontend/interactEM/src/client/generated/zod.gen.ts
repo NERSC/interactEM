@@ -51,6 +51,7 @@ export const zAgentCreateEvent = z.object({
   duration: z.string(),
   compute_type: zComputeType,
   num_nodes: z.number().int(),
+  gpus_per_node: z.union([z.number().int().gte(1), z.null()]).optional(),
   extra: z.union([z.record(z.unknown()), z.null()]).optional(),
 })
 

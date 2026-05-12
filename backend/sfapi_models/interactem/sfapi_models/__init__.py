@@ -2,7 +2,7 @@ import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 from sfapi_client._models import StatusValue
 
 class Machine(str, Enum):
@@ -26,6 +26,7 @@ class AgentCreateEvent(BaseModel):
     duration: datetime.timedelta
     compute_type: ComputeType
     num_nodes: int
+    gpus_per_node: int | None = Field(default=None, ge=1)
     extra: dict[str, Any] | None = None
 
 
@@ -37,6 +38,7 @@ class JobSubmitEvent(BaseModel):
     walltime: datetime.timedelta | str
     reservation: str | None = None
     num_nodes: int = 1
+    gpus_per_node: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
     def format_walltime(self) -> "JobSubmitEvent":

@@ -19,6 +19,10 @@ export type AgentCreateEvent = {
    */
   num_nodes: number
   /**
+   * Gpus Per Node
+   */
+  gpus_per_node?: number | null
+  /**
    * Extra
    */
   extra?: {

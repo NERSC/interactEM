@@ -113,6 +113,7 @@ async def submit(msg: NATSMsg, js: JetStreamContext) -> None:
             walltime=agent_event.duration,
             reservation=reservation,
             num_nodes=agent_event.num_nodes,
+            gpus_per_node=agent_event.gpus_per_node,
         )
     except ValidationError as e:
         logger.error(f"Failed to parse job request: {e}")

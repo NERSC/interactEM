@@ -16,6 +16,7 @@ import {
 export const zAgentCreateEvent = zAgentCreateEventTmp.extend({
   duration: z.string().time(),
   num_nodes: z.coerce.number().int(),
+  gpus_per_node: z.coerce.number().int().positive().optional().nullable(),
 })
 
 // This is a workaround for the generated data field being an object.
