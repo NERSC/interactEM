@@ -57,7 +57,10 @@ def save(
             open_files[k].close()
             del open_files[k]
 
-        fpath = WRITE_PATH / (f"{header.scan_number}" + f"{suffix}" + ".h5")
+        suffix_str = (
+            f"_{suffix}" if suffix else ""
+        )  # only add the _ if suffix is not empty
+        fpath = WRITE_PATH / (f"{header.scan_number}{suffix_str}.h5")
         logger.info(f"Opening file {fpath}")
         f = h5py.File(fpath, "a")
         open_files[header.scan_number] = f
