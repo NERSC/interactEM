@@ -25,6 +25,9 @@ def bin_partial(
     # Extract necessary metadata from the header
     frame_shape = batch.header.frame_shape
 
+    # Calculate the new frame shape after binning
+    new_frame_shape = (frame_shape[0] // bin_value, frame_shape[1] // bin_value)
+
     # Get the sparse frames
     data, _ = batch.get_frame_arrays_with_positions()
 
@@ -35,16 +38,8 @@ def bin_partial(
     rows *= (frame_shape[0] // bin_value)
     rows += cols
 
-    # Update all frame header frame_shape values
-    new_headers = batch.header.headers
-    for ii in range(len(new_headers)):
-        new_headers[ii].frame_shape = (new_headers[ii].frame_shape[0] // bin_value, new_headers[ii].frame_shape[1] // bin_value)
-    new_batch_header = BatchedFrameHeader(
-            scan_number=batch.header.scan_number,
-            headers=new_headers,
-            batch_size_bytes=batch.header.batch_size_bytes,
-            total_frames=batch.header.total_frames,
-            total_batches=batch.header.total_batches,
-            current_batch_index=batch.header.current_batch_index,)
-    out = BatchedFrames.from_np_arrays(new_batch_header, rows)
+    # Update all frame header frame_shape values and create a new batch with the binned data
+    for header in batch.header.headers:
+        header.frame_shape = new_frame_shape
+    out = BatchedFrames(header=batch.header, data=rows)
     return out.to_bytes_message()
