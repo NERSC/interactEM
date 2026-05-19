@@ -1,7 +1,6 @@
 from typing import Any
 
-#from distiller_streaming.bin import bin_frames_simple
-from distiller_streaming.models import BatchedFrameHeader, BatchedFrames
+from distiller_streaming.models import BatchedFrames
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
