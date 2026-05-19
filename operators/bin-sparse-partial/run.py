@@ -41,5 +41,5 @@ def bin_partial(
     # Update all frame header frame_shape values and create a new batch with the binned data
     for header in batch.header.headers:
         header.frame_shape = new_frame_shape
-    out = BatchedFrames(header=batch.header, data=rows)
+    out = BatchedFrames.from_np_arrays(batch.header, rows)
     return out.to_bytes_message()
