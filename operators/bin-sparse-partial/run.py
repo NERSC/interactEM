@@ -16,7 +16,6 @@ def bin_partial(
     if not inputs:
         logger.warning("No input provided to the bin operator.")
         return None
-
     bin_value = parameters.get("bin_value", 1)
 
     # Get the batch of frames from the input
@@ -35,7 +34,7 @@ def bin_partial(
     rows = data // frame_shape[0] // bin_value # row location of event
     cols = data % frame_shape[1] // bin_value # column location of event
     # Convert to raveled location
-    rows *= (frame_shape[0] // bin_value)
+    rows *= new_frame_shape[0]
     rows += cols
 
     # Update all frame header frame_shape values and create a new batch with the binned data
