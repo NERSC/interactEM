@@ -3,7 +3,6 @@ from pathlib import Path
 from typing import Any
 
 import ncempy
-import numpy as np
 
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
