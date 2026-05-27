@@ -40,10 +40,9 @@ def read_data_ncempy(
     except Exception as e:
         logger.info(f"Problem loading file. Error: {e}")
         return None
-
-    # Send the data every 3 seonds
-    # TODO: Use trigger instead of time.sleep to control when data is sent
-    time.sleep(3.0)
+    finally:
+        # TODO: Use trigger instead of time.sleep to control when data is sent
+        time.sleep(3.0)  # wait to read it again.
 
     # Process and return result if the data was loaded successfully
     data_bytes = data.tobytes()
