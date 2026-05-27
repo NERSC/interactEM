@@ -29,6 +29,14 @@
       "required": true
     }
   ],
+  "triggers": [
+    {
+      "name": "read_now",
+      "label": "Read data now",
+      "description": "Manually read and emit the data without waiting.",
+      "mode": "single"
+    }
+  ],
   "parallel_config": {
     "type": "none"
   }

@@ -15,11 +15,11 @@ data_dir = Path(f"{DATA_DIRECTORY}/raw_data_dir")
 
 @operator
 def read_data_ncempy(
-    inputs: BytesMessage | None, parameters: dict[str, Any]
+    inputs: BytesMessage | None, parameters: dict[str, Any], trigger=None
 ) -> BytesMessage | None:
-    """This reads data from disk and sends it on."""
-
-    # This operator does not require inputs
+    """Read and emit TEM data from a specified file when triggered."""
+    if trigger is None:
+        return None
 
     # Extract parameters
     directory = parameters.get("raw_data_dir", "/test_data")
@@ -40,11 +40,14 @@ def read_data_ncempy(
     except Exception as e:
         logger.info(f"Problem loading file. Error: {e}")
         return None
-    finally:
-        # TODO: Use trigger instead of time.sleep to control when data is sent
-        time.sleep(3.0)  # wait to read it again.
 
     # Process and return result if the data was loaded successfully
     data_bytes = data.tobytes()
-    header = MessageHeader(subject=MessageSubject.BYTES, meta={'shape': data.shape, 'dtype': str(data.dtype)})
+    header = MessageHeader(
+        subject=MessageSubject.BYTES,
+        meta={
+            "shape": data.shape,
+            "dtype": str(data.dtype),
+        },
+    )
     return BytesMessage(header=header, data=data_bytes)
