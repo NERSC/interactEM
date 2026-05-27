@@ -1,4 +1,4 @@
-FROM interactem-operator
+FROM distiller-streaming
 
 RUN poetry add stempy h5py
 
