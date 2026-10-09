@@ -42,7 +42,7 @@ class DeploymentUpdateEvent(BaseModel):
     deployment_id: RuntimePipelineID
     state: PipelineDeploymentState
     timestamp: datetime.datetime = Field(
-        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
+        default_factory=lambda: datetime.datetime.now(datetime.UTC)
     )
 
 

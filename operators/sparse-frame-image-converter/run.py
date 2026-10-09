@@ -1,7 +1,7 @@
 import io
 from typing import Any
 
-import matplotlib.cm as cm
+import matplotlib
 import numpy as np
 from distiller_streaming.models import FrameHeader
 from PIL import Image, ImageEnhance
@@ -89,7 +89,7 @@ def image_converter(
         dense_normalized = processed_dense
 
     # Apply viridis colormap
-    colormap = cm.get_cmap(colormap)
+    colormap = matplotlib.colormaps[colormap]
     colored_image = colormap(dense_normalized)
 
     # Convert to 8-bit RGB

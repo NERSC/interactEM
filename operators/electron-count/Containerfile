@@ -1,7 +1,7 @@
 FROM interactem-operator AS operator-base
 
 # Main build using stempy as the base
-FROM docker.io/samwelborn/stempy:py310-f685f4d
+FROM docker.io/openchemistry/stempy:py311-f6c3406
 
 WORKDIR /app/
 

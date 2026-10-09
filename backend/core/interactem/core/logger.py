@@ -1,7 +1,7 @@
 import inspect
 import logging
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 from interactem.core.config import cfg
@@ -11,7 +11,7 @@ class ISO8601Formatter(logging.Formatter):
     """Custom formatter that outputs timestamps in ISO 8601 format with timezone."""
 
     def formatTime(self, record, datefmt=None):
-        return datetime.fromtimestamp(record.created, tz=timezone.utc).isoformat(
+        return datetime.fromtimestamp(record.created, tz=UTC).isoformat(
             timespec="milliseconds"
         )
 
