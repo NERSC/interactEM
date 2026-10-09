@@ -14,7 +14,7 @@ class AgentControlEventType(str, Enum):
 class AgentControlBase(BaseModel):
     agent_id: IdType
     timestamp: datetime.datetime = Field(
-        default_factory=lambda: datetime.datetime.now(datetime.timezone.utc)
+        default_factory=lambda: datetime.datetime.now(datetime.UTC)
     )
 
 
