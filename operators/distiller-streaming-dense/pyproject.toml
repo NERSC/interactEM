@@ -1,0 +1,48 @@
+[project]
+name = "distiller_streaming_dense"
+version = "0.0.1"
+description = ""
+authors = [
+    {name = "swelborn", email = "swelborn@lbl.gov"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pyzmq>=27.0.1,<28.0.0",
+    "msgpack>=1.1.0,<2.0.0",
+    "pandas>=2.3.1,<3.0.0",
+    "pydantic>=2.11.7,<3.0.0",
+    "numpy>=2.2.6,<2.3.0",
+    "msgspec>=0.19.0,<0.20.0",
+    "interactem-core",
+    "interactem-operators",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1,<10",
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.uv.sources]
+interactem-core = { path = "../../backend/core", editable = true }
+interactem-operators = { path = "../../backend/operators", editable = true }
+
+[tool.poetry.dependencies]
+interactem-core = {path = "../../backend/core", develop = true}
+interactem-operators = {path = "../../backend/operators", develop = true}
+
+[tool.ruff]
+target-version = "py311"
+extend = "../../.ruff.toml"
+exclude = []
+
+
+[tool.ruff.lint]
+exclude = []
+
+[tool.ruff.lint.isort]
+known-first-party = ["distiller_streaming_dense", "interactem"]
