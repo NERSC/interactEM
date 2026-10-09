@@ -5,6 +5,7 @@ from distiller_streaming_dense.models import (
     BatchedFrameHeader,
     BatchedFrames,
     FrameHeader,
+    NumpyDtype,
 )
 from interactem.core.logger import get_logger
 from interactem.core.models.messages import BytesMessage
@@ -57,6 +58,14 @@ class BatchEmitter:
         self.finished = False
 
         # Pre-compute template dictionary for frame headers (avoids dict unpacking overhead)
+        try:
+            wire_dtype = NumpyDtype(np.dtype(frame_array.dtype).name)
+        except ValueError:
+            raise ValueError(
+                f"dtype '{frame_array.dtype}' is not supported on the wire "
+                f"(must be one of {[d.value for d in NumpyDtype]})"
+            )
+
         self._frame_header_template = {
             "scan_number": self.scan_number,
             "nSTEM_positions_per_row_m1": self.scan_shape[1],
@@ -64,6 +73,7 @@ class BatchEmitter:
             # TODO: add module info
             "modules": [0, 1, 2, 3],
             "frame_shape": self.frame_shape,
+            "dtype": wire_dtype,
         }
 
         # Pre-compute position bytes - moves expensive computation out of hot loop

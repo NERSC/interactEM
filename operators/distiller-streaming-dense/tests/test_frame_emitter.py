@@ -1,9 +1,15 @@
 import msgspec
 import msgspec.msgpack
+import numpy as np
 import pytest
 
+from distiller_streaming_dense.accumulator import FrameAccumulator
 from distiller_streaming_dense.emitter import BatchEmitter
-from distiller_streaming_dense.models import BatchedFrameHeader
+from distiller_streaming_dense.models import (
+    BatchedFrameHeader,
+    BatchedFrames,
+    NumpyDtype,
+)
 from interactem.core.models.messages import BytesMessage
 
 
@@ -96,3 +102,28 @@ def test_batch_count_and_metadata(frame_array, batch_size_mb):
         header = msgspec.msgpack.decode(msgs[0].header.meta, type=BatchedFrameHeader)
         assert header.total_batches == 1
         assert header.current_batch_index == 0
+
+
+@pytest.mark.parametrize("dtype", [np.uint16, np.int32, np.float32, np.float64])
+def test_emitted_frame_headers_use_actual_dtype(dtype):
+    """Regression test: emitted FrameHeaders must record the accumulator's
+    real dtype, not silently default to uint32 (which corrupts same-width
+    types like float32/int32 on decode and breaks reshape for mismatched
+    widths like uint16)."""
+    scan_shape, frame_shape = (2, 2), (4, 4)
+    data = np.arange(2 * 2 * 4 * 4, dtype=dtype).reshape(*scan_shape, *frame_shape)
+    accumulator = FrameAccumulator.from_dense_array(
+        scan_number=1, scan_shape=scan_shape, frame_shape=frame_shape, data=data
+    )
+
+    emitter = BatchEmitter(accumulator, scan_number=1, batch_size_mb=1.0)
+    msg = emitter.get_next_batch_message()
+    decoded = BatchedFrames.from_bytes_message(msg)
+
+    expected_dtype = NumpyDtype(np.dtype(dtype).name)
+    for header in decoded.header.headers:
+        assert header.dtype == expected_dtype
+
+    frames, _ = decoded.get_frame_stack_with_positions()
+    assert frames.dtype == np.dtype(dtype)
+    np.testing.assert_array_equal(frames, data.reshape(-1, *frame_shape))

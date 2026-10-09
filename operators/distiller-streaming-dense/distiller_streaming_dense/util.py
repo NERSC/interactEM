@@ -112,7 +112,7 @@ def calculate_diffraction_center(diffraction_pattern: np.ndarray) -> tuple[int, 
         raise ValueError("Center calculation failed")
 
     # Convert to integer coordinates (x,y)
-    center = (int(center_yx[1, 0]), int(center_yx[0, 0]))
+    center = (int(center_yx[0, 0]), int(center_yx[1, 0]))
 
     return center
 

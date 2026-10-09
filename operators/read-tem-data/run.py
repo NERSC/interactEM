@@ -43,15 +43,23 @@ def _resolve_shapes(
 
 
 def _coerce_wire_dtype(data: np.ndarray) -> np.ndarray:
-    """BatchedFrames wire format only supports a fixed set of dtypes."""
+    """BatchedFrames wire format only supports a fixed set of native-byte-order
+    dtypes (the wire header records a type name like "uint16" with no
+    endianness), so non-native byte order must be normalized before emission
+    or receivers will silently misinterpret the bytes."""
     try:
         NumpyDtype(data.dtype.name)
-        return data
     except ValueError:
         logger.warning(
             f"dtype '{data.dtype}' not supported on the wire; casting to uint32."
         )
         return data.astype(np.uint32)
+
+    if not data.dtype.isnative:
+        logger.warning(f"Byte-swapping non-native dtype '{data.dtype}' for the wire.")
+        return data.astype(data.dtype.newbyteorder("="))
+
+    return data
 
 
 @operator
@@ -97,17 +105,13 @@ def reader(
 
         data = _coerce_wire_dtype(data)
         scan_shape, frame_shape = _resolve_shapes(data, parameters)
-        num_scans = scan_shape[0] * scan_shape[1]
 
-        accumulator = FrameAccumulator(
+        accumulator = FrameAccumulator.from_dense_array(
             scan_number=current_scan_number,
             scan_shape=scan_shape,
             frame_shape=frame_shape,
-            dtype=data.dtype,
+            data=data,
         )
-        accumulator.data = np.ascontiguousarray(data.reshape(*scan_shape, *frame_shape))
-        accumulator._frames_added = set(range(num_scans))
-        accumulator._num_frames_added = num_scans
 
         active_emitter = BatchEmitter(
             accumulator, scan_number=current_scan_number, batch_size_mb=batch_size_mb

@@ -36,12 +36,14 @@ def com_v1_kernel(
     if len(all_events_concat) == 0:
         return com.reshape((2, *scan_shape))
 
-    # Decode coordinates
-    if frame_x & (frame_x - 1) == 0:  # power of 2
-        shift = int(np.log2(frame_x))
+    # Decode coordinates. Flat indices are row-major: idx = x * frame_y + y,
+    # so recovering x requires dividing by frame_y (the second dimension),
+    # not frame_x.
+    if frame_y & (frame_y - 1) == 0:  # power of 2
+        shift = int(np.log2(frame_y))
         x = (all_events_concat >> shift).astype(np.float32)
     else:
-        x = (all_events_concat // frame_x).astype(np.float32)
+        x = (all_events_concat // frame_y).astype(np.float32)
 
     if frame_y & (frame_y - 1) == 0:
         mask = frame_y - 1

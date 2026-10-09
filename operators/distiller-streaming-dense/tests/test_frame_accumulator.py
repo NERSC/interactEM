@@ -26,8 +26,10 @@ def test_add_frame_overwrites_same_position(
     frame_accumulator.add_frame(frame1)
     frame_accumulator.add_frame(frame2)
 
-    # Same position overwrites; only one frame slot exists per position.
-    assert frame_accumulator.num_frames_added == 2
+    # Same position overwrites; only one frame slot exists per position, and
+    # num_frames_added counts unique positions filled, not calls to add_frame
+    # (a duplicate/retransmitted frame must not inflate scan-completion count).
+    assert frame_accumulator.num_frames_added == 1
     assert len(frame_accumulator.frames_added_indices) == 1
     flat_pos = sample_frame_header.scan_position_flat
     np.testing.assert_array_equal(
@@ -41,6 +43,7 @@ def test_add_frame_overwrites_same_position(
     frame3 = make_single_frame(header2, sample_frame_data)
     frame_accumulator.add_frame(frame3)
     assert len(frame_accumulator.frames_added_indices) == 2
+    assert frame_accumulator.num_frames_added == 2
 
 
 @pytest.mark.parametrize("batched", [False, True])
@@ -64,6 +67,33 @@ def test_process_message(
 
     frame_accumulator.add_message(msg)
     assert frame_accumulator.num_frames_added == 1
+
+
+def test_add_batch_duplicate_position_does_not_inflate_count(
+    frame_accumulator: FrameAccumulator,
+    sample_frame_header: FrameHeader,
+    sample_frame_data,
+):
+    """Regression test: a retransmitted batch covering an already-filled
+    position must not inflate num_frames_added, since `finished` compares
+    it against total_frames and would otherwise fire early while most
+    positions are still zero-filled."""
+    header = msgspec.structs.replace(
+        sample_frame_header, data_size_bytes=len(sample_frame_data.tobytes())
+    )
+    batched_header = BatchedFrameHeader(
+        scan_number=header.scan_number,
+        headers=[header],
+        batch_size_bytes=len(sample_frame_data.tobytes()),
+    )
+    batched_frames = BatchedFrames.from_np_arrays(batched_header, [sample_frame_data])
+    msg = batched_frames.to_bytes_message()
+
+    frame_accumulator.add_message(msg)
+    frame_accumulator.add_message(msg)  # duplicate/retransmitted batch
+
+    assert frame_accumulator.num_frames_added == 1
+    assert len(frame_accumulator.frames_added_indices) == 1
 
 
 def test_index_out_of_bounds(

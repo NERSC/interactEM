@@ -12,6 +12,13 @@ from interactem.core.models.messages import BytesMessage
 logger = get_logger()
 
 
+def _header_dtype(header: FrameHeader | BatchedFrameHeader) -> np.dtype:
+    """Extract the wire dtype from a FrameHeader or BatchedFrameHeader."""
+    if isinstance(header, BatchedFrameHeader):
+        return header.headers[0].np_dtype
+    return header.np_dtype
+
+
 class FrameAccumulator:
     """Accumulates dense frames for a single scan, tracking which positions
     have received a frame.
@@ -55,6 +62,7 @@ class FrameAccumulator:
             scan_number=batch.header.scan_number,
             scan_shape=batch.header.scan_shape,
             frame_shape=batch.header.frame_shape,
+            dtype=_header_dtype(batch.header),
         )
         if not add:
             return accumulator
@@ -68,10 +76,45 @@ class FrameAccumulator:
             scan_number=batch.header.scan_number,
             scan_shape=batch.header.scan_shape,
             frame_shape=batch.header.frame_shape,
+            dtype=_header_dtype(batch.header),
         )
         accumulator.add_batch(batch)
         accumulator._total_batches_expected = batch.header.total_batches
         accumulator._total_frames_expected = batch.header.total_frames
+        return accumulator
+
+    @classmethod
+    def from_dense_array(
+        cls,
+        scan_number: int,
+        scan_shape: tuple[int, int],
+        frame_shape: tuple[int, int],
+        data: np.ndarray,
+        metadata: dict | None = None,
+    ) -> "FrameAccumulator":
+        """Build a fully-populated accumulator from an already-loaded dense
+        array, without allocating a throwaway zero-filled backing store.
+
+        `data` must be reshapeable to (*scan_shape, *frame_shape); it is
+        used directly as the backing store (after an in-place-safe reshape),
+        avoiding the extra full-dataset-sized allocation that constructing
+        via __init__ and then overwriting `.data` would incur.
+        """
+        accumulator = cls.__new__(cls)
+        accumulator.scan_number = scan_number
+        accumulator.scan_shape = scan_shape
+        accumulator.frame_shape = frame_shape
+        accumulator.dtype = data.dtype
+        accumulator.metadata = metadata if metadata is not None else {}
+
+        accumulator.data = np.ascontiguousarray(data).reshape(*scan_shape, *frame_shape)
+
+        num_scans = int(np.prod(scan_shape))
+        accumulator._frames_added = set(range(num_scans))
+        accumulator.num_batches_added = 0
+        accumulator._num_frames_added = num_scans
+        accumulator._total_batches_expected = None
+        accumulator._total_frames_expected = None
         return accumulator
 
     @classmethod
@@ -80,6 +123,7 @@ class FrameAccumulator:
             scan_number=header.scan_number,
             scan_shape=header.scan_shape,
             frame_shape=header.frame_shape,
+            dtype=_header_dtype(header),
         )
         return accumulator
 
@@ -128,8 +172,9 @@ class FrameAccumulator:
 
         self.data_flat[flat_position] = frame.array
 
-        self._frames_added.add(flat_position)
-        self._num_frames_added += 1
+        if flat_position not in self._frames_added:
+            self._frames_added.add(flat_position)
+            self._num_frames_added += 1
 
     @property
     def num_frames_added(self):
@@ -143,10 +188,11 @@ class FrameAccumulator:
 
         data_flat = self.data_flat
         for pos, frame in zip(positions, frames, strict=True):
-            data_flat[int(pos)] = frame
-            self._frames_added.add(int(pos))
-
-        self._num_frames_added += len(positions)
+            pos = int(pos)
+            data_flat[pos] = frame
+            if pos not in self._frames_added:
+                self._frames_added.add(pos)
+                self._num_frames_added += 1
 
     def add_message(self, message: BytesMessage) -> None:
         batch = BatchedFrames.from_bytes_message(message)

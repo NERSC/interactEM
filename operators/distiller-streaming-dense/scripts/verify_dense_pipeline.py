@@ -170,15 +170,12 @@ def main() -> int:
 
     # --- 1. FrameAccumulator: load the full dataset directly ---
     banner("FrameAccumulator: full-dataset load")
-    accumulator = FrameAccumulator(
+    accumulator = FrameAccumulator.from_dense_array(
         scan_number=scan_number,
         scan_shape=scan_shape,
         frame_shape=frame_shape,
-        dtype=data.dtype,
+        data=data,
     )
-    accumulator.data = np.ascontiguousarray(data)
-    accumulator._frames_added = set(range(num_scans))
-    accumulator._num_frames_added = num_scans
     print(f"accumulator.shape = {accumulator.shape}")
     print(f"accumulator.num_frames_added = {accumulator.num_frames_added}")
 
