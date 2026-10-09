@@ -41,6 +41,19 @@ def test_calculate_diffraction_center_gaussian():
     assert calculate_diffraction_center(pattern) == (63, 63)
 
 
+def test_calculate_diffraction_center_asymmetric():
+    """Regression test for #454: x and y must not be swapped for
+    non-diagonally-symmetric patterns (a symmetric cx==cy pattern can't
+    catch an axis swap)."""
+    size = 128
+    cx, cy = 90, 30
+    x, y = np.meshgrid(np.arange(size), np.arange(size))
+    sigma = 10
+    pattern = np.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * sigma**2))
+    result = calculate_diffraction_center(pattern)
+    assert result == (cx, cy)
+
+
 def test_calculate_diffraction_center_empty():
     with pytest.raises(ValueError, match="Empty diffraction pattern"):
         calculate_diffraction_center(np.array([]))
