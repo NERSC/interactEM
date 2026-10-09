@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
@@ -92,7 +92,7 @@ def update_pipeline(
         raise HTTPException(status_code=400, detail="Pipeline name is required")
 
     pipeline.name = update.name
-    pipeline.updated_at = datetime.now(timezone.utc)
+    pipeline.updated_at = datetime.now(UTC)
     session.add(pipeline)
     session.commit()
     session.refresh(pipeline)
@@ -192,7 +192,7 @@ def add_pipeline_revision(
 
     # Update the parent pipeline
     pipeline.data = revision_in.data
-    pipeline.updated_at = datetime.now(timezone.utc)
+    pipeline.updated_at = datetime.now(UTC)
     pipeline.current_revision_id = next_revision_id
     session.add(pipeline)
 
