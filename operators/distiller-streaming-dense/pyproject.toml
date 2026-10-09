@@ -6,7 +6,7 @@ authors = [
     {name = "swelborn", email = "swelborn@lbl.gov"}
 ]
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "pyzmq>=27.0.1,<28.0.0",
     "msgpack>=1.1.0,<2.0.0",
@@ -36,7 +36,7 @@ interactem-core = {path = "../../backend/core", develop = true}
 interactem-operators = {path = "../../backend/operators", develop = true}
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 extend = "../../.ruff.toml"
 exclude = []
 
