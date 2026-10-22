@@ -1,7 +1,7 @@
 import asyncio
 import uuid
 from collections.abc import Awaitable, Callable
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Generic, TypeVar
 
 import anyio
@@ -34,7 +34,7 @@ from interactem.core.util import BaseExceptionGroup
 logger = get_logger()
 
 
-class InteractemBucket(str, Enum):
+class InteractemBucket(StrEnum):
     METRICS = BUCKET_METRICS
     STATUS = BUCKET_STATUS
 
