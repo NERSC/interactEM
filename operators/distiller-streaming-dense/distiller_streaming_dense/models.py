@@ -1,5 +1,5 @@
 import io
-from enum import Enum
+from enum import StrEnum
 
 import msgspec
 import numpy as np
@@ -7,7 +7,7 @@ import numpy as np
 from interactem.core.models.messages import BytesMessage, MessageHeader, MessageSubject
 
 
-class NumpyDtype(str, Enum):
+class NumpyDtype(StrEnum):
     uint8 = "uint8"
     uint16 = "uint16"
     uint32 = "uint32"
