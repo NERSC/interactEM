@@ -283,7 +283,7 @@ requires-dist = [
     { name = "pandas", specifier = ">=2.3.1,<3.0.0" },
     { name = "pydantic", specifier = ">=2.11.7,<3.0.0" },
     { name = "pyzmq", specifier = ">=27.0.1,<28.0.0" },
-    { name = "stempy", specifier = ">=3.4.0,<4.0.0" },
+    { name = "stempy", specifier = ">=3.6.0,<4.0.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1277,7 +1277,7 @@ wheels = [
 
 [[package]]
 name = "stempy"
-version = "3.4.1"
+version = "3.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "deprecation" },
@@ -1285,14 +1285,18 @@ dependencies = [
     { name = "numpy" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/df/9a/c9c52df3846274adbacdee2992ce6ad2c7a214b551c21a19fc82e3be43fa/stempy-3.4.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:80be626643c3559b604910bcb25737c03ca9d2d13166954977af61c497d6691b", size = 2987658, upload-time = "2025-09-03T20:28:09.477Z" },
-    { url = "https://files.pythonhosted.org/packages/75/08/679df423b15a5070ac5cde17c70ef2e9f7ca6cc6b8d3691e6a2812c911f4/stempy-3.4.1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:715f87e4b623d8a9f37542a09544ea617d6b7269c285416697096c2086082002", size = 2494531, upload-time = "2025-09-03T20:28:11.146Z" },
-    { url = "https://files.pythonhosted.org/packages/4a/fa/ee56cf6d1ded49ccb219e54c9ed6acddb2faa78280b2b9390b77634845f6/stempy-3.4.1-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:c204595a7de77e8725d65c40ada0cab6dd08f8ad3e439069f5d9670d4e150da8", size = 2665033, upload-time = "2025-09-03T20:28:12.628Z" },
-    { url = "https://files.pythonhosted.org/packages/70/44/1c5fc88138880fc539e864a6311a3de742e73257e1b48d73c9dfcef096c5/stempy-3.4.1-cp311-cp311-win_amd64.whl", hash = "sha256:4e088e7a37651cf466ce9df5631046870543e812a3cdeea8ab4581b1a9167b58", size = 2090750, upload-time = "2025-09-03T20:28:13.765Z" },
-    { url = "https://files.pythonhosted.org/packages/e2/e3/4565bb0c13043f03774f037373de400410381d647c9fa7faadd976cce78f/stempy-3.4.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4c2c09e95a70dbb5429c93fc816c0494e51886eab533f5491ba1df16e21930af", size = 2983058, upload-time = "2025-09-03T20:28:14.932Z" },
-    { url = "https://files.pythonhosted.org/packages/cc/22/e3077d18486626b4617012a0224ddab4d1d425f7dfdec2d9f73d709b9f71/stempy-3.4.1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:67940221bb6494cdf1cd5a5f0dfd84682f3c2e58ffc7195e21aa2f22922fb237", size = 2489310, upload-time = "2025-09-03T20:28:16.356Z" },
-    { url = "https://files.pythonhosted.org/packages/9d/78/aafc9a639c70a62277034a5d825f4dc3b657ae9670477d9e96b58af7ff92/stempy-3.4.1-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:fb3dac8b861bce8039c0eef1f25227fddf8a21e2ac9b6104a04244dbc818fdbd", size = 2665637, upload-time = "2025-09-03T20:28:17.369Z" },
-    { url = "https://files.pythonhosted.org/packages/cb/13/649f526f7915514ebfe864c0df64fd374a6a2af636d6f9dce45f24734b1b/stempy-3.4.1-cp312-cp312-win_amd64.whl", hash = "sha256:bb85f2e583a7db54eb0d2da61ec9cde576265546fcc0da905642c514db049fae", size = 2078206, upload-time = "2025-09-03T20:28:18.521Z" },
+    { url = "https://files.pythonhosted.org/packages/6b/4d/8387fb0d8cbe2b8641d2806c8bf4ed417239b022b25b7511e85b620e5e5d/stempy-3.6.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:c14e2fe921ba860e3bd0c54892a1d3d8069b03b8a57f39b7f3ac0f9f5cf0275c", size = 2975687, upload-time = "2026-10-22T19:52:02.691Z" },
+    { url = "https://files.pythonhosted.org/packages/c0/41/c33118f18731e6f8442bd2e87587943bfb25911c76a5773252bc4ef1bb5a/stempy-3.6.0-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:1b0b5a73e4ef00d984397a104225d32614d136d4c7bc4b09676e914f09a7d22f", size = 2505293, upload-time = "2026-10-22T19:52:04.315Z" },
+    { url = "https://files.pythonhosted.org/packages/78/36/ade015c8c2aac09a50103b23f0cecabf18e981073ffd78aa7919285e82d0/stempy-3.6.0-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:70f6694ebc0067400818010ed7d4533d102c8bdc23d9c9f4ae269656fa139b23", size = 2674737, upload-time = "2026-10-22T19:52:05.869Z" },
+    { url = "https://files.pythonhosted.org/packages/62/1e/e36a95319e372e540c00269bccef4757ed2a5302bdbb3ab8b3a0766e4b58/stempy-3.6.0-cp311-cp311-win_amd64.whl", hash = "sha256:4fc18babfd439ae75fe651d382867a2dc6de0cfcffa1e3f9e447e00d02f012a0", size = 2316638, upload-time = "2026-10-22T19:52:07.205Z" },
+    { url = "https://files.pythonhosted.org/packages/b3/ab/f9aff7a4a36560781e0b45dd34925f35f8116ed51f9cfad45aed42895871/stempy-3.6.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:9181c969860643cb8289e110086434b3c9c291e20a77dc875caac08f58b52988", size = 2969559, upload-time = "2026-10-22T19:52:08.684Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/25/aa61e9a86c64a2df46ccc1ef393a3af7290efc88bcfad26f0db99a68261b/stempy-3.6.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:ba96d384307b2ae3f762221e4351616f247a437846a7da98e6de6d1291a9869e", size = 2501500, upload-time = "2026-10-22T19:52:10.792Z" },
+    { url = "https://files.pythonhosted.org/packages/16/de/e68aabbe4a604c079d55f3c4dff973e4d0d67e2e9e050f9ad1c46393b4b4/stempy-3.6.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:1a33f93892a52150dddf7f279ff7ecd243be744b80866a09ca298c5bee2d4b63", size = 2676796, upload-time = "2026-10-22T19:52:12.264Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/97/91805a21bacf1e3f7a17ea1fb2f8289c0ff6ce27d6472964b742f75bc2c5/stempy-3.6.0-cp312-cp312-win_amd64.whl", hash = "sha256:66cbac790b996a0430007f244128c1569adb13cf9121cc895cbbbe8c1638d442", size = 2305828, upload-time = "2026-10-22T19:52:14.168Z" },
+    { url = "https://files.pythonhosted.org/packages/68/8b/9add0a26ce49276061a9f55b37922fc81fbaf073447d654197cde173bf38/stempy-3.6.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:8186412ce89ffbfb5af74c8b0d4af502c895a68592594e5acb7d4f70e66422f6", size = 2969453, upload-time = "2026-10-22T19:52:15.658Z" },
+    { url = "https://files.pythonhosted.org/packages/1d/92/3ea7d1f2e11b1082cc2af828dcf7943c0fbf874ac3e5aab324f12eb70ebe/stempy-3.6.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:ac57a6b888744be47ef5ebbedc66bea5b1048ea40cba063bd0973ec26813364c", size = 2501444, upload-time = "2026-10-22T19:52:17.106Z" },
+    { url = "https://files.pythonhosted.org/packages/e6/6e/58f914dff1d41a290e4307da118e422a6b6636d2eb11d6911c6c1665c531/stempy-3.6.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:a015feab0a731f3d93a9408ad7d8cba2a7c82cca1e98b19298c83500505881c3", size = 2676848, upload-time = "2026-10-22T19:52:18.577Z" },
+    { url = "https://files.pythonhosted.org/packages/07/24/b98aecd998b6913bd36224e30ca2cc50b47ad082fcfd7abc0f92959b33b9/stempy-3.6.0-cp313-cp313-win_amd64.whl", hash = "sha256:0988b3b35e5025363b57324ac2386d72b5829accc096094e8e767ca9b063f90a", size = 2305823, upload-time = "2026-10-22T19:52:20.125Z" },
 ]
 
 [[package]]

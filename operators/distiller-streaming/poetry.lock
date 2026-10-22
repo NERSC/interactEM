@@ -1745,41 +1745,34 @@ files = [
 
 [[package]]
 name = "stempy"
-version = "3.4.1"
+version = "3.6.0"
 description = "A package for the ingestion of 4D STEM data."
 optional = false
-python-versions = "*"
+python-versions = ">=3.10"
 groups = ["main"]
 files = [
-    {file = "stempy-3.4.1-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:9c35b5a9125c86f0545f0f049baf333cc40a60d3fc3a0996abe7260228d9cdfb"},
-    {file = "stempy-3.4.1-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:497aec5e144c9e8e8eb9f7c4446e23ea22bc56a7d554240b02238c26b46c8ada"},
-    {file = "stempy-3.4.1-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:ec1bbd26e9f954da7282da773f5d718a4a230640f5c3d0518b918377d59b8573"},
-    {file = "stempy-3.4.1-cp310-cp310-win_amd64.whl", hash = "sha256:27c1fd9900a278a8385289c102df00de11c441915204e4dadefed1d7909ba31c"},
-    {file = "stempy-3.4.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:80be626643c3559b604910bcb25737c03ca9d2d13166954977af61c497d6691b"},
-    {file = "stempy-3.4.1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:715f87e4b623d8a9f37542a09544ea617d6b7269c285416697096c2086082002"},
-    {file = "stempy-3.4.1-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:c204595a7de77e8725d65c40ada0cab6dd08f8ad3e439069f5d9670d4e150da8"},
-    {file = "stempy-3.4.1-cp311-cp311-win_amd64.whl", hash = "sha256:4e088e7a37651cf466ce9df5631046870543e812a3cdeea8ab4581b1a9167b58"},
-    {file = "stempy-3.4.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:4c2c09e95a70dbb5429c93fc816c0494e51886eab533f5491ba1df16e21930af"},
-    {file = "stempy-3.4.1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:67940221bb6494cdf1cd5a5f0dfd84682f3c2e58ffc7195e21aa2f22922fb237"},
-    {file = "stempy-3.4.1-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:fb3dac8b861bce8039c0eef1f25227fddf8a21e2ac9b6104a04244dbc818fdbd"},
-    {file = "stempy-3.4.1-cp312-cp312-win_amd64.whl", hash = "sha256:bb85f2e583a7db54eb0d2da61ec9cde576265546fcc0da905642c514db049fae"},
-    {file = "stempy-3.4.1-cp37-cp37m-manylinux_2_28_aarch64.whl", hash = "sha256:4f67828c679c57da86be0a76abf79993a1abd89eba9abc7e04ed8d4620564552"},
-    {file = "stempy-3.4.1-cp37-cp37m-manylinux_2_28_x86_64.whl", hash = "sha256:021b0f5d2656c4636b8eb1c49995c444682d5db07944166a0bfe84b5c2f15124"},
-    {file = "stempy-3.4.1-cp37-cp37m-win_amd64.whl", hash = "sha256:d828b3f7216e2d832fd0da32ce1d949bf8fb53cb32d4c5c2c9992abfb529f800"},
-    {file = "stempy-3.4.1-cp38-cp38-macosx_11_0_arm64.whl", hash = "sha256:6d9d142eb5cfac02c5824fd5d0336a986312b39f322a0e6a1008175d435629a9"},
-    {file = "stempy-3.4.1-cp38-cp38-manylinux_2_28_aarch64.whl", hash = "sha256:285efd374d48f30c4693b32a29ba9a0a9c6e39683ba44d6e2d9e60e875ab4b57"},
-    {file = "stempy-3.4.1-cp38-cp38-manylinux_2_28_x86_64.whl", hash = "sha256:f8f5246db9673455e51488ceec086a8a02b7735810d0b9e17a9f294374339a6f"},
-    {file = "stempy-3.4.1-cp38-cp38-win_amd64.whl", hash = "sha256:ac35340d58b92ae73b084d58c2c6992df9c70675e69c57dfd02f78001a1274f7"},
-    {file = "stempy-3.4.1-cp39-cp39-macosx_11_0_arm64.whl", hash = "sha256:b226f2f6be1165bb9363815b095bf69b08c0226e473145550434bfc051c46c67"},
-    {file = "stempy-3.4.1-cp39-cp39-manylinux_2_28_aarch64.whl", hash = "sha256:e2898461f9b918b0723527ba02c18b3be8192133b32a8a5249190b13d3c9fb13"},
-    {file = "stempy-3.4.1-cp39-cp39-manylinux_2_28_x86_64.whl", hash = "sha256:640c637f912f06e5d537f064542b3332fa18d4aae7d33e801ff997ed703b5eb7"},
-    {file = "stempy-3.4.1-cp39-cp39-win_amd64.whl", hash = "sha256:52ba846cd7bd114fabdd0508154c7cb38459b56b302413dece94152d92fc54ac"},
+    {file = "stempy-3.6.0-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:1f4b32fc9cf71a27168bc8df3b7769148bef0ef7cef3c9adc8f3929efddbe955"},
+    {file = "stempy-3.6.0-cp310-cp310-manylinux_2_28_aarch64.whl", hash = "sha256:ba1dc60c8f03c64f968f74069a660c007b8432fc97e436ada858456cd3721cec"},
+    {file = "stempy-3.6.0-cp310-cp310-manylinux_2_28_x86_64.whl", hash = "sha256:3a17780d2cc1c388d03a0729a7da365cae8a9327b8ed31e057a3303705f1594b"},
+    {file = "stempy-3.6.0-cp310-cp310-win_amd64.whl", hash = "sha256:54689dae0b40f2d6ed4abf20abb296740b77ca22acab7327a540dc547e1b1762"},
+    {file = "stempy-3.6.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:c14e2fe921ba860e3bd0c54892a1d3d8069b03b8a57f39b7f3ac0f9f5cf0275c"},
+    {file = "stempy-3.6.0-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:1b0b5a73e4ef00d984397a104225d32614d136d4c7bc4b09676e914f09a7d22f"},
+    {file = "stempy-3.6.0-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:70f6694ebc0067400818010ed7d4533d102c8bdc23d9c9f4ae269656fa139b23"},
+    {file = "stempy-3.6.0-cp311-cp311-win_amd64.whl", hash = "sha256:4fc18babfd439ae75fe651d382867a2dc6de0cfcffa1e3f9e447e00d02f012a0"},
+    {file = "stempy-3.6.0-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:9181c969860643cb8289e110086434b3c9c291e20a77dc875caac08f58b52988"},
+    {file = "stempy-3.6.0-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:ba96d384307b2ae3f762221e4351616f247a437846a7da98e6de6d1291a9869e"},
+    {file = "stempy-3.6.0-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:1a33f93892a52150dddf7f279ff7ecd243be744b80866a09ca298c5bee2d4b63"},
+    {file = "stempy-3.6.0-cp312-cp312-win_amd64.whl", hash = "sha256:66cbac790b996a0430007f244128c1569adb13cf9121cc895cbbbe8c1638d442"},
+    {file = "stempy-3.6.0-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:8186412ce89ffbfb5af74c8b0d4af502c895a68592594e5acb7d4f70e66422f6"},
+    {file = "stempy-3.6.0-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:ac57a6b888744be47ef5ebbedc66bea5b1048ea40cba063bd0973ec26813364c"},
+    {file = "stempy-3.6.0-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:a015feab0a731f3d93a9408ad7d8cba2a7c82cca1e98b19298c83500505881c3"},
+    {file = "stempy-3.6.0-cp313-cp313-win_amd64.whl", hash = "sha256:0988b3b35e5025363b57324ac2386d72b5829accc096094e8e767ca9b063f90a"},
 ]
 
 [package.dependencies]
 deprecation = "*"
 h5py = "*"
-numpy = {version = "*", markers = "python_version > \"3.9\" or platform_machine != \"aarch64\""}
+numpy = "*"
 
 [[package]]
 name = "tenacity"
@@ -1984,4 +1977,4 @@ propcache = ">=0.2.1"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11"
-content-hash = "46b8a5c1dbfa9af73fc1eb6cf395c92141847f9e568e85922f2c9800921eef5d"
+content-hash = "820e4125d54eea1ace7263e93a535e8a3393cdcc72cf971abcc240a80737608e"
