@@ -1,5 +1,5 @@
 import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field, RootModel
@@ -16,7 +16,7 @@ from interactem.core.models.runtime import (
 )
 
 
-class DeploymentEventType(str, Enum):
+class DeploymentEventType(StrEnum):
     RUN = "deployment_run"
     STOP = "deployment_stop"
     UPDATE = "deployment_update"
@@ -47,9 +47,7 @@ class DeploymentUpdateEvent(BaseModel):
 
 
 class DeploymentAssignmentsEvent(BaseModel):
-    type: Literal[DeploymentEventType.ASSIGNMENTS] = (
-        DeploymentEventType.ASSIGNMENTS
-    )
+    type: Literal[DeploymentEventType.ASSIGNMENTS] = DeploymentEventType.ASSIGNMENTS
     deployment_id: RuntimePipelineID
     assignments: list[PipelineAssignment]
 
@@ -76,7 +74,7 @@ class DeploymentEvent(RootModel):
     ) = Field(discriminator="type")
 
 
-class AgentDeploymentEventType(str, Enum):
+class AgentDeploymentEventType(StrEnum):
     START = "agent_deployment_start"
     STOP = "agent_deployment_stop"
     RESTART_OPERATOR = "agent_deployment_restart_operator"
@@ -105,7 +103,5 @@ class AgentOperatorRestartEvent(AgentDeploymentBase):
 
 class AgentDeploymentEvent(RootModel):
     root: (
-        AgentDeploymentRunEvent
-        | AgentDeploymentStopEvent
-        | AgentOperatorRestartEvent
+        AgentDeploymentRunEvent | AgentDeploymentStopEvent | AgentOperatorRestartEvent
     ) = Field(discriminator="type")

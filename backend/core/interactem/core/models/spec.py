@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, Field, RootModel, model_validator
@@ -27,7 +27,7 @@ class OperatorSpecOutput(BaseModel):
     type: str  # Type of the input, e.g., BatchedFrames, Frame, etc.
 
 
-class ParameterSpecType(str, Enum):
+class ParameterSpecType(StrEnum):
     STRING = "str"
     INTEGER = "int"
     FLOAT = "float"
@@ -35,9 +35,11 @@ class ParameterSpecType(str, Enum):
     MOUNT = "mount"
     STR_ENUM = "str-enum"
 
+
 class ExportParameterSpecType(BaseModel):
     # Unused, just for generation of TypeScript enums
     type: ParameterSpecType
+
 
 ParameterName = str
 
@@ -106,7 +108,7 @@ class OperatorSpecTag(BaseModel):
     description: str | None = None
 
 
-class ParallelType(str, Enum):
+class ParallelType(StrEnum):
     NONE = "none"
     EMBARRASSING = "embarrassing"
 
@@ -115,7 +117,7 @@ class ParallelConfig(BaseModel):
     type: ParallelType = ParallelType.NONE
 
 
-class TriggerInvocationMode(str, Enum):
+class TriggerInvocationMode(StrEnum):
     SINGLE = "single"
     DRAIN = "drain"
 

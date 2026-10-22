@@ -1,5 +1,5 @@
 import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, Field, RootModel
@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, RootModel
 from interactem.core.models.base import IdType
 
 
-class AgentControlEventType(str, Enum):
+class AgentControlEventType(StrEnum):
     SHUTDOWN = "agent_shutdown"
 
 

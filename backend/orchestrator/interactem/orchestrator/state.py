@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from typing import TypeVar
 
 import anyio
@@ -61,7 +61,7 @@ class NoValueError(Exception):
     pass
 
 
-class KvOperationType(str, Enum):
+class KvOperationType(StrEnum):
     PUT = KV_OP
     DEL = KV_DEL
     PURGE = KV_PURGE

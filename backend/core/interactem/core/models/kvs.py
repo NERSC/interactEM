@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
@@ -24,7 +24,7 @@ class ErrorMessage(BaseModel):
     timestamp: float = Field(default_factory=lambda: datetime.now().timestamp())
 
 
-class AgentStatus(str, Enum):
+class AgentStatus(StrEnum):
     INITIALIZING = "initializing"
     IDLE = "idle"
     # shutting down and removing operators when we get a new or cancel deployment event
@@ -74,7 +74,7 @@ class AgentVal(BaseModel, KvKeyMixin, ErrorMixin):
         return f"{AGENTS}.{self.uri.id}"
 
 
-class OperatorStatus(str, Enum):
+class OperatorStatus(StrEnum):
     INITIALIZING = "initializing"
     RUNNING = "running"
     ERROR = "error"
@@ -92,7 +92,7 @@ class OperatorVal(BaseModel, KvKeyMixin, ErrorMixin):
         return f"{OPERATORS}.{self.id}"
 
 
-class PortStatus(str, Enum):
+class PortStatus(StrEnum):
     INITIALIZING = "initializing"
     IDLE = "idle"
     BUSY = "busy"

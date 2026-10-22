@@ -1,6 +1,6 @@
 import uuid
 from collections.abc import Callable, Sequence
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field, PrivateAttr, RootModel, model_validator
@@ -116,7 +116,8 @@ class RuntimeOperatorParameter(RootModel):
         validated = kls.model_validate({**self.root.model_dump(), "value": new_val})
         self.root = validated
 
-class RuntimeParameterCollectionType(str, Enum):
+
+class RuntimeParameterCollectionType(StrEnum):
     OPERATOR = "operator"
     MOUNT = "mount"
 
@@ -148,10 +149,12 @@ class RuntimeParameterCollection(BaseModel):
             RuntimeParameterCollectionType,
             Callable[[RuntimeOperatorParameter], bool],
         ] = {
-            RuntimeParameterCollectionType.OPERATOR: lambda p: p.type
-            != ParameterSpecType.MOUNT,
-            RuntimeParameterCollectionType.MOUNT: lambda p: p.type
-            == ParameterSpecType.MOUNT,
+            RuntimeParameterCollectionType.OPERATOR: lambda p: (
+                p.type != ParameterSpecType.MOUNT
+            ),
+            RuntimeParameterCollectionType.MOUNT: lambda p: (
+                p.type == ParameterSpecType.MOUNT
+            ),
         }
 
         filter_func = type_filters[collection_type]
