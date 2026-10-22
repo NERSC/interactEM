@@ -1,21 +1,14 @@
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import msgpack
 import numpy as np
 import zmq
+from stempy.image import com_dense
 
-from distiller_streaming_dense.math import com_dense
+from distiller_streaming_dense.accumulator import FrameAccumulator
 from distiller_streaming_dense.models import FrameHeader
 from interactem.core.logger import get_logger
-
-if TYPE_CHECKING:
-    from distiller_streaming_dense.accumulator import FrameAccumulator
-else:
-    from pydantic import BaseModel
-
-    FrameAccumulator = BaseModel
-
 
 logger = get_logger()
 
@@ -144,7 +137,7 @@ def get_diffraction_center(
 
 def unpack_frame_array(
     packed_data: bytes,
-) -> "FrameAccumulator":
+) -> FrameAccumulator:
     """Unpack a msgpack-encoded dense frame dataset into a FrameAccumulator.
 
     Expected payload: {
@@ -156,10 +149,6 @@ def unpack_frame_array(
         "metadata": dict,
     }
     """
-    from distiller_streaming_dense.accumulator import (
-        FrameAccumulator as _FrameAccumulator,
-    )
-
     unpacked_data = msgpack.unpackb(packed_data, raw=False)
 
     scan_number = unpacked_data.get("scan_number")
@@ -178,7 +167,7 @@ def unpack_frame_array(
         )
     array = array.reshape((*scan_shape, *frame_shape))
 
-    accumulator = _FrameAccumulator(
+    accumulator = FrameAccumulator(
         scan_number=scan_number if scan_number is not None else 0,
         scan_shape=scan_shape,
         frame_shape=frame_shape,
@@ -194,7 +183,7 @@ def unpack_frame_array(
 
 def receive_and_unpack_frame_array(
     socket: zmq.Socket,
-) -> "FrameAccumulator":
+) -> FrameAccumulator:
     packed_data = socket.recv(copy=False)
 
     return unpack_frame_array(bytes(packed_data.buffer))

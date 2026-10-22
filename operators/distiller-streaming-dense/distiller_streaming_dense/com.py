@@ -1,6 +1,6 @@
 import numpy as np
+from stempy.image import com_dense
 
-from distiller_streaming_dense.math import com_dense
 from distiller_streaming_dense.models import BatchedFrames
 
 
