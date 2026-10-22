@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel
 
@@ -14,7 +14,7 @@ class TriggerInvocationRequest(BaseModel):
     trigger: str
 
 
-class TriggerInvocationResponseStatus(str, Enum):
+class TriggerInvocationResponseStatus(StrEnum):
     OK = "ok"
     ERROR = "error"
 

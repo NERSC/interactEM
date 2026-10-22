@@ -1,5 +1,5 @@
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -23,6 +23,7 @@ class OperatorTrackingMetadata(TrackingMetadataBase):
     time_before_operate: datetime
     time_after_operate: datetime
 
+
 class TrackingMetadatas(BaseModel):
     metadatas: list[
         OperatorTrackingMetadata
@@ -31,7 +32,7 @@ class TrackingMetadatas(BaseModel):
     ] = Field(default_factory=list)
 
 
-class MessageSubject(str, Enum):
+class MessageSubject(StrEnum):
     BYTES = "bytes"
     SHM = "shm"
 
@@ -40,6 +41,7 @@ class MessageHeader(BaseModel):
     subject: MessageSubject
     meta: bytes | dict[str, Any] = b"{}"
     tracking: TrackingMetadatas | None = None
+
 
 class BaseMessage(BaseModel):
     header: MessageHeader

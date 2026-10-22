@@ -1,8 +1,8 @@
+from typing import Self
 from urllib.parse import parse_qs, urlencode, urlparse
 from uuid import UUID
 
 from pydantic import AnyUrl, BaseModel, UrlConstraints, model_validator
-from typing_extensions import Self
 
 from ..logger import get_logger
 from .base import (

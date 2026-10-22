@@ -1,5 +1,5 @@
 from collections.abc import AsyncGenerator
-from enum import Enum
+from enum import StrEnum
 from uuid import uuid4
 
 import networkx as nx
@@ -62,7 +62,7 @@ def get_port_fanout_map(
     return fanout_map
 
 
-class IdName(str, Enum):
+class IdName(StrEnum):
     RUNTIME = "id"
     CANONICAL = "canonical_id"
     REVISION = "revision_id"
@@ -213,8 +213,7 @@ class Pipeline(nx.DiGraph):
     def _attach_ports_to_operators(
         self, operators: list[RuntimeOperator], ports: list[RuntimePort]
     ) -> None:
-        """Populate each runtime operator's input/output port maps.
-        """
+        """Populate each runtime operator's input/output port maps."""
         op_port_map: dict[IdType, list[RuntimePort]] = {}
         for port in ports:
             op_port_map.setdefault(port.operator_id, []).append(port)
