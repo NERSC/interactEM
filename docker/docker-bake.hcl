@@ -53,6 +53,9 @@ function "generate_tags" {
 
 // Base platform definition - let docker decide the platform
 target "platform" {
+  labels = {
+    "org.opencontainers.image.source" = "https://github.com/NERSC/interactEM"
+  }
 }
 
 target "contexts" {

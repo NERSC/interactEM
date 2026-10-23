@@ -13,6 +13,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io/nersc/interactem
+  # Digest export does not need provenance, which can exceed Actions template limits.
+  BUILDX_METADATA_PROVENANCE: "false"
 
 jobs:
   prepare:
@@ -95,7 +97,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push base image by digest
         id: bake
@@ -157,7 +159,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push all services by digest
         id: bake
@@ -223,7 +225,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download base digests
         if: matrix.service == 'interactem'
