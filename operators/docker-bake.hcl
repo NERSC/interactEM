@@ -156,7 +156,7 @@ target "electron-count" {
 }
 
 target "electron-count-save" {
-  inherits = ["common", "operator-context", "output"]
+  inherits = ["common", "distiller-streaming-context", "output"]
   context = "operators/electron-count-save"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/electron-count-save"]
