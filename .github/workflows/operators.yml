@@ -21,6 +21,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io/nersc/interactem
+  # Digest export does not need provenance, which can exceed Actions template limits.
+  BUILDX_METADATA_PROVENANCE: "false"
 
 jobs:
   prepare:
