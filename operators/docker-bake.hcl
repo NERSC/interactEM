@@ -44,6 +44,9 @@ group "operators" {
 }
 
 target "common" {
+  labels = {
+    "org.opencontainers.image.source" = "https://github.com/NERSC/interactEM"
+  }
   cache-from = [
     {
       type = "registry",

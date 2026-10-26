@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       DOCKER_BUILDKIT: 1
       XDG_RUNTIME_DIR: /tmp/podman-run
