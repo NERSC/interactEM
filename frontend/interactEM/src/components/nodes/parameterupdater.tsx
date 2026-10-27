@@ -110,7 +110,7 @@ const ParameterUpdater: React.FC<{
 
   return (
     <Box>
-      <Stack direction="row" spacing={1} alignItems="flex-start">
+      <Stack direction="row" spacing={1} sx={{ alignItems: "flex-start" }}>
         <Box sx={{ flex: 1 }}>
           <NodeFieldInput
             fieldType={parameter.type as NodeFieldType}

@@ -36,12 +36,11 @@ const TriggerCard: React.FC<{
       <Stack spacing={1.5}>
         <Stack
           direction="row"
-          justifyContent="space-between"
-          alignItems="start"
           spacing={2}
+          sx={{ justifyContent: "space-between", alignItems: "start" }}
         >
           <Box>
-            <Typography variant="subtitle2" fontWeight={700}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
               {trigger.label}
             </Typography>
           </Box>

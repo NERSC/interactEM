@@ -79,9 +79,7 @@ export const PipelineList: React.FC<PipelineListProps> = ({
   const pipelineEndMessage = (
     <Typography
       variant="caption"
-      display="block"
-      textAlign="center"
-      sx={{ p: 1 }}
+      sx={{ display: "block", textAlign: "center", p: 1 }}
     >
       {pipelines.length > 0 ? "No more pipelines" : "No pipelines found"}
     </Typography>

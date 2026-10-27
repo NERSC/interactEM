@@ -14,7 +14,7 @@ const ParameterInfoTooltip: React.FC<ParameterInfoTooltipProps> = ({
     <Tooltip
       title={
         <Paper sx={{ p: 1.5, maxWidth: 280 }}>
-          <Typography variant="subtitle2" fontWeight="bold">
+          <Typography variant="subtitle2" sx={{ fontWeight: "bold" }}>
             {parameter.label}
           </Typography>
           <Typography variant="body2" sx={{ mt: 0.5 }}>

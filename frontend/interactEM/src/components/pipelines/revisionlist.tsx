@@ -41,9 +41,7 @@ export const RevisionList: React.FC<RevisionListProps> = ({
   const revisionEndMessage = (
     <Typography
       variant="caption"
-      display="block"
-      textAlign="center"
-      sx={{ p: 1 }}
+      sx={{ display: "block", textAlign: "center", p: 1 }}
     >
       {revisions.length > 0 ? "No more revisions" : "No revisions found"}
     </Typography>
@@ -65,7 +63,7 @@ export const RevisionList: React.FC<RevisionListProps> = ({
       ref={containerRef}
     >
       <Box sx={{ p: 1.5 }}>
-        <Typography variant="h6" fontSize="1.1rem">
+        <Typography variant="h6" sx={{ fontSize: "1.1rem" }}>
           Revision History
         </Typography>
       </Box>
