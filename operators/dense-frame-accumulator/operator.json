@@ -1,0 +1,32 @@
+{
+  "id": "9647783d-05ab-4143-b164-853d2c08c040",
+  "label": "Dense Frame Accumulator",
+  "description": "Accumulates streamed dense frames and emits a summed diffraction pattern image once a scan is complete.",
+  "image": "ghcr.io/nersc/interactem/dense-frame-accumulator:latest",
+  "inputs": [
+    {
+      "name": "dense_data",
+      "label": "Dense Data",
+      "type": "dense_frame",
+      "description": "Batched dense frames of 4D-STEM data"
+    }
+  ],
+  "outputs": [
+    {
+      "name": "image",
+      "label": "Summed diffraction pattern",
+      "type": "image",
+      "description": "JPEG-encoded summed diffraction pattern for a completed scan"
+    }
+  ],
+  "parameters": [
+    {
+      "name": "max_concurrent_scans",
+      "label": "Max concurrent scans",
+      "type": "int",
+      "default": 3,
+      "description": "Maximum number of scans to accumulate concurrently before evicting the oldest.",
+      "required": false
+    }
+  ]
+}
