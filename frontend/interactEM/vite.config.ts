@@ -2,7 +2,6 @@ import react from "@vitejs/plugin-react"
 import { resolve } from "path"
 import { visualizer } from "rollup-plugin-visualizer"
 import { defineConfig } from "vite"
-import dts from "vite-plugin-dts"
 
 const __dirname = resolve()
 
@@ -14,10 +13,6 @@ export default defineConfig({
   },
   plugins: [
     react(),
-    dts({
-      rollupTypes: true,
-      tsconfigPath: resolve(__dirname, "tsconfig.json"),
-    }),
     visualizer({ open: false, filename: "bundle-visualization.html" }),
   ],
   build: {
