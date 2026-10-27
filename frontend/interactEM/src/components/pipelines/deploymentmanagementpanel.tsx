@@ -1,4 +1,4 @@
-import { PlayCircleOutline } from "@mui/icons-material"
+import { PlayCircleOutlined } from "@mui/icons-material"
 import { Box, Drawer, Tab, Tabs, Typography } from "@mui/material"
 import type React from "react"
 import { useState } from "react"
@@ -17,7 +17,7 @@ interface TabPanelProps {
   value: number
 }
 
-const DeploymentManagementIcon = PlayCircleOutline
+const DeploymentManagementIcon = PlayCircleOutlined
 
 const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
   return (

@@ -15,7 +15,7 @@ const InfoItem = ({
   label: string
   value: React.ReactNode
 }) => (
-  <Typography variant="body2" fontWeight="medium">
+  <Typography variant="body2" sx={{ fontWeight: "medium" }}>
     {label}:{" "}
     <Typography component="span" variant="body2">
       {value}
@@ -49,7 +49,7 @@ const AgentTooltip = ({ data: unvalidated }: AgentTooltipProps) => {
       {data.error_messages && data.error_messages.length > 0 && (
         <>
           <Divider sx={{ my: 1, bgcolor: "white" }} />
-          <Typography variant="body2" fontWeight="medium" sx={{ mb: 0.5 }}>
+          <Typography variant="body2" sx={{ fontWeight: "medium", mb: 0.5 }}>
             Recent Errors:
           </Typography>
           <List dense disablePadding sx={{ mt: 0.5 }}>
