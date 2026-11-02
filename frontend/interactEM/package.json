@@ -62,7 +62,7 @@
     "@playwright/test": "^1.64.1",
     "@tanstack/react-query-devtools": "^5.91.3",
     "@types/node": "^26.6.5",
-    "@types/react": "^19.2.10",
+    "@types/react": "^19.3.0",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.1.2",
     "path": "^0.12.7",
