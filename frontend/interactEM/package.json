@@ -68,7 +68,7 @@
     "path": "^0.12.7",
     "playwright": "^1.58.1",
     "rollup-plugin-visualizer": "^6.0.5",
-    "ts-morph": "^27.0.2",
+    "ts-morph": "^28.0.0",
     "tsx": "^4.19.0",
     "typescript": "^7.0.2",
     "vite": "^7.3.1"
