@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.1.0
         with:
           token: ${{ secrets.VERSION_BUMP }}
           fetch-depth: 0 # needed because fetch-tags doesn't work as expected... 
@@ -30,7 +30,7 @@ jobs:
           git tag -l
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v7.6.0
         with:
           python-version: '3.12'
 

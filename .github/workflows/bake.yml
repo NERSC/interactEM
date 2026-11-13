@@ -33,16 +33,16 @@ jobs:
       meta-json: ${{ steps.meta.outputs.json }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
           submodules: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3.12.0
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v5.10.0
         with:
           images: ${{ env.REGISTRY }}/interactem
           # FIX 2: robust tagging strategy
@@ -85,15 +85,15 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
           submodules: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3.12.0
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -101,7 +101,7 @@ jobs:
 
       - name: Build and push base image by digest
         id: bake
-        uses: docker/bake-action@v6
+        uses: docker/bake-action@v6.10.0
         with:
           source: .
           files: |
@@ -125,7 +125,7 @@ jobs:
 
       - name: Upload digest
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: base-digests-${{ matrix.platform }}
           path: /tmp/digests
@@ -147,15 +147,15 @@ jobs:
       packages: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.4.0
         with:
           submodules: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3.12.0
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -163,7 +163,7 @@ jobs:
 
       - name: Build and push all services by digest
         id: bake
-        uses: docker/bake-action@v6
+        uses: docker/bake-action@v6.10.0
         with:
           source: .
           files: |
@@ -199,7 +199,7 @@ jobs:
 
       - name: Upload digests
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         with:
           name: service-digests-${{ matrix.platform }}
           path: /tmp/digests
@@ -218,10 +218,10 @@ jobs:
         service: ${{ fromJson(needs.prepare.outputs.all-images) }}
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3.12.0
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -229,7 +229,7 @@ jobs:
 
       - name: Download base digests
         if: matrix.service == 'interactem'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           path: /tmp/digests
           pattern: base-digests-*
@@ -237,7 +237,7 @@ jobs:
 
       - name: Download service digests
         if: matrix.service != 'interactem'
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           path: /tmp/digests
           pattern: service-digests-*
