@@ -21,8 +21,8 @@ export const zBodyLoginLoginAccessToken = z.object({
  * CanonicalEdge
  */
 export const zCanonicalEdge = z.object({
-  input_id: z.uuid(),
-  output_id: z.uuid(),
+  input_id: z.guid(),
+  output_id: z.guid(),
 })
 
 /**
@@ -83,7 +83,7 @@ export const zOperatorEventCreate = z.object({
  * Position metadata for an operator on the canvas.
  */
 export const zOperatorPosition = z.object({
-  canonical_operator_id: z.uuid(),
+  canonical_operator_id: z.guid(),
   x: z.number(),
   y: z.number(),
 })
@@ -224,7 +224,7 @@ export const zPipelineCreate = z.object({
  * PipelineDeploymentCreate
  */
 export const zPipelineDeploymentCreate = z.object({
-  pipeline_id: z.uuid(),
+  pipeline_id: z.guid(),
   revision_id: z.int(),
 })
 
@@ -244,8 +244,8 @@ export const zPipelineDeploymentState = z.enum([
  * PipelineDeploymentPublic
  */
 export const zPipelineDeploymentPublic = z.object({
-  id: z.uuid(),
-  pipeline_id: z.uuid(),
+  id: z.guid(),
+  pipeline_id: z.guid(),
   revision_id: z.int(),
   state: zPipelineDeploymentState,
   created_at: z.iso.datetime(),
@@ -304,10 +304,10 @@ export const zPortType = z.enum(["input", "output"])
  * CanonicalPort
  */
 export const zCanonicalPort = z.object({
-  id: z.uuid(),
+  id: z.guid(),
   node_type: zNodeType.optional().default("port"),
   port_type: zPortType,
-  canonical_operator_id: z.uuid(),
+  canonical_operator_id: z.guid(),
   portkey: z.string(),
 })
 
@@ -338,17 +338,17 @@ export const zOperatorSpecTrigger = z.object({
  * CanonicalOperator
  */
 export const zCanonicalOperator = z.object({
-  id: z.uuid(),
+  id: z.guid(),
   label: z.string(),
   description: z.string(),
   image: z.string(),
-  inputs: z.array(z.uuid()).optional().default([]),
-  outputs: z.array(z.uuid()).optional().default([]),
+  inputs: z.array(z.guid()).optional().default([]),
+  outputs: z.array(z.guid()).optional().default([]),
   parameters: z.array(zOperatorSpecParameter).nullish(),
   tags: z.array(zOperatorSpecTag).optional().default([]),
   parallel_config: zParallelConfig.nullish(),
   triggers: z.array(zOperatorSpecTrigger).nullish(),
-  spec_id: z.uuid(),
+  spec_id: z.guid(),
   node_type: zNodeType.optional().default("operator"),
   parallelism: z.int().gte(1).lte(128).nullish(),
 })
@@ -366,7 +366,7 @@ export const zCanonicalPipelineData = z.object({
  * OperatorSpec
  */
 export const zOperatorSpec = z.object({
-  id: z.uuid(),
+  id: z.guid(),
   label: z.string(),
   description: z.string(),
   image: z.string(),
@@ -391,8 +391,8 @@ export const zOperatorSpecs = z.object({
 export const zPipelinePublic = z.object({
   name: z.string().max(128).nullish().default("New Pipeline"),
   data: zCanonicalPipelineData,
-  id: z.uuid(),
-  owner_id: z.uuid(),
+  id: z.guid(),
+  owner_id: z.guid(),
   updated_at: z.iso.datetime(),
   created_at: z.iso.datetime(),
   current_revision_id: z.int(),
@@ -402,7 +402,7 @@ export const zPipelinePublic = z.object({
  * PipelineRevisionPublic
  */
 export const zPipelineRevisionPublic = z.object({
-  pipeline_id: z.uuid(),
+  pipeline_id: z.guid(),
   revision_id: z.int(),
   data: zCanonicalPipelineData,
   tag: z.string().nullable(),
@@ -447,7 +447,7 @@ export const zUserPublic = z.object({
   is_superuser: z.boolean().optional().default(false),
   is_external: z.boolean().optional().default(false),
   full_name: z.string().max(255).nullish(),
-  id: z.uuid(),
+  id: z.guid(),
 })
 
 /**
@@ -553,7 +553,7 @@ export const zUsersUpdatePasswordMeBody = zUpdatePassword
 export const zUsersUpdatePasswordMeResponse = zMessage
 
 export const zUsersDeleteUserPath = z.object({
-  user_id: z.uuid(),
+  user_id: z.guid(),
 })
 
 /**
@@ -562,7 +562,7 @@ export const zUsersDeleteUserPath = z.object({
 export const zUsersDeleteUserResponse = zMessage
 
 export const zUsersReadUserByIdPath = z.object({
-  user_id: z.uuid(),
+  user_id: z.guid(),
 })
 
 /**
@@ -573,7 +573,7 @@ export const zUsersReadUserByIdResponse = zUserPublic
 export const zUsersUpdateUserBody = zUserUpdate
 
 export const zUsersUpdateUserPath = z.object({
-  user_id: z.uuid(),
+  user_id: z.guid(),
 })
 
 /**
@@ -599,7 +599,7 @@ export const zPipelinesCreatePipelineBody = zPipelineCreate
 export const zPipelinesCreatePipelineResponse = zPipelinePublic
 
 export const zPipelinesDeletePipelinePath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
 })
 
 /**
@@ -608,7 +608,7 @@ export const zPipelinesDeletePipelinePath = z.object({
 export const zPipelinesDeletePipelineResponse = zMessage
 
 export const zPipelinesReadPipelinePath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
 })
 
 /**
@@ -619,7 +619,7 @@ export const zPipelinesReadPipelineResponse = zPipelinePublic
 export const zPipelinesUpdatePipelineBody = zPipelineUpdate
 
 export const zPipelinesUpdatePipelinePath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
 })
 
 /**
@@ -628,7 +628,7 @@ export const zPipelinesUpdatePipelinePath = z.object({
 export const zPipelinesUpdatePipelineResponse = zPipelinePublic
 
 export const zPipelinesListPipelineRevisionsPath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
 })
 
 export const zPipelinesListPipelineRevisionsQuery = z.object({
@@ -648,7 +648,7 @@ export const zPipelinesListPipelineRevisionsResponse = z.array(
 export const zPipelinesAddPipelineRevisionBody = zPipelineRevisionCreate
 
 export const zPipelinesAddPipelineRevisionPath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
 })
 
 /**
@@ -657,7 +657,7 @@ export const zPipelinesAddPipelineRevisionPath = z.object({
 export const zPipelinesAddPipelineRevisionResponse = zPipelineRevisionPublic
 
 export const zPipelinesReadPipelineRevisionPath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
   revision_id: z.int(),
 })
 
@@ -669,7 +669,7 @@ export const zPipelinesReadPipelineRevisionResponse = zPipelineRevisionPublic
 export const zPipelinesUpdatePipelineRevisionBody = zPipelineRevisionUpdate
 
 export const zPipelinesUpdatePipelineRevisionPath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
   revision_id: z.int(),
 })
 
@@ -682,7 +682,7 @@ export const zPipelinesUpdatePipelineRevisionPositionsBody =
   zPipelineRevisionPositionsUpdate
 
 export const zPipelinesUpdatePipelineRevisionPositionsPath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
   revision_id: z.int(),
 })
 
@@ -693,7 +693,7 @@ export const zPipelinesUpdatePipelineRevisionPositionsResponse =
   zPipelineRevisionPublic
 
 export const zPipelinesDuplicatePipelinePath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
 })
 
 /**
@@ -702,7 +702,7 @@ export const zPipelinesDuplicatePipelinePath = z.object({
 export const zPipelinesDuplicatePipelineResponse = zPipelinePublic
 
 export const zPipelinesListPipelineDeploymentsPath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
 })
 
 export const zPipelinesListPipelineDeploymentsQuery = z.object({
@@ -717,7 +717,7 @@ export const zPipelinesListPipelineDeploymentsResponse =
   zPipelineDeploymentsPublic
 
 export const zPipelinesListPipelineRevisionDeploymentsPath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
   revision_id: z.int(),
 })
 
@@ -736,7 +736,7 @@ export const zDeploymentsListPipelineDeploymentsQuery = z.object({
   offset: z.int().gte(0).optional().default(0),
   limit: z.int().gte(1).optional().default(100),
   states: z.array(zPipelineDeploymentState).nullish(),
-  pipeline_id: z.uuid().nullish(),
+  pipeline_id: z.guid().nullish(),
 })
 
 /**
@@ -755,7 +755,7 @@ export const zDeploymentsCreatePipelineDeploymentResponse =
   zPipelineDeploymentPublic
 
 export const zDeploymentsReadPipelineDeploymentPath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
 })
 
 /**
@@ -768,7 +768,7 @@ export const zDeploymentsUpdatePipelineDeploymentBody =
   zPipelineDeploymentUpdate
 
 export const zDeploymentsUpdatePipelineDeploymentPath = z.object({
-  id: z.uuid(),
+  id: z.guid(),
 })
 
 /**
@@ -780,8 +780,8 @@ export const zDeploymentsUpdatePipelineDeploymentResponse =
 export const zDeploymentsCreateOperatorEventBody = zOperatorEventCreate
 
 export const zDeploymentsCreateOperatorEventPath = z.object({
-  id: z.uuid(),
-  canonical_operator_id: z.uuid(),
+  id: z.guid(),
+  canonical_operator_id: z.guid(),
 })
 
 /**
@@ -801,5 +801,5 @@ export const zOperatorsReadOperatorsResponse = zOperatorSpecs
 export const zAgentsLaunchAgentBody = zAgentCreateEvent
 
 export const zAgentsShutdownAgentPath = z.object({
-  agent_id: z.uuid(),
+  agent_id: z.guid(),
 })
