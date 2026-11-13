@@ -20,7 +20,7 @@ workflows:
     '.github/workflows/docs.yml':
         - 'actions/checkout@v4.4.0'
         - 'actions/deploy-pages@v4.0.5'
-        - 'actions/setup-python@v5.6.0'
+        - 'actions/setup-python@v7.1.0'
         - 'actions/upload-pages-artifact@v3.0.1'
         - 'astral-sh/setup-uv@v7.6.0'
     '.github/workflows/integration.yml':
@@ -76,9 +76,9 @@ dependencies:
         commit: 'sha1-49933ea5288caeca8642d1e84afbd3f7d6820020'
         owner_id: 44036562
         repo_id: 189476904
-    'actions/setup-python@v5.6.0':
-        ref: 'v5.6.0'
-        commit: 'sha1-a26af69be951a213d495a4c3e4e4022e16d87065'
+    'actions/setup-python@v7.1.0':
+        ref: 'v7.1.0'
+        commit: 'sha1-6d4fd22b20465ccc0f7354476588e8df7c9ca0e0'
         owner_id: 44036562
         repo_id: 192625525
     'actions/upload-artifact@v4':
