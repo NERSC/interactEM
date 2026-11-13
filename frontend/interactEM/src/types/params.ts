@@ -26,9 +26,12 @@ const mountPathRegex = /^(\/|~\/)(?!.*(?:^|\/)\.\.(?:\/|$)).*$/
  * Input validation schemas for form fields (string inputs)
  * These validate the raw string values from form inputs
  */
-const parameterInputSchemas: Record<ParameterSpecType, z.ZodTypeAny> = {
-  int: z.string().pipe(z.coerce.number().int("Must be an integer")),
-  float: z.string().pipe(z.coerce.number()),
+const parameterInputSchemas: Record<
+  ParameterSpecType,
+  z.ZodType<number | boolean | string, string>
+> = {
+  int: z.string().pipe(z.coerce.number<string>().int("Must be an integer")),
+  float: z.string().pipe(z.coerce.number<string>()),
   bool: z.enum(["true", "false"]).transform((val) => val === "true"),
   str: z.string(),
   "str-enum": z.string(),
