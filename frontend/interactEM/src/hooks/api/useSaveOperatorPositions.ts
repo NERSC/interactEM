@@ -52,7 +52,7 @@ export const useSaveOperatorPositions = (
     if (!validationResult.success) {
       console.error(
         "Position validation failed:",
-        validationResult.error.errors,
+        validationResult.error.issues,
       )
       return
     }

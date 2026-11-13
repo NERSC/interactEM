@@ -19,11 +19,16 @@ import { useMutation } from "@tanstack/react-query"
 import { format, parse } from "date-fns"
 import { useCallback, useState } from "react"
 import { Controller, type SubmitHandler, useForm } from "react-hook-form"
+import type { z } from "zod"
 import {
   type AgentCreateEvent,
   agentsLaunchAgentMutation,
   zAgentCreateEvent,
 } from "../../client"
+
+// zAgentCreateEvent coerces num_nodes/gpus_per_node, so the form's input type
+// (what the fields hold) differs from its output type (what onSubmit receives).
+type LaunchAgentFormInput = z.input<typeof zAgentCreateEvent>
 
 // TODO: in the future, consider using: https://github.com/dohomi/react-hook-form-mui/
 export const LaunchAgentButton = () => {
@@ -38,7 +43,7 @@ export const LaunchAgentButton = () => {
     handleSubmit,
     watch,
     formState: { errors },
-  } = useForm<AgentCreateEvent>({
+  } = useForm<LaunchAgentFormInput, unknown, AgentCreateEvent>({
     resolver: zodResolver(zAgentCreateEvent),
     shouldUnregister: true,
     defaultValues: {
@@ -111,7 +116,7 @@ export const LaunchAgentButton = () => {
                       error={!!errors.machine}
                       fullWidth
                     >
-                      {zAgentCreateEvent.shape.machine._def.values.map(
+                      {zAgentCreateEvent.shape.machine.options.map(
                         (machine) => (
                           <MenuItem key={machine} value={machine}>
                             {machine}
@@ -138,7 +143,7 @@ export const LaunchAgentButton = () => {
                       error={!!errors.compute_type}
                       fullWidth
                     >
-                      {zAgentCreateEvent.shape.compute_type._def.values.map(
+                      {zAgentCreateEvent.shape.compute_type.options.map(
                         (compute_type) => (
                           <MenuItem key={compute_type} value={compute_type}>
                             {compute_type}
