@@ -51,9 +51,9 @@ export const useParameterUpdate = (
       await jetStreamClient.publish(subject, payload)
     } catch (error) {
       if (error instanceof z.ZodError) {
-        console.error("Parameter update validation failed:", error.errors)
+        console.error("Parameter update validation failed:", error.issues)
         throw new Error(
-          `Invalid parameter update data: ${error.errors.map((e) => e.message).join(", ")}`,
+          `Invalid parameter update data: ${error.issues.map((e) => e.message).join(", ")}`,
         )
       }
       console.error("Failed to publish parameter update:", error)
