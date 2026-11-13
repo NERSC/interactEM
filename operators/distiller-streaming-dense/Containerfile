@@ -1,0 +1,21 @@
+FROM interactem-operator
+
+WORKDIR /app
+COPY ./pyproject.toml ./poetry.lock ./README.md /app/
+
+# Base image installs interactem-core at /interactem/core. 
+# Locally, the project uses ../../backend/core which
+# resolves to /backend/core inside the container. We symlink it here 
+# so poetry can find it.
+RUN mkdir -p /backend && \
+	if [ -d /interactem/core ]; then \
+        ln -sfn /interactem/core /backend/core; \
+    fi && \
+    if [ -d /interactem/operators ]; then \
+        ln -sfn /interactem/operators /backend/operators; \
+    fi
+
+RUN poetry install --no-root --without dev
+
+COPY ./distiller_streaming_dense/ /app/distiller_streaming_dense/
+RUN poetry install --only-root

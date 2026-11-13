@@ -1,7 +1,5 @@
-FROM interactem-operator
+FROM distiller-streaming-dense
 
-# Install additional dependencies
-RUN poetry add ncempy numpy@~2.2.6 h5py
+RUN poetry add ncempy h5py
 
-# Copy the operator script
 COPY ./run.py /app/run.py

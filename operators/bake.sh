@@ -79,6 +79,9 @@ if $BUILD_BASE; then
     "${base_cmd[@]}" distiller-streaming --file "$BAKE_FILE" \
         --file "$BASE_VARS"
 
+    "${base_cmd[@]}" distiller-streaming-dense --file "$BAKE_FILE" \
+        --file "$BASE_VARS"
+
     if $PUSH_LOCAL; then
         "${base_cmd[@]}" base --file "$BAKE_FILE" \
             --file "$OPERATORS_DIR/vars-local.hcl" --set "*.output=type=registry,oci-mediatypes=true"
@@ -87,6 +90,9 @@ if $BUILD_BASE; then
             --file "$OPERATORS_DIR/vars-local.hcl" --set "*.output=type=registry,oci-mediatypes=true"
 
         "${base_cmd[@]}" distiller-streaming --file "$BAKE_FILE" \
+            --file "$OPERATORS_DIR/vars-local.hcl" --set "*.output=type=registry,oci-mediatypes=true"
+
+        "${base_cmd[@]}" distiller-streaming-dense --file "$BAKE_FILE" \
             --file "$OPERATORS_DIR/vars-local.hcl" --set "*.output=type=registry,oci-mediatypes=true"
     fi
 fi
