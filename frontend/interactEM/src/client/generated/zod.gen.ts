@@ -6,12 +6,15 @@ import { z } from "zod"
  * Body_login-login_access_token
  */
 export const zBodyLoginLoginAccessToken = z.object({
-  grant_type: z.union([z.string().regex(/^password$/), z.null()]).optional(),
+  grant_type: z
+    .string()
+    .regex(/^password$/)
+    .nullish(),
   username: z.string(),
   password: z.string(),
   scope: z.string().optional().default(""),
-  client_id: z.union([z.string(), z.null()]).optional(),
-  client_secret: z.union([z.string(), z.null()]).optional(),
+  client_id: z.string().nullish(),
+  client_secret: z.string().nullish(),
 })
 
 /**
@@ -51,8 +54,8 @@ export const zAgentCreateEvent = z.object({
   duration: z.string(),
   compute_type: zComputeType,
   num_nodes: z.number().int(),
-  gpus_per_node: z.union([z.number().int().gte(1), z.null()]).optional(),
-  extra: z.union([z.record(z.unknown()), z.null()]).optional(),
+  gpus_per_node: z.number().int().gte(1).nullish(),
+  extra: z.record(z.unknown()).nullish(),
 })
 
 /**
@@ -181,37 +184,13 @@ export const zOperatorSpecParameterString = z.object({
 /**
  * OperatorSpecParameter
  */
-export const zOperatorSpecParameter = z.union([
-  z
-    .object({
-      type: z.literal("str"),
-    })
-    .and(zOperatorSpecParameterString),
-  z
-    .object({
-      type: z.literal("mount"),
-    })
-    .and(zOperatorSpecParameterMount),
-  z
-    .object({
-      type: z.literal("int"),
-    })
-    .and(zOperatorSpecParameterInteger),
-  z
-    .object({
-      type: z.literal("float"),
-    })
-    .and(zOperatorSpecParameterFloat),
-  z
-    .object({
-      type: z.literal("bool"),
-    })
-    .and(zOperatorSpecParameterBoolean),
-  z
-    .object({
-      type: z.literal("str-enum"),
-    })
-    .and(zOperatorSpecParameterStrEnum),
+export const zOperatorSpecParameter = z.discriminatedUnion("type", [
+  zOperatorSpecParameterString,
+  zOperatorSpecParameterMount,
+  zOperatorSpecParameterInteger,
+  zOperatorSpecParameterFloat,
+  zOperatorSpecParameterBoolean,
+  zOperatorSpecParameterStrEnum,
 ])
 
 /**
@@ -219,7 +198,7 @@ export const zOperatorSpecParameter = z.union([
  */
 export const zOperatorSpecTag = z.object({
   value: z.string(),
-  description: z.union([z.string(), z.null()]).optional(),
+  description: z.string().nullish(),
 })
 
 /**
@@ -306,14 +285,14 @@ export const zPipelineRevisionPositionsUpdate = z.object({
  * PipelineRevisionUpdate
  */
 export const zPipelineRevisionUpdate = z.object({
-  tag: z.union([z.string().max(128), z.null()]).optional(),
+  tag: z.string().max(128).nullish(),
 })
 
 /**
  * PipelineUpdate
  */
 export const zPipelineUpdate = z.object({
-  name: z.union([z.string().max(128), z.null()]),
+  name: z.string().max(128).nullable(),
 })
 
 /**
@@ -351,7 +330,7 @@ export const zTriggerInvocationMode = z.enum(["single", "drain"])
 export const zOperatorSpecTrigger = z.object({
   name: z.string(),
   label: z.string(),
-  description: z.union([z.string(), z.null()]).optional(),
+  description: z.string().nullish(),
   mode: zTriggerInvocationMode.optional().default("single"),
 })
 
@@ -365,13 +344,13 @@ export const zCanonicalOperator = z.object({
   image: z.string(),
   inputs: z.array(z.string().uuid()).optional().default([]),
   outputs: z.array(z.string().uuid()).optional().default([]),
-  parameters: z.union([z.array(zOperatorSpecParameter), z.null()]).optional(),
+  parameters: z.array(zOperatorSpecParameter).nullish(),
   tags: z.array(zOperatorSpecTag).optional().default([]),
-  parallel_config: z.union([zParallelConfig, z.null()]).optional(),
-  triggers: z.union([z.array(zOperatorSpecTrigger), z.null()]).optional(),
+  parallel_config: zParallelConfig.nullish(),
+  triggers: z.array(zOperatorSpecTrigger).nullish(),
   spec_id: z.string().uuid(),
   node_type: zNodeType.optional().default("operator"),
-  parallelism: z.union([z.number().int().gte(1).lte(128), z.null()]).optional(),
+  parallelism: z.number().int().gte(1).lte(128).nullish(),
 })
 
 /**
@@ -391,12 +370,12 @@ export const zOperatorSpec = z.object({
   label: z.string(),
   description: z.string(),
   image: z.string(),
-  inputs: z.union([z.array(zOperatorSpecInput), z.null()]).optional(),
-  outputs: z.union([z.array(zOperatorSpecOutput), z.null()]).optional(),
-  parameters: z.union([z.array(zOperatorSpecParameter), z.null()]).optional(),
-  tags: z.union([z.array(zOperatorSpecTag), z.null()]).optional(),
-  parallel_config: z.union([zParallelConfig, z.null()]).optional(),
-  triggers: z.union([z.array(zOperatorSpecTrigger), z.null()]).optional(),
+  inputs: z.array(zOperatorSpecInput).nullish(),
+  outputs: z.array(zOperatorSpecOutput).nullish(),
+  parameters: z.array(zOperatorSpecParameter).nullish(),
+  tags: z.array(zOperatorSpecTag).nullish(),
+  parallel_config: zParallelConfig.nullish(),
+  triggers: z.array(zOperatorSpecTrigger).nullish(),
 })
 
 /**
@@ -410,10 +389,7 @@ export const zOperatorSpecs = z.object({
  * PipelinePublic
  */
 export const zPipelinePublic = z.object({
-  name: z
-    .union([z.string().max(128), z.null()])
-    .optional()
-    .default("New Pipeline"),
+  name: z.string().max(128).nullish().default("New Pipeline"),
   data: zCanonicalPipelineData,
   id: z.string().uuid(),
   owner_id: z.string().uuid(),
@@ -429,7 +405,7 @@ export const zPipelineRevisionPublic = z.object({
   pipeline_id: z.string().uuid(),
   revision_id: z.number().int(),
   data: zCanonicalPipelineData,
-  tag: z.union([z.string(), z.null()]),
+  tag: z.string().nullable(),
   positions: z.array(zOperatorPosition),
   created_at: z.string().datetime(),
 })
@@ -458,7 +434,7 @@ export const zUserCreate = z.object({
   is_active: z.boolean().optional().default(true),
   is_superuser: z.boolean().optional().default(false),
   is_external: z.boolean().optional().default(false),
-  full_name: z.union([z.string().max(255), z.null()]).optional(),
+  full_name: z.string().max(255).nullish(),
   password: z.string().min(8).max(40),
 })
 
@@ -470,7 +446,7 @@ export const zUserPublic = z.object({
   is_active: z.boolean().optional().default(true),
   is_superuser: z.boolean().optional().default(false),
   is_external: z.boolean().optional().default(false),
-  full_name: z.union([z.string().max(255), z.null()]).optional(),
+  full_name: z.string().max(255).nullish(),
   id: z.string().uuid(),
 })
 
@@ -478,20 +454,20 @@ export const zUserPublic = z.object({
  * UserUpdate
  */
 export const zUserUpdate = z.object({
-  username: z.union([z.string().max(255), z.null()]).optional(),
+  username: z.string().max(255).nullish(),
   is_active: z.boolean().optional().default(true),
   is_superuser: z.boolean().optional().default(false),
   is_external: z.boolean().optional().default(false),
-  full_name: z.union([z.string().max(255), z.null()]).optional(),
-  password: z.union([z.string().min(8).max(40), z.null()]).optional(),
+  full_name: z.string().max(255).nullish(),
+  password: z.string().min(8).max(40).nullish(),
 })
 
 /**
  * UserUpdateMe
  */
 export const zUserUpdateMe = z.object({
-  full_name: z.union([z.string().max(255), z.null()]).optional(),
-  username: z.union([z.string().max(255), z.null()]).optional(),
+  full_name: z.string().max(255).nullish(),
+  username: z.string().max(255).nullish(),
 })
 
 /**
@@ -518,48 +494,26 @@ export const zHttpValidationError = z.object({
   detail: z.array(zValidationError).optional(),
 })
 
-export const zLoginLoginAccessTokenData = z.object({
-  body: zBodyLoginLoginAccessToken,
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
+export const zLoginLoginAccessTokenBody = zBodyLoginLoginAccessToken
 
 /**
  * Successful Response
  */
 export const zLoginLoginAccessTokenResponse = zToken
 
-export const zLoginLoginWithExternalTokenData = z.object({
-  body: z.never().optional(),
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
-
 /**
  * Successful Response
  */
 export const zLoginLoginWithExternalTokenResponse = zToken
-
-export const zLoginTestTokenData = z.object({
-  body: z.never().optional(),
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
 
 /**
  * Successful Response
  */
 export const zLoginTestTokenResponse = zUserPublic
 
-export const zUsersReadUsersData = z.object({
-  body: z.never().optional(),
-  path: z.never().optional(),
-  query: z
-    .object({
-      skip: z.number().int().optional().default(0),
-      limit: z.number().int().optional().default(100),
-    })
-    .optional(),
+export const zUsersReadUsersQuery = z.object({
+  skip: z.number().int().optional().default(0),
+  limit: z.number().int().optional().default(100),
 })
 
 /**
@@ -567,67 +521,39 @@ export const zUsersReadUsersData = z.object({
  */
 export const zUsersReadUsersResponse = zUsersPublic
 
-export const zUsersCreateUserData = z.object({
-  body: zUserCreate,
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
+export const zUsersCreateUserBody = zUserCreate
 
 /**
  * Successful Response
  */
 export const zUsersCreateUserResponse = zUserPublic
 
-export const zUsersDeleteUserMeData = z.object({
-  body: z.never().optional(),
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
-
 /**
  * Successful Response
  */
 export const zUsersDeleteUserMeResponse = zMessage
-
-export const zUsersReadUserMeData = z.object({
-  body: z.never().optional(),
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
 
 /**
  * Successful Response
  */
 export const zUsersReadUserMeResponse = zUserPublic
 
-export const zUsersUpdateUserMeData = z.object({
-  body: zUserUpdateMe,
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
+export const zUsersUpdateUserMeBody = zUserUpdateMe
 
 /**
  * Successful Response
  */
 export const zUsersUpdateUserMeResponse = zUserPublic
 
-export const zUsersUpdatePasswordMeData = z.object({
-  body: zUpdatePassword,
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
+export const zUsersUpdatePasswordMeBody = zUpdatePassword
 
 /**
  * Successful Response
  */
 export const zUsersUpdatePasswordMeResponse = zMessage
 
-export const zUsersDeleteUserData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    user_id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zUsersDeleteUserPath = z.object({
+  user_id: z.string().uuid(),
 })
 
 /**
@@ -635,12 +561,8 @@ export const zUsersDeleteUserData = z.object({
  */
 export const zUsersDeleteUserResponse = zMessage
 
-export const zUsersReadUserByIdData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    user_id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zUsersReadUserByIdPath = z.object({
+  user_id: z.string().uuid(),
 })
 
 /**
@@ -648,12 +570,10 @@ export const zUsersReadUserByIdData = z.object({
  */
 export const zUsersReadUserByIdResponse = zUserPublic
 
-export const zUsersUpdateUserData = z.object({
-  body: zUserUpdate,
-  path: z.object({
-    user_id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zUsersUpdateUserBody = zUserUpdate
+
+export const zUsersUpdateUserPath = z.object({
+  user_id: z.string().uuid(),
 })
 
 /**
@@ -661,15 +581,9 @@ export const zUsersUpdateUserData = z.object({
  */
 export const zUsersUpdateUserResponse = zUserPublic
 
-export const zPipelinesReadPipelinesData = z.object({
-  body: z.never().optional(),
-  path: z.never().optional(),
-  query: z
-    .object({
-      offset: z.number().int().gte(0).optional().default(0),
-      limit: z.number().int().gte(1).lte(200).optional().default(100),
-    })
-    .optional(),
+export const zPipelinesReadPipelinesQuery = z.object({
+  offset: z.number().int().gte(0).optional().default(0),
+  limit: z.number().int().gte(1).lte(200).optional().default(100),
 })
 
 /**
@@ -677,23 +591,15 @@ export const zPipelinesReadPipelinesData = z.object({
  */
 export const zPipelinesReadPipelinesResponse = zPipelinesPublic
 
-export const zPipelinesCreatePipelineData = z.object({
-  body: zPipelineCreate,
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
+export const zPipelinesCreatePipelineBody = zPipelineCreate
 
 /**
  * Successful Response
  */
 export const zPipelinesCreatePipelineResponse = zPipelinePublic
 
-export const zPipelinesDeletePipelineData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zPipelinesDeletePipelinePath = z.object({
+  id: z.string().uuid(),
 })
 
 /**
@@ -701,12 +607,8 @@ export const zPipelinesDeletePipelineData = z.object({
  */
 export const zPipelinesDeletePipelineResponse = zMessage
 
-export const zPipelinesReadPipelineData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zPipelinesReadPipelinePath = z.object({
+  id: z.string().uuid(),
 })
 
 /**
@@ -714,12 +616,10 @@ export const zPipelinesReadPipelineData = z.object({
  */
 export const zPipelinesReadPipelineResponse = zPipelinePublic
 
-export const zPipelinesUpdatePipelineData = z.object({
-  body: zPipelineUpdate,
-  path: z.object({
-    id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zPipelinesUpdatePipelineBody = zPipelineUpdate
+
+export const zPipelinesUpdatePipelinePath = z.object({
+  id: z.string().uuid(),
 })
 
 /**
@@ -727,17 +627,13 @@ export const zPipelinesUpdatePipelineData = z.object({
  */
 export const zPipelinesUpdatePipelineResponse = zPipelinePublic
 
-export const zPipelinesListPipelineRevisionsData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    id: z.string().uuid(),
-  }),
-  query: z
-    .object({
-      offset: z.number().int().gte(0).optional().default(0),
-      limit: z.number().int().gte(1).lte(100).optional().default(20),
-    })
-    .optional(),
+export const zPipelinesListPipelineRevisionsPath = z.object({
+  id: z.string().uuid(),
+})
+
+export const zPipelinesListPipelineRevisionsQuery = z.object({
+  offset: z.number().int().gte(0).optional().default(0),
+  limit: z.number().int().gte(1).lte(100).optional().default(20),
 })
 
 /**
@@ -749,12 +645,10 @@ export const zPipelinesListPipelineRevisionsResponse = z.array(
   zPipelineRevisionPublic,
 )
 
-export const zPipelinesAddPipelineRevisionData = z.object({
-  body: zPipelineRevisionCreate,
-  path: z.object({
-    id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zPipelinesAddPipelineRevisionBody = zPipelineRevisionCreate
+
+export const zPipelinesAddPipelineRevisionPath = z.object({
+  id: z.string().uuid(),
 })
 
 /**
@@ -762,13 +656,9 @@ export const zPipelinesAddPipelineRevisionData = z.object({
  */
 export const zPipelinesAddPipelineRevisionResponse = zPipelineRevisionPublic
 
-export const zPipelinesReadPipelineRevisionData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    id: z.string().uuid(),
-    revision_id: z.number().int(),
-  }),
-  query: z.never().optional(),
+export const zPipelinesReadPipelineRevisionPath = z.object({
+  id: z.string().uuid(),
+  revision_id: z.number().int(),
 })
 
 /**
@@ -776,13 +666,11 @@ export const zPipelinesReadPipelineRevisionData = z.object({
  */
 export const zPipelinesReadPipelineRevisionResponse = zPipelineRevisionPublic
 
-export const zPipelinesUpdatePipelineRevisionData = z.object({
-  body: zPipelineRevisionUpdate,
-  path: z.object({
-    id: z.string().uuid(),
-    revision_id: z.number().int(),
-  }),
-  query: z.never().optional(),
+export const zPipelinesUpdatePipelineRevisionBody = zPipelineRevisionUpdate
+
+export const zPipelinesUpdatePipelineRevisionPath = z.object({
+  id: z.string().uuid(),
+  revision_id: z.number().int(),
 })
 
 /**
@@ -790,13 +678,12 @@ export const zPipelinesUpdatePipelineRevisionData = z.object({
  */
 export const zPipelinesUpdatePipelineRevisionResponse = zPipelineRevisionPublic
 
-export const zPipelinesUpdatePipelineRevisionPositionsData = z.object({
-  body: zPipelineRevisionPositionsUpdate,
-  path: z.object({
-    id: z.string().uuid(),
-    revision_id: z.number().int(),
-  }),
-  query: z.never().optional(),
+export const zPipelinesUpdatePipelineRevisionPositionsBody =
+  zPipelineRevisionPositionsUpdate
+
+export const zPipelinesUpdatePipelineRevisionPositionsPath = z.object({
+  id: z.string().uuid(),
+  revision_id: z.number().int(),
 })
 
 /**
@@ -805,12 +692,8 @@ export const zPipelinesUpdatePipelineRevisionPositionsData = z.object({
 export const zPipelinesUpdatePipelineRevisionPositionsResponse =
   zPipelineRevisionPublic
 
-export const zPipelinesDuplicatePipelineData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zPipelinesDuplicatePipelinePath = z.object({
+  id: z.string().uuid(),
 })
 
 /**
@@ -818,17 +701,13 @@ export const zPipelinesDuplicatePipelineData = z.object({
  */
 export const zPipelinesDuplicatePipelineResponse = zPipelinePublic
 
-export const zPipelinesListPipelineDeploymentsData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    id: z.string().uuid(),
-  }),
-  query: z
-    .object({
-      offset: z.number().int().gte(0).optional().default(0),
-      limit: z.number().int().gte(1).lte(100).optional().default(20),
-    })
-    .optional(),
+export const zPipelinesListPipelineDeploymentsPath = z.object({
+  id: z.string().uuid(),
+})
+
+export const zPipelinesListPipelineDeploymentsQuery = z.object({
+  offset: z.number().int().gte(0).optional().default(0),
+  limit: z.number().int().gte(1).lte(100).optional().default(20),
 })
 
 /**
@@ -837,18 +716,14 @@ export const zPipelinesListPipelineDeploymentsData = z.object({
 export const zPipelinesListPipelineDeploymentsResponse =
   zPipelineDeploymentsPublic
 
-export const zPipelinesListPipelineRevisionDeploymentsData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    id: z.string().uuid(),
-    revision_id: z.number().int(),
-  }),
-  query: z
-    .object({
-      offset: z.number().int().gte(0).optional().default(0),
-      limit: z.number().int().gte(1).lte(100).optional().default(20),
-    })
-    .optional(),
+export const zPipelinesListPipelineRevisionDeploymentsPath = z.object({
+  id: z.string().uuid(),
+  revision_id: z.number().int(),
+})
+
+export const zPipelinesListPipelineRevisionDeploymentsQuery = z.object({
+  offset: z.number().int().gte(0).optional().default(0),
+  limit: z.number().int().gte(1).lte(100).optional().default(20),
 })
 
 /**
@@ -857,17 +732,11 @@ export const zPipelinesListPipelineRevisionDeploymentsData = z.object({
 export const zPipelinesListPipelineRevisionDeploymentsResponse =
   zPipelineDeploymentsPublic
 
-export const zDeploymentsListPipelineDeploymentsData = z.object({
-  body: z.never().optional(),
-  path: z.never().optional(),
-  query: z
-    .object({
-      offset: z.number().int().gte(0).optional().default(0),
-      limit: z.number().int().gte(1).optional().default(100),
-      states: z.union([z.array(zPipelineDeploymentState), z.null()]).optional(),
-      pipeline_id: z.union([z.string().uuid(), z.null()]).optional(),
-    })
-    .optional(),
+export const zDeploymentsListPipelineDeploymentsQuery = z.object({
+  offset: z.number().int().gte(0).optional().default(0),
+  limit: z.number().int().gte(1).optional().default(100),
+  states: z.array(zPipelineDeploymentState).nullish(),
+  pipeline_id: z.string().uuid().nullish(),
 })
 
 /**
@@ -876,11 +745,8 @@ export const zDeploymentsListPipelineDeploymentsData = z.object({
 export const zDeploymentsListPipelineDeploymentsResponse =
   zPipelineDeploymentsPublic
 
-export const zDeploymentsCreatePipelineDeploymentData = z.object({
-  body: zPipelineDeploymentCreate,
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
+export const zDeploymentsCreatePipelineDeploymentBody =
+  zPipelineDeploymentCreate
 
 /**
  * Successful Response
@@ -888,12 +754,8 @@ export const zDeploymentsCreatePipelineDeploymentData = z.object({
 export const zDeploymentsCreatePipelineDeploymentResponse =
   zPipelineDeploymentPublic
 
-export const zDeploymentsReadPipelineDeploymentData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zDeploymentsReadPipelineDeploymentPath = z.object({
+  id: z.string().uuid(),
 })
 
 /**
@@ -902,12 +764,11 @@ export const zDeploymentsReadPipelineDeploymentData = z.object({
 export const zDeploymentsReadPipelineDeploymentResponse =
   zPipelineDeploymentPublic
 
-export const zDeploymentsUpdatePipelineDeploymentData = z.object({
-  body: zPipelineDeploymentUpdate,
-  path: z.object({
-    id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zDeploymentsUpdatePipelineDeploymentBody =
+  zPipelineDeploymentUpdate
+
+export const zDeploymentsUpdatePipelineDeploymentPath = z.object({
+  id: z.string().uuid(),
 })
 
 /**
@@ -916,13 +777,11 @@ export const zDeploymentsUpdatePipelineDeploymentData = z.object({
 export const zDeploymentsUpdatePipelineDeploymentResponse =
   zPipelineDeploymentPublic
 
-export const zDeploymentsCreateOperatorEventData = z.object({
-  body: zOperatorEventCreate,
-  path: z.object({
-    id: z.string().uuid(),
-    canonical_operator_id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zDeploymentsCreateOperatorEventBody = zOperatorEventCreate
+
+export const zDeploymentsCreateOperatorEventPath = z.object({
+  id: z.string().uuid(),
+  canonical_operator_id: z.string().uuid(),
 })
 
 /**
@@ -930,14 +789,8 @@ export const zDeploymentsCreateOperatorEventData = z.object({
  */
 export const zDeploymentsCreateOperatorEventResponse = zMessage
 
-export const zOperatorsReadOperatorsData = z.object({
-  body: z.never().optional(),
-  path: z.never().optional(),
-  query: z
-    .object({
-      refresh: z.boolean().optional().default(false),
-    })
-    .optional(),
+export const zOperatorsReadOperatorsQuery = z.object({
+  refresh: z.boolean().optional().default(false),
 })
 
 /**
@@ -945,16 +798,8 @@ export const zOperatorsReadOperatorsData = z.object({
  */
 export const zOperatorsReadOperatorsResponse = zOperatorSpecs
 
-export const zAgentsLaunchAgentData = z.object({
-  body: zAgentCreateEvent,
-  path: z.never().optional(),
-  query: z.never().optional(),
-})
+export const zAgentsLaunchAgentBody = zAgentCreateEvent
 
-export const zAgentsShutdownAgentData = z.object({
-  body: z.never().optional(),
-  path: z.object({
-    agent_id: z.string().uuid(),
-  }),
-  query: z.never().optional(),
+export const zAgentsShutdownAgentPath = z.object({
+  agent_id: z.string().uuid(),
 })

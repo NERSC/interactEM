@@ -2,7 +2,9 @@
 
 import {
   type Client,
+  type ClientMeta,
   type Options as Options2,
+  type RequestResult,
   type TDataShape,
   urlSearchParamsBodySerializer,
 } from "./client"
@@ -108,7 +110,8 @@ import type {
 export type Options<
   TData extends TDataShape = TDataShape,
   ThrowOnError extends boolean = boolean,
-> = Options2<TData, ThrowOnError> & {
+  TResponse = unknown,
+> = Options2<TData, ThrowOnError, TResponse> & {
   /**
    * You can provide a client instance returned by `createClient()` instead of
    * individual options. This might be also useful if you want to implement a
@@ -119,7 +122,7 @@ export type Options<
    * You can pass arbitrary values through the `meta` object. This can be
    * used to access values that aren't defined as part of the SDK function.
    */
-  meta?: Record<string, unknown>
+  meta?: keyof ClientMeta extends never ? Record<string, unknown> : ClientMeta
 }
 
 /**
@@ -129,7 +132,11 @@ export type Options<
  */
 export const loginLoginAccessToken = <ThrowOnError extends boolean = false>(
   options: Options<LoginLoginAccessTokenData, ThrowOnError>,
-) =>
+): RequestResult<
+  LoginLoginAccessTokenResponses,
+  LoginLoginAccessTokenErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).post<
     LoginLoginAccessTokenResponses,
     LoginLoginAccessTokenErrors,
@@ -154,14 +161,20 @@ export const loginLoginWithExternalToken = <
   ThrowOnError extends boolean = false,
 >(
   options?: Options<LoginLoginWithExternalTokenData, ThrowOnError>,
-) =>
+): RequestResult<LoginLoginWithExternalTokenResponses, unknown, ThrowOnError> =>
   (options?.client ?? client).post<
     LoginLoginWithExternalTokenResponses,
     unknown,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "HTTPBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/login/external-token",
     ...options,
   })
@@ -173,14 +186,20 @@ export const loginLoginWithExternalToken = <
  */
 export const loginTestToken = <ThrowOnError extends boolean = false>(
   options?: Options<LoginTestTokenData, ThrowOnError>,
-) =>
+): RequestResult<LoginTestTokenResponses, unknown, ThrowOnError> =>
   (options?.client ?? client).post<
     LoginTestTokenResponses,
     unknown,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/login/test-token",
     ...options,
   })
@@ -192,14 +211,20 @@ export const loginTestToken = <ThrowOnError extends boolean = false>(
  */
 export const usersReadUsers = <ThrowOnError extends boolean = false>(
   options?: Options<UsersReadUsersData, ThrowOnError>,
-) =>
+): RequestResult<UsersReadUsersResponses, UsersReadUsersErrors, ThrowOnError> =>
   (options?.client ?? client).get<
     UsersReadUsersResponses,
     UsersReadUsersErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/users/",
     ...options,
   })
@@ -211,14 +236,24 @@ export const usersReadUsers = <ThrowOnError extends boolean = false>(
  */
 export const usersCreateUser = <ThrowOnError extends boolean = false>(
   options: Options<UsersCreateUserData, ThrowOnError>,
-) =>
+): RequestResult<
+  UsersCreateUserResponses,
+  UsersCreateUserErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).post<
     UsersCreateUserResponses,
     UsersCreateUserErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/users/",
     ...options,
     headers: {
@@ -234,14 +269,20 @@ export const usersCreateUser = <ThrowOnError extends boolean = false>(
  */
 export const usersDeleteUserMe = <ThrowOnError extends boolean = false>(
   options?: Options<UsersDeleteUserMeData, ThrowOnError>,
-) =>
+): RequestResult<UsersDeleteUserMeResponses, unknown, ThrowOnError> =>
   (options?.client ?? client).delete<
     UsersDeleteUserMeResponses,
     unknown,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/users/me",
     ...options,
   })
@@ -253,14 +294,20 @@ export const usersDeleteUserMe = <ThrowOnError extends boolean = false>(
  */
 export const usersReadUserMe = <ThrowOnError extends boolean = false>(
   options?: Options<UsersReadUserMeData, ThrowOnError>,
-) =>
+): RequestResult<UsersReadUserMeResponses, unknown, ThrowOnError> =>
   (options?.client ?? client).get<
     UsersReadUserMeResponses,
     unknown,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/users/me",
     ...options,
   })
@@ -272,14 +319,24 @@ export const usersReadUserMe = <ThrowOnError extends boolean = false>(
  */
 export const usersUpdateUserMe = <ThrowOnError extends boolean = false>(
   options: Options<UsersUpdateUserMeData, ThrowOnError>,
-) =>
+): RequestResult<
+  UsersUpdateUserMeResponses,
+  UsersUpdateUserMeErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).patch<
     UsersUpdateUserMeResponses,
     UsersUpdateUserMeErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/users/me",
     ...options,
     headers: {
@@ -295,14 +352,24 @@ export const usersUpdateUserMe = <ThrowOnError extends boolean = false>(
  */
 export const usersUpdatePasswordMe = <ThrowOnError extends boolean = false>(
   options: Options<UsersUpdatePasswordMeData, ThrowOnError>,
-) =>
+): RequestResult<
+  UsersUpdatePasswordMeResponses,
+  UsersUpdatePasswordMeErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).patch<
     UsersUpdatePasswordMeResponses,
     UsersUpdatePasswordMeErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/users/me/password",
     ...options,
     headers: {
@@ -318,14 +385,24 @@ export const usersUpdatePasswordMe = <ThrowOnError extends boolean = false>(
  */
 export const usersDeleteUser = <ThrowOnError extends boolean = false>(
   options: Options<UsersDeleteUserData, ThrowOnError>,
-) =>
+): RequestResult<
+  UsersDeleteUserResponses,
+  UsersDeleteUserErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).delete<
     UsersDeleteUserResponses,
     UsersDeleteUserErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/users/{user_id}",
     ...options,
   })
@@ -337,14 +414,24 @@ export const usersDeleteUser = <ThrowOnError extends boolean = false>(
  */
 export const usersReadUserById = <ThrowOnError extends boolean = false>(
   options: Options<UsersReadUserByIdData, ThrowOnError>,
-) =>
+): RequestResult<
+  UsersReadUserByIdResponses,
+  UsersReadUserByIdErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).get<
     UsersReadUserByIdResponses,
     UsersReadUserByIdErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/users/{user_id}",
     ...options,
   })
@@ -356,14 +443,24 @@ export const usersReadUserById = <ThrowOnError extends boolean = false>(
  */
 export const usersUpdateUser = <ThrowOnError extends boolean = false>(
   options: Options<UsersUpdateUserData, ThrowOnError>,
-) =>
+): RequestResult<
+  UsersUpdateUserResponses,
+  UsersUpdateUserErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).patch<
     UsersUpdateUserResponses,
     UsersUpdateUserErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/users/{user_id}",
     ...options,
     headers: {
@@ -379,14 +476,24 @@ export const usersUpdateUser = <ThrowOnError extends boolean = false>(
  */
 export const pipelinesReadPipelines = <ThrowOnError extends boolean = false>(
   options?: Options<PipelinesReadPipelinesData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesReadPipelinesResponses,
+  PipelinesReadPipelinesErrors,
+  ThrowOnError
+> =>
   (options?.client ?? client).get<
     PipelinesReadPipelinesResponses,
     PipelinesReadPipelinesErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/",
     ...options,
   })
@@ -398,14 +505,24 @@ export const pipelinesReadPipelines = <ThrowOnError extends boolean = false>(
  */
 export const pipelinesCreatePipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesCreatePipelineData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesCreatePipelineResponses,
+  PipelinesCreatePipelineErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).post<
     PipelinesCreatePipelineResponses,
     PipelinesCreatePipelineErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/",
     ...options,
     headers: {
@@ -421,14 +538,24 @@ export const pipelinesCreatePipeline = <ThrowOnError extends boolean = false>(
  */
 export const pipelinesDeletePipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesDeletePipelineData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesDeletePipelineResponses,
+  PipelinesDeletePipelineErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).delete<
     PipelinesDeletePipelineResponses,
     PipelinesDeletePipelineErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}",
     ...options,
   })
@@ -440,14 +567,24 @@ export const pipelinesDeletePipeline = <ThrowOnError extends boolean = false>(
  */
 export const pipelinesReadPipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesReadPipelineData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesReadPipelineResponses,
+  PipelinesReadPipelineErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).get<
     PipelinesReadPipelineResponses,
     PipelinesReadPipelineErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}",
     ...options,
   })
@@ -459,14 +596,24 @@ export const pipelinesReadPipeline = <ThrowOnError extends boolean = false>(
  */
 export const pipelinesUpdatePipeline = <ThrowOnError extends boolean = false>(
   options: Options<PipelinesUpdatePipelineData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesUpdatePipelineResponses,
+  PipelinesUpdatePipelineErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).patch<
     PipelinesUpdatePipelineResponses,
     PipelinesUpdatePipelineErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}",
     ...options,
     headers: {
@@ -484,14 +631,24 @@ export const pipelinesListPipelineRevisions = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesListPipelineRevisionsData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesListPipelineRevisionsResponses,
+  PipelinesListPipelineRevisionsErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).get<
     PipelinesListPipelineRevisionsResponses,
     PipelinesListPipelineRevisionsErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}/revisions",
     ...options,
   })
@@ -505,14 +662,24 @@ export const pipelinesAddPipelineRevision = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesAddPipelineRevisionData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesAddPipelineRevisionResponses,
+  PipelinesAddPipelineRevisionErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).post<
     PipelinesAddPipelineRevisionResponses,
     PipelinesAddPipelineRevisionErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}/revisions",
     ...options,
     headers: {
@@ -530,14 +697,24 @@ export const pipelinesReadPipelineRevision = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesReadPipelineRevisionData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesReadPipelineRevisionResponses,
+  PipelinesReadPipelineRevisionErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).get<
     PipelinesReadPipelineRevisionResponses,
     PipelinesReadPipelineRevisionErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}/revisions/{revision_id}",
     ...options,
   })
@@ -551,14 +728,24 @@ export const pipelinesUpdatePipelineRevision = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesUpdatePipelineRevisionData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesUpdatePipelineRevisionResponses,
+  PipelinesUpdatePipelineRevisionErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).patch<
     PipelinesUpdatePipelineRevisionResponses,
     PipelinesUpdatePipelineRevisionErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}/revisions/{revision_id}",
     ...options,
     headers: {
@@ -576,14 +763,24 @@ export const pipelinesUpdatePipelineRevisionPositions = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesUpdatePipelineRevisionPositionsData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesUpdatePipelineRevisionPositionsResponses,
+  PipelinesUpdatePipelineRevisionPositionsErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).patch<
     PipelinesUpdatePipelineRevisionPositionsResponses,
     PipelinesUpdatePipelineRevisionPositionsErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}/revisions/{revision_id}/positions",
     ...options,
     headers: {
@@ -601,14 +798,24 @@ export const pipelinesDuplicatePipeline = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesDuplicatePipelineData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesDuplicatePipelineResponses,
+  PipelinesDuplicatePipelineErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).post<
     PipelinesDuplicatePipelineResponses,
     PipelinesDuplicatePipelineErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}/duplicate",
     ...options,
   })
@@ -622,14 +829,24 @@ export const pipelinesListPipelineDeployments = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesListPipelineDeploymentsData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesListPipelineDeploymentsResponses,
+  PipelinesListPipelineDeploymentsErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).get<
     PipelinesListPipelineDeploymentsResponses,
     PipelinesListPipelineDeploymentsErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}/deployments",
     ...options,
   })
@@ -643,14 +860,24 @@ export const pipelinesListPipelineRevisionDeployments = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<PipelinesListPipelineRevisionDeploymentsData, ThrowOnError>,
-) =>
+): RequestResult<
+  PipelinesListPipelineRevisionDeploymentsResponses,
+  PipelinesListPipelineRevisionDeploymentsErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).get<
     PipelinesListPipelineRevisionDeploymentsResponses,
     PipelinesListPipelineRevisionDeploymentsErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/pipelines/{id}/revisions/{revision_id}/deployments",
     ...options,
   })
@@ -665,14 +892,24 @@ export const deploymentsListPipelineDeployments = <
   ThrowOnError extends boolean = false,
 >(
   options?: Options<DeploymentsListPipelineDeploymentsData, ThrowOnError>,
-) =>
+): RequestResult<
+  DeploymentsListPipelineDeploymentsResponses,
+  DeploymentsListPipelineDeploymentsErrors,
+  ThrowOnError
+> =>
   (options?.client ?? client).get<
     DeploymentsListPipelineDeploymentsResponses,
     DeploymentsListPipelineDeploymentsErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/deployments/",
     ...options,
   })
@@ -687,14 +924,24 @@ export const deploymentsCreatePipelineDeployment = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<DeploymentsCreatePipelineDeploymentData, ThrowOnError>,
-) =>
+): RequestResult<
+  DeploymentsCreatePipelineDeploymentResponses,
+  DeploymentsCreatePipelineDeploymentErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).post<
     DeploymentsCreatePipelineDeploymentResponses,
     DeploymentsCreatePipelineDeploymentErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/deployments/",
     ...options,
     headers: {
@@ -712,14 +959,24 @@ export const deploymentsReadPipelineDeployment = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<DeploymentsReadPipelineDeploymentData, ThrowOnError>,
-) =>
+): RequestResult<
+  DeploymentsReadPipelineDeploymentResponses,
+  DeploymentsReadPipelineDeploymentErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).get<
     DeploymentsReadPipelineDeploymentResponses,
     DeploymentsReadPipelineDeploymentErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/deployments/{id}",
     ...options,
   })
@@ -733,14 +990,24 @@ export const deploymentsUpdatePipelineDeployment = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<DeploymentsUpdatePipelineDeploymentData, ThrowOnError>,
-) =>
+): RequestResult<
+  DeploymentsUpdatePipelineDeploymentResponses,
+  DeploymentsUpdatePipelineDeploymentErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).patch<
     DeploymentsUpdatePipelineDeploymentResponses,
     DeploymentsUpdatePipelineDeploymentErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/deployments/{id}",
     ...options,
     headers: {
@@ -758,14 +1025,24 @@ export const deploymentsCreateOperatorEvent = <
   ThrowOnError extends boolean = false,
 >(
   options: Options<DeploymentsCreateOperatorEventData, ThrowOnError>,
-) =>
+): RequestResult<
+  DeploymentsCreateOperatorEventResponses,
+  DeploymentsCreateOperatorEventErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).post<
     DeploymentsCreateOperatorEventResponses,
     DeploymentsCreateOperatorEventErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/deployments/{id}/operators/{canonical_operator_id}/events",
     ...options,
     headers: {
@@ -781,14 +1058,24 @@ export const deploymentsCreateOperatorEvent = <
  */
 export const operatorsReadOperators = <ThrowOnError extends boolean = false>(
   options?: Options<OperatorsReadOperatorsData, ThrowOnError>,
-) =>
+): RequestResult<
+  OperatorsReadOperatorsResponses,
+  OperatorsReadOperatorsErrors,
+  ThrowOnError
+> =>
   (options?.client ?? client).get<
     OperatorsReadOperatorsResponses,
     OperatorsReadOperatorsErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/operators/",
     ...options,
   })
@@ -800,14 +1087,24 @@ export const operatorsReadOperators = <ThrowOnError extends boolean = false>(
  */
 export const agentsLaunchAgent = <ThrowOnError extends boolean = false>(
   options: Options<AgentsLaunchAgentData, ThrowOnError>,
-) =>
+): RequestResult<
+  AgentsLaunchAgentResponses,
+  AgentsLaunchAgentErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).post<
     AgentsLaunchAgentResponses,
     AgentsLaunchAgentErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/agents/launch",
     ...options,
     headers: {
@@ -823,14 +1120,24 @@ export const agentsLaunchAgent = <ThrowOnError extends boolean = false>(
  */
 export const agentsShutdownAgent = <ThrowOnError extends boolean = false>(
   options: Options<AgentsShutdownAgentData, ThrowOnError>,
-) =>
+): RequestResult<
+  AgentsShutdownAgentResponses,
+  AgentsShutdownAgentErrors,
+  ThrowOnError
+> =>
   (options.client ?? client).post<
     AgentsShutdownAgentResponses,
     AgentsShutdownAgentErrors,
     ThrowOnError
   >({
     responseType: "json",
-    security: [{ scheme: "bearer", type: "http" }],
+    security: [
+      {
+        key: "OAuth2PasswordBearer",
+        scheme: "bearer",
+        type: "http",
+      },
+    ],
     url: "/api/v1/agents/{agent_id}/shutdown",
     ...options,
   })
