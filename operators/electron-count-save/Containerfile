@@ -1,4 +1,4 @@
-FROM interactem-operator
+FROM distiller-streaming
 
 RUN poetry add stempy==3.6.0 h5py
 
