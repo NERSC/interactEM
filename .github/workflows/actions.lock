@@ -25,7 +25,7 @@ workflows:
         - 'astral-sh/setup-uv@v7.6.0'
     '.github/workflows/integration.yml':
         - 'actions/checkout@v4.4.0'
-        - 'actions/setup-node@v4.4.0'
+        - 'actions/setup-node@v7.1.0'
         - 'astral-sh/setup-uv@v4.2.0'
         - 'docker/setup-buildx-action@v3.12.0'
     '.github/workflows/operators.yml':
@@ -71,9 +71,9 @@ dependencies:
         commit: 'sha1-d3f86a106a0bac45b974a628896c90dbdf5c8093'
         owner_id: 44036562
         repo_id: 192626254
-    'actions/setup-node@v4.4.0':
-        ref: 'v4.4.0'
-        commit: 'sha1-49933ea5288caeca8642d1e84afbd3f7d6820020'
+    'actions/setup-node@v7.1.0':
+        ref: 'v7.1.0'
+        commit: 'sha1-949feb2413d6458794dcd2491c4babbbce0c15c1'
         owner_id: 44036562
         repo_id: 189476904
     'actions/setup-python@v5.6.0':
