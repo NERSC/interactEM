@@ -485,6 +485,8 @@ export const zValidationError = z.object({
   loc: z.array(z.union([z.string(), z.number().int()])),
   msg: z.string(),
   type: z.string(),
+  input: z.unknown().optional(),
+  ctx: z.record(z.unknown()).optional(),
 })
 
 /**
