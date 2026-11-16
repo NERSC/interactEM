@@ -125,7 +125,7 @@ jobs:
 
       - name: Upload digest
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: base-digests-${{ matrix.platform }}
           path: /tmp/digests
@@ -199,7 +199,7 @@ jobs:
 
       - name: Upload digests
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4.6.2
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: service-digests-${{ matrix.platform }}
           path: /tmp/digests
