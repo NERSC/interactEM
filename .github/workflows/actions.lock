@@ -10,7 +10,7 @@ workflows:
         - 'actions/download-artifact@v4.3.0'
         - 'actions/upload-artifact@v7.0.2'
         - 'docker/bake-action@v6.10.0'
-        - 'docker/login-action@v3.7.0'
+        - 'docker/login-action@v4.8.0'
         - 'docker/metadata-action@v5.10.0'
         - 'docker/setup-buildx-action@v3.12.0'
     '.github/workflows/bump-version.yml':
@@ -37,7 +37,7 @@ workflows:
         - 'actions/download-artifact@v4.3.0'
         - 'actions/upload-artifact@v7.0.2'
         - 'docker/bake-action@v6.10.0'
-        - 'docker/login-action@v3.7.0'
+        - 'docker/login-action@v4.8.0'
         - 'docker/metadata-action@v5.10.0'
         - 'docker/setup-buildx-action@v3.12.0'
     '.github/workflows/release-tagging.yml':
@@ -107,9 +107,9 @@ dependencies:
         commit: 'sha1-5be5f02ff8819ecd3092ea6b2e6261c31774f2b4'
         owner_id: 5429470
         repo_id: 301684204
-    'docker/login-action@v3.7.0':
-        ref: 'v3.7.0'
-        commit: 'sha1-c94ce9fb468520275223c153574b00df6fe4bcc9'
+    'docker/login-action@v4.8.0':
+        ref: 'v4.8.0'
+        commit: 'sha1-8aa5831fb8d48d8f76594c7ddde61ae58019f550'
         owner_id: 5429470
         repo_id: 287743349
     'docker/metadata-action@v5.10.0':
