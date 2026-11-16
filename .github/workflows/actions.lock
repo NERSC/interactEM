@@ -12,7 +12,7 @@ workflows:
         - 'docker/bake-action@v6.10.0'
         - 'docker/login-action@v4.8.0'
         - 'docker/metadata-action@v5.10.0'
-        - 'docker/setup-buildx-action@v3.12.0'
+        - 'docker/setup-buildx-action@v4.4.1'
     '.github/workflows/bump-version.yml':
         - 'actions/checkout@v7.0.1'
         - 'astral-sh/setup-uv@v10.3.3'
@@ -31,7 +31,7 @@ workflows:
         - 'actions/checkout@v7.0.1'
         - 'actions/setup-node@v7.1.0'
         - 'astral-sh/setup-uv@v10.3.3'
-        - 'docker/setup-buildx-action@v3.12.0'
+        - 'docker/setup-buildx-action@v4.4.1'
     '.github/workflows/operators.yml':
         - 'actions/checkout@v7.0.1'
         - 'actions/download-artifact@v4.3.0'
@@ -39,7 +39,7 @@ workflows:
         - 'docker/bake-action@v6.10.0'
         - 'docker/login-action@v4.8.0'
         - 'docker/metadata-action@v5.10.0'
-        - 'docker/setup-buildx-action@v3.12.0'
+        - 'docker/setup-buildx-action@v4.4.1'
     '.github/workflows/release-tagging.yml':
         - 'actions/checkout@v7.0.1'
         - 'astral-sh/setup-uv@v10.3.3'
@@ -117,9 +117,9 @@ dependencies:
         commit: 'sha1-c299e40c65443455700f0fdfc63efafe5b349051'
         owner_id: 5429470
         repo_id: 306769011
-    'docker/setup-buildx-action@v3.12.0':
-        ref: 'v3.12.0'
-        commit: 'sha1-8d2750c68a42422c14e847fe6c8ac0403b4cbd6f'
+    'docker/setup-buildx-action@v4.4.1':
+        ref: 'v4.4.1'
+        commit: 'sha1-f87e5991a6d7451dcb8d9637bfbc97413f497069'
         owner_id: 5429470
         repo_id: 288485773
     'peter-evans/create-pull-request@v8.1.3':
