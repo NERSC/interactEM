@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       - name: Checkout the code
-        uses: actions/checkout@v4.4.0
+        uses: actions/checkout@v7.0.1
 
       - name: Configure git user
         run: |
