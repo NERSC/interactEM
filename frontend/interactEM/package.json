@@ -47,7 +47,7 @@
     "react-infinite-scroll-component": "^6.1.1",
     "react-toastify": "^11.2.0",
     "react-virtuoso": "^4.18.1",
-    "uuid": "^13.0.2"
+    "uuid": "^14.0.3"
   },
   "peerDependencies": {
     "@tanstack/react-query": "^5.66.0",
