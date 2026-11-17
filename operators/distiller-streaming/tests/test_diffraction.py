@@ -41,6 +41,20 @@ def test_calculate_diffraction_center_gaussian():
     assert calculate_diffraction_center(pattern) == (63, 63)
 
 
+def test_calculate_diffraction_center_asymmetric():
+    """Regression test for #454: x and y must not be swapped for
+    non-diagonally-symmetric patterns (a symmetric cx==cy pattern can't
+    catch an axis swap). Uses a single-pixel mass so the center of mass
+    is an exact integer, avoiding edge-truncation ambiguity from a
+    clipped Gaussian (see PR #586 review)."""
+    size = 128
+    cx, cy = 90, 30
+    pattern = np.zeros((size, size))
+    pattern[cy, cx] = 1.0
+    result = calculate_diffraction_center(pattern)
+    assert result == (cx, cy)
+
+
 def test_calculate_diffraction_center_empty():
     with pytest.raises(ValueError, match="Empty diffraction pattern"):
         calculate_diffraction_center(np.array([]))

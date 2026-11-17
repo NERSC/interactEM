@@ -1,5 +1,5 @@
 FROM interactem-operator
 
-RUN poetry add stempy h5py
+RUN poetry add stempy==3.6.0 h5py
 
 COPY ./run.py /app/run.py

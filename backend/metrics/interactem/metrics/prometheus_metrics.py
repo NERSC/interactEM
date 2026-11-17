@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import StrEnum
 from uuid import UUID
 
 from prometheus_client import Counter, Gauge, Histogram
@@ -42,7 +42,7 @@ class PipelineActivity(BaseModel):
     active_operators: int = Field(ge=0, description="Number of active operators")
 
 
-class ErrorTypeEnum(str, Enum):
+class ErrorTypeEnum(StrEnum):
     NO_PIPELINES = "no_pipelines"
     MULTIPLE_PIPELINES = "multiple_pipelines"
     NO_PIPELINE_DATA = "no_pipeline_data"

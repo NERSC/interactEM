@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING, Annotated
 
 from faststream import Depends
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 logger = get_logger()
 
 
-class ApiKeyType(str, Enum):
+class ApiKeyType(StrEnum):
     ORCHESTRATOR = "orchestrator"
 
 

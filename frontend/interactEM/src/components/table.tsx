@@ -31,6 +31,7 @@ const tableRowStyle = {
 const tableCellStyle = { py: 0.5 }
 const waitingTextStyle = { p: 1, fontStyle: "italic" }
 const containerBoxStyle = { padding: 1, maxHeight: 450, overflowY: "auto" }
+const tableSectionBoxStyle = { mb: 2 }
 
 const renderTable = (tableName: string, data: TableRowData[]) => {
   if (!data || data.length === 0) {
@@ -64,7 +65,7 @@ const renderTable = (tableName: string, data: TableRowData[]) => {
     headers.map((header) => String(row?.[header] ?? "")).join("|")
 
   return (
-    <Box key={tableName} mb={2}>
+    <Box key={tableName} sx={tableSectionBoxStyle}>
       <Typography variant="subtitle1" gutterBottom sx={mediumWeightStyle}>
         {tableName}
       </Typography>

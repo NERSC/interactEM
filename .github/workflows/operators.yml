@@ -21,6 +21,8 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io/nersc/interactem
+  # Digest export does not need provenance, which can exceed Actions template limits.
+  BUILDX_METADATA_PROVENANCE: "false"
 
 jobs:
   prepare:
@@ -36,16 +38,16 @@ jobs:
       operators: ${{ steps.operators.outputs.operators }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           submodules: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4.4.1
 
       - name: Docker meta
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v5.10.0
         with:
           images: ${{ env.REGISTRY }}/operator
           tags: |
@@ -90,19 +92,19 @@ jobs:
           sudo rm -rf /opt/hostedtoolcache/CodeQL
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
         with:
           submodules: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4.4.1
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate operator labels
         run: |
@@ -125,7 +127,7 @@ jobs:
 
       - name: Build and push operators
         id: bake
-        uses: docker/bake-action@v6
+        uses: docker/bake-action@v7.5.0
         with:
           source: .
           provenance: false
@@ -161,7 +163,7 @@ jobs:
 
       - name: Upload digests
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: operator-digests-${{ matrix.platform }}
           path: /tmp/digests
@@ -181,17 +183,17 @@ jobs:
         operator: ${{ fromJson(needs.prepare.outputs.operators) }}
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4.4.1
 
       - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4.8.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download digests
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v4.3.0
         with:
           path: /tmp/digests
           pattern: operator-digests-*

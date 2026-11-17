@@ -1,0 +1,41 @@
+name: Actions Lockfile
+
+# Fails when .github/workflows/actions.lock is out of sync with the workflows,
+# or when a locked commit no longer matches its ref. Fix by running
+# `gh actions-lock` locally and committing the result.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '.github/workflows/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install gh-actions-lock
+        run: gh extension install github/gh-actions-lock --pin v0.4.0
+
+      - name: Verify lockfile
+        run: gh actions-lock --verify

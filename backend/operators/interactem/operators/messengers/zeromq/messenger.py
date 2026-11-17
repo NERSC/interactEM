@@ -236,7 +236,7 @@ class ZmqMessenger(BaseMessenger):
                 ),
                 timeout=10,
             )
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             logger.info(f"Failed to setup zmq messenger within timeout: {e}")
             raise e
         except Exception as e:

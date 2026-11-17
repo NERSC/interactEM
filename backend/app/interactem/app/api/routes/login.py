@@ -1,5 +1,5 @@
 import secrets
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -86,8 +86,8 @@ async def login_with_external_token(
     if not user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
 
-    now = datetime.now(timezone.utc)
-    exp_datetime = datetime.fromtimestamp(external_user.exp, tz=timezone.utc)
+    now = datetime.now(UTC)
+    exp_datetime = datetime.fromtimestamp(external_user.exp, tz=UTC)
     access_token_expires = exp_datetime - now
 
     logger.info(

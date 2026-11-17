@@ -6,7 +6,7 @@ authors = [
     {name = "Sam Welborn", email = "swelborn@lbl.gov"},
     {name = "Chris Harris", email = "cjh@lbl.gov"}
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
 dependencies = [
     "interactem-core",
@@ -40,5 +40,5 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.ruff]
-target-version = "py310"
+target-version = "py311"
 extend = "../../.ruff.toml"

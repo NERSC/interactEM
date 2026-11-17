@@ -1,11 +1,11 @@
 import pathlib
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class NatsMode(str, Enum):
+class NatsMode(StrEnum):
     NKEYS = "nkeys"
     CREDS = "creds"
 

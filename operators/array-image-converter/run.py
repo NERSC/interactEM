@@ -1,7 +1,7 @@
 import io
 from typing import Any
 
-import matplotlib.cm as cm
+import matplotlib
 import numpy as np
 from PIL import Image, ImageEnhance
 from pydantic import BaseModel
@@ -76,7 +76,7 @@ def array_image_converter(
     if ignore_blank:
         normalized_pattern[~valid_mask] = 0.0
 
-    colormap = cm.get_cmap(colormap_name)
+    colormap = matplotlib.colormaps[colormap_name]
     colored_image_data = colormap(normalized_pattern)
 
     # Convert to 8-bit RGB

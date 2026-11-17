@@ -606,8 +606,8 @@ export const pipelinesReadPipelinesInfiniteQueryKey = (
  */
 export const pipelinesReadPipelinesInfiniteOptions = (
   options?: Options<PipelinesReadPipelinesData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     PipelinesReadPipelinesResponse,
     AxiosError<PipelinesReadPipelinesError>,
     InfiniteData<PipelinesReadPipelinesResponse>,
@@ -645,6 +645,8 @@ export const pipelinesReadPipelinesInfiniteOptions = (
       queryKey: pipelinesReadPipelinesInfiniteQueryKey(options),
     },
   )
+  return opts as Omit<typeof opts, "initialData">
+}
 
 /**
  * Create Pipeline
@@ -805,8 +807,8 @@ export const pipelinesListPipelineRevisionsInfiniteQueryKey = (
  */
 export const pipelinesListPipelineRevisionsInfiniteOptions = (
   options: Options<PipelinesListPipelineRevisionsData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     PipelinesListPipelineRevisionsResponse,
     AxiosError<PipelinesListPipelineRevisionsError>,
     InfiniteData<PipelinesListPipelineRevisionsResponse>,
@@ -844,6 +846,8 @@ export const pipelinesListPipelineRevisionsInfiniteOptions = (
       queryKey: pipelinesListPipelineRevisionsInfiniteQueryKey(options),
     },
   )
+  return opts as Omit<typeof opts, "initialData">
+}
 
 /**
  * Add Pipeline Revision
@@ -1033,8 +1037,8 @@ export const pipelinesListPipelineDeploymentsInfiniteQueryKey = (
  */
 export const pipelinesListPipelineDeploymentsInfiniteOptions = (
   options: Options<PipelinesListPipelineDeploymentsData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     PipelinesListPipelineDeploymentsResponse,
     AxiosError<PipelinesListPipelineDeploymentsError>,
     InfiniteData<PipelinesListPipelineDeploymentsResponse>,
@@ -1072,6 +1076,8 @@ export const pipelinesListPipelineDeploymentsInfiniteOptions = (
       queryKey: pipelinesListPipelineDeploymentsInfiniteQueryKey(options),
     },
   )
+  return opts as Omit<typeof opts, "initialData">
+}
 
 export const pipelinesListPipelineRevisionDeploymentsQueryKey = (
   options: Options<PipelinesListPipelineRevisionDeploymentsData>,
@@ -1115,8 +1121,8 @@ export const pipelinesListPipelineRevisionDeploymentsInfiniteQueryKey = (
  */
 export const pipelinesListPipelineRevisionDeploymentsInfiniteOptions = (
   options: Options<PipelinesListPipelineRevisionDeploymentsData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     PipelinesListPipelineRevisionDeploymentsResponse,
     AxiosError<PipelinesListPipelineRevisionDeploymentsError>,
     InfiniteData<PipelinesListPipelineRevisionDeploymentsResponse>,
@@ -1155,6 +1161,8 @@ export const pipelinesListPipelineRevisionDeploymentsInfiniteOptions = (
         pipelinesListPipelineRevisionDeploymentsInfiniteQueryKey(options),
     },
   )
+  return opts as Omit<typeof opts, "initialData">
+}
 
 export const deploymentsListPipelineDeploymentsQueryKey = (
   options?: Options<DeploymentsListPipelineDeploymentsData>,
@@ -1200,8 +1208,8 @@ export const deploymentsListPipelineDeploymentsInfiniteQueryKey = (
  */
 export const deploymentsListPipelineDeploymentsInfiniteOptions = (
   options?: Options<DeploymentsListPipelineDeploymentsData>,
-) =>
-  infiniteQueryOptions<
+) => {
+  const opts = infiniteQueryOptions<
     DeploymentsListPipelineDeploymentsResponse,
     AxiosError<DeploymentsListPipelineDeploymentsError>,
     InfiniteData<DeploymentsListPipelineDeploymentsResponse>,
@@ -1239,6 +1247,8 @@ export const deploymentsListPipelineDeploymentsInfiniteOptions = (
       queryKey: deploymentsListPipelineDeploymentsInfiniteQueryKey(options),
     },
   )
+  return opts as Omit<typeof opts, "initialData">
+}
 
 /**
  * Create Pipeline Deployment

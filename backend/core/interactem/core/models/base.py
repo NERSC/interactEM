@@ -1,16 +1,18 @@
 import abc
-from enum import Enum
+from enum import StrEnum
 from uuid import UUID
 
 IdType = UUID
 
-class PipelineDeploymentState(str, Enum):
+
+class PipelineDeploymentState(StrEnum):
     PENDING = "pending"
     AGENTS_ASSIGNED = "assigned_agents"
     FAILED_TO_START = "failed_to_start"
     FAILURE_ON_AGENT = "failure_on_agent"
     RUNNING = "running"
     CANCELLED = "cancelled"
+
 
 TERMINAL_DEPLOYMENT_STATES = [
     PipelineDeploymentState.CANCELLED,
@@ -27,30 +29,30 @@ class KvKeyMixin(abc.ABC):
     def key(self) -> str: ...
 
 
-class CommBackend(str, Enum):
+class CommBackend(StrEnum):
     ZMQ = "zmq"
     MPI = "mpi"
     NATS = "nats"
 
 
-class Protocol(str, Enum):
+class Protocol(StrEnum):
     tcp = "tcp"
     inproc = "inproc"
     ipc = "ipc"
 
 
-class URILocation(str, Enum):
+class URILocation(StrEnum):
     operator = "operator"
     port = "port"
     agent = "agent"
     orchestrator = "orchestrator"
 
 
-class PortType(str, Enum):
+class PortType(StrEnum):
     input = "input"
     output = "output"
 
 
-class NodeType(str, Enum):
+class NodeType(StrEnum):
     operator = "operator"
     port = "port"

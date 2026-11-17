@@ -72,9 +72,7 @@ export const DeploymentsList: React.FC<DeploymentsListProps> = ({
   const deploymentEndMessage = (
     <Typography
       variant="caption"
-      display="block"
-      textAlign="center"
-      sx={{ p: 2 }}
+      sx={{ display: "block", textAlign: "center", p: 2 }}
     >
       {deployments.length > 0 ? "No more deployments" : emptyMessage}
     </Typography>

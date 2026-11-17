@@ -49,12 +49,11 @@ export const HudRuntimeInfo: React.FC<HudRuntimeInfoProps> = ({
   }
 
   return (
-    <Stack direction="row" alignItems="center" sx={{ gap: 0.5, flex: 1 }}>
+    <Stack direction="row" sx={{ alignItems: "center", gap: 0.5, flex: 1 }}>
       <Typography
         variant="subtitle1"
-        fontWeight="medium"
         noWrap
-        sx={{ display: "flex", alignItems: "center" }}
+        sx={{ fontWeight: "medium", display: "flex", alignItems: "center" }}
       >
         {pipelineName}
       </Typography>

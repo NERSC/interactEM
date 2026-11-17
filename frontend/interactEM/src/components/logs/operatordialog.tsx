@@ -53,7 +53,13 @@ const OperatorLogsDialog: React.FC<OperatorLogsDialogProps> = ({
   return (
     <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth>
       <DialogTitle>
-        <Box display="flex" justifyContent="space-between" alignItems="center">
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
           <Typography variant="h6">
             Logs: {operatorLabel}
             {operators.length > 1 && ` (${operators.length} instances)`}

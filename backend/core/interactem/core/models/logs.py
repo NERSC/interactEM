@@ -1,12 +1,12 @@
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict
 
 from .runtime import IdType, RuntimeOperatorID
 
 
-class LogType(str, Enum):
+class LogType(StrEnum):
     AGENT = "agent"
     OPERATOR = "operator"
     VECTOR = "vector"

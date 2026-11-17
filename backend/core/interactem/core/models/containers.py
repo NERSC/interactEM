@@ -1,5 +1,5 @@
 import pathlib
-from enum import Enum
+from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, model_validator
@@ -16,7 +16,7 @@ else:
     RuntimeOperatorParameter = BaseModel
 
 
-class NetworkMode(str, Enum):
+class NetworkMode(StrEnum):
     BRIDGE = "bridge"
     NONE = "none"
     CONTAINER = "container"
@@ -27,7 +27,7 @@ class NetworkMode(str, Enum):
         return self.value
 
 
-class PodmanMountType(str, Enum):
+class PodmanMountType(StrEnum):
     bind = "bind"
     volume = "volume"
     tmpfs = "tmpfs"
@@ -114,9 +114,7 @@ class MountMixin(BaseModel):
         try:
             self.update_param_mounts(use_default=True)
         except MountDoesntExistError as e:
-            raise ValueError(
-                f"Invalid mount: {e.source}"
-            ) from e
+            raise ValueError(f"Invalid mount: {e.source}") from e
         return self
 
     def add_internal_mount(self, mount: PodmanMount) -> None:

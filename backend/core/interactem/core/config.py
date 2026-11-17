@@ -1,10 +1,10 @@
 import pathlib
-from enum import Enum
+from enum import StrEnum
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class LogLevel(str, Enum):
+class LogLevel(StrEnum):
     INFO = "INFO"
     DEBUG = "DEBUG"
     WARNING = "WARNING"

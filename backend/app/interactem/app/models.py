@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 import sqlalchemy as sa
@@ -110,16 +110,16 @@ class Pipeline(PipelineBase, table=True):
         foreign_key="user.id", nullable=False, ondelete="CASCADE"
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={
-            "onupdate": lambda: datetime.now(timezone.utc),
+            "onupdate": lambda: datetime.now(UTC),
         },
         index=True,
         nullable=False,
         sa_type=sa.DateTime(timezone=True),  # type: ignore
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         nullable=False,
         index=True,
         sa_type=sa.DateTime(timezone=True),  # type: ignore
@@ -149,7 +149,7 @@ class PipelineRevision(SQLModel, table=True):
         sa_column=Column(JSON, nullable=False), default_factory=list
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         nullable=False,
         sa_type=sa.DateTime(timezone=True),  # type: ignore
     )
@@ -220,14 +220,14 @@ class PipelineDeployment(SQLModel, table=True):
         default=PipelineDeploymentState.PENDING, index=True
     )
     created_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         nullable=False,
         sa_type=sa.DateTime(timezone=True),  # type: ignore
     )
     updated_at: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
+        default_factory=lambda: datetime.now(UTC),
         sa_column_kwargs={
-            "onupdate": lambda: datetime.now(timezone.utc),
+            "onupdate": lambda: datetime.now(UTC),
         },
         nullable=False,
         sa_type=sa.DateTime(timezone=True),  # type: ignore
