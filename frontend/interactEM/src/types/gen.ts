@@ -117,7 +117,7 @@ export interface RuntimeOperatorParameterString {
   name: string
   label: string
   description: string
-  type: Type
+  type: "str"
   default: string
   required: boolean
   value?: string | null
@@ -127,7 +127,7 @@ export interface RuntimeOperatorParameterMount {
   name: string
   label: string
   description: string
-  type: Type1
+  type: "mount"
   default: string
   required: boolean
   value?: string | null
@@ -137,7 +137,7 @@ export interface RuntimeOperatorParameterInteger {
   name: string
   label: string
   description: string
-  type: Type2
+  type: "int"
   default: number
   required: boolean
   value?: number | null
@@ -147,7 +147,7 @@ export interface RuntimeOperatorParameterFloat {
   name: string
   label: string
   description: string
-  type: Type3
+  type: "float"
   default: number
   required: boolean
   value?: number | null
@@ -157,7 +157,7 @@ export interface RuntimeOperatorParameterBoolean {
   name: string
   label: string
   description: string
-  type: Type4
+  type: "bool"
   default: boolean
   required: boolean
   value?: boolean | null
@@ -167,7 +167,7 @@ export interface RuntimeOperatorParameterStrEnum {
   name: string
   label: string
   description: string
-  type: Type5
+  type: "str-enum"
   default: string
   required: boolean
   options: string[]
@@ -275,24 +275,6 @@ export enum PortStatus {
   initializing = "initializing",
   idle = "idle",
   busy = "busy",
-}
-export enum Type {
-  str = "str",
-}
-export enum Type1 {
-  mount = "mount",
-}
-export enum Type2 {
-  int = "int",
-}
-export enum Type3 {
-  float = "float",
-}
-export enum Type4 {
-  bool = "bool",
-}
-export enum Type5 {
-  "str-enum" = "str-enum",
 }
 export enum ParallelType {
   none = "none",
