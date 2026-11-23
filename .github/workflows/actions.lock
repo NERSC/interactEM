@@ -45,7 +45,7 @@ workflows:
         - 'astral-sh/setup-uv@v10.3.3'
     '.github/workflows/ruff.yml':
         - 'actions/checkout@v7.0.1'
-        - 'astral-sh/ruff-action@v3.6.1'
+        - 'astral-sh/ruff-action@v4.1.0'
     '.github/workflows/version-check.yml':
         - 'actions/checkout@v7.0.1'
         - 'astral-sh/setup-uv@v10.3.3'
@@ -92,9 +92,9 @@ dependencies:
         repo_id: 496012378
         uses:
             - 'actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f'
-    'astral-sh/ruff-action@v3.6.1':
-        ref: 'v3.6.1'
-        commit: 'sha1-4919ec5cf1f49eff0871dbcea0da843445b837e6'
+    'astral-sh/ruff-action@v4.1.0':
+        ref: 'v4.1.0'
+        commit: 'sha1-278981a28ce3188b1e39527901f38254bf3aac89'
         owner_id: 115962839
         repo_id: 865075538
     'astral-sh/setup-uv@v10.3.3':
