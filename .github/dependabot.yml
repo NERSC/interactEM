@@ -18,6 +18,11 @@ updates:
         patterns:
           - "vite"
           - "@vitejs/*"
+      # All other minor/patch bumps in one PR
+      npm-minor-patch:
+        patterns:
+          - "*"
+        update-types: ["minor", "patch"]
 
   # GitHub Actions. Onboarded workflows are locked in
   # .github/workflows/actions.lock; Dependabot regenerates the matching
