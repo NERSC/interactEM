@@ -229,7 +229,7 @@ jobs:
 
       - name: Download base digests
         if: matrix.service == 'interactem'
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v8.0.2
         with:
           path: /tmp/digests
           pattern: base-digests-*
@@ -237,7 +237,7 @@ jobs:
 
       - name: Download service digests
         if: matrix.service != 'interactem'
-        uses: actions/download-artifact@v4.3.0
+        uses: actions/download-artifact@v8.0.2
         with:
           path: /tmp/digests
           pattern: service-digests-*
