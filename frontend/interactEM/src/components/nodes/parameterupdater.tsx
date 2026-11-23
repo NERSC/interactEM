@@ -66,7 +66,7 @@ const ParameterUpdater: React.FC<{
 
     const result = getParameterInputSchema(parameter).safeParse(val)
     setError(
-      result.success ? null : result.error.errors[0]?.message || "Invalid",
+      result.success ? null : result.error.issues[0]?.message || "Invalid",
     )
   }
 
@@ -88,7 +88,7 @@ const ParameterUpdater: React.FC<{
                   ...n.data,
                   parameters: n.data.parameters?.map((p) =>
                     p.name === parameter.name
-                      ? { ...p, default: result.data, value: result.data }
+                      ? ({ ...p, default: result.data } as typeof p)
                       : p,
                   ),
                 },
