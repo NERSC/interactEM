@@ -1,0 +1,5 @@
+FROM distiller-streaming-dense
+
+RUN poetry add pillow
+
+COPY ./run.py /app/run.py

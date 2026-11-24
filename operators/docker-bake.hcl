@@ -39,7 +39,8 @@ group "operators" {
     "bin-sparse-partial",
     "quantem-direct-ptycho",
     "read-tem-data",
-    "update-distiller-metadata"
+    "update-distiller-metadata",
+    "dense-frame-accumulator"
   ]
 }
 
@@ -85,6 +86,12 @@ target "distiller-streaming-context" {
   }
 }
 
+target "distiller-streaming-dense-context" {
+  contexts = {
+    distiller-streaming-dense = "target:distiller-streaming-dense"
+  }
+}
+
 target "output" {
 }
 
@@ -107,6 +114,13 @@ target "distiller-streaming" {
   context = "operators/distiller-streaming"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/distiller-streaming"]
+}
+
+target "distiller-streaming-dense" {
+  inherits = [ "common", "operator-context"]
+  context = "operators/distiller-streaming-dense"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/distiller-streaming-dense"]
 }
 
 target "beam-compensation" {
@@ -320,10 +334,17 @@ target "quantem-direct-ptycho" {
 }
 
 target "read-tem-data" {
-  inherits = ["common", "operator-context", "output"]
+  inherits = ["common", "distiller-streaming-dense-context", "output"]
   context = "operators/read-tem-data"
   dockerfile = "Containerfile"
   tags = ["${REGISTRY}/read-tem-data"]
+}
+
+target "dense-frame-accumulator" {
+  inherits = ["common", "distiller-streaming-dense-context", "output"]
+  context = "operators/dense-frame-accumulator"
+  dockerfile = "Containerfile"
+  tags = ["${REGISTRY}/dense-frame-accumulator"]
 }
 
 target "update-distiller-metadata" {

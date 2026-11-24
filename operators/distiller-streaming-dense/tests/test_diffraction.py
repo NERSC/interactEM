@@ -1,0 +1,63 @@
+import numpy as np
+import pytest
+
+from distiller_streaming_dense.util import (
+    calculate_diffraction_center,
+    get_diffraction_center,
+    get_summed_diffraction_pattern,
+)
+
+
+@pytest.mark.parametrize("subsample_step", [1, 2])
+def test_get_summed_diffraction_pattern_variants(
+    populated_frame_accumulator, subsample_step
+):
+    summed_dp = get_summed_diffraction_pattern(
+        populated_frame_accumulator, subsample_step=subsample_step
+    )
+    assert summed_dp.shape == populated_frame_accumulator.frame_shape
+    assert summed_dp.dtype == np.float64
+    assert summed_dp.sum() > 0
+
+
+@pytest.mark.parametrize(
+    "func,kwargs,err",
+    [
+        (get_summed_diffraction_pattern, {}, "No frames available for summing"),
+        (get_diffraction_center, {}, "No frames available for summing"),
+    ],
+)
+def test_empty_accumulator_errors(frame_accumulator, func, kwargs, err):
+    with pytest.raises(ValueError, match=err):
+        func(frame_accumulator, **kwargs)
+
+
+def test_calculate_diffraction_center_gaussian():
+    size = 128
+    cx, cy = size // 2, size // 2
+    x, y = np.meshgrid(np.arange(size), np.arange(size))
+    sigma = 10
+    pattern = np.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * sigma**2))
+    assert calculate_diffraction_center(pattern) == (63, 63)
+
+
+def test_calculate_diffraction_center_asymmetric():
+    """Regression test for #454: x and y must not be swapped for
+    non-diagonally-symmetric patterns (a symmetric cx==cy pattern can't
+    catch an axis swap)."""
+    size = 128
+    cx, cy = 90, 30
+    x, y = np.meshgrid(np.arange(size), np.arange(size))
+    sigma = 10
+    pattern = np.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * sigma**2))
+    result = calculate_diffraction_center(pattern)
+    assert abs(result[0] - cx) <= 1
+    assert abs(result[1] - cy) <= 1
+    # Guard against an axis swap specifically: that would put the computed
+    # center near (cy, cx) = (30, 90) instead of near (cx, cy) = (90, 30).
+    assert abs(result[0] - cy) > 1 or abs(result[1] - cx) > 1
+
+
+def test_calculate_diffraction_center_empty():
+    with pytest.raises(ValueError, match="Empty diffraction pattern"):
+        calculate_diffraction_center(np.array([]))

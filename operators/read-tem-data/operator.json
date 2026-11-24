@@ -1,14 +1,14 @@
 {
   "id": "389712a9-edb9-4dcb-89d8-c13264a0c356",
   "label": "Read TEM data",
-  "description": "This reads data from disk using ncempy and sends it on.",
+  "description": "Reads dense array data from disk using ncempy and streams it out as batched dense frames.",
   "image": "ghcr.io/nersc/interactem/read-tem-data:latest",
   "outputs": [
     {
-      "name": "data",
-      "label": "Output array",
-      "description": "Array output",
-      "type": "bytes"
+      "name": "dense_data",
+      "label": "Dense Data",
+      "type": "dense_frame",
+      "description": "Batched dense frames of 4D-STEM data"
     }
   ],
   "parameters": [
@@ -27,9 +27,62 @@
       "type": "str",
       "default": "file.emd",
       "required": true
+    },
+    {
+      "name": "batch_size_mb",
+      "label": "Batch size (MB)",
+      "type": "float",
+      "default": 1.0,
+      "description": "The size of each emitted batch in megabytes.",
+      "required": false
+    },
+    {
+      "name": "scan_shape_y",
+      "label": "Scan shape (Y)",
+      "type": "int",
+      "default": 0,
+      "description": "Override scan shape Y dimension. 0 = auto-detect from a 4D array.",
+      "required": false
+    },
+    {
+      "name": "scan_shape_x",
+      "label": "Scan shape (X)",
+      "type": "int",
+      "default": 0,
+      "description": "Override scan shape X dimension. 0 = auto-detect from a 4D array.",
+      "required": false
+    },
+    {
+      "name": "frame_shape_y",
+      "label": "Frame shape (Y)",
+      "type": "int",
+      "default": 0,
+      "description": "Override frame shape Y dimension. 0 = auto-detect from a 4D array.",
+      "required": false
+    },
+    {
+      "name": "frame_shape_x",
+      "label": "Frame shape (X)",
+      "type": "int",
+      "default": 0,
+      "description": "Override frame shape X dimension. 0 = auto-detect from a 4D array.",
+      "required": false
+    },
+    {
+      "name": "cache_last_file",
+      "label": "Cache last file",
+      "type": "bool",
+      "default": false,
+      "description": "Cache the last loaded file to avoid re-reading between triggers.",
+      "required": false
     }
   ],
-  "parallel_config": {
-    "type": "none"
-  }
+  "triggers": [
+    {
+      "name": "read_now",
+      "label": "Read TEM data now",
+      "description": "Manually read the file and emit the next batch of dense frames without waiting.",
+      "mode": "drain"
+    }
+  ]
 }
